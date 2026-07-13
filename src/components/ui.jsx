@@ -14,11 +14,20 @@ export function Avatar({ member, size = "md" }) {
   };
   return (
     <div
-      className={`${sizes[size]} rounded-full flex items-center justify-center font-semibold text-white shrink-0 ring-2 ring-white`}
+      className={`${sizes[size]} relative overflow-hidden rounded-full flex items-center justify-center font-semibold text-white shrink-0 ring-2 ring-white`}
       style={{ backgroundColor: colorVar(member.color) }}
       title={member.name}
     >
       {member.initials}
+      {member.avatarUrl && (
+        <img
+          src={member.avatarUrl}
+          alt=""
+          referrerPolicy="no-referrer"
+          className="absolute inset-0 w-full h-full object-cover"
+          onError={(event) => { event.currentTarget.style.display = "none"; }}
+        />
+      )}
     </div>
   );
 }
@@ -141,7 +150,7 @@ export function TextField({ label, ...props }) {
 export function PrimaryButton({ children, className = "", ...props }) {
   return (
     <button
-      className={`w-full rounded-xl sunrise-gradient text-black font-semibold text-[15px] py-3 shadow-[0_5px_14px_rgba(113,104,232,0.2)] active:scale-[0.98] transition-transform disabled:opacity-40 ${className}`}
+      className={`w-full rounded-xl bg-[var(--color-accent)] text-white font-semibold text-[15px] py-3 active:scale-[0.98] transition-transform disabled:opacity-40 ${className}`}
       {...props}
     >
       {children}

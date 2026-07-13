@@ -31,12 +31,6 @@
   --color-fam-plum: #A463D8;
   --color-fam-rose: #DC5B9E;
 
-  --color-peach-soft: #FFE1D8;
-  --color-pink-soft: #F8DCEE;
-  --color-yellow-soft: #FFE9E1;
-  --color-blue-soft: #DFEDFF;
-  --color-mint-soft: #E8E7FF;
-  --color-lilac-soft: #E8E1FF;
 }
 
 :root[data-daypart="morning"] {
@@ -56,10 +50,7 @@ html, body, #root {
 }
 
 body {
-  background:
-    radial-gradient(circle at 5% 8%, rgba(184, 216, 255, 0.3), transparent 24rem),
-    radial-gradient(circle at 96% 18%, rgba(215, 94, 170, 0.14), transparent 22rem),
-    var(--color-canvas);
+  background: var(--color-canvas);
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -77,32 +68,10 @@ body {
 
 .page-header {
   position: relative;
-  overflow: hidden;
-  margin: 10px 12px 0;
-  border: 1px solid rgba(255, 255, 255, 0.75);
-  border-radius: 24px;
-  background: linear-gradient(125deg, rgba(213, 233, 255, 0.96), rgba(227, 216, 255, 0.94) 43%, rgba(255, 214, 226, 0.92) 74%, rgba(255, 222, 208, 0.94));
-  box-shadow: 0 8px 24px rgba(115, 75, 50, 0.07);
 }
-.page-header::before,
-.page-header::after {
-  content: "";
-  position: absolute;
-  border-radius: 999px;
-  pointer-events: none;
-}
-.page-header::before { width: 78px; height: 78px; right: -18px; top: -28px; background: rgba(255, 82, 57, 0.2); }
-.page-header::after { width: 36px; height: 36px; right: 52px; bottom: -17px; background: rgba(113, 104, 232, 0.24); }
 .page-header-content { position: relative; z-index: 1; }
 
-.pastel-peach { background: linear-gradient(135deg, var(--color-peach-soft), #FFFDFB); }
-.pastel-pink { background: linear-gradient(135deg, var(--color-pink-soft), #FFFDFB); }
-.pastel-yellow { background: linear-gradient(135deg, var(--color-yellow-soft), #FFFDFB); }
-.pastel-blue { background: linear-gradient(135deg, var(--color-blue-soft), #FFFDFB); }
-.pastel-mint { background: linear-gradient(135deg, var(--color-mint-soft), #FFFDFB); }
-.pastel-lilac { background: linear-gradient(135deg, var(--color-lilac-soft), #FFFDFB); }
-
-.safe-top { padding-top: env(safe-area-inset-top); }
+.safe-top { padding-top: calc(env(safe-area-inset-top) + 1.75rem); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 
 ::-webkit-scrollbar { display: none; }

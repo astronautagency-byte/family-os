@@ -52,6 +52,10 @@ export function FamilyProvider({ children }) {
   const [groceries, setGroceries] = useState(saved?.groceries ?? initialGroceries);
   const [tasks, setTasks] = useState(saved?.tasks ?? initialTasks);
   const [messages, setMessages] = useState(saved?.messages ?? initialMessages);
+  const [expenses, setExpenses] = useState(saved?.expenses ?? []);
+  const [weeklyBudget, setWeeklyBudgetState] = useState(saved?.weeklyBudget ?? 0);
+  const [monthlyBudget, setMonthlyBudgetState] = useState(saved?.monthlyBudget ?? 0);
+  const [financePeriod, setFinancePeriodState] = useState(saved?.financePeriod ?? "weekly");
   const [dataLoading, setDataLoading] = useState(remote);
   const [dataError, setDataError] = useState(null);
   const [notificationPermission, setNotificationPermission] = useState(() => typeof Notification === "undefined" ? "unsupported" : Notification.permission);
@@ -73,20 +77,21 @@ export function FamilyProvider({ children }) {
 
   useEffect(() => {
     if (remote) return;
-    const payload = JSON.stringify({ members, events, meals, groceries, tasks, messages });
+    const payload = JSON.stringify({ members, events, meals, groceries, tasks, messages, expenses, weeklyBudget, monthlyBudget, financePeriod });
     try {
       localStorage.setItem(STORAGE_KEY, payload);
     } catch (e) {
       console.warn("Could not save Family OS data locally.", e);
     }
-  }, [members, events, meals, groceries, tasks, messages, remote]);
+  }, [members, events, meals, groceries, tasks, messages, expenses, weeklyBudget, monthlyBudget, financePeriod, remote]);
 
-  const mapProfile = (row) => ({ id: row.id, name: row.display_name || row.email, role: "Partner", color: row.color, initials: row.initials });
-  const mapTask = (row) => ({ id: row.id, title: row.title, assigneeId: row.assignee_id, due: row.due_date, done: row.is_done, recurring: row.recurrence });
+  const mapProfile = (row) => ({ id: row.id, name: row.display_name || row.email, role: "Partner", color: row.color, initials: row.initials, avatarUrl: row.avatar_url || "" });
+  const mapTask = (row) => ({ id: row.id, title: row.title, assigneeId: row.assignee_id, due: row.due_date, done: row.is_done, recurring: row.recurrence, taskType: row.task_type || "home" });
   const mapGrocery = (row) => ({ id: row.id, name: row.name, category: row.category, quantity: Number(row.quantity), unit: row.unit, checked: row.is_checked, addedBy: row.added_by });
   const mapEvent = (row) => ({ id: row.id, title: row.title, start: row.starts_at, end: row.ends_at, location: row.location, source: row.source === "familyos" ? "local" : row.source, memberIds: (row.event_participants || []).map((p) => p.user_id) });
   const mapMeal = (row) => ({ id: row.id, date: row.meal_date, slot: row.slot, title: row.title, notes: row.notes, cookIds: row.cook_ids || [] });
   const mapMessage = (row) => ({ id: row.id, senderId: row.sender_id, text: row.body, sentAt: row.created_at });
+  const mapExpense = (row) => ({ id: row.id, description: row.description, amount: Number(row.amount), category: row.category, spentOn: row.spent_on, createdBy: row.created_by });
 
   const loadRemoteData = async () => {
     if (!remote) return;
@@ -105,6 +110,16 @@ export function FamilyProvider({ children }) {
       setMembers(membersResult.data.map((item) => mapProfile(item.profiles)));
       setTasks(tasksResult.data.map(mapTask)); setGroceries(groceriesResult.data.map(mapGrocery));
       setEvents(eventsResult.data.map(mapEvent)); setMeals(mealsResult.data.map(mapMeal)); setMessages(messagesResult.data.map(mapMessage));
+      const [expensesResult, financeResult] = await Promise.all([
+        supabase.from("expenses").select("*").eq("household_id", household.id).order("spent_on", { ascending: false }),
+        supabase.from("household_finance_settings").select("weekly_budget, monthly_budget, tracking_period").eq("household_id", household.id).maybeSingle(),
+      ]);
+      if (!expensesResult.error) setExpenses(expensesResult.data.map(mapExpense));
+      if (!financeResult.error) {
+        setWeeklyBudgetState(Number(financeResult.data?.weekly_budget || 0));
+        setMonthlyBudgetState(Number(financeResult.data?.monthly_budget || 0));
+        setFinancePeriodState(financeResult.data?.tracking_period || "weekly");
+      }
     } catch (e) { setDataError(e.message || "Could not load household data."); }
     finally { setDataLoading(false); }
   };
@@ -119,6 +134,8 @@ export function FamilyProvider({ children }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "events", filter: `household_id=eq.${household.id}` }, loadRemoteData)
       .on("postgres_changes", { event: "*", schema: "public", table: "meals", filter: `household_id=eq.${household.id}` }, loadRemoteData)
       .on("postgres_changes", { event: "*", schema: "public", table: "messages", filter: `household_id=eq.${household.id}` }, loadRemoteData)
+      .on("postgres_changes", { event: "*", schema: "public", table: "expenses", filter: `household_id=eq.${household.id}` }, loadRemoteData)
+      .on("postgres_changes", { event: "*", schema: "public", table: "household_finance_settings", filter: `household_id=eq.${household.id}` }, loadRemoteData)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [remote, household?.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -143,9 +160,16 @@ export function FamilyProvider({ children }) {
 
   // ---- Tasks ----
   const toggleTask = async (id) => { const task = tasks.find((item) => item.id === id); if (remote) await runRemote(supabase.from("tasks").update({ is_done: !task.done }).eq("id", id)); setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t))); };
-  const addTask = async (task) => { if (remote) { const { data, error } = await supabase.from("tasks").insert({ household_id: household.id, title: task.title, assignee_id: task.assigneeId || null, due_date: task.due || null, recurrence: task.recurring || "", created_by: user.id }).select().single(); if (error) throw error; setTasks((prev) => [...prev, mapTask(data)]); } else setTasks((prev) => [...prev, { id: makeId("task"), done: false, ...task }]); };
+  const addTask = async (task) => { if (remote) { const { data, error } = await supabase.from("tasks").insert({ household_id: household.id, title: task.title, assignee_id: task.assigneeId || null, due_date: task.due || null, recurrence: task.recurring || "", task_type: task.taskType || "home", created_by: user.id }).select().single(); if (error) throw error; setTasks((prev) => [...prev, mapTask(data)]); } else setTasks((prev) => [...prev, { id: makeId("task"), done: false, taskType: "home", ...task }]); };
   const updateTask = async (id, patch) => {
-    if (remote) await runRemote(supabase.from("tasks").update({ title: patch.title, assignee_id: patch.assigneeId, due_date: patch.due, is_done: patch.done, recurrence: patch.recurring }).eq("id", id));
+    const dbPatch = {};
+    if (patch.title !== undefined) dbPatch.title = patch.title;
+    if (patch.assigneeId !== undefined) dbPatch.assignee_id = patch.assigneeId;
+    if (patch.due !== undefined) dbPatch.due_date = patch.due;
+    if (patch.done !== undefined) dbPatch.is_done = patch.done;
+    if (patch.recurring !== undefined) dbPatch.recurrence = patch.recurring;
+    if (patch.taskType !== undefined) dbPatch.task_type = patch.taskType;
+    if (remote) await runRemote(supabase.from("tasks").update(dbPatch).eq("id", id));
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
   };
   const removeTask = async (id) => { if (remote) await runRemote(supabase.from("tasks").delete().eq("id", id)); setTasks((prev) => prev.filter((t) => t.id !== id)); };
@@ -181,6 +205,30 @@ export function FamilyProvider({ children }) {
   // ---- Chat ----
   const sendMessage = async (message) => { if (remote) { const { data, error } = await supabase.from("messages").insert({ household_id: household.id, sender_id: user.id, body: message.text }).select().single(); if (error) throw error; setMessages((prev) => [...prev, mapMessage(data)]); } else setMessages((prev) => [...prev, { id: makeId("msg"), sentAt: new Date().toISOString(), ...message }]); };
 
+  // ---- Finance ----
+  const addExpense = async (expense) => {
+    if (remote) {
+      const { data, error } = await supabase.from("expenses").insert({ household_id: household.id, description: expense.description, amount: expense.amount, category: expense.category, spent_on: expense.spentOn, created_by: user.id }).select().single();
+      if (error) throw error;
+      setExpenses((prev) => [mapExpense(data), ...prev]);
+    } else setExpenses((prev) => [{ id: makeId("expense"), createdBy: user?.id || null, ...expense }, ...prev]);
+  };
+  const removeExpense = async (id) => {
+    if (remote) await runRemote(supabase.from("expenses").delete().eq("id", id));
+    setExpenses((prev) => prev.filter((expense) => expense.id !== id));
+  };
+  const setFinanceBudget = async (period, amount) => {
+    const budgetField = period === "monthly" ? "monthly_budget" : "weekly_budget";
+    if (remote) await runRemote(supabase.from("household_finance_settings").upsert({ household_id: household.id, [budgetField]: amount, tracking_period: period, updated_by: user.id }, { onConflict: "household_id" }));
+    if (period === "monthly") setMonthlyBudgetState(Number(amount));
+    else setWeeklyBudgetState(Number(amount));
+    setFinancePeriodState(period);
+  };
+  const setFinancePeriod = async (period) => {
+    if (remote) await runRemote(supabase.from("household_finance_settings").upsert({ household_id: household.id, tracking_period: period, updated_by: user.id }, { onConflict: "household_id" }));
+    setFinancePeriodState(period);
+  };
+
   const resetToDemoData = () => {
     setMembers(initialFamilyMembers);
     setEvents(initialEvents);
@@ -188,6 +236,10 @@ export function FamilyProvider({ children }) {
     setGroceries(initialGroceries);
     setTasks(initialTasks);
     setMessages(initialMessages);
+    setExpenses([]);
+    setWeeklyBudgetState(0);
+    setMonthlyBudgetState(0);
+    setFinancePeriodState("weekly");
   };
 
   // ---- Google Calendar (one-way import: Google -> Family OS) ----
@@ -284,6 +336,7 @@ export function FamilyProvider({ children }) {
     groceries, addGrocery, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries,
     tasks, addTask, toggleTask, updateTask, removeTask,
     messages, sendMessage,
+    expenses, weeklyBudget, monthlyBudget, financePeriod, addExpense, removeExpense, setFinanceBudget, setFinancePeriod,
     resetToDemoData,
     dataLoading, dataError, refreshData: loadRemoteData,
     notificationPermission, requestNotifications,

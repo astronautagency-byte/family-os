@@ -37,7 +37,7 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType }) {
   };
 
   return (
-    <div className="rounded-2xl pastel-yellow border border-[var(--color-border)] p-3.5 mb-5 notion-shadow">
+    <div className="rounded-2xl bg-[var(--color-surface-sunken)] border border-[var(--color-border)] p-3.5 mb-5 notion-shadow">
       <div className="flex items-center gap-1.5 mb-3">
         <Sparkles size={14} color="var(--color-accent)" />
         <p className="text-[12.5px] font-semibold text-[var(--color-ink)]">Need ideas?</p>
@@ -60,8 +60,8 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType }) {
           onClick={() => setMode("ingredients")}
           className="flex-1 rounded-lg py-1.5 text-[12.5px] font-medium transition-colors"
           style={{
-            background: mode === "ingredients" ? "var(--sunrise-gradient)" : "transparent",
-            color: mode === "ingredients" ? "white" : "var(--color-ink-soft)",
+            background: mode === "ingredients" ? "var(--color-accent-soft)" : "transparent",
+            color: mode === "ingredients" ? "var(--color-accent-strong)" : "var(--color-ink-soft)",
           }}
         >
           By ingredients
@@ -70,8 +70,8 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType }) {
           onClick={() => setMode("cuisine")}
           className="flex-1 rounded-lg py-1.5 text-[12.5px] font-medium transition-colors"
           style={{
-            background: mode === "cuisine" ? "var(--sunrise-gradient)" : "transparent",
-            color: mode === "cuisine" ? "white" : "var(--color-ink-soft)",
+            background: mode === "cuisine" ? "var(--color-accent-soft)" : "transparent",
+            color: mode === "cuisine" ? "var(--color-accent-strong)" : "var(--color-ink-soft)",
           }}
         >
           By cuisine
@@ -130,7 +130,7 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType }) {
 
       {mode === "ingredients" && (
         <div className="mt-3 pt-3 border-t border-[var(--color-border)]">
-          <button onClick={askAI} disabled={aiBusy || !ingredientInput.trim()} className="w-full flex items-center justify-center gap-2 rounded-xl sunrise-gradient text-black py-2.5 text-[12.5px] font-semibold shadow-sm disabled:opacity-50">
+          <button onClick={askAI} disabled={aiBusy || !ingredientInput.trim()} className="w-full flex items-center justify-center gap-2 rounded-xl bg-[var(--color-accent)] text-white py-2.5 text-[12.5px] font-semibold disabled:opacity-50">
             <WandSparkles size={15} /> {aiBusy ? "Creating ideas…" : "Ask AI for fresh ideas"}
           </button>
           {!ingredientInput.trim() && <p className="text-[11.5px] text-[var(--color-ink-faint)] mt-2 text-center">Enter ingredients above to enable AI suggestions.</p>}

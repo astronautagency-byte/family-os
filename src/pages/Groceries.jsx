@@ -66,6 +66,7 @@ export default function Groceries() {
   const [dragging, setDragging] = useState(false);
   const [masterEditing, setMasterEditing] = useState(null);
   const [masterDraft, setMasterDraft] = useState(emptyDraft);
+  const [showAllStaples, setShowAllStaples] = useState(false);
 
   useEffect(() => { localStorage.setItem(STAPLES_KEY, JSON.stringify(staples)); }, [staples]);
 
@@ -151,19 +152,29 @@ export default function Groceries() {
 
       <div className="px-5 space-y-5 mt-2">
         <section>
-          <div className="flex items-end justify-between mb-2 px-1">
-            <div><p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-accent)]">Reusable staples</p><h2 className="font-[var(--font-display)] text-[17px] font-semibold">Master grocery list</h2></div>
-            <button onClick={() => openMasterItem()} className="flex items-center gap-1 text-[11.5px] font-semibold text-[var(--color-accent)]"><Plus size={13} /> Add item</button>
+          <div className="flex items-end justify-between mb-3 px-1">
+            <div><p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-accent)]">Saved staples</p><h2 className="font-[var(--font-display)] text-[17px] font-semibold">Quick add</h2></div>
+            <button onClick={() => openMasterItem()} className="flex items-center gap-1 text-[11.5px] font-semibold text-[var(--color-accent)]"><Plus size={13} /> New staple</button>
           </div>
-          <Card className="p-3">
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {staples.map((staple) => <div key={staple.id} draggable onDragStart={(event) => { event.dataTransfer.setData("application/json", JSON.stringify(staple)); setDragging(true); }} onDragEnd={() => setDragging(false)} className="shrink-0 flex items-center rounded-xl bg-[var(--color-surface-sunken)] border border-[var(--color-border)]">
-                <button onClick={() => addStapleToList(staple)} className="flex items-center gap-1.5 pl-2 pr-2 py-2 text-left"><GripVertical size={13} color="var(--color-ink-faint)" /><GroceryIcon category={staple.category} size={14} /><span><span className="block text-[13px] font-medium">{staple.name}</span><span className="block text-[9.5px] text-[var(--color-ink-faint)]">{staple.quantity}{staple.unit ? ` ${staple.unit}` : ""}</span></span></button>
-                <button onClick={() => openMasterItem(staple)} className="p-2 border-l border-[var(--color-border)]" aria-label={`Edit ${staple.name}`}><Pencil size={12} color="var(--color-ink-faint)" /></button>
-              </div>)}
-            </div>
-            <p className="text-[10.5px] text-[var(--color-ink-faint)] mt-2">Tap or drag to add with the saved quantity. Use the pencil to edit defaults.</p>
-          </Card>
+          <div className="grid grid-cols-2 gap-2">
+            {(showAllStaples ? staples : staples.slice(0, 6)).map((staple) => <div key={staple.id} draggable onDragStart={(event) => { event.dataTransfer.setData("application/json", JSON.stringify(staple)); setDragging(true); }} onDragEnd={() => setDragging(false)} className="group relative min-w-0 flex items-center rounded-2xl bg-white border border-[var(--color-border)] notion-shadow overflow-hidden cursor-grab active:cursor-grabbing">
+              <button onClick={() => addStapleToList(staple)} className="flex flex-1 min-w-0 items-center gap-2.5 p-2.5 text-left active:bg-[var(--color-accent-soft)] transition-colors" aria-label={`Add ${staple.name} to grocery list`}>
+                <GroceryIcon category={staple.category} size={15} />
+                <span className="min-w-0 flex-1"><span className="block text-[13.5px] font-medium truncate">{staple.name}</span><span className="block text-[10.5px] text-[var(--color-ink-faint)] truncate">{staple.quantity}{staple.unit ? ` ${staple.unit}` : ""}</span></span>
+                <span className="w-6 h-6 rounded-full bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0"><Plus size={13} color="var(--color-accent)" strokeWidth={2.5} /></span>
+              </button>
+              <button onClick={() => openMasterItem(staple)} className="self-stretch px-2 border-l border-[var(--color-border)] bg-[var(--color-surface-sunken)]" aria-label={`Edit ${staple.name}`}><Pencil size={12} color="var(--color-ink-faint)" /></button>
+            </div>)}
+          </div>
+          {staples.length > 6 && (
+            <button onClick={() => setShowAllStaples((shown) => !shown)} className="w-full mt-2.5 text-center text-[11.5px] font-medium text-[var(--color-accent)] py-1">
+              {showAllStaples ? "Show fewer staples" : `Show all ${staples.length} staples`}
+            </button>
+          )}
+          <div className="flex items-center justify-center gap-1.5 mt-3 text-[10.5px] text-[var(--color-ink-faint)]">
+            <GripVertical size={12} />
+            <p>Tap to add, or drag a staple into your list.</p>
+          </div>
         </section>
 
         <div onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={dropStaple} className={`rounded-2xl transition-all ${dragging ? "ring-2 ring-[var(--color-accent)] bg-[var(--color-accent-soft)] p-2" : ""}`}>
@@ -228,11 +239,11 @@ export default function Groceries() {
 
       <button
         onClick={openNew}
-        className="fixed bottom-24 right-5 rounded-full sunrise-gradient shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+        className="fixed bottom-24 right-5 rounded-full bg-[var(--color-accent)] shadow-lg flex items-center justify-center active:scale-95 transition-transform"
         style={{ width: 52, height: 52 }}
         aria-label="Add grocery item"
       >
-        <Plus color="black" size={24} />
+        <Plus color="white" size={24} />
       </button>
 
       <Modal open={!!editingId} onClose={() => setEditingId(null)} title={editingId === "new" ? "Add item" : "Edit item"}>

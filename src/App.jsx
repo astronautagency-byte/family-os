@@ -8,6 +8,7 @@ import Groceries from "./pages/Groceries";
 import Tasks from "./pages/Tasks";
 import Settings from "./pages/Settings";
 import Chat from "./pages/Chat";
+import Finance from "./pages/Finance";
 import { useAuth } from "./context/AuthContext";
 import { AuthLoading, HouseholdOnboarding, SignIn } from "./pages/Auth";
 
@@ -38,6 +39,7 @@ export default function App() {
         {tab === "groceries" && <Groceries />}
         {tab === "tasks" && <Tasks />}
         {tab === "chat" && <Chat />}
+        {tab === "finance" && <Finance />}
         {tab === "settings" && <Settings />}
         <BottomNav active={tab} onChange={setTab} />
       </div>

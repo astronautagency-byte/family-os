@@ -102,16 +102,16 @@ export const initialGroceries = [
 ];
 
 export const initialTasks = [
-  { id: "t1", title: "Take out recycling", assigneeId: "me", due: dateOnly(0), done: false, recurring: "Weekly" },
-  { id: "t2", title: "Pack soccer bag", assigneeId: "me", due: dateOnly(0), done: false, recurring: "" },
-  { id: "t3", title: "Sign field trip form", assigneeId: "me", due: dateOnly(0), done: false, recurring: "" },
-  { id: "t4", title: "Feed the dog", assigneeId: "partner", due: dateOnly(0), done: true, recurring: "Daily" },
-  { id: "t5", title: "Water the plants", assigneeId: "partner", due: dateOnly(1), done: false, recurring: "Weekly" },
-  { id: "t6", title: "Book dentist follow-up", assigneeId: "me", due: dateOnly(1), done: false, recurring: "" },
-  { id: "t7", title: "Clean out car", assigneeId: "partner", due: dateOnly(2), done: false, recurring: "" },
-  { id: "t8", title: "Laundry — towels", assigneeId: "partner", due: dateOnly(2), done: false, recurring: "Weekly" },
-  { id: "t9", title: "Pay piano tuition", assigneeId: "me", due: dateOnly(3), done: false, recurring: "Monthly" },
-  { id: "t10", title: "Tidy playroom", assigneeId: "me", due: dateOnly(3), done: false, recurring: "Weekly" },
+  { id: "t1", title: "Take out recycling", assigneeId: "me", due: dateOnly(0), done: false, recurring: "Weekly", taskType: "home" },
+  { id: "t2", title: "Pack soccer bag", assigneeId: "me", due: dateOnly(0), done: false, recurring: "", taskType: "family" },
+  { id: "t3", title: "Sign field trip form", assigneeId: "me", due: dateOnly(0), done: false, recurring: "", taskType: "family" },
+  { id: "t4", title: "Feed the dog", assigneeId: "partner", due: dateOnly(0), done: true, recurring: "Daily", taskType: "home" },
+  { id: "t5", title: "Water the plants", assigneeId: "partner", due: dateOnly(1), done: false, recurring: "Weekly", taskType: "home" },
+  { id: "t6", title: "Book dentist follow-up", assigneeId: "me", due: dateOnly(1), done: false, recurring: "", taskType: "personal" },
+  { id: "t7", title: "Clean out car", assigneeId: "partner", due: dateOnly(2), done: false, recurring: "", taskType: "errand" },
+  { id: "t8", title: "Laundry — towels", assigneeId: "partner", due: dateOnly(2), done: false, recurring: "Weekly", taskType: "home" },
+  { id: "t9", title: "Pay piano tuition", assigneeId: "me", due: dateOnly(3), done: false, recurring: "Monthly", taskType: "errand" },
+  { id: "t10", title: "Tidy playroom", assigneeId: "me", due: dateOnly(3), done: false, recurring: "Weekly", taskType: "home" },
 ];
 
 export const initialMessages = [

@@ -1,11 +1,11 @@
-import { ChefHat, ChevronRight, MapPin, Moon, ShoppingCart, Sun } from "lucide-react";
+import { ChefHat, ChevronRight, MapPin, Moon, ShoppingCart, Sun, WalletCards } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { Avatar, AvatarStack, Card, Checkbox, EmptyState, SectionTitle, colorVar } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import { formatTime, fullDateLabel, greetingInfo, todayISO } from "../lib/dates";
 
 export default function Today({ goTo }) {
-  const { members, memberById, events, googleEvents, meals, tasks, groceries, toggleTask } = useFamily();
+  const { members, memberById, events, googleEvents, meals, tasks, groceries, toggleTask, expenses, weeklyBudget, monthlyBudget, financePeriod } = useFamily();
   const today = todayISO();
   const greeting = greetingInfo();
   const GreetingIcon = greeting.icon === "sun" ? Sun : Moon;
@@ -23,6 +23,24 @@ export default function Today({ goTo }) {
   const openTaskCount = todaysTasks.filter((t) => !t.done).length;
 
   const groceryCount = groceries.filter((g) => !g.checked).length;
+
+  const periodStart = new Date();
+  periodStart.setHours(0, 0, 0, 0);
+  if (financePeriod === "monthly") periodStart.setDate(1);
+  else periodStart.setDate(periodStart.getDate() - ((periodStart.getDay() + 6) % 7));
+  const periodEnd = new Date(periodStart);
+  if (financePeriod === "monthly") periodEnd.setMonth(periodEnd.getMonth() + 1, 0);
+  else periodEnd.setDate(periodEnd.getDate() + 6);
+  const localISO = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  const periodSpent = expenses.filter((expense) => expense.spentOn >= localISO(periodStart) && expense.spentOn <= localISO(periodEnd)).reduce((sum, expense) => sum + Number(expense.amount), 0);
+  const activeBudget = financePeriod === "monthly" ? monthlyBudget : weeklyBudget;
+  const budgetRemaining = activeBudget - periodSpent;
+  const daysElapsed = financePeriod === "monthly" ? new Date().getDate() : ((new Date().getDay() + 6) % 7) + 1;
+  const daysInPeriod = financePeriod === "monthly" ? periodEnd.getDate() : 7;
+  const isOnTrack = activeBudget > 0 && periodSpent <= activeBudget * (daysElapsed / daysInPeriod);
+  const budgetProgress = activeBudget > 0 ? Math.min((periodSpent / activeBudget) * 100, 100) : 0;
+  const periodLabel = financePeriod === "monthly" ? "month" : "week";
+  const money = new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 });
 
   const nextEvent = todaysEvents.find((e) => new Date(e.end) > new Date());
 
@@ -46,7 +64,7 @@ export default function Today({ goTo }) {
       <div className="px-5 space-y-6 mt-2">
         {/* Ambient "right now" strip */}
         {nextEvent ? (
-          <Card className="p-4 fade-up pastel-lilac">
+          <Card className="p-4 fade-up bg-[var(--color-accent-soft)]">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-accent-strong)] mb-1">
               Up next
             </p>
@@ -61,7 +79,7 @@ export default function Today({ goTo }) {
             </div>
           </Card>
         ) : (
-          <Card className="p-4 fade-up pastel-blue">
+          <Card className="p-4 fade-up">
             <p className="text-[14px] text-[var(--color-ink-soft)]">Nothing left on the calendar today. Enjoy the evening. 🌙</p>
           </Card>
         )}
@@ -77,7 +95,7 @@ export default function Today({ goTo }) {
               </button>
             }
           />
-          <Card className="p-1 pastel-blue">
+          <Card className="p-1">
             {todaysEvents.length === 0 ? (
               <EmptyState title="No events today" subtitle="Add something from the Calendar tab." />
             ) : (
@@ -128,7 +146,7 @@ export default function Today({ goTo }) {
               </button>
             }
           />
-          <Card className="p-4 pastel-peach">
+          <Card className="p-4">
             {dinner?.title ? (
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0">
@@ -157,7 +175,7 @@ export default function Today({ goTo }) {
               </button>
             }
           />
-          <Card className="p-1 pastel-pink">
+          <Card className="p-1">
             {todaysTasks.length === 0 ? (
               <EmptyState title="Nothing due today" subtitle="You're all caught up." />
             ) : (
@@ -182,7 +200,7 @@ export default function Today({ goTo }) {
         {/* Grocery reminder */}
         <section>
           <button onClick={() => goTo("groceries")} className="w-full text-left">
-            <Card className="p-4 flex items-center gap-3 active:scale-[0.99] transition-transform pastel-mint">
+            <Card className="p-4 flex items-center gap-3 active:scale-[0.99] transition-transform">
               <div className="w-11 h-11 rounded-xl bg-[var(--color-good-soft)] flex items-center justify-center shrink-0">
                 <ShoppingCart size={20} color="var(--color-good)" />
               </div>
@@ -193,6 +211,36 @@ export default function Today({ goTo }) {
                 </p>
               </div>
               <ChevronRight size={18} color="var(--color-ink-faint)" />
+            </Card>
+          </button>
+        </section>
+
+        {/* Finance snapshot */}
+        <section>
+          <button onClick={() => goTo("finance")} className="w-full text-left">
+            <Card className="p-4 active:scale-[0.99] transition-transform">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0">
+                  <WalletCards size={20} color="var(--color-accent)" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-semibold text-[15px] text-[var(--color-ink)]">{financePeriod === "monthly" ? "Monthly" : "Weekly"} spending</p>
+                    {activeBudget > 0 && <p className="text-[12px] font-semibold tabular-nums">{money.format(periodSpent)} / {money.format(activeBudget)}</p>}
+                  </div>
+                  <p className={`text-[13px] mt-0.5 ${budgetRemaining < 0 ? "text-[var(--color-warn)]" : "text-[var(--color-ink-soft)]"}`}>
+                    {activeBudget <= 0
+                      ? `Set a ${financePeriod} budget to track your household spending.`
+                      : budgetRemaining < 0
+                        ? `${money.format(Math.abs(budgetRemaining))} over budget this ${periodLabel}.`
+                        : isOnTrack
+                          ? `You're on track — ${money.format(budgetRemaining)} left this ${periodLabel}.`
+                          : `${money.format(budgetRemaining)} left in your budget this ${periodLabel}.`}
+                  </p>
+                </div>
+                <ChevronRight size={18} color="var(--color-ink-faint)" />
+              </div>
+              {activeBudget > 0 && <div className="h-1.5 rounded-full bg-[var(--color-surface-sunken)] overflow-hidden mt-3"><div className="h-full rounded-full" style={{ width: `${budgetProgress}%`, backgroundColor: budgetRemaining < 0 ? "var(--color-warn)" : "var(--color-accent)" }} /></div>}
             </Card>
           </button>
         </section>

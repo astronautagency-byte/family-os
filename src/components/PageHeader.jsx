@@ -1,6 +1,6 @@
 export default function PageHeader({ eyebrow, title, titleIcon, subtitle, action }) {
   return (
-    <header className="page-header px-5 pt-4 pb-4 safe-top">
+    <header className="page-header px-5 pb-3 safe-top">
       <div className="page-header-content flex items-start justify-between gap-3">
         <div>
           {eyebrow && (
