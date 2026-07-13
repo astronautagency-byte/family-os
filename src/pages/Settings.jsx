@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertCircle, Bell, CalendarDays, CheckCircle2, ExternalLink, Eye, EyeOff, Info, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { AlertCircle, Bell, CalendarDays, CheckCircle2, ExternalLink, Eye, EyeOff, Info, Link2, Plus, RefreshCw, RotateCcw, Trash2 } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, Card, Modal, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
@@ -92,9 +92,91 @@ function GoogleCalendarCard() {
   );
 }
 
+function CalendarFeedsCard() {
+  const {
+    calendarFeeds, calendarFeedStatus, calendarFeedError,
+    addCalendarFeed, syncCalendarFeed, removeCalendarFeed,
+  } = useFamily();
+  const [adding, setAdding] = useState(false);
+  const [provider, setProvider] = useState("apple");
+  const [name, setName] = useState("");
+  const [url, setUrl] = useState("");
+  const busy = calendarFeedStatus === "syncing";
+
+  const connect = async () => {
+    if (!url.trim()) return;
+    try {
+      await addCalendarFeed({ provider, name, url });
+      setName("");
+      setUrl("");
+      setAdding(false);
+    } catch {
+      // The shared context displays a provider-specific connection error.
+    }
+  };
+
+  return (
+    <Card className="p-4 mt-3">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-10 h-10 rounded-lg bg-[var(--color-surface-sunken)] border border-[var(--color-border)] flex items-center justify-center shrink-0">
+          <Link2 size={18} color="var(--color-ink)" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-[14.5px] text-[var(--color-ink)]">Apple, Outlook & iCal</p>
+          <p className="text-[12.5px] text-[var(--color-ink-soft)]">Sync read-only published calendar feeds</p>
+        </div>
+        {calendarFeeds.length > 0 && <CheckCircle2 size={18} color="var(--color-good)" />}
+      </div>
+
+      {calendarFeeds.length > 0 && (
+        <ul className="mb-3 border-y border-[var(--color-border)]">
+          {calendarFeeds.map((feed) => (
+            <li key={feed.id} className="flex items-center gap-2 py-2.5 border-b border-[var(--color-border)] last:border-0">
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: feed.color }} />
+              <div className="flex-1 min-w-0">
+                <p className="text-[13.5px] font-medium truncate">{feed.name}</p>
+                <p className="text-[11px] text-[var(--color-ink-faint)]">{feed.lastSynced ? `Synced ${new Date(feed.lastSynced).toLocaleString()}` : "Not synced yet"}</p>
+              </div>
+              <button disabled={busy} onClick={() => syncCalendarFeed(feed.id)} className="p-2 text-[var(--color-accent)] disabled:opacity-40" aria-label={`Sync ${feed.name}`}><RefreshCw size={15} className={busy ? "animate-spin" : ""} /></button>
+              <button disabled={busy} onClick={() => removeCalendarFeed(feed.id)} className="p-2 text-[var(--color-ink-faint)] disabled:opacity-40" aria-label={`Remove ${feed.name}`}><Trash2 size={15} /></button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {calendarFeedError && (
+        <div className="flex items-start gap-2 rounded-xl bg-[var(--color-warn-soft)] px-3 py-2.5 mb-3">
+          <AlertCircle size={14} color="var(--color-warn)" className="mt-0.5 shrink-0" />
+          <p className="text-[12px] text-[var(--color-warn)] leading-snug">{calendarFeedError}</p>
+        </div>
+      )}
+
+      {adding ? (
+        <div>
+          <label className="block text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-1.5">Calendar type</label>
+          <select value={provider} onChange={(event) => setProvider(event.target.value)} className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-3 text-[14px] mb-3">
+            <option value="apple">Apple / iCloud</option>
+            <option value="outlook">Outlook / Microsoft 365</option>
+            <option value="ical">Other iCal feed</option>
+          </select>
+          <TextField label="Calendar name (optional)" placeholder="e.g. Kat's work calendar" value={name} onChange={(event) => setName(event.target.value)} />
+          <TextField label="Published calendar URL" placeholder="https://…/calendar.ics or webcal://…" value={url} onChange={(event) => setUrl(event.target.value)} inputMode="url" />
+          <p className="text-[11.5px] text-[var(--color-ink-faint)] leading-relaxed -mt-2 mb-3">Paste the private published/subscription link from your calendar settings. Family OS reads it but cannot edit the source calendar.</p>
+          <div className="flex gap-2">
+            <SecondaryButton disabled={busy} onClick={() => setAdding(false)}>Cancel</SecondaryButton>
+            <PrimaryButton disabled={busy || !url.trim()} onClick={connect}>{busy ? "Connecting…" : "Connect feed"}</PrimaryButton>
+          </div>
+        </div>
+      ) : (
+        <SecondaryButton onClick={() => setAdding(true)} className="flex items-center justify-center gap-2"><Plus size={15} /> Add calendar feed</SecondaryButton>
+      )}
+    </Card>
+  );
+}
+
 export default function Settings() {
   const { members, addMember, updateMember, removeMember, resetToDemoData, notificationPermission, requestNotifications } = useFamily();
-  const { configured, invitePartner, updatePassword, signOut, deleteAccount } = useAuth();
+  const { configured, user, invitePartner, updatePassword, signOut, deleteAccount } = useAuth();
   const [editingMember, setEditingMember] = useState(null); // member object or "new"
   const [name, setName] = useState("");
   const [role, setRole] = useState("Kid");
@@ -153,11 +235,11 @@ export default function Settings() {
                   key={m.id}
                   className="flex items-center gap-3 px-3 py-2.5 border-b border-[var(--color-border)] last:border-0"
                 >
-                  <button onClick={() => openEdit(m)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                  <button disabled={configured && m.id !== user?.id} onClick={() => openEdit(m)} className="flex items-center gap-3 flex-1 min-w-0 text-left disabled:cursor-default">
                     <Avatar member={m} size="lg" />
                     <div className="min-w-0">
                       <p className="font-medium text-[14.5px] text-[var(--color-ink)] truncate">{m.name}</p>
-                      <p className="text-[12.5px] text-[var(--color-ink-soft)]">{m.role}</p>
+                      <p className="text-[12.5px] text-[var(--color-ink-soft)]">{m.role}{m.id === user?.id ? " · You" : ""}</p>
                     </div>
                   </button>
                   <button
@@ -188,6 +270,7 @@ export default function Settings() {
         <section>
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">Integrations</h2>
           <GoogleCalendarCard />
+          <CalendarFeedsCard />
         </section>
 
         <section>

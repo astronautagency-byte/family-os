@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChefHat, Coffee, Soup } from "lucide-react";
+import { ChefHat, Coffee, Soup, Trash2 } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { AvatarStack, Card, Modal, PrimaryButton, SecondaryButton, TextField, colorVar } from "../components/ui";
 import PageHeader from "../components/PageHeader";
@@ -14,7 +14,7 @@ const SLOT_META = {
 };
 
 export default function Meals() {
-  const { members, memberById, meals, setMealForSlot } = useFamily();
+  const { members, memberById, meals, setMealForSlot, removeMeal } = useFamily();
   const [editing, setEditing] = useState(null); // { date, slot }
   const [draft, setDraft] = useState({ title: "", notes: "", cookIds: [] });
 
@@ -25,7 +25,7 @@ export default function Meals() {
   const openEditor = (date, slot) => {
     const existing = mealFor(date, slot);
     setDraft({ title: existing?.title ?? "", notes: existing?.notes ?? "", cookIds: existing?.cookIds ?? [] });
-    setEditing({ date, slot });
+    setEditing({ date, slot, mealId: existing?.id || null });
   };
 
   const toggleCook = (id) =>
@@ -41,7 +41,6 @@ export default function Meals() {
       <PageHeader eyebrow="This week" title="Meal planner" subtitle="Plan dinners (and more) day by day." />
 
       <div className="px-5 space-y-4 mt-2">
-        <MealSuggestions onPick={(title, notes) => { setDraft({ title, notes, cookIds: [] }); setEditing({ date: todayISO(), slot: "dinner" }); }} />
         {weekDays.map((date) => {
           const isToday = date === todayISO();
           return (
@@ -129,6 +128,16 @@ export default function Meals() {
           })}
         </div>
         <div className="flex gap-2">
+          {editing?.mealId && (
+            <button
+              onClick={async () => { await removeMeal(editing.mealId); setEditing(null); }}
+              className="rounded-xl border border-[var(--color-warn)] text-[var(--color-warn)] px-3 py-3 flex items-center justify-center gap-1.5 text-[13px] font-medium shrink-0"
+              aria-label="Clear this meal"
+              title="Clear meal"
+            >
+              <Trash2 size={16} /> Clear
+            </button>
+          )}
           <SecondaryButton onClick={() => setEditing(null)}>Cancel</SecondaryButton>
           <PrimaryButton onClick={save}>Save</PrimaryButton>
         </div>

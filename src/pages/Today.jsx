@@ -1,16 +1,18 @@
 import { ChefHat, ChevronRight, MapPin, Moon, ShoppingCart, Sun, WalletCards } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
+import { useAuth } from "../context/AuthContext";
 import { Avatar, AvatarStack, Card, Checkbox, EmptyState, SectionTitle, colorVar } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import { formatTime, fullDateLabel, greetingInfo, todayISO } from "../lib/dates";
 
 export default function Today({ goTo }) {
-  const { members, memberById, events, googleEvents, meals, tasks, groceries, toggleTask, expenses, weeklyBudget, monthlyBudget, financePeriod } = useFamily();
+  const { members, memberById, events, googleEvents, feedEvents, meals, tasks, groceries, toggleTask, expenses, weeklyBudget, monthlyBudget, financePeriod } = useFamily();
+  const { profile, user } = useAuth();
   const today = todayISO();
   const greeting = greetingInfo();
   const GreetingIcon = greeting.icon === "sun" ? Sun : Moon;
 
-  const todaysEvents = [...events, ...googleEvents]
+  const todaysEvents = [...events, ...googleEvents, ...feedEvents]
     .filter((e) => e.start.slice(0, 10) === today)
     .sort((a, b) => a.start.localeCompare(b.start));
 
@@ -43,12 +45,15 @@ export default function Today({ goTo }) {
   const money = new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 });
 
   const nextEvent = todaysEvents.find((e) => new Date(e.end) > new Date());
+  const signedInMember = members.find((member) => member.id === user?.id);
+  const firstName = (signedInMember?.name || profile?.display_name || "").trim().split(/\s+/)[0];
+  const greetingName = firstName ? firstName.charAt(0).toUpperCase() + firstName.slice(1) : "";
 
   return (
     <div className="pb-24">
       <PageHeader
         eyebrow={fullDateLabel(today)}
-        title={`${greeting.text}${members[0] ? `, ${members[0].name.split(" ")[0]}` : ""}`}
+        title={`${greeting.text}${greetingName ? `, ${greetingName}` : ""}`}
         titleIcon={
           <span
             className="inline-flex items-center justify-center w-7 h-7 rounded-full shrink-0"
@@ -103,7 +108,7 @@ export default function Today({ goTo }) {
                 {todaysEvents.map((ev, i) => {
                   const evMembers = (ev.memberIds || []).map((id) => memberById[id]).filter(Boolean);
                   const isPast = new Date(ev.end) < new Date();
-                  const isGoogle = ev.source === "google";
+                  const isExternal = ev.source !== "local";
                   return (
                     <li key={ev.id} className="flex gap-3 px-3 py-3 relative">
                       <div className="flex flex-col items-center pt-0.5 w-14 shrink-0">
@@ -114,7 +119,7 @@ export default function Today({ goTo }) {
                       <div className="flex flex-col items-center">
                         <span
                           className="w-2.5 h-2.5 rounded-full mt-1 ring-4 ring-white"
-                          style={{ backgroundColor: isGoogle ? "#4C91F2" : evMembers[0] ? colorVar(evMembers[0].color) : "var(--color-ink-faint)" }}
+                          style={{ backgroundColor: isExternal ? (ev.color || "#4C91F2") : evMembers[0] ? colorVar(evMembers[0].color) : "var(--color-ink-faint)" }}
                         />
                         {i < todaysEvents.length - 1 && <span className="w-px flex-1 bg-[var(--color-border)] mt-1" />}
                       </div>

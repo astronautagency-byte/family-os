@@ -8,11 +8,13 @@ import {
   initialMessages,
 } from "../data/mockData";
 import { fetchGoogleCalendarEvents, requestGoogleAccessToken, revokeGoogleAccessToken } from "../lib/googleCalendar";
+import { fetchIcalFeed } from "../lib/icalCalendar";
 import { useAuth } from "./AuthContext";
 import { supabase } from "../lib/supabase";
 
 const STORAGE_KEY = "family-os:v1";
 const GOOGLE_STORAGE_KEY = "family-os:google:v1";
+const CALENDAR_FEEDS_STORAGE_KEY = "family-os:calendar-feeds:v1";
 
 function loadState() {
   try {
@@ -34,6 +36,16 @@ function loadGoogleState() {
   return null;
 }
 
+function loadCalendarFeedState() {
+  try {
+    const raw = localStorage.getItem(CALENDAR_FEEDS_STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.warn("Could not read saved calendar feeds.", e);
+  }
+  return { feeds: [], events: [] };
+}
+
 function makeId(prefix) {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 }
@@ -45,6 +57,7 @@ export function FamilyProvider({ children }) {
   const remote = Boolean(configured && household?.id && user?.id && supabase);
   const saved = loadState();
   const savedGoogle = loadGoogleState();
+  const savedCalendarFeeds = loadCalendarFeedState();
 
   const [members, setMembers] = useState(saved?.members ?? initialFamilyMembers);
   const [events, setEvents] = useState(saved?.events ?? initialEvents);
@@ -59,6 +72,18 @@ export function FamilyProvider({ children }) {
   const [dataLoading, setDataLoading] = useState(remote);
   const [dataError, setDataError] = useState(null);
   const [notificationPermission, setNotificationPermission] = useState(() => typeof Notification === "undefined" ? "unsupported" : Notification.permission);
+  const [calendarFeeds, setCalendarFeeds] = useState(savedCalendarFeeds.feeds || []);
+  const [feedEvents, setFeedEvents] = useState(savedCalendarFeeds.events || []);
+  const [calendarFeedStatus, setCalendarFeedStatus] = useState("idle");
+  const [calendarFeedError, setCalendarFeedError] = useState(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CALENDAR_FEEDS_STORAGE_KEY, JSON.stringify({ feeds: calendarFeeds, events: feedEvents }));
+    } catch (e) {
+      console.warn("Could not save calendar feeds.", e);
+    }
+  }, [calendarFeeds, feedEvents]);
 
   const requestNotifications = async () => {
     if (typeof Notification === "undefined") return "unsupported";
@@ -335,7 +360,7 @@ export function FamilyProvider({ children }) {
       const token = googleAccessToken || (await requestGoogleAccessToken(googleClientId, { silent: true })).accessToken;
       setGoogleAccessTokenState(token);
       await syncGoogleEvents(token);
-    } catch (e) {
+    } catch {
       // Silent refresh failed (likely expired / revoked) — ask for consent again.
       try {
         const { accessToken } = await requestGoogleAccessToken(googleClientId, { silent: false });
@@ -358,6 +383,77 @@ export function FamilyProvider({ children }) {
     setGoogleError(null);
   };
 
+  // ---- Published iCal feeds (Apple/iCloud, Outlook, and other calendar providers) ----
+  const addCalendarFeed = async ({ name, provider, url }) => {
+    const feed = {
+      id: makeId("feed"),
+      name: name.trim() || (provider === "apple" ? "Apple Calendar" : provider === "outlook" ? "Outlook" : "iCal"),
+      provider,
+      url: url.trim(),
+      color: provider === "outlook" ? "#1473E6" : provider === "apple" ? "#7C5CE5" : "#D45C94",
+      lastSynced: null,
+    };
+    setCalendarFeedStatus("syncing");
+    setCalendarFeedError(null);
+    try {
+      const items = await fetchIcalFeed(feed);
+      const syncedFeed = { ...feed, lastSynced: new Date().toISOString() };
+      setCalendarFeeds((prev) => [...prev, syncedFeed]);
+      setFeedEvents((prev) => [...prev, ...items]);
+      setCalendarFeedStatus("idle");
+      return syncedFeed;
+    } catch (e) {
+      setCalendarFeedStatus("error");
+      setCalendarFeedError(e.message || "Could not sync this calendar feed.");
+      throw e;
+    }
+  };
+
+  const syncCalendarFeed = async (id) => {
+    const feed = calendarFeeds.find((item) => item.id === id);
+    if (!feed) return;
+    setCalendarFeedStatus("syncing");
+    setCalendarFeedError(null);
+    try {
+      const items = await fetchIcalFeed(feed);
+      setFeedEvents((prev) => [...prev.filter((event) => event.sourceFeedId !== id), ...items]);
+      setCalendarFeeds((prev) => prev.map((item) => item.id === id ? { ...item, lastSynced: new Date().toISOString() } : item));
+      setCalendarFeedStatus("idle");
+    } catch (e) {
+      setCalendarFeedStatus("error");
+      setCalendarFeedError(e.message || "Could not sync this calendar feed.");
+    }
+  };
+
+  const removeCalendarFeed = (id) => {
+    setCalendarFeeds((prev) => prev.filter((feed) => feed.id !== id));
+    setFeedEvents((prev) => prev.filter((event) => event.sourceFeedId !== id));
+    setCalendarFeedError(null);
+  };
+
+  const calendarFeedConnectionKey = calendarFeeds.map((feed) => `${feed.id}:${feed.url}`).join("|");
+  useEffect(() => {
+    if (!calendarFeedConnectionKey) return undefined;
+
+    const refreshFeeds = () => {
+      const now = Date.now();
+      calendarFeeds
+        .filter((feed) => !feed.lastSynced || now - new Date(feed.lastSynced).getTime() >= 15 * 60 * 1000)
+        .forEach((feed) => { syncCalendarFeed(feed.id); });
+    };
+    const refreshOnForeground = () => {
+      if (document.visibilityState === "visible") refreshFeeds();
+    };
+
+    refreshFeeds();
+    const timer = window.setInterval(refreshFeeds, 15 * 60 * 1000);
+    document.addEventListener("visibilitychange", refreshOnForeground);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", refreshOnForeground);
+    };
+  }, [calendarFeedConnectionKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const value = {
     members, memberById, addMember, updateMember, removeMember,
     events, addEvent, updateEvent, removeEvent,
@@ -374,6 +470,9 @@ export function FamilyProvider({ children }) {
     googleConnected, googleEvents, googleStatus, googleError, googleLastSynced,
     googleUsesAccount: configured,
     connectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar,
+    // Other calendar providers via published iCal feeds
+    calendarFeeds, feedEvents, calendarFeedStatus, calendarFeedError,
+    addCalendarFeed, syncCalendarFeed, removeCalendarFeed,
   };
 
   return <FamilyContext.Provider value={value}>{children}</FamilyContext.Provider>;

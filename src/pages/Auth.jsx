@@ -22,6 +22,7 @@ export function AuthLoading() {
 export function SignIn() {
   const { signIn, signUp, signInWithGoogle, error } = useAuth();
   const [email, setEmail] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -31,13 +32,13 @@ export function SignIn() {
 
   const submit = async (event) => {
     event.preventDefault();
-    if (!email.trim() || password.length < 6) return;
+    if (!email.trim() || password.length < 6 || (creating && !displayName.trim())) return;
     setBusy(true);
     setLocalError("");
     setNotice("");
     try {
       if (creating) {
-        const data = await signUp(email, password);
+        const data = await signUp(email, password, displayName);
         if (!data.session) setNotice("Account created. Check your email once to confirm it, then sign in.");
       } else await signIn(email, password);
     }
@@ -56,6 +57,7 @@ export function SignIn() {
         <div className="flex items-center gap-3 mb-4"><span className="h-px bg-[var(--color-border)] flex-1" /><span className="text-[11px] text-[var(--color-ink-faint)] uppercase">or</span><span className="h-px bg-[var(--color-border)] flex-1" /></div>
         <form onSubmit={submit}>
           <div className="flex items-center gap-2 mb-4"><Mail size={16} color="var(--color-accent)" /><h2 className="font-semibold">{creating ? "Create account" : "Sign in"}</h2></div>
+          {creating && <TextField label="Your name" placeholder="e.g. Kat" value={displayName} onChange={(e) => setDisplayName(e.target.value)} autoComplete="name" required />}
           <TextField type="email" label="Email address" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
           <TextField type={showPassword ? "text" : "password"} label="Password" placeholder="At least 6 characters" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={creating ? "new-password" : "current-password"} minLength={6} required />
           <button type="button" onClick={() => setShowPassword((value) => !value)} className="flex items-center gap-1.5 text-[12px] text-[var(--color-ink-soft)] -mt-1 mb-3">
@@ -63,7 +65,7 @@ export function SignIn() {
           </button>
           {(localError || error) && <p className="text-[12.5px] text-[var(--color-warn)] mb-3">{localError || error}</p>}
           {notice && <p className="text-[12.5px] text-[var(--color-good)] mb-3">{notice}</p>}
-          <PrimaryButton type="submit" disabled={busy || !email.trim() || password.length < 6}>{busy ? "Please wait…" : creating ? "Create account" : "Sign in"}</PrimaryButton>
+          <PrimaryButton type="submit" disabled={busy || !email.trim() || password.length < 6 || (creating && !displayName.trim())}>{busy ? "Please wait…" : creating ? "Create account" : "Sign in"}</PrimaryButton>
           <button type="button" onClick={() => { setCreating((value) => !value); setLocalError(""); setNotice(""); }} className="w-full text-center text-[12.5px] text-[var(--color-accent)] mt-4">
             {creating ? "Already have an account? Sign in" : "New partner? Create an account"}
           </button>

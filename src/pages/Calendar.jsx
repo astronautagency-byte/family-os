@@ -6,6 +6,7 @@ import PageHeader from "../components/PageHeader";
 import { addDays, formatTime, fullDateLabel, todayISO } from "../lib/dates";
 
 const GOOGLE_BLUE = "#191919";
+const ICAL_PURPLE = "#7C5CE5";
 
 function startOfWeek(dateStr) {
   const d = new Date(dateStr + "T00:00:00");
@@ -15,10 +16,11 @@ function startOfWeek(dateStr) {
 }
 
 export default function CalendarPage({ goTo }) {
-  const { members, memberById, events, addEvent, googleConnected, googleEvents } = useFamily();
+  const { members, memberById, events, addEvent, googleConnected, googleEvents, calendarFeeds, feedEvents } = useFamily();
   const [selectedDate, setSelectedDate] = useState(todayISO());
   const [activeFilters, setActiveFilters] = useState([]); // memberIds; empty = show all
   const [showGoogle, setShowGoogle] = useState(true);
+  const [showCalendarFeeds, setShowCalendarFeeds] = useState(true);
   const [weekAnchor, setWeekAnchor] = useState(startOfWeek(todayISO()));
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState({ title: "", date: todayISO(), start: "18:00", end: "19:00", location: "", memberIds: [] });
@@ -43,8 +45,8 @@ export default function CalendarPage({ goTo }) {
   };
 
   const allEvents = useMemo(
-    () => [...events, ...(showGoogle ? googleEvents : [])],
-    [events, googleEvents, showGoogle]
+    () => [...events, ...(showGoogle ? googleEvents : []), ...(showCalendarFeeds ? feedEvents : [])],
+    [events, googleEvents, showGoogle, feedEvents, showCalendarFeeds]
   );
 
   const weekDays = useMemo(
@@ -110,9 +112,23 @@ export default function CalendarPage({ goTo }) {
             Google
           </button>
         )}
+        {calendarFeeds.length > 0 && (
+          <button
+            onClick={() => setShowCalendarFeeds((value) => !value)}
+            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-medium border shrink-0 transition-colors"
+            style={{
+              borderColor: showCalendarFeeds ? ICAL_PURPLE : "var(--color-border)",
+              backgroundColor: showCalendarFeeds ? "color-mix(in srgb, #7C5CE5 10%, white)" : "var(--color-surface)",
+              color: showCalendarFeeds ? ICAL_PURPLE : "var(--color-ink-soft)",
+            }}
+          >
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: ICAL_PURPLE }} />
+            iCal feeds
+          </button>
+        )}
       </div>
 
-      {!googleConnected && (
+      {!googleConnected && calendarFeeds.length === 0 && (
         <div className="px-5 mb-4">
           <button onClick={() => goTo?.("settings")} className="w-full text-left">
             <Card className="p-3.5 flex items-center gap-3 active:scale-[0.99] transition-transform">
@@ -120,8 +136,8 @@ export default function CalendarPage({ goTo }) {
                 <CalendarPlus size={17} color="var(--color-accent)" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[13.5px] font-medium text-[var(--color-ink)]">Connect Google Calendar</p>
-                <p className="text-[12px] text-[var(--color-ink-soft)]">Pull your events in from Settings</p>
+                <p className="text-[13.5px] font-medium text-[var(--color-ink)]">Connect a calendar</p>
+                <p className="text-[12px] text-[var(--color-ink-soft)]">Google, Apple, Outlook, or an iCal feed</p>
               </div>
             </Card>
           </button>
@@ -206,6 +222,7 @@ export default function CalendarPage({ goTo }) {
               {dayEvents.map((ev) => {
                 const evMembers = (ev.memberIds || []).map((id) => memberById[id]).filter(Boolean);
                 const isGoogle = ev.source === "google";
+                const isFeed = ev.source === "ical";
                 return (
                   <li key={ev.id} className="flex gap-3 px-3 py-3 border-b border-[var(--color-border)] last:border-0">
                     <div
@@ -213,6 +230,8 @@ export default function CalendarPage({ goTo }) {
                       style={{
                         backgroundColor: isGoogle
                           ? GOOGLE_BLUE
+                          : isFeed
+                          ? (ev.color || ICAL_PURPLE)
                           : evMembers[0]
                           ? colorVar(evMembers[0].color)
                           : "var(--color-border-strong)",
@@ -227,6 +246,14 @@ export default function CalendarPage({ goTo }) {
                             style={{ color: GOOGLE_BLUE, backgroundColor: "var(--color-surface-sunken)" }}
                           >
                             Google
+                          </span>
+                        )}
+                        {isFeed && (
+                          <span
+                            className="text-[9.5px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0"
+                            style={{ color: ev.color || ICAL_PURPLE, backgroundColor: "color-mix(in srgb, #7C5CE5 10%, white)" }}
+                          >
+                            {ev.sourceName || "iCal"}
                           </span>
                         )}
                       </div>

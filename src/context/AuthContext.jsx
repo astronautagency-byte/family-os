@@ -30,10 +30,22 @@ export function AuthProvider({ children }) {
       ]);
       if (profileError) throw profileError;
       if (membershipError) throw membershipError;
-      const googleAvatar = nextSession.user.user_metadata?.avatar_url || nextSession.user.user_metadata?.picture || "";
+      const metadata = nextSession.user.user_metadata || {};
+      const providerName = metadata.display_name || metadata.full_name || metadata.name || "";
+      const googleAvatar = metadata.avatar_url || metadata.picture || "";
+      const emailName = (nextSession.user.email || "").split("@")[0];
+      const profileNameIsGeneric = !profileData.display_name || profileData.display_name.toLowerCase() === emailName.toLowerCase();
+      const profilePatch = {};
+      if (providerName && profileNameIsGeneric && providerName !== profileData.display_name) {
+        profilePatch.display_name = providerName;
+        profilePatch.initials = providerName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("");
+      }
       if (googleAvatar && Object.hasOwn(profileData, "avatar_url") && profileData.avatar_url !== googleAvatar) {
-        const { error: avatarError } = await supabase.from("profiles").update({ avatar_url: googleAvatar }).eq("id", nextSession.user.id);
-        if (!avatarError) profileData.avatar_url = googleAvatar;
+        profilePatch.avatar_url = googleAvatar;
+      }
+      if (Object.keys(profilePatch).length) {
+        const { error: profileUpdateError } = await supabase.from("profiles").update(profilePatch).eq("id", nextSession.user.id);
+        if (!profileUpdateError) Object.assign(profileData, profilePatch);
       }
       setProfile(profileData);
       setHousehold(membership ? { ...membership.households, role: membership.role } : null);
@@ -93,10 +105,12 @@ export function AuthProvider({ children }) {
     if (signInError) throw signInError;
   };
 
-  const signUp = async (email, password) => {
+  const signUp = async (email, password, displayName) => {
     setError(null);
     const { data, error: signUpError } = await supabase.auth.signUp({
-      email: email.trim().toLowerCase(), password,
+      email: email.trim().toLowerCase(),
+      password,
+      options: { data: { display_name: displayName.trim() } },
     });
     if (signUpError) throw signUpError;
     return data;
