@@ -30,6 +30,11 @@ export function AuthProvider({ children }) {
       ]);
       if (profileError) throw profileError;
       if (membershipError) throw membershipError;
+      const googleAvatar = nextSession.user.user_metadata?.avatar_url || nextSession.user.user_metadata?.picture || "";
+      if (googleAvatar && Object.hasOwn(profileData, "avatar_url") && profileData.avatar_url !== googleAvatar) {
+        const { error: avatarError } = await supabase.from("profiles").update({ avatar_url: googleAvatar }).eq("id", nextSession.user.id);
+        if (!avatarError) profileData.avatar_url = googleAvatar;
+      }
       setProfile(profileData);
       setHousehold(membership ? { ...membership.households, role: membership.role } : null);
 
@@ -116,6 +121,19 @@ export function AuthProvider({ children }) {
 
   const signOut = () => supabase?.auth.signOut();
 
+  const deleteAccount = async () => {
+    const { error: deleteError } = await supabase.rpc("delete_own_account");
+    if (deleteError) throw deleteError;
+    localStorage.removeItem("family-os:google-provider-token");
+    localStorage.removeItem("family-os:v1");
+    localStorage.removeItem("family-os:google:v1");
+    await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+    setGoogleProviderToken(null);
+    setProfile(null);
+    setHousehold(null);
+    setSession(null);
+  };
+
   const createHousehold = async (name) => {
     const { error: createError } = await supabase.rpc("create_household", { household_name: name });
     if (createError) throw createError;
@@ -155,6 +173,7 @@ export function AuthProvider({ children }) {
     signInWithGoogle,
     googleProviderToken,
     signOut,
+    deleteAccount,
     createHousehold,
     acceptInvitation,
     invitePartner,

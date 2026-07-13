@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { AlertCircle, Bell, CalendarDays, CheckCircle2, ExternalLink, Eye, EyeOff, Info, Plus, RotateCcw, Trash2, User } from "lucide-react";
+import { AlertCircle, Bell, CalendarDays, CheckCircle2, ExternalLink, Eye, EyeOff, Info, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
-import { Avatar, Card, Modal, PrimaryButton, SecondaryButton, TextField, colorVar } from "../components/ui";
+import { Avatar, Card, Modal, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import { FAMILY_COLORS } from "../data/mockData";
 
@@ -94,7 +94,7 @@ function GoogleCalendarCard() {
 
 export default function Settings() {
   const { members, addMember, updateMember, removeMember, resetToDemoData, notificationPermission, requestNotifications } = useFamily();
-  const { configured, invitePartner, updatePassword, signOut } = useAuth();
+  const { configured, invitePartner, updatePassword, signOut, deleteAccount } = useAuth();
   const [editingMember, setEditingMember] = useState(null); // member object or "new"
   const [name, setName] = useState("");
   const [role, setRole] = useState("Kid");
@@ -105,6 +105,10 @@ export default function Settings() {
   const [newPassword, setNewPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [passwordStatus, setPasswordStatus] = useState("");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   const openNew = () => {
     setName("");
@@ -221,12 +225,21 @@ export default function Settings() {
           </Card>
         </section>}
 
+        {configured && <section>
+          <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-warn)] mb-3">Danger zone</h2>
+          <Card className="p-4 border-[var(--color-warn)]/30">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-[var(--color-warn-soft)] flex items-center justify-center shrink-0"><AlertCircle size={18} color="var(--color-warn)" /></div>
+              <div><p className="font-medium text-[14.5px]">Delete my account</p><p className="text-[12.5px] text-[var(--color-ink-soft)] mt-0.5">Permanently remove your login and the household data you created. This cannot be undone.</p></div>
+            </div>
+            <button onClick={() => { setDeleteConfirmation(""); setDeleteError(""); setConfirmingDelete(true); }} className="w-full rounded-xl border border-[var(--color-warn)] text-[var(--color-warn)] font-semibold text-[14px] py-3 active:scale-[0.98] transition-transform">Delete account</button>
+          </Card>
+        </section>}
+
         <section>
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">About</h2>
           <Card className="p-4 flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[var(--color-accent-soft)] flex items-center justify-center">
-              <User size={18} color="var(--color-accent)" />
-            </div>
+            <img src="/icons/icon-192.png" alt="FamOS" className="w-10 h-10 rounded-xl object-cover notion-shadow shrink-0" />
             <div>
               <p className="font-medium text-[14.5px] text-[var(--color-ink)]">Family OS</p>
               <p className="text-[12.5px] text-[var(--color-ink-soft)]">Version 1.0 · Private {configured ? "& synced" : "& local"}</p>
@@ -316,6 +329,17 @@ export default function Settings() {
           >
             Reset
           </PrimaryButton>
+        </div>
+      </Modal>
+
+      <Modal open={confirmingDelete} onClose={() => { if (!deleting) setConfirmingDelete(false); }} title="Permanently delete account?">
+        <div className="w-11 h-11 rounded-xl bg-[var(--color-warn-soft)] flex items-center justify-center mb-4"><Trash2 size={19} color="var(--color-warn)" /></div>
+        <p className="text-[13.5px] text-[var(--color-ink-soft)] leading-relaxed mb-4">Your login and personal household records will be permanently deleted. If you are the only member, the entire household—including tasks, expenses, meals, groceries, calendar events, and chat—will be erased.</p>
+        <TextField label="Type DELETE to confirm" value={deleteConfirmation} onChange={(event) => setDeleteConfirmation(event.target.value)} autoComplete="off" />
+        {deleteError && <p className="text-[12.5px] text-[var(--color-warn)] mb-3">{deleteError}</p>}
+        <div className="flex gap-2">
+          <SecondaryButton disabled={deleting} onClick={() => setConfirmingDelete(false)}>Cancel</SecondaryButton>
+          <button disabled={deleting || deleteConfirmation !== "DELETE"} onClick={async () => { setDeleting(true); setDeleteError(""); try { await deleteAccount(); } catch (error) { setDeleteError(error.message || "Could not delete account."); setDeleting(false); } }} className="w-full rounded-xl bg-[var(--color-warn)] text-white font-semibold text-[14px] py-3 disabled:opacity-40 active:scale-[0.98] transition-transform">{deleting ? "Deleting…" : "Delete forever"}</button>
         </div>
       </Modal>
     </div>

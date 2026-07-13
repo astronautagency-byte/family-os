@@ -19,6 +19,8 @@ export default function Tasks() {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState({ title: "", assigneeId: members[0]?.id ?? "", due: todayISO(), taskType: "home" });
   const [editingTypeId, setEditingTypeId] = useState(null);
+  const [taskError, setTaskError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const dueOptions = useMemo(
     () => [
@@ -33,11 +35,15 @@ export default function Tasks() {
   const open = filtered.filter((t) => !t.done).sort((a, b) => a.due.localeCompare(b.due));
   const done = filtered.filter((t) => t.done);
 
-  const submit = () => {
+  const submit = async () => {
     if (!draft.title.trim()) return;
-    addTask({ title: draft.title.trim(), assigneeId: draft.assigneeId, due: draft.due, recurring: "", taskType: draft.taskType });
-    setDraft({ title: "", assigneeId: members[0]?.id ?? "", due: todayISO(), taskType: "home" });
-    setAdding(false);
+    setSaving(true); setTaskError("");
+    try {
+      await addTask({ title: draft.title.trim(), assigneeId: draft.assigneeId, due: draft.due, recurring: "", taskType: draft.taskType });
+      setDraft({ title: "", assigneeId: members[0]?.id ?? "", due: todayISO(), taskType: "home" });
+      setAdding(false);
+    } catch (error) { setTaskError(error.message || "Could not add task."); }
+    finally { setSaving(false); }
   };
 
   const TaskRow = ({ t }) => {
@@ -137,7 +143,7 @@ export default function Tasks() {
         <Plus color="white" size={24} />
       </button>
 
-      <Modal open={adding} onClose={() => setAdding(false)} title="Add task">
+      <Modal open={adding} onClose={() => { setAdding(false); setTaskError(""); }} title="Add task">
         <TextField
           label="Task"
           placeholder="e.g. Pack swim bag"
@@ -187,8 +193,9 @@ export default function Tasks() {
             </button>
           ))}
         </div>
-        <PrimaryButton onClick={submit} disabled={!draft.title.trim()}>
-          Add task
+        {taskError && <p className="text-[12.5px] text-[var(--color-warn)] mb-3">{taskError}</p>}
+        <PrimaryButton onClick={submit} disabled={saving || !draft.title.trim()}>
+          {saving ? "Adding…" : "Add task"}
         </PrimaryButton>
       </Modal>
 

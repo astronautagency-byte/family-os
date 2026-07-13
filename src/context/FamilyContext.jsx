@@ -85,12 +85,19 @@ export function FamilyProvider({ children }) {
     }
   }, [members, events, meals, groceries, tasks, messages, expenses, weeklyBudget, monthlyBudget, financePeriod, remote]);
 
-  const mapProfile = (row) => ({ id: row.id, name: row.display_name || row.email, role: "Partner", color: row.color, initials: row.initials, avatarUrl: row.avatar_url || "" });
+  const mapProfile = (row) => ({
+    id: row.id,
+    name: row.display_name || row.email,
+    role: "Partner",
+    color: row.color,
+    initials: row.initials,
+    avatarUrl: row.avatar_url || (row.id === user?.id ? user.user_metadata?.avatar_url || user.user_metadata?.picture || "" : ""),
+  });
   const mapTask = (row) => ({ id: row.id, title: row.title, assigneeId: row.assignee_id, due: row.due_date, done: row.is_done, recurring: row.recurrence, taskType: row.task_type || "home" });
   const mapGrocery = (row) => ({ id: row.id, name: row.name, category: row.category, quantity: Number(row.quantity), unit: row.unit, checked: row.is_checked, addedBy: row.added_by });
   const mapEvent = (row) => ({ id: row.id, title: row.title, start: row.starts_at, end: row.ends_at, location: row.location, source: row.source === "familyos" ? "local" : row.source, memberIds: (row.event_participants || []).map((p) => p.user_id) });
   const mapMeal = (row) => ({ id: row.id, date: row.meal_date, slot: row.slot, title: row.title, notes: row.notes, cookIds: row.cook_ids || [] });
-  const mapMessage = (row) => ({ id: row.id, senderId: row.sender_id, text: row.body, sentAt: row.created_at });
+  const mapMessage = (row) => ({ id: row.id, senderId: row.sender_id, recipientId: row.recipient_id || null, text: row.body, sentAt: row.created_at });
   const mapExpense = (row) => ({ id: row.id, description: row.description, amount: Number(row.amount), category: row.category, spentOn: row.spent_on, createdBy: row.created_by });
 
   const loadRemoteData = async () => {
@@ -160,7 +167,18 @@ export function FamilyProvider({ children }) {
 
   // ---- Tasks ----
   const toggleTask = async (id) => { const task = tasks.find((item) => item.id === id); if (remote) await runRemote(supabase.from("tasks").update({ is_done: !task.done }).eq("id", id)); setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t))); };
-  const addTask = async (task) => { if (remote) { const { data, error } = await supabase.from("tasks").insert({ household_id: household.id, title: task.title, assignee_id: task.assigneeId || null, due_date: task.due || null, recurrence: task.recurring || "", task_type: task.taskType || "home", created_by: user.id }).select().single(); if (error) throw error; setTasks((prev) => [...prev, mapTask(data)]); } else setTasks((prev) => [...prev, { id: makeId("task"), done: false, taskType: "home", ...task }]); };
+  const addTask = async (task) => {
+    if (remote) {
+      const row = { household_id: household.id, title: task.title, assignee_id: task.assigneeId || null, due_date: task.due || null, recurrence: task.recurring || "", task_type: task.taskType || "home", created_by: user.id };
+      let result = await supabase.from("tasks").insert(row).select().single();
+      if (result.error && /task_type|schema cache/i.test(result.error.message || "")) {
+        const { task_type: _taskType, ...compatibleRow } = row;
+        result = await supabase.from("tasks").insert(compatibleRow).select().single();
+      }
+      if (result.error) throw result.error;
+      setTasks((prev) => [...prev, mapTask(result.data)]);
+    } else setTasks((prev) => [...prev, { id: makeId("task"), done: false, taskType: "home", ...task }]);
+  };
   const updateTask = async (id, patch) => {
     const dbPatch = {};
     if (patch.title !== undefined) dbPatch.title = patch.title;
@@ -203,7 +221,18 @@ export function FamilyProvider({ children }) {
   const removeEvent = async (id) => { if (remote) await runRemote(supabase.from("events").delete().eq("id", id)); setEvents((prev) => prev.filter((e) => e.id !== id)); };
 
   // ---- Chat ----
-  const sendMessage = async (message) => { if (remote) { const { data, error } = await supabase.from("messages").insert({ household_id: household.id, sender_id: user.id, body: message.text }).select().single(); if (error) throw error; setMessages((prev) => [...prev, mapMessage(data)]); } else setMessages((prev) => [...prev, { id: makeId("msg"), sentAt: new Date().toISOString(), ...message }]); };
+  const sendMessage = async (message) => {
+    if (remote) {
+      const row = { household_id: household.id, sender_id: user.id, recipient_id: message.recipientId, body: message.text };
+      let result = await supabase.from("messages").insert(row).select().single();
+      if (result.error && /recipient_id|schema cache/i.test(result.error.message || "")) {
+        const { recipient_id: _recipientId, ...compatibleRow } = row;
+        result = await supabase.from("messages").insert(compatibleRow).select().single();
+      }
+      if (result.error) throw result.error;
+      setMessages((prev) => [...prev, { ...mapMessage(result.data), recipientId: result.data.recipient_id || message.recipientId || null }]);
+    } else setMessages((prev) => [...prev, { id: makeId("msg"), sentAt: new Date().toISOString(), ...message }]);
+  };
 
   // ---- Finance ----
   const addExpense = async (expense) => {
