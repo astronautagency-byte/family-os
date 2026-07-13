@@ -5,7 +5,7 @@ import { AvatarStack, Card, EmptyState, Modal, PrimaryButton, TextField, colorVa
 import PageHeader from "../components/PageHeader";
 import { addDays, formatTime, fullDateLabel, todayISO } from "../lib/dates";
 
-const GOOGLE_BLUE = "#4285F4";
+const GOOGLE_BLUE = "#191919";
 
 function startOfWeek(dateStr) {
   const d = new Date(dateStr + "T00:00:00");
@@ -102,7 +102,7 @@ export default function CalendarPage({ goTo }) {
             className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-medium border shrink-0 transition-colors"
             style={{
               borderColor: showGoogle ? GOOGLE_BLUE : "var(--color-border)",
-              backgroundColor: showGoogle ? "color-mix(in srgb, #4285F4 14%, white)" : "var(--color-surface)",
+              backgroundColor: showGoogle ? "var(--color-surface-sunken)" : "var(--color-surface)",
               color: showGoogle ? GOOGLE_BLUE : "var(--color-ink-soft)",
             }}
           >
@@ -224,7 +224,7 @@ export default function CalendarPage({ goTo }) {
                         {isGoogle && (
                           <span
                             className="text-[9.5px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0"
-                            style={{ color: GOOGLE_BLUE, backgroundColor: "color-mix(in srgb, #4285F4 12%, white)" }}
+                            style={{ color: GOOGLE_BLUE, backgroundColor: "var(--color-surface-sunken)" }}
                           >
                             Google
                           </span>

@@ -32,21 +32,17 @@ export function isSameDayAsToday(dateStr) {
 
 export function greetingForNow() {
   const h = new Date().getHours();
-  if (h < 5) return "Still up?";
   if (h < 12) return "Good morning";
   if (h < 17) return "Good afternoon";
-  if (h < 21) return "Good evening";
-  return "Good night";
+  return "Good evening";
 }
 
 // Returns { text, icon } where icon is "sun" for daytime, "moon" for evening/night
 export function greetingInfo() {
   const h = new Date().getHours();
-  if (h < 5) return { text: "Still up?", icon: "moon" };
   if (h < 12) return { text: "Good morning", icon: "sun" };
   if (h < 17) return { text: "Good afternoon", icon: "sun" };
-  if (h < 21) return { text: "Good evening", icon: "moon" };
-  return { text: "Good night", icon: "moon" };
+  return { text: "Good evening", icon: "moon" };
 }
 
 export function fullDateLabel(dateStr) {

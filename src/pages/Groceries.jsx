@@ -47,7 +47,15 @@ const CATEGORY_ICONS = {
 
 function GroceryIcon({ category, size = 16 }) {
   const Icon = CATEGORY_ICONS[category] || Package;
-  return <span className="w-8 h-8 rounded-lg bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0"><Icon size={size} color="var(--color-accent)" /></span>;
+  const palette = {
+    "Produce": ["#DDF7E9", "#228766"], "Bakery": ["#FFF0D4", "#C76E22"],
+    "Dairy & Eggs": ["#E1F0FF", "#397BCB"], "Meat & Seafood": ["#FFE2E6", "#D64C5C"],
+    "Frozen": ["#E2F6FF", "#3185A8"], "Snacks & Candy": ["#FFE2EF", "#C64882"],
+    "Beverages": ["#EEE9FF", "#7255D9"], "Household & Cleaning": ["#E7F3FF", "#356FA8"],
+    "Baby": ["#FFF2B8", "#A97900"], "Pet Supplies": ["#FFE8D9", "#B86332"],
+  };
+  const [background, foreground] = palette[category] || ["#F0E9FF", "#7255D9"];
+  return <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: background }}><Icon size={size} color={foreground} /></span>;
 }
 
 export default function Groceries() {
@@ -220,11 +228,11 @@ export default function Groceries() {
 
       <button
         onClick={openNew}
-        className="fixed bottom-24 right-5 rounded-full bg-[var(--color-accent)] shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+        className="fixed bottom-24 right-5 rounded-full sunrise-gradient shadow-lg flex items-center justify-center active:scale-95 transition-transform"
         style={{ width: 52, height: 52 }}
         aria-label="Add grocery item"
       >
-        <Plus color="white" size={24} />
+        <Plus color="black" size={24} />
       </button>
 
       <Modal open={!!editingId} onClose={() => setEditingId(null)} title={editingId === "new" ? "Add item" : "Edit item"}>

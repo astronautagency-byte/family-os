@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertCircle, Bell, CalendarDays, CheckCircle2, Eye, EyeOff, Info, Plus, RotateCcw, Trash2, User } from "lucide-react";
+import { AlertCircle, Bell, CalendarDays, CheckCircle2, ExternalLink, Eye, EyeOff, Info, Plus, RotateCcw, Trash2, User } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, Card, Modal, PrimaryButton, SecondaryButton, TextField, colorVar } from "../components/ui";
@@ -29,8 +29,8 @@ function GoogleCalendarCard() {
   return (
     <Card className="p-4">
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-10 h-10 rounded-xl bg-[#E8F0FE] flex items-center justify-center shrink-0">
-          <CalendarDays size={18} color="#4285F4" />
+        <div className="w-10 h-10 rounded-lg bg-[var(--color-surface-sunken)] border border-[var(--color-border)] flex items-center justify-center shrink-0">
+          <CalendarDays size={18} color="var(--color-ink)" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-medium text-[14.5px] text-[var(--color-ink)]">Google Calendar</p>
@@ -223,13 +223,20 @@ export default function Settings() {
 
         <section>
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">About</h2>
-          <Card className="p-4 flex items-center gap-3">
+          <Card className="p-4 flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-[var(--color-accent-soft)] flex items-center justify-center">
               <User size={18} color="var(--color-accent)" />
             </div>
             <div>
               <p className="font-medium text-[14.5px] text-[var(--color-ink)]">Family OS</p>
               <p className="text-[12.5px] text-[var(--color-ink-soft)]">Version 1.0 · Private {configured ? "& synced" : "& local"}</p>
+              <p className="text-[12px] text-[var(--color-ink-soft)] mt-2 leading-relaxed">
+                Developed by the team at{" "}
+                <a href="https://getastronaut.io" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-[var(--color-accent)]">
+                  Astronaut Digital <ExternalLink size={10} />
+                </a>
+                <br />Part of Astronaut Ventures
+              </p>
             </div>
           </Card>
         </section>

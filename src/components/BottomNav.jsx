@@ -12,8 +12,8 @@ const TABS = [
 
 export default function BottomNav({ active, onChange }) {
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-40 bg-[var(--color-surface)]/95 backdrop-blur border-t border-[var(--color-border)] safe-bottom">
-      <div className="max-w-md mx-auto grid grid-cols-7">
+    <nav className="fixed bottom-0 inset-x-0 z-40 bg-[var(--color-surface)]/92 backdrop-blur-xl border-t border-[var(--color-border)] safe-bottom shadow-[0_-8px_30px_rgba(80,45,25,0.05)]">
+      <div className="max-w-md mx-auto grid grid-cols-7 px-1.5 pt-1.5">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = active === tab.id;
@@ -21,14 +21,12 @@ export default function BottomNav({ active, onChange }) {
             <button
               key={tab.id}
               onClick={() => onChange(tab.id)}
-              className="flex flex-col items-center justify-center gap-0.5 py-2 relative"
+              className="flex flex-col items-center justify-center gap-0.5 py-1.5 relative"
               aria-current={isActive ? "page" : undefined}
             >
-              <Icon
-                size={21}
-                strokeWidth={isActive ? 2.3 : 1.8}
-                color={isActive ? "var(--color-accent)" : "var(--color-ink-faint)"}
-              />
+              <span className={`w-9 h-7 rounded-xl flex items-center justify-center transition-all ${isActive ? "sunrise-gradient shadow-sm -translate-y-0.5" : ""}`}>
+                <Icon size={19} strokeWidth={isActive ? 2.4 : 1.8} color={isActive ? "#191919" : "var(--color-ink-faint)"} />
+              </span>
               <span
                 className="text-[9.5px] font-medium leading-tight"
                 style={{ color: isActive ? "var(--color-accent)" : "var(--color-ink-faint)" }}

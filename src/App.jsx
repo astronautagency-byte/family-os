@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FamilyProvider } from "./context/FamilyContext";
 import BottomNav from "./components/BottomNav";
 import Today from "./pages/Today";
@@ -14,6 +14,16 @@ import { AuthLoading, HouseholdOnboarding, SignIn } from "./pages/Auth";
 export default function App() {
   const [tab, setTab] = useState("today");
   const { configured, session, household, loading } = useAuth();
+
+  useEffect(() => {
+    const applyDaypart = () => {
+      const hour = new Date().getHours();
+      document.documentElement.dataset.daypart = hour < 12 ? "morning" : hour < 17 ? "day" : "evening";
+    };
+    applyDaypart();
+    const timer = window.setInterval(applyDaypart, 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   if (configured && loading) return <AuthLoading />;
   if (configured && !session) return <SignIn />;

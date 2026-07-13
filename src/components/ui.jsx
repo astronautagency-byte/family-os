@@ -62,7 +62,7 @@ export function Tag({ children, color, tone = "neutral" }) {
 export function Card({ children, className = "", as: As = "div", ...props }) {
   return (
     <As
-      className={`bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl ${className}`}
+      className={`bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl notion-shadow ${className}`}
       {...props}
     >
       {children}
@@ -117,7 +117,7 @@ export function Modal({ open, onClose, title, children }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative bg-[var(--color-surface)] w-full sm:max-w-sm sm:rounded-3xl rounded-t-3xl p-5 pb-8 sm:pb-6 safe-bottom fade-up max-h-[85vh] overflow-y-auto">
+      <div className="relative bg-[var(--color-surface)] w-full sm:max-w-sm sm:rounded-2xl rounded-t-2xl p-5 pb-8 sm:pb-6 safe-bottom fade-up max-h-[85vh] overflow-y-auto border border-[var(--color-border)]">
         <div className="w-10 h-1 bg-[var(--color-border-strong)] rounded-full mx-auto mb-4 sm:hidden" />
         {title && <h3 className="font-[var(--font-display)] text-[17px] font-semibold mb-4">{title}</h3>}
         {children}
@@ -141,7 +141,7 @@ export function TextField({ label, ...props }) {
 export function PrimaryButton({ children, className = "", ...props }) {
   return (
     <button
-      className={`w-full rounded-xl bg-[var(--color-accent)] text-white font-semibold text-[15px] py-3 active:scale-[0.98] transition-transform disabled:opacity-40 ${className}`}
+      className={`w-full rounded-xl sunrise-gradient text-black font-semibold text-[15px] py-3 shadow-[0_5px_14px_rgba(113,104,232,0.2)] active:scale-[0.98] transition-transform disabled:opacity-40 ${className}`}
       {...props}
     >
       {children}
@@ -152,7 +152,7 @@ export function PrimaryButton({ children, className = "", ...props }) {
 export function SecondaryButton({ children, className = "", ...props }) {
   return (
     <button
-      className={`w-full rounded-xl border border-[var(--color-border)] text-[var(--color-ink)] font-medium text-[15px] py-3 active:scale-[0.98] transition-transform ${className}`}
+      className={`w-full rounded-xl border border-[var(--color-border-strong)] bg-white text-[var(--color-ink)] font-medium text-[15px] py-3 active:scale-[0.98] transition-transform ${className}`}
       {...props}
     >
       {children}

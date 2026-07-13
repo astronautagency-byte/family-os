@@ -46,7 +46,7 @@ export default function Today({ goTo }) {
       <div className="px-5 space-y-6 mt-2">
         {/* Ambient "right now" strip */}
         {nextEvent ? (
-          <Card className="p-4 fade-up" style={{ background: "linear-gradient(135deg, var(--color-accent-soft), #FFFFFF)" }}>
+          <Card className="p-4 fade-up pastel-lilac">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-accent-strong)] mb-1">
               Up next
             </p>
@@ -61,7 +61,7 @@ export default function Today({ goTo }) {
             </div>
           </Card>
         ) : (
-          <Card className="p-4 fade-up">
+          <Card className="p-4 fade-up pastel-blue">
             <p className="text-[14px] text-[var(--color-ink-soft)]">Nothing left on the calendar today. Enjoy the evening. 🌙</p>
           </Card>
         )}
@@ -77,7 +77,7 @@ export default function Today({ goTo }) {
               </button>
             }
           />
-          <Card className="p-1">
+          <Card className="p-1 pastel-blue">
             {todaysEvents.length === 0 ? (
               <EmptyState title="No events today" subtitle="Add something from the Calendar tab." />
             ) : (
@@ -96,7 +96,7 @@ export default function Today({ goTo }) {
                       <div className="flex flex-col items-center">
                         <span
                           className="w-2.5 h-2.5 rounded-full mt-1 ring-4 ring-white"
-                          style={{ backgroundColor: isGoogle ? "#4285F4" : evMembers[0] ? colorVar(evMembers[0].color) : "var(--color-ink-faint)" }}
+                          style={{ backgroundColor: isGoogle ? "#4C91F2" : evMembers[0] ? colorVar(evMembers[0].color) : "var(--color-ink-faint)" }}
                         />
                         {i < todaysEvents.length - 1 && <span className="w-px flex-1 bg-[var(--color-border)] mt-1" />}
                       </div>
@@ -128,7 +128,7 @@ export default function Today({ goTo }) {
               </button>
             }
           />
-          <Card className="p-4">
+          <Card className="p-4 pastel-peach">
             {dinner?.title ? (
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0">
@@ -157,7 +157,7 @@ export default function Today({ goTo }) {
               </button>
             }
           />
-          <Card className="p-1">
+          <Card className="p-1 pastel-pink">
             {todaysTasks.length === 0 ? (
               <EmptyState title="Nothing due today" subtitle="You're all caught up." />
             ) : (
@@ -182,7 +182,7 @@ export default function Today({ goTo }) {
         {/* Grocery reminder */}
         <section>
           <button onClick={() => goTo("groceries")} className="w-full text-left">
-            <Card className="p-4 flex items-center gap-3 active:scale-[0.99] transition-transform">
+            <Card className="p-4 flex items-center gap-3 active:scale-[0.99] transition-transform pastel-mint">
               <div className="w-11 h-11 rounded-xl bg-[var(--color-good-soft)] flex items-center justify-center shrink-0">
                 <ShoppingCart size={20} color="var(--color-good)" />
               </div>

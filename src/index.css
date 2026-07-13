@@ -4,31 +4,51 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-display: "Inter Tight", "Inter", ui-sans-serif, system-ui, sans-serif;
 
-  --color-canvas: #FAFAF8;
+  --color-canvas: #FAF9FF;
   --color-surface: #FFFFFF;
-  --color-surface-sunken: #F3F1EC;
-  --color-border: #E8E5DE;
-  --color-border-strong: #D9D5CB;
+  --color-surface-sunken: #F4F1FF;
+  --color-border: #E8E2F0;
+  --color-border-strong: #D5CCDF;
 
-  --color-ink: #2B2926;
-  --color-ink-soft: #6B675F;
-  --color-ink-faint: #A29D91;
+  --color-ink: #191919;
+  --color-ink-soft: #5F5E5B;
+  --color-ink-faint: #9B9A97;
 
-  --color-accent: #5B57D1;
-  --color-accent-soft: #EDECFA;
-  --color-accent-strong: #4741B8;
+  --color-accent: #7168E8;
+  --color-accent-soft: #E9E5FF;
+  --color-accent-strong: #5148B9;
+  --sunrise-gradient: linear-gradient(120deg, #B8D8FF 0%, #8F82FF 32%, #D75EAA 60%, #FF5239 80%, #F2A08D 100%);
 
-  --color-warn: #B5722A;
-  --color-warn-soft: #FBF0E1;
-  --color-good: #4C8B5A;
-  --color-good-soft: #E9F3EA;
+  --color-warn: #D55A2A;
+  --color-warn-soft: #FFF0D4;
+  --color-good: #228766;
+  --color-good-soft: #DDF7E9;
 
-  --color-fam-coral: #E2694F;
-  --color-fam-marigold: #CC9A3A;
-  --color-fam-moss: #659270;
-  --color-fam-sky: #5686B3;
-  --color-fam-plum: #93648F;
-  --color-fam-rose: #CB7291;
+  --color-fam-coral: #FF5239;
+  --color-fam-marigold: #F2A08D;
+  --color-fam-moss: #63A5E8;
+  --color-fam-sky: #7988F5;
+  --color-fam-plum: #A463D8;
+  --color-fam-rose: #DC5B9E;
+
+  --color-peach-soft: #FFE1D8;
+  --color-pink-soft: #F8DCEE;
+  --color-yellow-soft: #FFE9E1;
+  --color-blue-soft: #DFEDFF;
+  --color-mint-soft: #E8E7FF;
+  --color-lilac-soft: #E8E1FF;
+}
+
+:root[data-daypart="morning"] {
+  --sunrise-gradient: linear-gradient(120deg, #C8E2FF 0%, #A99BFF 35%, #E878AD 64%, #FF745D 83%, #F4B09E 100%);
+}
+
+:root[data-daypart="day"] {
+  --sunrise-gradient: linear-gradient(120deg, #B8D8FF 0%, #8F82FF 32%, #D75EAA 60%, #FF5239 80%, #F2A08D 100%);
+}
+
+:root[data-daypart="evening"] {
+  --sunrise-gradient: linear-gradient(120deg, #879CEB 0%, #8D6ADB 34%, #C851A5 60%, #F44336 82%, #DE8B83 100%);
 }
 
 html, body, #root {
@@ -36,12 +56,51 @@ html, body, #root {
 }
 
 body {
-  background: var(--color-canvas);
+  background:
+    radial-gradient(circle at 5% 8%, rgba(184, 216, 255, 0.3), transparent 24rem),
+    radial-gradient(circle at 96% 18%, rgba(215, 94, 170, 0.14), transparent 22rem),
+    var(--color-canvas);
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: none;
 }
+
+.sunrise-gradient { background: var(--sunrise-gradient); }
+.sunrise-text {
+  background: var(--sunrise-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.notion-shadow { box-shadow: 0 3px 0 rgba(64, 42, 28, 0.04), 0 8px 24px rgba(64, 42, 28, 0.035); }
+
+.page-header {
+  position: relative;
+  overflow: hidden;
+  margin: 10px 12px 0;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 24px;
+  background: linear-gradient(125deg, rgba(213, 233, 255, 0.96), rgba(227, 216, 255, 0.94) 43%, rgba(255, 214, 226, 0.92) 74%, rgba(255, 222, 208, 0.94));
+  box-shadow: 0 8px 24px rgba(115, 75, 50, 0.07);
+}
+.page-header::before,
+.page-header::after {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+}
+.page-header::before { width: 78px; height: 78px; right: -18px; top: -28px; background: rgba(255, 82, 57, 0.2); }
+.page-header::after { width: 36px; height: 36px; right: 52px; bottom: -17px; background: rgba(113, 104, 232, 0.24); }
+.page-header-content { position: relative; z-index: 1; }
+
+.pastel-peach { background: linear-gradient(135deg, var(--color-peach-soft), #FFFDFB); }
+.pastel-pink { background: linear-gradient(135deg, var(--color-pink-soft), #FFFDFB); }
+.pastel-yellow { background: linear-gradient(135deg, var(--color-yellow-soft), #FFFDFB); }
+.pastel-blue { background: linear-gradient(135deg, var(--color-blue-soft), #FFFDFB); }
+.pastel-mint { background: linear-gradient(135deg, var(--color-mint-soft), #FFFDFB); }
+.pastel-lilac { background: linear-gradient(135deg, var(--color-lilac-soft), #FFFDFB); }
 
 .safe-top { padding-top: env(safe-area-inset-top); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }

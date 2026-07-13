@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, EyeOff, Home, LoaderCircle, LockKeyhole, Mail } from "lucide-react";
+import { Eye, EyeOff, LoaderCircle, LockKeyhole, Mail } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { Card, PrimaryButton, TextField } from "../components/ui";
 
@@ -7,10 +7,8 @@ function Shell({ children }) {
   return (
     <main className="min-h-screen px-5 py-10 flex items-center justify-center bg-[var(--color-canvas)]">
       <div className="w-full max-w-sm">
-        <div className="w-14 h-14 rounded-2xl bg-[var(--color-accent)] flex items-center justify-center mb-5 shadow-lg shadow-indigo-200">
-          <Home size={25} color="white" />
-        </div>
-        <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent)] mb-1">FamilyOS</p>
+        <img src="/icons/icon-192.png" alt="FamilyOS" className="w-14 h-14 rounded-[15px] mb-5 notion-shadow" />
+        <p className="text-[12px] font-semibold uppercase tracking-[0.16em] sunrise-text mb-1 w-fit">FamilyOS</p>
         {children}
       </div>
     </main>
@@ -53,7 +51,7 @@ export function SignIn() {
       <p className="text-[14px] text-[var(--color-ink-soft)] mt-2 mb-7">A private space for the two of you to coordinate schedules, errands, and home life.</p>
       <Card className="p-5">
         <button type="button" onClick={async () => { try { await signInWithGoogle(); } catch (e) { setLocalError(e.message); } }} className="w-full rounded-xl border border-[var(--color-border)] bg-white px-4 py-3 text-[14px] font-semibold text-[var(--color-ink)] mb-4 flex items-center justify-center gap-2">
-          <span className="text-[17px] font-bold text-[#4285F4]">G</span> Continue with Google
+          <span className="text-[17px] font-bold text-black">G</span> Continue with Google
         </button>
         <div className="flex items-center gap-3 mb-4"><span className="h-px bg-[var(--color-border)] flex-1" /><span className="text-[11px] text-[var(--color-ink-faint)] uppercase">or</span><span className="h-px bg-[var(--color-border)] flex-1" /></div>
         <form onSubmit={submit}>
