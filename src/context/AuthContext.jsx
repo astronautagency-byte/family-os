@@ -7,6 +7,10 @@ function onboardingSkipKey(householdId, userId) {
   return `family-os:onboarding-invites-skipped:${householdId}:${userId}`;
 }
 
+function onboardingProfileKey(householdId, userId) {
+  return `family-os:onboarding-profile-complete:${householdId}:${userId}`;
+}
+
 async function getFunctionErrorMessage(functionError) {
   try {
     const response = functionError?.context;
@@ -34,6 +38,7 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [household, setHousehold] = useState(null);
+  const [householdProfile, setHouseholdProfile] = useState(null);
   const [invitation, setInvitation] = useState(null);
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [error, setError] = useState(null);
@@ -45,6 +50,7 @@ export function AuthProvider({ children }) {
     if (!supabase || !nextSession?.user) {
       setProfile(null);
       setHousehold(null);
+      setHouseholdProfile(null);
       setInvitation(null);
       setLoading(false);
       setOnboardingRequired(false);
@@ -76,10 +82,20 @@ export function AuthProvider({ children }) {
         }
       }
       let householdData = null;
+      let householdProfileData = null;
       if (membership?.household_id) {
         const { data, error: householdError } = await supabase.from("households").select("id, name").eq("id", membership.household_id).single();
         if (householdError) throw householdError;
         householdData = data;
+        const { data: profileRow, error: householdProfileError } = await supabase
+          .from("household_profiles")
+          .select("*")
+          .eq("household_id", membership.household_id)
+          .maybeSingle();
+        if (householdProfileError && householdProfileError.code !== "42P01" && !/does not exist|schema cache/i.test(householdProfileError.message || "")) {
+          throw householdProfileError;
+        }
+        householdProfileData = profileRow || null;
       }
       const metadata = nextSession.user.user_metadata || {};
       const providerName = metadata.display_name || metadata.full_name || metadata.name || "";
@@ -91,7 +107,7 @@ export function AuthProvider({ children }) {
         profilePatch.display_name = providerName;
         profilePatch.initials = providerName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("");
       }
-      if (googleAvatar && Object.hasOwn(profileData, "avatar_url") && profileData.avatar_url !== googleAvatar) {
+      if (googleAvatar && Object.hasOwn(profileData, "avatar_url") && !profileData.avatar_url) {
         profilePatch.avatar_url = googleAvatar;
       }
       if (Object.keys(profilePatch).length) {
@@ -100,6 +116,7 @@ export function AuthProvider({ children }) {
       }
       setProfile(profileData);
       setHousehold(membership && householdData ? { ...householdData, role: membership.role } : null);
+      setHouseholdProfile(householdProfileData);
 
       if (membership?.role === "owner") {
         const [{ count: memberCount }, { count: inviteCount }] = await Promise.all([
@@ -107,7 +124,9 @@ export function AuthProvider({ children }) {
           supabase.from("household_invitations").select("id", { count: "exact", head: true }).eq("household_id", membership.household_id).is("accepted_at", null).gt("expires_at", new Date().toISOString()),
         ]);
         const skippedInvites = localStorage.getItem(onboardingSkipKey(membership.household_id, nextSession.user.id)) === "true";
-        setOnboardingRequired(!skippedInvites && (memberCount || 0) < 2 && (inviteCount || 0) === 0);
+        const localProfileComplete = localStorage.getItem(onboardingProfileKey(membership.household_id, nextSession.user.id)) === "true";
+        const profileComplete = Boolean(householdProfileData?.completed_at) || localProfileComplete;
+        setOnboardingRequired(!profileComplete || (!skippedInvites && (memberCount || 0) < 2 && (inviteCount || 0) === 0));
       } else {
         setOnboardingRequired(false);
       }
@@ -226,6 +245,31 @@ export function AuthProvider({ children }) {
     await refreshAccount(session);
   };
 
+  const saveHouseholdProfile = async (profileInput) => {
+    if (!household?.id || !session?.user?.id) return;
+    const payload = {
+      household_id: household.id,
+      family_size: profileInput.familySize,
+      adult_count: profileInput.adultCount,
+      child_count: profileInput.childCount,
+      family_dynamic: profileInput.familyDynamic,
+      life_stage: profileInput.lifeStage,
+      planning_priorities: profileInput.planningPriorities,
+      primary_color: profileInput.primaryColor,
+      partner_personalization_opt_in: profileInput.partnerPersonalizationOptIn,
+      completed_at: new Date().toISOString(),
+    };
+    localStorage.setItem(onboardingProfileKey(household.id, session.user.id), "true");
+    setHouseholdProfile(payload);
+    const { error: profileError } = await supabase
+      .from("household_profiles")
+      .upsert(payload, { onConflict: "household_id" });
+    if (profileError && profileError.code !== "42P01" && !/does not exist|schema cache/i.test(profileError.message || "")) {
+      throw profileError;
+    }
+    await refreshAccount(session);
+  };
+
   const acceptInvitation = async () => {
     if (!invitation) return;
     const { error: acceptError } = await supabase.rpc("accept_household_invitation", { invitation_id: invitation.id });
@@ -309,6 +353,7 @@ export function AuthProvider({ children }) {
     user: session?.user ?? null,
     profile,
     household,
+    householdProfile,
     invitation,
     loading,
     error,
@@ -323,11 +368,12 @@ export function AuthProvider({ children }) {
     signOut,
     deleteAccount,
     createHousehold,
+    saveHouseholdProfile,
     acceptInvitation,
     invitePartner,
     skipOnboardingInvites,
     refreshAccount,
-  }), [session, profile, household, invitation, loading, error, passwordRecovery, onboardingRequired, refreshAccount, googleProviderToken, skipOnboardingInvites]);
+  }), [session, profile, household, householdProfile, invitation, loading, error, passwordRecovery, onboardingRequired, refreshAccount, googleProviderToken, skipOnboardingInvites]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -6,11 +6,12 @@ import { todayISO } from "../lib/dates";
 
 export default function AppTopBar({ onOpenSettings, onNavigate }) {
   const { profile, user } = useAuth();
-  const { tasks, events, googleEvents, feedEvents, groceries } = useFamily();
+  const { members, tasks, events, googleEvents, feedEvents, groceries } = useFamily();
   const [open,setOpen]=useState(false); const today=todayISO();
   const [readIds,setReadIds]=useState(()=>{try{return JSON.parse(localStorage.getItem("familyos:read-notifications")||"[]")}catch{return[]}});
-  const name = profile?.display_name || user?.user_metadata?.name || user?.email?.split("@")[0] || "Family";
-  const avatar = profile?.avatar_url || user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
+  const currentMember = members.find((member) => member.id === user?.id);
+  const name = currentMember?.name || profile?.display_name || user?.user_metadata?.name || user?.email?.split("@")[0] || "Family";
+  const avatar = currentMember?.avatarUrl || profile?.avatar_url || user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
   const due=tasks.filter(task=>!task.done&&task.due===today); const todaysEvents=[...events,...googleEvents,...feedEvents].filter(event=>event.start?.slice(0,10)===today); const remaining=groceries.filter(item=>!item.checked).length;
   const notices=useMemo(()=>[...(due.length?[{id:`tasks:${today}:${due.map(item=>item.id).join(",")}`,title:`${due.length} task${due.length===1?"":"s"} due today`,detail:due[0].title,Icon:CheckSquare,tab:"tasks",tone:"peach"}]:[]),...(todaysEvents.length?[{id:`calendar:${today}:${todaysEvents.map(item=>item.id).join(",")}`,title:`${todaysEvents.length} event${todaysEvents.length===1?"":"s"} today`,detail:todaysEvents[0].title,Icon:CalendarDays,tab:"calendar",tone:"blue"}]:[]),...(remaining?[{id:`groceries:${remaining}`,title:`${remaining} groceries remaining`,detail:"Your shared list is ready",Icon:ShoppingCart,tab:"groceries",tone:"mint"}]:[])],[due,today,todaysEvents,remaining]);
   const unread=notices.filter(notice=>!readIds.includes(notice.id));

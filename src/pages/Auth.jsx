@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Eye, EyeOff, LoaderCircle, LockKeyhole } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { Card, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
+import { FAMILY_COLORS } from "../data/mockData";
 
 function Shell({ children }) {
   return (
@@ -91,11 +92,37 @@ export function ResetPassword(){
 }
 
 export function HouseholdOnboarding() {
-  const { invitation, household, createHousehold, acceptInvitation, invitePartner, skipOnboardingInvites, signOut, refreshAccount, session } = useAuth();
+  const { invitation, household, householdProfile, createHousehold, saveHouseholdProfile, acceptInvitation, invitePartner, skipOnboardingInvites, signOut, refreshAccount, session } = useAuth();
   const [name, setName] = useState("Our family");
   const [inviteEmails, setInviteEmails] = useState("");
+  const [familySize, setFamilySize] = useState(3);
+  const [adultCount, setAdultCount] = useState(2);
+  const [childCount, setChildCount] = useState(1);
+  const [familyDynamic, setFamilyDynamic] = useState("two_parent");
+  const [lifeStage, setLifeStage] = useState("school_age");
+  const [planningPriorities, setPlanningPriorities] = useState(["calendar", "meals"]);
+  const [primaryColor, setPrimaryColor] = useState("plum");
+  const [partnerPersonalizationOptIn, setPartnerPersonalizationOptIn] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  const profileComplete = Boolean(householdProfile?.completed_at);
+  const profileStep = household && !profileComplete;
+
+  const togglePriority = (priority) => {
+    setPlanningPriorities((current) => current.includes(priority) ? current.filter((item) => item !== priority) : [...current, priority]);
+  };
+
+  const saveProfile = () => run(() => saveHouseholdProfile({
+    familySize,
+    adultCount,
+    childCount,
+    familyDynamic,
+    lifeStage,
+    planningPriorities,
+    primaryColor,
+    partnerPersonalizationOptIn,
+  }));
 
   const run = async (action) => {
     setBusy(true); setError("");
@@ -105,8 +132,8 @@ export function HouseholdOnboarding() {
 
   return (
     <Shell>
-      <h1 className="minimal-auth-title">{invitation ? "Join this home" : household ? "Invite your family" : "Name your family"}</h1>
-      <p className="recovery-intro">{invitation ? `Your email is associated with ${invitation.households?.name}. Join to share chat, calendars, tasks, meals, and groceries with this household.` : household ? `Invite members to ${household.name} now, or skip and add them later from Settings.` : "Create the private family space everyone will share."}</p>
+      <h1 className="minimal-auth-title">{invitation ? "Join this home" : profileStep ? "Set up your family" : household ? "Invite your family" : "Name your family"}</h1>
+      <p className="recovery-intro">{invitation ? `Your email is associated with ${invitation.households?.name}. Join to share chat, calendars, tasks, meals, and groceries with this household.` : profileStep ? "Tell FamOS a little about your household so the app can feel useful from day one." : household ? `Invite members to ${household.name} now, or skip and add them later from Settings.` : "Create the private family space everyone will share."}</p>
       <Card className="p-5">
         {invitation ? (
           <>
@@ -120,6 +147,93 @@ export function HouseholdOnboarding() {
             <TextField label="Family name" placeholder="e.g. The Miller Family" value={name} onChange={(e) => setName(e.target.value)} />
             <PrimaryButton disabled={busy || !name.trim()} onClick={() => run(() => createHousehold(name))}>{busy ? "Creating…" : "Continue"}</PrimaryButton>
           </>
+        ) : profileStep ? (
+          <div className="family-profile-onboarding">
+            <div className="onboarding-grid">
+              <label>
+                <span>Family members</span>
+                <input type="number" min="1" max="30" value={familySize} onChange={(event) => setFamilySize(Number(event.target.value) || 1)} />
+              </label>
+              <label>
+                <span>Adults</span>
+                <input type="number" min="0" max="30" value={adultCount} onChange={(event) => setAdultCount(Number(event.target.value) || 0)} />
+              </label>
+              <label>
+                <span>Kids</span>
+                <input type="number" min="0" max="30" value={childCount} onChange={(event) => setChildCount(Number(event.target.value) || 0)} />
+              </label>
+            </div>
+
+            <OnboardingChoiceGroup
+              label="Family dynamic"
+              value={familyDynamic}
+              onChange={setFamilyDynamic}
+              options={[
+                ["two_parent", "Two-parent home"],
+                ["single_parent", "Single parent"],
+                ["coparenting", "Co-parenting"],
+                ["blended", "Blended family"],
+                ["multigenerational", "Multigenerational"],
+                ["chosen_family", "Chosen family"],
+              ]}
+            />
+
+            <OnboardingChoiceGroup
+              label="Life stage"
+              value={lifeStage}
+              onChange={setLifeStage}
+              options={[
+                ["pregnant", "Pregnant"],
+                ["newborn", "Newborn"],
+                ["toddler", "Toddler"],
+                ["school_age", "School age"],
+                ["teens", "Teenagers"],
+                ["adult_family", "Adult family"],
+              ]}
+            />
+
+            <div className="onboarding-choice-group">
+              <span>What should FamOS help with first?</span>
+              <div>
+                {[
+                  ["calendar", "Schedules"],
+                  ["meals", "Meal planning"],
+                  ["groceries", "Groceries"],
+                  ["tasks", "Chores & tasks"],
+                  ["finance", "Budgeting"],
+                  ["chat", "Family chat"],
+                ].map(([value, label]) => (
+                  <button type="button" key={value} className={planningPriorities.includes(value) ? "selected" : ""} onClick={() => togglePriority(value)}>{label}</button>
+                ))}
+              </div>
+            </div>
+
+            <div className="onboarding-choice-group">
+              <span>Your colour</span>
+              <div className="onboarding-colors">
+                {FAMILY_COLORS.map((color) => (
+                  <button
+                    type="button"
+                    key={color.id}
+                    className={primaryColor === color.id ? "selected" : ""}
+                    onClick={() => setPrimaryColor(color.id)}
+                    style={{ backgroundColor: color.value }}
+                    aria-label={color.label}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <label className="partner-consent">
+              <input type="checkbox" checked={partnerPersonalizationOptIn} onChange={(event) => setPartnerPersonalizationOptIn(event.target.checked)} />
+              <span>
+                <strong>Use my household profile for partner personalization</strong>
+                <small>Optional. This can help FamOS recommend relevant integrations, offers, and sponsored experiences later. We should never sell identifiable household data without explicit consent.</small>
+              </span>
+            </label>
+
+            <PrimaryButton disabled={busy} onClick={saveProfile}>{busy ? "Saving…" : "Save family profile"}</PrimaryButton>
+          </div>
         ) : (
           <><TextField type="text" label="Family member emails" placeholder="alex@example.com, sam@example.com" value={inviteEmails} onChange={(e)=>setInviteEmails(e.target.value)}/><p className="onboarding-hint">Separate multiple email addresses with commas. Each person will receive a secure FamilyOS signup invitation.</p><PrimaryButton disabled={busy||!inviteEmails.trim()} onClick={()=>run(async()=>{const emails=inviteEmails.split(",").map(value=>value.trim()).filter(Boolean);for(const email of emails)await invitePartner(email)})}>{busy?"Sending invitations…":"Send invitations & continue"}</PrimaryButton><SecondaryButton type="button" className="mt-2 onboarding-skip-button" disabled={busy} onClick={skipOnboardingInvites}>Skip for now</SecondaryButton></>
         )}
@@ -127,5 +241,20 @@ export function HouseholdOnboarding() {
       </Card>
       <button onClick={signOut} className="w-full text-center text-[12.5px] text-[var(--color-ink-soft)] mt-5">Sign out</button>
     </Shell>
+  );
+}
+
+function OnboardingChoiceGroup({ label, value, onChange, options }) {
+  return (
+    <div className="onboarding-choice-group">
+      <span>{label}</span>
+      <div>
+        {options.map(([optionValue, optionLabel]) => (
+          <button type="button" key={optionValue} className={value === optionValue ? "selected" : ""} onClick={() => onChange(optionValue)}>
+            {optionLabel}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

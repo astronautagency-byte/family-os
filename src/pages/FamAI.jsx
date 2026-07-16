@@ -345,7 +345,7 @@ export default function FamAI() {
       <PageHeader
         eyebrow="Your family assistant"
         title="Fam AI"
-        illustration="chat"
+        illustration="famai"
         subtitle="Plan your family life in a conversation."
       />
       <div className="px-5">

@@ -1,4 +1,5 @@
 import { FAMILY_COLORS } from "../data/mockData";
+import { X } from "lucide-react";
 
 export function colorVar(colorId) {
   const found = FAMILY_COLORS.find((c) => c.id === colorId);
@@ -127,8 +128,9 @@ export function Modal({ open, onClose, title, children }) {
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
       <div className="modal-card relative bg-[var(--color-surface)] w-full sm:max-w-sm sm:rounded-2xl rounded-t-2xl px-7 pt-7 pb-12 sm:p-8 safe-bottom fade-up max-h-[85vh] overflow-y-auto border border-[var(--color-border)]">
+        <button type="button" className="modal-close-button" onClick={onClose} aria-label="Close dialog"><X size={17} /></button>
         <div className="w-10 h-1 bg-[var(--color-border-strong)] rounded-full mx-auto mb-4 sm:hidden" />
-        {title && <h3 className="font-[var(--font-display)] text-[19px] font-semibold mb-5">{title}</h3>}
+        {title && <h3 className="font-[var(--font-display)] text-[19px] font-semibold mb-5 pr-10">{title}</h3>}
         {children}
       </div>
     </div>
@@ -150,7 +152,7 @@ export function TextField({ label, ...props }) {
 export function PrimaryButton({ children, className = "", ...props }) {
   return (
     <button
-      className={`w-full rounded-xl bg-[var(--color-accent)] text-white font-semibold text-[15px] py-3 active:scale-[0.98] transition-transform disabled:opacity-40 ${className}`}
+      className={`primary-button-row w-full rounded-xl bg-[var(--color-accent)] text-white font-semibold text-[15px] py-3 active:scale-[0.98] transition-transform disabled:opacity-40 ${className}`}
       {...props}
     >
       {children}

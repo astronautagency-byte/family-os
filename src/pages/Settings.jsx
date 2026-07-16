@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { AlertCircle, Bell, CalendarDays, CheckCircle2, ExternalLink, Eye, EyeOff, Info, Link2, Plus, RefreshCw, RotateCcw, Trash2, Upload } from "lucide-react";
+import { AlertCircle, Bell, CalendarDays, CheckCircle2, ExternalLink, Eye, EyeOff, ImagePlus, Info, Link2, Plus, RefreshCw, RotateCcw, Trash2, Upload } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, Card, Modal, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import { FAMILY_COLORS } from "../data/mockData";
+import { AVATAR_PRESETS } from "../data/avatarLibrary";
 import { supabase } from "../lib/supabase";
 
 function initialsFrom(name) {
@@ -14,6 +15,33 @@ function initialsFrom(name) {
     .slice(0, 2)
     .map((w) => w[0]?.toUpperCase())
     .join("") || "?";
+}
+
+function resizeAvatarImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const image = new Image();
+      image.onload = () => {
+        const size = 360;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const context = canvas.getContext("2d");
+        const sourceSize = Math.min(image.width, image.height);
+        const sourceX = (image.width - sourceSize) / 2;
+        const sourceY = (image.height - sourceSize) / 2;
+        context.fillStyle = "#fff";
+        context.fillRect(0, 0, size, size);
+        context.drawImage(image, sourceX, sourceY, sourceSize, sourceSize, 0, 0, size, size);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      image.onerror = reject;
+      image.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 function GoogleCalendarCard() {
@@ -54,7 +82,6 @@ function GoogleCalendarCard() {
       )}
 
       {googleConnected && googleCalendars.length > 0 && <div className="google-calendar-picker"><div><strong>Calendars to sync</strong><span>{selectedGoogleCalendarIds.length} of {googleCalendars.length} selected</span></div><ul>{googleCalendars.map(calendar=><li key={calendar.id}><button onClick={()=>toggleGoogleCalendar(calendar.id)} disabled={isBusy} aria-pressed={selectedGoogleCalendarIds.includes(calendar.id)}><i style={{backgroundColor:calendar.backgroundColor}}/><span><b>{calendar.summary}</b><small>{calendar.primary?"Primary calendar":calendar.accessRole==="reader"?"Read only":"Can add events"}</small></span><em>{selectedGoogleCalendarIds.includes(calendar.id)&&<CheckCircle2/>}</em></button></li>)}</ul></div>}
-
       {!googleUsesAccount && (showSetup || !googleClientId) && !googleConnected && (
         <div className="mb-3">
           <TextField
@@ -195,15 +222,18 @@ function CalendarFeedsCard() {
 
 export default function Settings() {
   const { members, addMember, updateMember, removeMember, resetToDemoData, notificationPermission, requestNotifications, sendTestNotification } = useFamily();
-  const { configured, user, household, invitePartner, updatePassword, signOut, deleteAccount } = useAuth();
+  const { configured, user, session, household, invitePartner, refreshAccount, updatePassword, signOut, deleteAccount } = useAuth();
   const [editingMember, setEditingMember] = useState(null); // member object or "new"
   const [name, setName] = useState("");
   const [role, setRole] = useState("Kid");
   const [color, setColor] = useState(FAMILY_COLORS[0].id);
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [avatarStatus, setAvatarStatus] = useState("");
   const [confirmingReset, setConfirmingReset] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteStatus, setInviteStatus] = useState("");
   const [pendingInvites, setPendingInvites] = useState([]);
+  const [inviteActionStatus, setInviteActionStatus] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [passwordStatus, setPasswordStatus] = useState("");
@@ -224,12 +254,40 @@ export default function Settings() {
     setPendingInvites(data || []);
   };
 
+  const reconcileInvites = async () => {
+    if (!configured || !household?.id || !supabase) return;
+    setInviteActionStatus("Checking for signed-up invitees…");
+    const { error } = await supabase.rpc("reconcile_existing_household_invitations", { target_household: household.id });
+    if (error) {
+      setInviteActionStatus("Could not auto-join invitees because the live Supabase database is missing the invite reconciliation function. Run supabase/migrations/202607160002_invitation_reconciliation.sql in the Supabase SQL Editor, then click Check again.");
+      console.warn("Could not reconcile invitations.", error);
+      await loadPendingInvites();
+      return;
+    }
+    await refreshAccount(session);
+    await loadPendingInvites();
+    setInviteActionStatus("Invite list refreshed. Accepted members should now appear above.");
+  };
+
+  const revokeInvite = async (invite) => {
+    if (!supabase) return;
+    const { error } = await supabase.from("household_invitations").delete().eq("id", invite.id);
+    if (error) {
+      setInviteActionStatus(error.message || "Could not revoke invitation.");
+      return;
+    }
+    setInviteActionStatus(`Revoked invitation for ${invite.email}.`);
+    await loadPendingInvites();
+  };
+
   useEffect(() => { loadPendingInvites(); }, [configured, household?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openNew = () => {
     setName("");
     setRole("Kid");
     setColor(FAMILY_COLORS[members.length % FAMILY_COLORS.length].id);
+    setAvatarUrl(AVATAR_PRESETS[members.length % AVATAR_PRESETS.length]?.url || "");
+    setAvatarStatus("");
     setEditingMember("new");
   };
 
@@ -237,17 +295,33 @@ export default function Settings() {
     setName(m.name);
     setRole(m.role);
     setColor(m.color);
+    setAvatarUrl(m.avatarUrl || "");
+    setAvatarStatus("");
     setEditingMember(m);
   };
 
   const save = () => {
     if (!name.trim()) return;
     if (editingMember === "new") {
-      addMember({ name: name.trim(), role, color, initials: initialsFrom(name) });
+      addMember({ name: name.trim(), role, color, initials: initialsFrom(name), avatarUrl });
     } else {
-      updateMember(editingMember.id, { name: name.trim(), role, color, initials: initialsFrom(name) });
+      updateMember(editingMember.id, { name: name.trim(), role, color, initials: initialsFrom(name), avatarUrl });
     }
     setEditingMember(null);
+  };
+
+  const uploadAvatar = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setAvatarStatus("");
+    try {
+      setAvatarUrl(await resizeAvatarImage(file));
+      setAvatarStatus("Custom photo ready. Save to apply it.");
+    } catch {
+      setAvatarStatus("Could not read that image. Try another photo.");
+    } finally {
+      event.target.value = "";
+    }
   };
 
   const testNotifications = async () => {
@@ -310,7 +384,11 @@ export default function Settings() {
                 <li key={invite.id} className="family-roster-pending">
                   <div className="family-invite-avatar">{invite.email.slice(0, 1).toUpperCase()}</div>
                   <div className="min-w-0 flex-1"><p>{invite.email}</p><span>Invitation pending</span></div>
-                  <span className="pending-pill">Pending</span>
+                  <div className="pending-invite-actions">
+                    <span className="pending-pill">Pending</span>
+                    <button onClick={reconcileInvites}><RefreshCw size={12} /> Check</button>
+                    <button className="danger" onClick={() => revokeInvite(invite)}><Trash2 size={12} /> Revoke</button>
+                  </div>
                 </li>
               ))}
               {members.length === 0 && (
@@ -320,10 +398,11 @@ export default function Settings() {
               )}
             </ul>
           </Card>
+          {inviteActionStatus && <p className="text-[12px] text-[var(--color-ink-soft)] mt-2 px-1">{inviteActionStatus}</p>}
           {configured && (
             <Card className="p-4 mt-3">
               <TextField type="email" label="Invite a family member" placeholder="family@example.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
-              <PrimaryButton disabled={!inviteEmail.trim()} onClick={async () => { try { const result = await invitePartner(inviteEmail); setInviteStatus(result?.message || "Invitation email sent."); setInviteEmail(""); await loadPendingInvites(); } catch (e) { setInviteStatus(e.message); } }}>Send invitation</PrimaryButton>
+              <PrimaryButton disabled={!inviteEmail.trim()} onClick={async () => { try { const result = await invitePartner(inviteEmail); setInviteStatus(result?.message || "Invitation email sent."); setInviteEmail(""); await refreshAccount(session); await loadPendingInvites(); } catch (e) { setInviteStatus(e.message); } }}>Send invitation</PrimaryButton>
               {inviteStatus && <p className="text-[12px] text-[var(--color-ink-soft)] mt-2">{inviteStatus}</p>}
             </Card>
           )}
@@ -338,10 +417,11 @@ export default function Settings() {
         <section>
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">Notifications</h2>
           <Card className="p-4">
-            <div className="flex items-start gap-3 mb-4"><div className="w-10 h-10 rounded-xl bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0"><Bell size={18} color="var(--color-accent)" /></div><div><p className="font-medium text-[14.5px]">Task assignments</p><p className="text-[12.5px] text-[var(--color-ink-soft)] mt-0.5">Get a device notification when your partner assigns a new task to you.</p></div></div>
-            <PrimaryButton onClick={requestNotifications} disabled={notificationPermission === "granted" || notificationPermission === "unsupported"}>{notificationPermission === "granted" ? "Notifications enabled" : notificationPermission === "denied" ? "Blocked in browser settings" : notificationPermission === "unsupported" ? "Not supported on this device" : "Enable notifications"}</PrimaryButton>
+            <div className="flex items-start gap-3 mb-4"><div className="w-10 h-10 rounded-xl bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0"><Bell size={18} color="var(--color-accent)" /></div><div><p className="font-medium text-[14.5px]">Task assignments</p><p className="text-[12.5px] text-[var(--color-ink-soft)] mt-0.5">Get browser notifications while FamOS is open. True iPhone push requires installing FamOS to the Home Screen and adding server push support.</p></div></div>
+            <PrimaryButton onClick={requestNotifications} disabled={notificationPermission === "granted" || notificationPermission === "unsupported"}>{notificationPermission === "granted" ? "Browser notifications allowed" : notificationPermission === "denied" ? "Blocked in browser settings" : notificationPermission === "unsupported" ? "Not supported on this device" : "Enable browser notifications"}</PrimaryButton>
             {notificationPermission === "granted" && <SecondaryButton className="mt-2" onClick={testNotifications} disabled={testingNotification}>{testingNotification ? "Sending test…" : "Send a test notification"}</SecondaryButton>}
             {notificationTestStatus && <div className="notification-test-status"><CheckCircle2 size={14} /><p>{notificationTestStatus}</p></div>}
+            <div className="notification-help">On iPhone, web notifications only appear reliably for installed web apps. Add FamOS to your Home Screen from Safari, open it from the icon, then enable notifications. Background task alerts will need the next backend push-notification phase.</div>
             {notificationPermission === "denied" && <p className="text-[11.5px] text-[var(--color-warn)] mt-2">Allow notifications for this site in your browser or device settings, then reload FamilyOS.</p>}
           </Card>
         </section>
@@ -409,6 +489,34 @@ export default function Settings() {
       {/* Member editor */}
       <Modal open={!!editingMember} onClose={() => setEditingMember(null)} title={editingMember === "new" ? "Add family member" : "Edit family member"}>
         <TextField label="Name" placeholder="e.g. Priya" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+
+        <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-2">Avatar</p>
+        <div className="avatar-editor">
+          <div className="avatar-editor-preview" style={{ backgroundColor: FAMILY_COLORS.find((item) => item.id === color)?.value || "var(--color-accent)" }}>
+            {avatarUrl ? <img src={avatarUrl} alt="" /> : <span>{initialsFrom(name || "Family")}</span>}
+          </div>
+          <div className="avatar-editor-actions">
+            <label>
+              <input type="file" accept="image/*" onChange={uploadAvatar} />
+              <ImagePlus size={15} /> Upload photo
+            </label>
+            <button type="button" onClick={() => { setAvatarUrl(""); setAvatarStatus("Initials selected. Save to apply it."); }}>Use initials</button>
+          </div>
+        </div>
+        <div className="avatar-preset-grid">
+          {AVATAR_PRESETS.map((avatar) => (
+            <button
+              key={avatar.id}
+              type="button"
+              className={avatarUrl === avatar.url ? "selected" : ""}
+              onClick={() => { setAvatarUrl(avatar.url); setAvatarStatus("Illustrated avatar selected. Save to apply it."); }}
+              aria-label={`Use ${avatar.label} avatar`}
+            >
+              <img src={avatar.url} alt="" />
+            </button>
+          ))}
+        </div>
+        {avatarStatus && <p className="avatar-status">{avatarStatus}</p>}
 
         <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-2">Role</p>
         <div className="flex gap-2 mb-4">

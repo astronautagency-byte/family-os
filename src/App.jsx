@@ -4,6 +4,7 @@ import { useGSAP } from "@gsap/react";
 import { FamilyProvider } from "./context/FamilyContext";
 import BottomNav from "./components/BottomNav";
 import AppTopBar from "./components/AppTopBar";
+import InstallPrompt from "./components/InstallPrompt";
 import Today from "./pages/Today";
 import CalendarPage from "./pages/Calendar";
 import Meals from "./pages/Meals";
@@ -101,6 +102,7 @@ export default function App() {
           {tab === "finance" && <Finance />}
           {tab === "settings" && <Settings />}
         </main>
+        <InstallPrompt />
       </div>
     </FamilyProvider>
   );

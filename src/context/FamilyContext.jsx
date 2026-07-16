@@ -158,7 +158,18 @@ export function FamilyProvider({ children }) {
   const mapEvent = (row) => ({ id: row.id, title: row.title, start: row.starts_at, end: row.ends_at, location: row.location, source: row.source === "familyos" ? "local" : row.source, memberIds: (row.event_participants || []).map((p) => p.user_id) });
   const mapMeal = (row) => ({ id: row.id, date: row.meal_date, slot: row.slot, title: row.title, notes: row.notes, cookIds: row.cook_ids || [] });
   const mapMessage = (row) => ({ id: row.id, senderId: row.sender_id, recipientId: row.recipient_id || null, text: row.body, sentAt: row.created_at });
-  const mapExpense = (row) => ({ id: row.id, description: row.description, amount: Number(row.amount), category: row.category, spentOn: row.spent_on, createdBy: row.created_by });
+  const mapExpense = (row) => ({
+    id: row.id,
+    description: row.description,
+    amount: Number(row.amount),
+    category: row.category,
+    spentOn: row.spent_on,
+    createdBy: row.created_by,
+    merchant: row.merchant || "",
+    receiptNotes: row.receipt_notes || "",
+    receiptConfidence: row.receipt_confidence || null,
+    receiptSource: row.receipt_source || "manual",
+  });
 
   const loadRemoteData = async () => {
     if (!remote) return;
@@ -220,7 +231,14 @@ export function FamilyProvider({ children }) {
   const addMember = (member) =>
     setMembers((prev) => [...prev, { id: makeId("mem"), ...member }]);
   const updateMember = async (id, patch) => {
-    if (remote) await runRemote(supabase.from("profiles").update({ display_name: patch.name, color: patch.color, initials: patch.initials }).eq("id", id));
+    if (remote) {
+      const dbPatch = {};
+      if (patch.name !== undefined) dbPatch.display_name = patch.name;
+      if (patch.color !== undefined) dbPatch.color = patch.color;
+      if (patch.initials !== undefined) dbPatch.initials = patch.initials;
+      if (patch.avatarUrl !== undefined) dbPatch.avatar_url = patch.avatarUrl;
+      await runRemote(supabase.from("profiles").update(dbPatch).eq("id", id));
+    }
     setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)));
   };
   const removeMember = (id) =>
@@ -302,9 +320,22 @@ export function FamilyProvider({ children }) {
   // ---- Finance ----
   const addExpense = async (expense) => {
     if (remote) {
-      const { data, error } = await supabase.from("expenses").insert({ household_id: household.id, description: expense.description, amount: expense.amount, category: expense.category, spent_on: expense.spentOn, created_by: user.id }).select().single();
+      const baseRow = { household_id: household.id, description: expense.description, amount: expense.amount, category: expense.category, spent_on: expense.spentOn, created_by: user.id };
+      const receiptRow = {
+        ...baseRow,
+        merchant: expense.merchant || null,
+        receipt_notes: expense.receiptNotes || null,
+        receipt_confidence: expense.receiptConfidence || null,
+        receipt_source: expense.receiptSource || "manual",
+      };
+      let { data, error } = await supabase.from("expenses").insert(receiptRow).select().single();
+      if (error && /merchant|receipt_|schema cache|column/i.test(error.message || "")) {
+        const fallback = await supabase.from("expenses").insert(baseRow).select().single();
+        data = fallback.data;
+        error = fallback.error;
+      }
       if (error) throw error;
-      setExpenses((prev) => [mapExpense(data), ...prev]);
+      setExpenses((prev) => [{ ...mapExpense(data), merchant: expense.merchant || data.merchant || "", receiptNotes: expense.receiptNotes || data.receipt_notes || "", receiptConfidence: expense.receiptConfidence || data.receipt_confidence || null, receiptSource: expense.receiptSource || data.receipt_source || "manual" }, ...prev]);
     } else setExpenses((prev) => [{ id: makeId("expense"), createdBy: user?.id || null, ...expense }, ...prev]);
   };
   const removeExpense = async (id) => {

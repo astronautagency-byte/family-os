@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Baby, Bone, Carrot, Coffee, Cookie, Croissant, CupSoda, Drumstick, FlaskConical, Globe2, GripVertical, HeartPulse, Milk, Package, Pencil, Plus, Sandwich, ScrollText, Snowflake, Soup, SprayCan, Star, Trash2, Wheat, Wine } from "lucide-react";
+import { Baby, Bone, Carrot, Coffee, Cookie, Croissant, CupSoda, Drumstick, FlaskConical, Globe2, GripVertical, HeartPulse, Maximize2, Milk, Package, Pencil, Plus, Sandwich, ScanLine, ScrollText, Snowflake, Soup, SprayCan, Star, Trash2, Wheat, Wine, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { Card, Checkbox, EmptyState, Modal, PrimaryButton, SecondaryButton, Stepper, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
@@ -68,6 +68,10 @@ export default function Groceries() {
   const [masterDraft, setMasterDraft] = useState(emptyDraft);
   const [showAllStaples, setShowAllStaples] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
+  const [barcodeModal, setBarcodeModal] = useState(false);
+  const [barcodeDraft, setBarcodeDraft] = useState({ ...emptyDraft, code: "" });
+  const [barcodeStatus, setBarcodeStatus] = useState("");
 
   useEffect(() => { localStorage.setItem(STAPLES_KEY, JSON.stringify(staples)); }, [staples]);
 
@@ -82,6 +86,10 @@ export default function Groceries() {
   }, [groceries]);
 
   const checkedCount = groceries.filter((g) => g.checked).length;
+  const focusItems = useMemo(
+    () => [...groceries].sort((a, b) => Number(a.checked) - Number(b.checked) || a.category.localeCompare(b.category)),
+    [groceries]
+  );
 
   const openNew = () => {
     setDraft(emptyDraft);
@@ -136,13 +144,68 @@ export default function Groceries() {
     setMasterEditing(null);
   };
 
+  const resetBarcodeDraft = () => {
+    setBarcodeDraft({ ...emptyDraft, code: "" });
+    setBarcodeStatus("");
+  };
+
+  const readBarcodeFromImage = async (file) => {
+    if (!file) return;
+    if (!("BarcodeDetector" in window)) {
+      setBarcodeStatus("This browser cannot auto-read barcodes yet. Type the barcode below and save it as a favourite.");
+      return;
+    }
+
+    try {
+      const detector = new window.BarcodeDetector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"] });
+      const bitmap = await createImageBitmap(file);
+      const results = await detector.detect(bitmap);
+      const code = results?.[0]?.rawValue || "";
+      if (!code) {
+        setBarcodeStatus("No barcode found. Try a brighter photo, or type the barcode manually.");
+        return;
+      }
+      setBarcodeDraft((draft) => ({ ...draft, code }));
+      setBarcodeStatus(`Barcode captured: ${code}. Add the item name to save it as a favourite.`);
+    } catch (error) {
+      setBarcodeStatus("Barcode scanning is not available in this browser yet. You can still enter the code manually.");
+    }
+  };
+
+  const saveBarcodeFavourite = async () => {
+    if (!barcodeDraft.name.trim()) return;
+    const item = {
+      id: `staple_${Date.now()}`,
+      name: barcodeDraft.name.trim(),
+      category: barcodeDraft.category,
+      quantity: barcodeDraft.quantity || 1,
+      unit: barcodeDraft.unit.trim(),
+      barcode: barcodeDraft.code.trim(),
+    };
+    setStaples((current) => {
+      const normalizedName = item.name.toLowerCase();
+      const withoutDuplicate = current.filter((staple) => {
+        const sameBarcode = item.barcode && staple.barcode === item.barcode;
+        const sameName = staple.name.toLowerCase() === normalizedName;
+        return !sameBarcode && !sameName;
+      });
+      return [...withoutDuplicate, item];
+    });
+    await addGrocery({ ...item, addedBy: null });
+    setBarcodeModal(false);
+  };
+
   return (
     <div className="pb-24 reference-groceries">
       <PageHeader
         title="Groceries"
         illustration="groceries"
         subtitle="Keep the pantry full, together."
-        action={groceries.length?<div className="page-action-stack">{checkedCount>0&&<button onClick={clearCheckedGroceries}>Clear checked</button>}<button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button></div>:null}
+        action={<div className="grocery-mode-actions">
+          {groceries.length > 0 && <button onClick={() => setFocusMode(true)}><Maximize2 size={14} /> Focus shop</button>}
+          {checkedCount > 0 && <button onClick={clearCheckedGroceries}>Clear checked</button>}
+          {groceries.length > 0 && <button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button>}
+        </div>}
       />
 
       <div className="px-5 space-y-5 mt-2">
@@ -307,6 +370,59 @@ export default function Groceries() {
         <div className="flex items-end gap-3 mb-5"><div><p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-1.5">Default quantity</p><Stepper value={masterDraft.quantity} onChange={(quantity) => setMasterDraft((draft) => ({ ...draft, quantity }))} /></div><div className="flex-1"><TextField label="Unit" placeholder="bag, dozen, lb" value={masterDraft.unit} onChange={(e) => setMasterDraft((draft) => ({ ...draft, unit: e.target.value }))} /></div></div>
         <div className="flex gap-2">{masterEditing !== "new" && <SecondaryButton onClick={() => { setStaples((current) => current.filter((item) => item.id !== masterEditing)); setMasterEditing(null); }}>Remove</SecondaryButton>}<PrimaryButton onClick={saveMasterItem} disabled={!masterDraft.name.trim()}>Save master item</PrimaryButton></div>
       </Modal>
+
+      <Modal open={barcodeModal} onClose={() => setBarcodeModal(false)} title="Scan a favourite">
+        <p className="barcode-note">Scan or enter a barcode, then save the product as a favourite so you can add the exact brand again later.</p>
+        <label className="barcode-actions">
+          <input type="file" accept="image/*" capture="environment" onChange={(event) => readBarcodeFromImage(event.target.files?.[0])} />
+          <ScanLine size={16} />
+          Use camera to scan
+        </label>
+        {barcodeStatus && <p className="barcode-result">{barcodeStatus}</p>}
+        <TextField label="Barcode (optional)" placeholder="e.g. 012345678905" value={barcodeDraft.code} onChange={(event) => setBarcodeDraft((draft) => ({ ...draft, code: event.target.value }))} inputMode="numeric" />
+        <TextField label="Product name" placeholder="e.g. Dave's Killer Bread" value={barcodeDraft.name} onChange={(event) => setBarcodeDraft((draft) => ({ ...draft, name: event.target.value }))} />
+        <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-2">Category</p>
+        <div className="flex flex-wrap gap-2 mb-4">{GROCERY_CATEGORIES.map((category) => <button key={category} onClick={() => setBarcodeDraft((draft) => ({ ...draft, category }))} className="rounded-full px-3 py-1.5 text-[13px] font-medium border" style={{ borderColor: barcodeDraft.category === category ? "var(--color-accent)" : "var(--color-border)", backgroundColor: barcodeDraft.category === category ? "var(--color-accent-soft)" : "transparent" }}>{category}</button>)}</div>
+        <div className="flex items-end gap-3 mb-5"><div><p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-1.5">Default quantity</p><Stepper value={barcodeDraft.quantity} onChange={(quantity) => setBarcodeDraft((draft) => ({ ...draft, quantity }))} /></div><div className="flex-1"><TextField label="Unit" placeholder="loaf, box, bag" value={barcodeDraft.unit} onChange={(event) => setBarcodeDraft((draft) => ({ ...draft, unit: event.target.value }))} /></div></div>
+        <PrimaryButton onClick={saveBarcodeFavourite} disabled={!barcodeDraft.name.trim()}>Save favourite & add</PrimaryButton>
+      </Modal>
+
+      {focusMode && (
+        <div className="focus-shopping-overlay" role="dialog" aria-modal="true" aria-label="Focus shopping mode">
+          <div className="focus-shopping-header">
+            <div>
+              <p>Focus shopping</p>
+              <h2>{groceries.length - checkedCount} items left</h2>
+            </div>
+            <div className="focus-shopping-header-actions">
+              <button
+                className="focus-shopping-scan"
+                onClick={() => {
+                  resetBarcodeDraft();
+                  setFocusMode(false);
+                  setBarcodeModal(true);
+                }}
+              >
+                <ScanLine size={15} /> Scan item
+              </button>
+              <button onClick={() => setFocusMode(false)} aria-label="Close focus shopping"><X size={20} /></button>
+            </div>
+          </div>
+          <div className="focus-shopping-list">
+            {focusItems.map((item) => {
+              const qtyLabel = [item.quantity > 1 || item.unit ? item.quantity : null, item.unit].filter(Boolean).join(" ");
+              return (
+                <button key={item.id} className={`focus-shopping-item ${item.checked ? "is-checked" : ""}`} onClick={() => toggleGrocery(item.id)}>
+                  <span className="focus-shopping-check" aria-hidden="true">{item.checked ? "✓" : ""}</span>
+                  <GroceryIcon category={item.category} />
+                  <span className="focus-shopping-copy"><strong>{item.name}</strong><small>{item.category}{qtyLabel ? ` · ${qtyLabel}` : ""}</small></span>
+                </button>
+              );
+            })}
+          </div>
+          <button className="focus-shopping-done" onClick={() => setFocusMode(false)}>Done shopping</button>
+        </div>
+      )}
     </div>
   );
 }

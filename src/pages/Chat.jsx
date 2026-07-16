@@ -33,7 +33,9 @@ export default function Chat() {
       || (message.senderId === activeThread && message.recipientId === currentUserId);
   });
 
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), [threadMessages.length, activeThread]);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [threadMessages.length, activeThread]);
 
   const submit = async (event) => {
     event.preventDefault();

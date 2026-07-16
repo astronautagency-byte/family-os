@@ -68,7 +68,7 @@ export default function Today({ goTo }) {
       />
 
       <button className="family-hero" onClick={() => goTo("calendar")}>
-        <img src="/illustrations/famos-family-planning.png" alt="A family sharing their plans at home" />
+        <img src="/illustrations/home-dashboard-editorial.png" alt="A family reviewing their shared dashboard" />
         <span><small>Together this week</small><strong>Plan the little moments that matter.</strong><em>Open family calendar <ChevronRight size={14}/></em></span>
       </button>
 

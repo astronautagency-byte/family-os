@@ -5,6 +5,8 @@ const illustrations = {
   groceries: "/illustrations/groceries-editorial.png",
   finance: "/illustrations/finance-editorial.png",
   chat: "/illustrations/chat-editorial.png",
+  famai: "/illustrations/famai-editorial.png",
+  home: "/illustrations/home-dashboard-editorial.png",
   settings: "/illustrations/settings-editorial.png",
   rewards: "/illustrations/rewards-editorial.png",
 };
