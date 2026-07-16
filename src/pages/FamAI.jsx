@@ -15,6 +15,7 @@ import PageHeader from "../components/PageHeader";
 import { Avatar, Card, PrimaryButton, SecondaryButton } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
+import { addDays, formatDayLabel, todayISO } from "../lib/dates";
 import { supabase } from "../lib/supabase";
 
 const actionMeta = {
@@ -85,6 +86,76 @@ function loadRewardsContext() {
   }
 }
 
+function makeMemberNameMap(members = []) {
+  return members.reduce((map, member) => {
+    map[member.id] = member.name;
+    return map;
+  }, {});
+}
+
+function analyzeBusiestDay({ events = [], tasks = [], meals = [], members = [] }) {
+  const today = todayISO();
+  const memberNames = makeMemberNameMap(members);
+  const days = Array.from({ length: 7 }, (_, index) => {
+    const date = addDays(today, index);
+    const dayEvents = events
+      .filter((event) => event.start?.slice(0, 10) === date)
+      .map((event) => ({
+        type: "event",
+        title: event.title,
+        detail: event.start ? new Date(event.start).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "",
+      }));
+    const dayTasks = tasks
+      .filter((task) => !task.done && task.due === date)
+      .map((task) => ({
+        type: "task",
+        title: task.title,
+        detail: task.assigneeId ? memberNames[task.assigneeId] : "",
+      }));
+    const dayMeals = meals
+      .filter((meal) => meal.date === date && meal.title)
+      .map((meal) => ({
+        type: "meal",
+        title: `${meal.slot}: ${meal.title}`,
+        detail: "",
+      }));
+    const items = [...dayEvents, ...dayTasks, ...dayMeals];
+    return {
+      date,
+      label: formatDayLabel(date),
+      events: dayEvents,
+      tasks: dayTasks,
+      meals: dayMeals,
+      items,
+      score: dayEvents.length * 2 + dayTasks.length * 1.5 + dayMeals.length,
+    };
+  });
+
+  const busiest = [...days].sort((a, b) => b.score - a.score || b.items.length - a.items.length)[0];
+  if (!busiest || busiest.items.length === 0) {
+    return "I checked the next 7 days and don’t see any events, due tasks, or planned meals yet. Add a few calendar items or tasks and I can spot the busiest day for you.";
+  }
+
+  const topItems = busiest.items.slice(0, 5).map((item) => `• ${item.title}${item.detail ? ` — ${item.detail}` : ""}`).join("\n");
+  const counts = [
+    `${busiest.events.length} event${busiest.events.length === 1 ? "" : "s"}`,
+    `${busiest.tasks.length} open task${busiest.tasks.length === 1 ? "" : "s"}`,
+    `${busiest.meals.length} planned meal${busiest.meals.length === 1 ? "" : "s"}`,
+  ].join(", ");
+
+  const suggestion = busiest.tasks.length > 1
+    ? "I’d move or delegate one task if possible so the day has more breathing room."
+    : busiest.events.length > 1
+      ? "I’d add a buffer between events or prep anything needed the night before."
+      : "It looks manageable — a quick reminder the night before should be enough.";
+
+  return `${busiest.label} looks like your busiest day in the next week: ${counts}.\n\n${topItems}\n\n${suggestion}`;
+}
+
+function wantsBusiestDayAnswer(text) {
+  return /\b(busiest|busy|most packed|most scheduled|heaviest)\b/i.test(text) && /\b(day|schedule|week|upcoming|calendar)\b/i.test(text);
+}
+
 async function getFunctionError(invokeError) {
   try {
     const response = invokeError?.context;
@@ -106,6 +177,8 @@ export default function FamAI() {
     tasks,
     groceries,
     events,
+    googleEvents,
+    feedEvents,
     meals,
     expenses,
     weeklyBudget,
@@ -145,6 +218,14 @@ export default function FamAI() {
     setError("");
 
     try {
+      const allEvents = [...(events || []), ...(googleEvents || []), ...(feedEvents || [])];
+      if (wantsBusiestDayAnswer(text)) {
+        const answer = analyzeBusiestDay({ events: allEvents, tasks, meals, members });
+        setMessages((current) => [...current, { role: "assistant", content: answer }]);
+        setPending([]);
+        return;
+      }
+
       if (!configured || !supabase) {
         throw new Error("Fam AI needs the FamilyOS cloud connection before it can respond.");
       }
@@ -155,21 +236,35 @@ export default function FamAI() {
             ({ role, content, aiContent }) => ({ role, content: aiContent || content }),
           ),
           context: {
+            today: todayISO(),
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             family: members.map((member) => member.name),
-            openTasks: tasks
-              .filter((task) => !task.done)
-              .slice(0, 8)
-              .map((task) => task.title),
+            members: members.map((member) => ({ id: member.id, name: member.name, role: member.role })),
+            tasks: tasks.map((task) => ({
+              title: task.title,
+              due: task.due,
+              done: task.done,
+              assignee: task.assigneeId ? members.find((member) => member.id === task.assigneeId)?.name : null,
+              taskType: task.taskType,
+            })),
+            openTasks: tasks.filter((task) => !task.done).map((task) => ({
+              title: task.title,
+              due: task.due,
+              assignee: task.assigneeId ? members.find((member) => member.id === task.assigneeId)?.name : null,
+              taskType: task.taskType,
+            })),
             groceries: groceries
               .filter((item) => !item.checked)
-              .slice(0, 10)
-              .map((item) => item.name),
-            upcomingEvents: events
-              .slice(0, 8)
-              .map((item) => ({ title: item.title, start: item.start })),
+              .map((item) => ({ name: item.name, category: item.category, quantity: item.quantity, unit: item.unit })),
+            upcomingEvents: allEvents
+              .filter((item) => item.start && item.start >= new Date(`${todayISO()}T00:00:00`).toISOString())
+              .sort((a, b) => a.start.localeCompare(b.start))
+              .slice(0, 50)
+              .map((item) => ({ title: item.title, start: item.start, end: item.end, location: item.location, source: item.source })),
             plannedMeals: meals
-              .slice(0, 8)
-              .map((item) => ({ date: item.date, slot: item.slot, title: item.title })),
+              .filter((item) => item.date >= todayISO())
+              .slice(0, 42)
+              .map((item) => ({ date: item.date, slot: item.slot, title: item.title, notes: item.notes })),
             finance: {
               financePeriod,
               weeklyBudget,

@@ -17,7 +17,13 @@ Deno.serve(async request=>{
   const {data:{user},error}=await supabase.auth.getUser(); if(error||!user)throw new Error("Your session has expired.");
   const xaiKey=Deno.env.get("XAI_API_KEY"); const groqKey=Deno.env.get("GROQ_API_KEY"); if(!xaiKey&&!groqKey)throw new Error("Fam AI's server credential is not configured yet.");
   const {messages=[],context={}}=await request.json();
-  const system=`You are Fam AI, a concise and warm assistant inside FamilyOS. Help families organize their home. Today is ${new Date().toISOString().slice(0,10)}. Use the supplied functions only when the user clearly asks to change app data. You may call multiple functions. Never claim an action was completed; say it is ready for review. Ask a question if required dates, people, or details are ambiguous. Household context: ${JSON.stringify(context)}`;
+  const system=`You are Fam AI, a concise and warm assistant inside FamilyOS. Help families organize their home. Today is ${new Date().toISOString().slice(0,10)}.
+
+Use the supplied household context as the source of truth for analytical questions. If the user asks which day is busiest, what is due, what is planned, what is missing, whether the budget is on track, or similar, answer directly from the context instead of giving a generic checklist. For busiest-day questions, compare upcomingEvents, openTasks/tasks, and plannedMeals by date; count calendar events, due tasks, and meals; then name the day, explain why, and give one practical suggestion.
+
+Use functions only when the user clearly asks to change app data. You may call multiple functions. Never claim an action was completed; say it is ready for review. Make reasonable defaults for household organization requests when context is sufficient. Ask a question only when required dates, people, or details are genuinely missing and cannot be inferred.
+
+Household context: ${JSON.stringify(context)}`;
   const providers=[...(xaiKey?[{name:"primary",url:"https://api.x.ai/v1/chat/completions",key:xaiKey,model:Deno.env.get("XAI_MODEL")||"grok-4.5"}]:[]),...(groqKey?[{name:"fallback",url:"https://api.groq.com/openai/v1/chat/completions",key:groqKey,model:"llama-3.1-8b-instant"}]:[])];
   let response:Response|null=null; let lastDetail="";
   for(const provider of providers){

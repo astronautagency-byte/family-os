@@ -393,7 +393,10 @@ export default function Settings() {
                 </a>
                 <br />Part of Astronaut Ventures
               </p>
-              <button onClick={() => { window.location.hash = "privacy"; }} className="mt-3 text-[12px] font-semibold text-[var(--color-accent)]">Privacy policy & legal</button>
+              <div className="mt-3 flex flex-wrap gap-3">
+                <button onClick={() => { window.location.hash = "privacy"; }} className="text-[12px] font-semibold text-[var(--color-accent)]">Privacy policy</button>
+                <button onClick={() => { window.location.hash = "terms"; }} className="text-[12px] font-semibold text-[var(--color-accent)]">Terms of service</button>
+              </div>
             </div>
           </Card>
         </section>

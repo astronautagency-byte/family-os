@@ -16,6 +16,7 @@ import Rewards from "./pages/Rewards";
 import FamAI from "./pages/FamAI";
 import Landing from "./pages/Landing";
 import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
 import { useAuth } from "./context/AuthContext";
 import { AuthLoading, HouseholdOnboarding, ResetPassword, SignIn } from "./pages/Auth";
 
@@ -62,6 +63,7 @@ export default function App() {
   if (configured && passwordRecovery) return <ResetPassword />;
   if (publicRoute === "landing" || publicRoute === "pricing") return <Landing signedIn={!!session} />;
   if (publicRoute === "privacy") return <Privacy signedIn={!!session} />;
+  if (publicRoute === "terms") return <Terms signedIn={!!session} />;
   if (configured && !session && publicRoute === "signin") return <SignIn key="signin" initialCreating={false} />;
   if (configured && !session && publicRoute === "signup") return <SignIn key="signup" initialCreating />;
   if (configured && !session) return <Landing />;
