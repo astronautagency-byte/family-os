@@ -4,7 +4,6 @@ import {
   CalendarDays,
   CheckSquare,
   ChefHat,
-  Gift,
   Send,
   ShoppingCart,
   Sparkles,
@@ -60,14 +59,6 @@ const prompts = [
       "Use the current FamilyOS meal plan and grocery context to prepare a useful shopping list. Add only missing grocery items as add_grocery actions and avoid duplicates already on the unchecked list. If no meals are planned, create a sensible starter list for five easy family dinners, grouped by common grocery categories. Prepare the items for review instead of asking follow-up questions.",
   },
   {
-    label: "Rewards",
-    tone: "rewards",
-    Icon: Gift,
-    text: "Review reward requests",
-    prompt:
-      "Use the current FamilyOS rewards and chores context to help a parent review rewards. Summarize pending reward requests, point balances, and chore progress, then recommend what should be approved, declined, or marked fulfilled. If new chores would help kids earn points, prepare task actions for those chores. Do not claim to approve rewards directly unless a rewards tool is available.",
-  },
-  {
     label: "Finance",
     tone: "finance",
     Icon: Wallet,
@@ -76,15 +67,6 @@ const prompts = [
       "Use the current FamilyOS finance context to check whether the household is on track for the active budget period. Compare recent expenses with the weekly or monthly budget, mention what is left, flag any category that looks high, and suggest one practical adjustment. Do not ask follow-up questions unless no budget or expense data exists.",
   },
 ];
-
-function loadRewardsContext() {
-  try {
-    const raw = localStorage.getItem("family-os:rewards:v2") || localStorage.getItem("family-os:rewards:v1");
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
 
 function makeMemberNameMap(members = []) {
   return members.reduce((map, member) => {
@@ -278,7 +260,6 @@ export default function FamAI() {
                   spentOn: item.spentOn,
                 })),
             },
-            rewards: loadRewardsContext(),
           },
         },
       });

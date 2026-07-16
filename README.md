@@ -98,6 +98,18 @@ Notes:
 - This uses Google Identity Services' token flow, meant for browser-only apps like this one. There's no refresh token, so the connection lasts for your browser session (about an hour) — reconnecting afterwards is one tap.
 - Imported events show up in **Today** and **Calendar** with a small "Google" tag and can be filtered on/off, but can't be edited from Family OS (edit them in Google Calendar directly — changes will show up next sync).
 - Your Client ID and connection state are saved locally so you don't have to re-paste it every visit.
+
+### Opening Google Calendar authentication to all users
+
+If Google Calendar auth is limited to selected accounts, the Google Cloud project is still in testing mode or is configured for an internal audience. For production:
+
+1. In Google Cloud Console, open **Google Auth Platform → Audience**.
+2. Set the user type/audience to **External** so anyone with a Google Account can authorize the app.
+3. Publish the app from **Testing** to **Production** when it is ready.
+4. In **Branding**, make sure the home page, privacy policy, terms page, and authorized domain use `https://fam-os.app/`.
+5. In **Data Access**, request only the minimum Google Calendar scopes needed by the app. Calendar scopes may require Google verification before the app is broadly available.
+6. In **Clients**, keep `https://fam-os.app` listed as an authorized JavaScript origin and keep the Supabase callback URL listed as an authorized redirect URI if Supabase Google Auth is enabled.
+
 # Fam AI (Grok)
 
 Fam AI uses a Supabase Edge Function so the xAI API key never ships to the browser. Configure and deploy it with:

@@ -12,7 +12,6 @@ import Tasks from "./pages/Tasks";
 import Settings from "./pages/Settings";
 import Chat from "./pages/Chat";
 import Finance from "./pages/Finance";
-import Rewards from "./pages/Rewards";
 import FamAI from "./pages/FamAI";
 import Landing from "./pages/Landing";
 import Privacy from "./pages/Privacy";
@@ -21,7 +20,7 @@ import { useAuth } from "./context/AuthContext";
 import { AuthLoading, HouseholdOnboarding, ResetPassword, SignIn } from "./pages/Auth";
 
 gsap.registerPlugin(useGSAP);
-const VALID_TABS = ["today","calendar","meals","tasks","rewards","groceries","finance","chat","famai","settings"];
+const VALID_TABS = ["today","calendar","meals","tasks","groceries","finance","chat","famai","settings"];
 const tabFromHash = () => VALID_TABS.includes(window.location.hash.slice(1)) ? window.location.hash.slice(1) : "today";
 
 export default function App() {
@@ -74,7 +73,7 @@ export default function App() {
       <div className="app-shell" ref={shellRef}>
         <BottomNav active={tab} onChange={setTab} />
         <main className="app-content">
-          {tab !== "rewards" && <AppTopBar onOpenSettings={() => setTab("settings")} onNavigate={setTab} />}
+          <AppTopBar onOpenSettings={() => setTab("settings")} onNavigate={setTab} />
           {tab === "today" && <Today goTo={setTab} />}
           {tab === "calendar" && <CalendarPage goTo={setTab} />}
           {tab === "meals" && <Meals />}
@@ -84,7 +83,6 @@ export default function App() {
           {tab === "famai" && <FamAI />}
           {tab === "finance" && <Finance />}
           {tab === "settings" && <Settings />}
-          {tab === "rewards" && <Rewards />}
         </main>
       </div>
     </FamilyProvider>
