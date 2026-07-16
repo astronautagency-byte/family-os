@@ -50,7 +50,7 @@ export default function Today({ goTo }) {
   const greetingName = firstName ? firstName.charAt(0).toUpperCase() + firstName.slice(1) : "";
 
   return (
-    <div className="pb-24">
+    <div className="pb-24 reference-dashboard">
       <PageHeader
         eyebrow={fullDateLabel(today)}
         title={`${greeting.text}${greetingName ? `, ${greetingName}` : ""}`}

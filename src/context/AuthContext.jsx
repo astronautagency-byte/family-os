@@ -10,6 +10,8 @@ export function AuthProvider({ children }) {
   const [invitation, setInvitation] = useState(null);
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [error, setError] = useState(null);
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
+  const [onboardingRequired, setOnboardingRequired] = useState(false);
   const [googleProviderToken, setGoogleProviderToken] = useState(() => localStorage.getItem("family-os:google-provider-token"));
 
   const refreshAccount = useCallback(async (nextSession) => {
@@ -18,6 +20,7 @@ export function AuthProvider({ children }) {
       setHousehold(null);
       setInvitation(null);
       setLoading(false);
+      setOnboardingRequired(false);
       return;
     }
 
@@ -49,6 +52,16 @@ export function AuthProvider({ children }) {
       }
       setProfile(profileData);
       setHousehold(membership ? { ...membership.households, role: membership.role } : null);
+
+      if (membership?.role === "owner") {
+        const [{ count: memberCount }, { count: inviteCount }] = await Promise.all([
+          supabase.from("household_members").select("user_id", { count: "exact", head: true }).eq("household_id", membership.household_id),
+          supabase.from("household_invitations").select("id", { count: "exact", head: true }).eq("household_id", membership.household_id).is("accepted_at", null).gt("expires_at", new Date().toISOString()),
+        ]);
+        setOnboardingRequired((memberCount || 0) < 2 && (inviteCount || 0) === 0);
+      } else {
+        setOnboardingRequired(false);
+      }
 
       if (!membership) {
         const { data: inviteData, error: inviteError } = await supabase
@@ -82,7 +95,8 @@ export function AuthProvider({ children }) {
       }
       refreshAccount(data.session);
     });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (event === "PASSWORD_RECOVERY") setPasswordRecovery(true);
       setSession(nextSession);
       if (nextSession?.provider_token) {
         localStorage.setItem("family-os:google-provider-token", nextSession.provider_token);
@@ -119,6 +133,15 @@ export function AuthProvider({ children }) {
   const updatePassword = async (password) => {
     const { error: passwordError } = await supabase.auth.updateUser({ password });
     if (passwordError) throw passwordError;
+    setPasswordRecovery(false);
+  };
+
+  const requestPasswordReset = async (email) => {
+    setError(null);
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+      redirectTo: window.location.origin,
+    });
+    if (resetError) throw resetError;
   };
 
   const signInWithGoogle = async () => {
@@ -162,14 +185,11 @@ export function AuthProvider({ children }) {
   };
 
   const invitePartner = async (email) => {
-    const { error: inviteError } = await supabase.from("household_invitations").upsert({
-      household_id: household.id,
-      email: email.trim().toLowerCase(),
-      invited_by: session.user.id,
-      accepted_at: null,
-      expires_at: new Date(Date.now() + 7 * 86400000).toISOString(),
-    }, { onConflict: "household_id,email" });
+    const { error: inviteError } = await supabase.functions.invoke("send-family-invitation", {
+      body: { email: email.trim().toLowerCase(), householdId: household.id, redirectTo: window.location.origin },
+    });
     if (inviteError) throw inviteError;
+    await refreshAccount(session);
   };
 
   const value = useMemo(() => ({
@@ -181,9 +201,12 @@ export function AuthProvider({ children }) {
     invitation,
     loading,
     error,
+    passwordRecovery,
+    onboardingRequired,
     signIn,
     signUp,
     updatePassword,
+    requestPasswordReset,
     signInWithGoogle,
     googleProviderToken,
     signOut,
@@ -192,7 +215,7 @@ export function AuthProvider({ children }) {
     acceptInvitation,
     invitePartner,
     refreshAccount,
-  }), [session, profile, household, invitation, loading, error, refreshAccount, googleProviderToken]);
+  }), [session, profile, household, invitation, loading, error, passwordRecovery, onboardingRequired, refreshAccount, googleProviderToken]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

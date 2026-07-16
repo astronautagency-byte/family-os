@@ -80,7 +80,6 @@ export default function Groceries() {
     return map;
   }, [groceries]);
 
-  const remaining = groceries.filter((g) => !g.checked).length;
   const checkedCount = groceries.filter((g) => g.checked).length;
 
   const openNew = () => {
@@ -137,10 +136,10 @@ export default function Groceries() {
   };
 
   return (
-    <div className="pb-24">
+    <div className="pb-24 reference-groceries">
       <PageHeader
-        eyebrow={`${remaining} to get`}
         title="Groceries"
+        subtitle="Keep the pantry full, together."
         action={
           checkedCount > 0 && (
             <button onClick={clearCheckedGroceries} className="text-[12.5px] font-medium text-[var(--color-ink-soft)]">

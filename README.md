@@ -60,7 +60,13 @@ src/
 1. Create a Supabase project and run the SQL files in `supabase/migrations/` in filename order (or use `supabase db push`).
 2. Copy `.env.example` to `.env.local` and fill in the project URL and publishable key.
 3. In Supabase Auth URL Configuration, set the Site URL and add local/deployed redirect URLs (for example `http://localhost:5173/**`).
-4. Start the app and sign in by email. The first user creates a household and can invite their partner from Settings.
+4. Deploy the family invitation email function:
+   ```bash
+   supabase functions deploy send-family-invitation
+   ```
+   Supabase automatically provides `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` to the function.
+5. Configure Supabase Auth email delivery and make sure both your production URL and `http://localhost:5173` are allowed redirect URLs.
+6. Start the app and sign in. New owners must name their family and email at least one invitation before entering the dashboard. Invitees receive a secure signup link and join the family after accepting it.
 
 Never put a service-role key in this client application. The publishable key is safe to expose; row-level security protects household data.
 

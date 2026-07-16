@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChefHat, Coffee, Soup, Trash2 } from "lucide-react";
+import { ChefHat, Coffee, Dices, Soup, Sparkles, Trash2 } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { AvatarStack, Card, Modal, PrimaryButton, SecondaryButton, TextField, colorVar } from "../components/ui";
 import PageHeader from "../components/PageHeader";
@@ -17,6 +17,7 @@ export default function Meals() {
   const { members, memberById, meals, setMealForSlot, removeMeal } = useFamily();
   const [editing, setEditing] = useState(null); // { date, slot }
   const [draft, setDraft] = useState({ title: "", notes: "", cookIds: [] });
+  const [showIdeas, setShowIdeas] = useState(false);
 
   const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(todayISO(), i)), []);
 
@@ -37,8 +38,14 @@ export default function Meals() {
   };
 
   return (
-    <div className="pb-24">
-      <PageHeader eyebrow="This week" title="Meal planner" subtitle="Plan dinners (and more) day by day." />
+    <div className="pb-24 reference-meals">
+      <PageHeader eyebrow="Nourish & connect" title="Weekly Table" subtitle="Simple meal planning for your household." />
+
+      <div className="meal-ideas-launcher px-5">
+        <button onClick={() => setShowIdeas((value) => !value)}><Dices /> Meal roulette</button>
+        <button onClick={() => setShowIdeas(true)}><Sparkles /> AI suggestions</button>
+      </div>
+      {showIdeas && <div className="px-5"><MealSuggestions mealType="dinner" onPick={async (title, notes) => { await setMealForSlot(todayISO(), "dinner", { title, notes, cookIds: [] }); setShowIdeas(false); }} /></div>}
 
       <div className="px-5 space-y-4 mt-2">
         {weekDays.map((date) => {

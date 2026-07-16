@@ -36,8 +36,8 @@ export function AvatarStack({ members, size = "sm" }) {
   if (!members?.length) return null;
   return (
     <div className="flex -space-x-1.5">
-      {members.map((m) => (
-        <Avatar key={m.id} member={m} size={size} />
+      {members.map((m, index) => (
+        <Avatar key={`${m.id}-${index}`} member={m} size={size} />
       ))}
     </div>
   );
@@ -71,7 +71,7 @@ export function Tag({ children, color, tone = "neutral" }) {
 export function Card({ children, className = "", as: As = "div", ...props }) {
   return (
     <As
-      className={`bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl notion-shadow ${className}`}
+      className={`kinship-card bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[20px] notion-shadow ${className}`}
       {...props}
     >
       {children}
