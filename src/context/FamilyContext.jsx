@@ -7,8 +7,8 @@ import {
   initialTasks,
   initialMessages,
 } from "../data/mockData";
-import { fetchGoogleCalendarEvents, requestGoogleAccessToken, revokeGoogleAccessToken } from "../lib/googleCalendar";
-import { fetchIcalFeed } from "../lib/icalCalendar";
+import { createGoogleCalendarEvent, fetchGoogleCalendarEvents, fetchGoogleCalendars, requestGoogleAccessToken, revokeGoogleAccessToken } from "../lib/googleCalendar";
+import { fetchIcalFeed, parseIcalEvents } from "../lib/icalCalendar";
 import { useAuth } from "./AuthContext";
 import { supabase } from "../lib/supabase";
 
@@ -48,6 +48,26 @@ function loadCalendarFeedState() {
 
 function makeId(prefix) {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+}
+
+async function getNotificationRegistration(timeoutMs = 900) {
+  if (!("serviceWorker" in navigator)) return null;
+  return Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise((resolve) => {
+      window.setTimeout(() => resolve(null), timeoutMs);
+    }),
+  ]).catch(() => null);
+}
+
+function showLocalNotification(title, options) {
+  const notice = new Notification(title, options);
+  notice.onclick = () => {
+    window.focus();
+    window.location.hash = options.data?.url?.replace("/#", "") || "today";
+    notice.close();
+  };
+  return notice;
 }
 
 const FamilyContext = createContext(null);
@@ -92,12 +112,27 @@ export function FamilyProvider({ children }) {
     return permission;
   };
 
+  const sendTestNotification = async () => {
+    if (typeof Notification === "undefined") return "unsupported";
+    let permission = Notification.permission;
+    if (permission === "default") permission = await requestNotifications();
+    if (permission !== "granted") return permission;
+    const options = { body: "Notifications are ready. Tap to return to your family dashboard.", icon: "/icons/icon-192.png", badge: "/icons/icon-192.png", tag: "familyos-test", data: { url: "/#today" } };
+    const registration = await getNotificationRegistration();
+    if (registration?.showNotification) {
+      await registration.showNotification("FamilyOS notifications are working", options);
+      return "shown";
+    }
+    showLocalNotification("FamilyOS notifications are working", options);
+    return "shown";
+  };
+
   const showTaskNotification = async (row) => {
     if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
-    const options = { body: row.due_date ? `Due ${row.due_date}` : "A new task was assigned to you.", icon: "/icons/icon-192.png", tag: `task-${row.id}` };
-    const registration = await navigator.serviceWorker?.ready.catch(() => null);
+    const options = { body: row.due_date ? `Due ${row.due_date}` : "A new task was assigned to you.", icon: "/icons/icon-192.png", badge: "/icons/icon-192.png", tag: `task-${row.id}`, data: { url: "/#tasks" } };
+    const registration = await getNotificationRegistration();
     if (registration) registration.showNotification(`New task: ${row.title}`, options);
-    else new Notification(`New task: ${row.title}`, options);
+    else showLocalNotification(`New task: ${row.title}`, options);
   };
 
   useEffect(() => {
@@ -110,10 +145,10 @@ export function FamilyProvider({ children }) {
     }
   }, [members, events, meals, groceries, tasks, messages, expenses, weeklyBudget, monthlyBudget, financePeriod, remote]);
 
-  const mapProfile = (row) => ({
+  const mapProfile = (row, membershipRole) => ({
     id: row.id,
     name: row.display_name || row.email,
-    role: "Partner",
+    role: membershipRole === "owner" ? "Household owner" : "Family member",
     color: row.color,
     initials: row.initials,
     avatarUrl: row.avatar_url || (row.id === user?.id ? user.user_metadata?.avatar_url || user.user_metadata?.picture || "" : ""),
@@ -130,7 +165,7 @@ export function FamilyProvider({ children }) {
     setDataLoading(true); setDataError(null);
     try {
       const [membersResult, tasksResult, groceriesResult, eventsResult, mealsResult, messagesResult] = await Promise.all([
-        supabase.from("household_members").select("profiles(*)").eq("household_id", household.id),
+        supabase.from("household_members").select("role, joined_at, profiles(*)").eq("household_id", household.id).order("joined_at"),
         supabase.from("tasks").select("*").eq("household_id", household.id).order("created_at"),
         supabase.from("grocery_items").select("*").eq("household_id", household.id).order("created_at"),
         supabase.from("events").select("*, event_participants(user_id)").eq("household_id", household.id).order("starts_at"),
@@ -139,7 +174,7 @@ export function FamilyProvider({ children }) {
       ]);
       const failed = [membersResult, tasksResult, groceriesResult, eventsResult, mealsResult, messagesResult].find((result) => result.error);
       if (failed) throw failed.error;
-      setMembers(membersResult.data.map((item) => mapProfile(item.profiles)));
+      setMembers(membersResult.data.filter((item) => item.profiles).map((item) => mapProfile(item.profiles, item.role)));
       setTasks(tasksResult.data.map(mapTask)); setGroceries(groceriesResult.data.map(mapGrocery));
       setEvents(eventsResult.data.map(mapEvent)); setMeals(mealsResult.data.map(mapMeal)); setMessages(messagesResult.data.map(mapMessage));
       const [expensesResult, financeResult] = await Promise.all([
@@ -216,6 +251,7 @@ export function FamilyProvider({ children }) {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
   };
   const removeTask = async (id) => { if (remote) await runRemote(supabase.from("tasks").delete().eq("id", id)); setTasks((prev) => prev.filter((t) => t.id !== id)); };
+  const clearTasks = async () => { if (remote) await runRemote(supabase.from("tasks").delete().eq("household_id", household.id)); setTasks([]); };
 
   // ---- Groceries ----
   const toggleGrocery = async (id) => { const item = groceries.find((g) => g.id === id); if (remote) await runRemote(supabase.from("grocery_items").update({ is_checked: !item.checked }).eq("id", id)); setGroceries((prev) => prev.map((g) => (g.id === id ? { ...g, checked: !g.checked } : g))); };
@@ -226,6 +262,7 @@ export function FamilyProvider({ children }) {
   };
   const removeGrocery = async (id) => { if (remote) await runRemote(supabase.from("grocery_items").delete().eq("id", id)); setGroceries((prev) => prev.filter((g) => g.id !== id)); };
   const clearCheckedGroceries = async () => { if (remote) await runRemote(supabase.from("grocery_items").delete().eq("household_id", household.id).eq("is_checked", true)); setGroceries((prev) => prev.filter((g) => !g.checked)); };
+  const clearGroceries = async () => { if (remote) await runRemote(supabase.from("grocery_items").delete().eq("household_id", household.id)); setGroceries([]); };
 
   // ---- Meals ----
   const setMealForSlot = async (date, slot, patch) => {
@@ -239,11 +276,13 @@ export function FamilyProvider({ children }) {
     });
   };
   const removeMeal = async (id) => { if (remote) await runRemote(supabase.from("meals").delete().eq("id", id)); setMeals((prev) => prev.filter((m) => m.id !== id)); };
+  const clearMeals = async () => { if (remote) await runRemote(supabase.from("meals").delete().eq("household_id", household.id)); setMeals([]); };
 
   // ---- Events ----
   const addEvent = async (event) => { if (remote) { const { data, error } = await supabase.from("events").insert({ household_id: household.id, title: event.title, starts_at: event.start, ends_at: event.end, location: event.location || "", created_by: user.id }).select().single(); if (error) throw error; if (event.memberIds?.length) await runRemote(supabase.from("event_participants").insert(event.memberIds.map((userId) => ({ event_id: data.id, user_id: userId })))); setEvents((prev) => [...prev, { ...mapEvent(data), memberIds: event.memberIds || [] }]); } else setEvents((prev) => [...prev, { id: makeId("evt"), source: "local", ...event }]); };
   const updateEvent = async (id, patch) => { if (remote) await runRemote(supabase.from("events").update({ title: patch.title, starts_at: patch.start, ends_at: patch.end, location: patch.location }).eq("id", id)); setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e))); };
   const removeEvent = async (id) => { if (remote) await runRemote(supabase.from("events").delete().eq("id", id)); setEvents((prev) => prev.filter((e) => e.id !== id)); };
+  const clearEvents = async () => { if (remote) await runRemote(supabase.from("events").delete().eq("household_id", household.id)); setEvents([]); };
 
   // ---- Chat ----
   const sendMessage = async (message) => {
@@ -300,6 +339,8 @@ export function FamilyProvider({ children }) {
   const [googleClientId, setGoogleClientIdState] = useState(savedGoogle?.clientId ?? "");
   const [googleConnected, setGoogleConnected] = useState(savedGoogle?.connected ?? false);
   const [googleEvents, setGoogleEvents] = useState([]);
+  const [googleCalendars, setGoogleCalendars] = useState([]);
+  const [selectedGoogleCalendarIds, setSelectedGoogleCalendarIds] = useState(savedGoogle?.selectedCalendarIds ?? []);
   const [googleStatus, setGoogleStatus] = useState("idle"); // idle | connecting | syncing | error
   const [googleError, setGoogleError] = useState(null);
   const [googleLastSynced, setGoogleLastSynced] = useState(null);
@@ -307,19 +348,25 @@ export function FamilyProvider({ children }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem(GOOGLE_STORAGE_KEY, JSON.stringify({ clientId: googleClientId, connected: googleConnected }));
+      localStorage.setItem(GOOGLE_STORAGE_KEY, JSON.stringify({ clientId: googleClientId, connected: googleConnected, selectedCalendarIds: selectedGoogleCalendarIds }));
     } catch (e) {
       console.warn("Could not save Google Calendar settings.", e);
     }
-  }, [googleClientId, googleConnected]);
+  }, [googleClientId, googleConnected, selectedGoogleCalendarIds]);
 
   const setGoogleClientId = (id) => setGoogleClientIdState(id);
 
-  const syncGoogleEvents = async (accessToken) => {
+  const syncGoogleEvents = async (accessToken, selectedIdsOverride) => {
     setGoogleStatus("syncing");
     setGoogleError(null);
     try {
-      const items = await fetchGoogleCalendarEvents(accessToken);
+      const calendars = await fetchGoogleCalendars(accessToken);
+      setGoogleCalendars(calendars);
+      const requestedIds = selectedIdsOverride ?? selectedGoogleCalendarIds;
+      const initialIds = calendars.filter(calendar=>calendar.selected||calendar.primary).map(calendar=>calendar.id);
+      const activeIds = requestedIds.length ? requestedIds : initialIds;
+      if (!requestedIds.length) setSelectedGoogleCalendarIds(activeIds);
+      const items = await fetchGoogleCalendarEvents(accessToken, calendars.filter(calendar=>activeIds.includes(calendar.id)));
       setGoogleEvents(items);
       setGoogleLastSynced(new Date().toISOString());
       setGoogleStatus("idle");
@@ -373,11 +420,32 @@ export function FamilyProvider({ children }) {
     }
   };
 
+  const addGoogleCalendarEvent = async (event) => {
+    let token = googleAccessToken;
+    if (!token) {
+      const result = await requestGoogleAccessToken(googleClientId, { silent: false });
+      token = result.accessToken;
+      setGoogleAccessTokenState(token);
+      setGoogleConnected(true);
+    }
+    const calendar = googleCalendars.find(item=>item.id===(event.calendarId||"primary")) || googleCalendars.find(item=>item.primary) || {id:"primary",summary:"Google Calendar",accessRole:"owner"};
+    const created = await createGoogleCalendarEvent(token, event, calendar);
+    setGoogleEvents((current) => [...current.filter((item) => item.id !== created.id), created]);
+    return created;
+  };
+
+  const toggleGoogleCalendar = async (calendarId) => {
+    const next = selectedGoogleCalendarIds.includes(calendarId) ? selectedGoogleCalendarIds.filter(id=>id!==calendarId) : [...selectedGoogleCalendarIds,calendarId];
+    setSelectedGoogleCalendarIds(next);
+    if (googleAccessToken) await syncGoogleEvents(googleAccessToken, next);
+  };
+
   const disconnectGoogleCalendar = () => {
     if (googleAccessToken) revokeGoogleAccessToken(googleAccessToken);
     setGoogleAccessTokenState(null);
     setGoogleConnected(false);
     setGoogleEvents([]);
+    setGoogleCalendars([]);
     setGoogleLastSynced(null);
     setGoogleStatus("idle");
     setGoogleError(null);
@@ -409,6 +477,29 @@ export function FamilyProvider({ children }) {
     }
   };
 
+  const importCalendarFile = async ({ name, provider, fileName, text }) => {
+    const feed = {
+      id: makeId("feed"),
+      name: name.trim() || fileName?.replace(/\.ics$/i, "") || (provider === "outlook" ? "Outlook Calendar" : "Imported Calendar"),
+      provider,
+      url: "",
+      source: "file",
+      fileName,
+      color: provider === "outlook" ? "#1473E6" : provider === "apple" ? "#7C5CE5" : "#D45C94",
+      lastSynced: new Date().toISOString(),
+    };
+    if (!/BEGIN:VCALENDAR/i.test(text)) {
+      const message = "Choose a valid .ics calendar export file.";
+      setCalendarFeedError(message);
+      throw new Error(message);
+    }
+    const items = parseIcalEvents(text, feed);
+    setCalendarFeeds((prev) => [...prev, feed]);
+    setFeedEvents((prev) => [...prev, ...items]);
+    setCalendarFeedError(null);
+    return feed;
+  };
+
   const syncCalendarFeed = async (id) => {
     const feed = calendarFeeds.find((item) => item.id === id);
     if (!feed) return;
@@ -438,7 +529,7 @@ export function FamilyProvider({ children }) {
     const refreshFeeds = () => {
       const now = Date.now();
       calendarFeeds
-        .filter((feed) => !feed.lastSynced || now - new Date(feed.lastSynced).getTime() >= 15 * 60 * 1000)
+        .filter((feed) => feed.source !== "file" && (!feed.lastSynced || now - new Date(feed.lastSynced).getTime() >= 15 * 60 * 1000))
         .forEach((feed) => { syncCalendarFeed(feed.id); });
     };
     const refreshOnForeground = () => {
@@ -456,23 +547,23 @@ export function FamilyProvider({ children }) {
 
   const value = {
     members, memberById, addMember, updateMember, removeMember,
-    events, addEvent, updateEvent, removeEvent,
-    meals, setMealForSlot, removeMeal,
-    groceries, addGrocery, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries,
-    tasks, addTask, toggleTask, updateTask, removeTask,
+    events, addEvent, updateEvent, removeEvent, clearEvents,
+    meals, setMealForSlot, removeMeal, clearMeals,
+    groceries, addGrocery, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries, clearGroceries,
+    tasks, addTask, toggleTask, updateTask, removeTask, clearTasks,
     messages, sendMessage,
     expenses, weeklyBudget, monthlyBudget, financePeriod, addExpense, removeExpense, setFinanceBudget, setFinancePeriod,
     resetToDemoData,
     dataLoading, dataError, refreshData: loadRemoteData,
-    notificationPermission, requestNotifications,
+    notificationPermission, requestNotifications, sendTestNotification,
     // Google Calendar
     googleClientId, setGoogleClientId,
-    googleConnected, googleEvents, googleStatus, googleError, googleLastSynced,
+    googleConnected, googleEvents, googleCalendars, selectedGoogleCalendarIds, googleStatus, googleError, googleLastSynced,
     googleUsesAccount: configured,
-    connectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar,
+    connectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, addGoogleCalendarEvent, toggleGoogleCalendar,
     // Other calendar providers via published iCal feeds
     calendarFeeds, feedEvents, calendarFeedStatus, calendarFeedError,
-    addCalendarFeed, syncCalendarFeed, removeCalendarFeed,
+    addCalendarFeed, importCalendarFile, syncCalendarFeed, removeCalendarFeed,
   };
 
   return <FamilyContext.Provider value={value}>{children}</FamilyContext.Provider>;

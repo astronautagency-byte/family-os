@@ -59,7 +59,7 @@ function GroceryIcon({ category, size = 16 }) {
 }
 
 export default function Groceries() {
-  const { groceries, addGrocery, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries, memberById } = useFamily();
+  const { groceries, addGrocery, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries, clearGroceries, memberById } = useFamily();
   const [editingId, setEditingId] = useState(null); // null closed, "new" for add, or item id
   const [draft, setDraft] = useState(emptyDraft);
   const [staples, setStaples] = useState(loadStaples);
@@ -67,6 +67,7 @@ export default function Groceries() {
   const [masterEditing, setMasterEditing] = useState(null);
   const [masterDraft, setMasterDraft] = useState(emptyDraft);
   const [showAllStaples, setShowAllStaples] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   useEffect(() => { localStorage.setItem(STAPLES_KEY, JSON.stringify(staples)); }, [staples]);
 
@@ -139,14 +140,9 @@ export default function Groceries() {
     <div className="pb-24 reference-groceries">
       <PageHeader
         title="Groceries"
+        illustration="groceries"
         subtitle="Keep the pantry full, together."
-        action={
-          checkedCount > 0 && (
-            <button onClick={clearCheckedGroceries} className="text-[12.5px] font-medium text-[var(--color-ink-soft)]">
-              Clear checked
-            </button>
-          )
-        }
+        action={groceries.length?<div className="page-action-stack">{checkedCount>0&&<button onClick={clearCheckedGroceries}>Clear checked</button>}<button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button></div>:null}
       />
 
       <div className="px-5 space-y-5 mt-2">
@@ -184,9 +180,7 @@ export default function Groceries() {
           Object.entries(grouped).map(([cat, items]) =>
             items.length === 0 ? null : (
               <section key={cat}>
-                <p className="text-[11.5px] font-semibold uppercase tracking-wide text-[var(--color-ink-faint)] mb-2 px-1">
-                  {cat} · {items.filter((i) => !i.checked).length}
-                </p>
+                <div className="grocery-category-title"><h2>{cat}</h2><span>{items.filter((i) => !i.checked).length} item{items.filter((i) => !i.checked).length === 1 ? "" : "s"}</span></div>
                 <Card className="p-1">
                   <ul>
                     {items.map((item) => {
@@ -304,6 +298,7 @@ export default function Groceries() {
           </PrimaryButton>
         </div>
       </Modal>
+      <Modal open={clearing} onClose={()=>setClearing(false)} title="Reset grocery list?"><p className="reset-confirm-copy">This clears the active list. Your saved staples remain available for quick add.</p><div className="reset-confirm-actions"><button onClick={()=>setClearing(false)}>Cancel</button><PrimaryButton onClick={async()=>{await clearGroceries();setClearing(false)}}>Clear grocery list</PrimaryButton></div></Modal>
 
       <Modal open={!!masterEditing} onClose={() => setMasterEditing(null)} title={masterEditing === "new" ? "Add master item" : "Edit master item"}>
         <TextField label="Item" placeholder="e.g. Greek yogurt" value={masterDraft.name} onChange={(e) => setMasterDraft((draft) => ({ ...draft, name: e.target.value }))} autoFocus />

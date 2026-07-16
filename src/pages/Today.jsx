@@ -3,7 +3,7 @@ import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, AvatarStack, Card, Checkbox, EmptyState, SectionTitle, colorVar } from "../components/ui";
 import PageHeader from "../components/PageHeader";
-import { formatTime, fullDateLabel, greetingInfo, todayISO } from "../lib/dates";
+import { dailyEncouragement, formatTime, fullDateLabel, greetingInfo, todayISO } from "../lib/dates";
 
 export default function Today({ goTo }) {
   const { members, memberById, events, googleEvents, feedEvents, meals, tasks, groceries, toggleTask, expenses, weeklyBudget, monthlyBudget, financePeriod } = useFamily();
@@ -54,6 +54,7 @@ export default function Today({ goTo }) {
       <PageHeader
         eyebrow={fullDateLabel(today)}
         title={`${greeting.text}${greetingName ? `, ${greetingName}` : ""}`}
+        subtitle={dailyEncouragement(today)}
         titleIcon={
           <span
             className="inline-flex items-center justify-center w-7 h-7 rounded-full shrink-0"
@@ -65,6 +66,11 @@ export default function Today({ goTo }) {
           </span>
         }
       />
+
+      <button className="family-hero" onClick={() => goTo("calendar")}>
+        <img src="/illustrations/famos-family-planning.png" alt="A family sharing their plans at home" />
+        <span><small>Together this week</small><strong>Plan the little moments that matter.</strong><em>Open family calendar <ChevronRight size={14}/></em></span>
+      </button>
 
       <div className="px-5 space-y-6 mt-2">
         {/* Ambient "right now" strip */}

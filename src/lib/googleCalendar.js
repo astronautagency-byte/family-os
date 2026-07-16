@@ -12,7 +12,7 @@
 // ship a shared client ID — each family uses their own.
 
 const SCRIPT_SRC = "https://accounts.google.com/gsi/client";
-const SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
+const SCOPE = "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.calendarlist.readonly";
 
 let scriptPromise = null;
 
@@ -64,24 +64,35 @@ export async function requestGoogleAccessToken(clientId, { silent = false } = {}
   });
 }
 
-function normalizeGoogleEvent(item) {
+function normalizeGoogleEvent(item, calendar = { id: "primary", summary: "Google Calendar" }) {
   if (!item || item.status === "cancelled") return null;
   const rawStart = item.start?.dateTime || (item.start?.date ? `${item.start.date}T00:00:00` : null);
   const rawEnd = item.end?.dateTime || (item.end?.date ? `${item.end.date}T23:59:00` : null);
   if (!rawStart) return null;
   return {
-    id: `gcal_${item.id}`,
+    id: `gcal_${encodeURIComponent(calendar.id)}_${item.id}`,
     title: item.summary || "(No title)",
     start: new Date(rawStart).toISOString(),
     end: new Date(rawEnd || rawStart).toISOString(),
     location: item.location || "",
     memberIds: [],
     source: "google",
+    calendarId: calendar.id,
+    calendarName: calendar.summary,
+    color: calendar.backgroundColor || "#6759D9",
+    calendarAccessRole: calendar.accessRole || "reader",
     htmlLink: item.htmlLink || null,
   };
 }
 
-export async function fetchGoogleCalendarEvents(accessToken, { daysBack = 7, daysForward = 45 } = {}) {
+export async function fetchGoogleCalendars(accessToken) {
+  const res = await fetch("https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=250", { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!res.ok) throw new Error(`Google Calendar list returned ${res.status}`);
+  const data = await res.json();
+  return (data.items || []).filter(item => !item.hidden).map(item => ({ id:item.id, summary:item.summaryOverride||item.summary||"Untitled calendar", backgroundColor:item.backgroundColor||"#6759D9", foregroundColor:item.foregroundColor||"#ffffff", primary:Boolean(item.primary), selected:item.selected!==false, accessRole:item.accessRole||"reader" }));
+}
+
+export async function fetchGoogleCalendarEvents(accessToken, calendars, { daysBack = 7, daysForward = 45 } = {}) {
   const timeMin = new Date(Date.now() - daysBack * 86400000).toISOString();
   const timeMax = new Date(Date.now() + daysForward * 86400000).toISOString();
   const params = new URLSearchParams({
@@ -92,17 +103,33 @@ export async function fetchGoogleCalendarEvents(accessToken, { daysBack = 7, day
     timeMax,
   });
 
-  const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params.toString()}`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  const chosen = calendars?.length ? calendars : [{ id:"primary", summary:"Google Calendar", primary:true, accessRole:"owner" }];
+  const groups = await Promise.all(chosen.map(async calendar => {
+    const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendar.id)}/events?${params.toString()}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!res.ok) { const body=await res.text().catch(()=>""); throw new Error(`${calendar.summary} returned ${res.status}: ${body.slice(0,120)}`); }
+    const data=await res.json(); return (data.items||[]).map(item=>normalizeGoogleEvent(item,calendar)).filter(Boolean);
+  }));
+  return groups.flat().sort((a,b)=>a.start.localeCompare(b.start));
+}
 
+export async function createGoogleCalendarEvent(accessToken, event, calendar = { id:"primary", summary:"Google Calendar", accessRole:"owner" }) {
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendar.id)}/events`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      summary: event.title,
+      location: event.location || undefined,
+      description: event.notes || undefined,
+      start: { dateTime: event.start, timeZone },
+      end: { dateTime: event.end, timeZone },
+    }),
+  });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new Error(`Google Calendar returned ${res.status}: ${body.slice(0, 200)}`);
   }
-
-  const data = await res.json();
-  return (data.items || []).map(normalizeGoogleEvent).filter(Boolean);
+  return normalizeGoogleEvent(await res.json(), calendar);
 }
 
 export function revokeGoogleAccessToken(accessToken) {

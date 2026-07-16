@@ -14,18 +14,22 @@ const SLOT_META = {
 };
 
 export default function Meals() {
-  const { members, memberById, meals, setMealForSlot, removeMeal } = useFamily();
+  const { members, memberById, meals, setMealForSlot, removeMeal, clearMeals } = useFamily();
+  const [horizon, setHorizon] = useState(7);
+  const [clearing, setClearing] = useState(false);
   const [editing, setEditing] = useState(null); // { date, slot }
   const [draft, setDraft] = useState({ title: "", notes: "", cookIds: [] });
   const [showIdeas, setShowIdeas] = useState(false);
+  const [showEditorIdeas, setShowEditorIdeas] = useState(false);
 
-  const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(todayISO(), i)), []);
+  const weekDays = useMemo(() => Array.from({ length: horizon }, (_, i) => addDays(todayISO(), i)), [horizon]);
 
   const mealFor = (date, slot) => meals.find((m) => m.date === date && m.slot === slot);
 
   const openEditor = (date, slot) => {
     const existing = mealFor(date, slot);
     setDraft({ title: existing?.title ?? "", notes: existing?.notes ?? "", cookIds: existing?.cookIds ?? [] });
+    setShowEditorIdeas(false);
     setEditing({ date, slot, mealId: existing?.id || null });
   };
 
@@ -39,7 +43,9 @@ export default function Meals() {
 
   return (
     <div className="pb-24 reference-meals">
-      <PageHeader eyebrow="Nourish & connect" title="Weekly Table" subtitle="Simple meal planning for your household." />
+      <PageHeader eyebrow="Nourish & connect" title="Meal planner" illustration="meals" subtitle="Plan one week or look ahead across two." action={meals.length?<button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button>:null} />
+
+      <div className="meal-range-toggle px-5" aria-label="Meal planning range"><button className={horizon===7?"selected":""} onClick={()=>setHorizon(7)}>1 week</button><button className={horizon===14?"selected":""} onClick={()=>setHorizon(14)}>2 weeks</button></div>
 
       <div className="meal-ideas-launcher px-5">
         <button onClick={() => setShowIdeas((value) => !value)}><Dices /> Meal roulette</button>
@@ -109,10 +115,13 @@ export default function Meals() {
           onChange={(e) => setDraft((d) => ({ ...d, notes: e.target.value }))}
         />
 
-        <MealSuggestions
+        <button className="modal-ideas-toggle" onClick={() => setShowEditorIdeas((value) => !value)}>
+          <Sparkles size={17} /> {showEditorIdeas ? "Hide meal ideas" : "Need ideas? Try roulette or AI"}
+        </button>
+        {showEditorIdeas && <MealSuggestions
           mealType={editing?.slot}
-          onPick={(title, notes) => setDraft((d) => ({ ...d, title, notes: d.notes || notes }))}
-        />
+          onPick={(title, notes) => { setDraft((d) => ({ ...d, title, notes: d.notes || notes })); setShowEditorIdeas(false); }}
+        />}
 
         <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-2">Who's cooking?</p>
         <div className="flex flex-wrap gap-2 mb-5">
@@ -149,6 +158,7 @@ export default function Meals() {
           <PrimaryButton onClick={save}>Save</PrimaryButton>
         </div>
       </Modal>
+      <Modal open={clearing} onClose={()=>setClearing(false)} title="Reset meal plan?"><p className="reset-confirm-copy">This clears every planned meal. Your meal ideas and family members stay in place.</p><div className="reset-confirm-actions"><button onClick={()=>setClearing(false)}>Cancel</button><PrimaryButton onClick={async()=>{await clearMeals();setClearing(false)}}>Clear meal plan</PrimaryButton></div></Modal>
     </div>
   );
 }

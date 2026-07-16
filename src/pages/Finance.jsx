@@ -74,7 +74,7 @@ export default function Finance() {
 
   return (
     <div className="pb-24">
-      <PageHeader eyebrow={range.label} title="Finance" subtitle={`Your household spending this ${financePeriod === "monthly" ? "month" : "week"}.`} />
+      <PageHeader eyebrow={range.label} title="Finance" illustration="finance" subtitle={`Your household spending this ${financePeriod === "monthly" ? "month" : "week"}.`} />
       <div className="px-5 mt-2 space-y-5">
         <div className="grid grid-cols-2 gap-1 rounded-xl bg-[var(--color-surface-sunken)] border border-[var(--color-border)] p-1">
           {["weekly", "monthly"].map((period) => <button key={period} onClick={() => setFinancePeriod(period)} className="rounded-lg py-2 text-[12.5px] font-semibold capitalize transition-colors" style={{ backgroundColor: financePeriod === period ? "white" : "transparent", color: financePeriod === period ? "var(--color-accent-strong)" : "var(--color-ink-soft)", boxShadow: financePeriod === period ? "0 1px 3px rgba(25,25,25,.08)" : "none" }}>{period}</button>)}

@@ -29,10 +29,16 @@ export function AuthProvider({ children }) {
     try {
       const [{ data: profileData, error: profileError }, { data: membership, error: membershipError }] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", nextSession.user.id).single(),
-        supabase.from("household_members").select("household_id, role, households(id, name)").eq("user_id", nextSession.user.id).maybeSingle(),
+        supabase.from("household_members").select("household_id, role").eq("user_id", nextSession.user.id).limit(1).maybeSingle(),
       ]);
       if (profileError) throw profileError;
       if (membershipError) throw membershipError;
+      let householdData = null;
+      if (membership?.household_id) {
+        const { data, error: householdError } = await supabase.from("households").select("id, name").eq("id", membership.household_id).single();
+        if (householdError) throw householdError;
+        householdData = data;
+      }
       const metadata = nextSession.user.user_metadata || {};
       const providerName = metadata.display_name || metadata.full_name || metadata.name || "";
       const googleAvatar = metadata.avatar_url || metadata.picture || "";
@@ -51,7 +57,7 @@ export function AuthProvider({ children }) {
         if (!profileUpdateError) Object.assign(profileData, profilePatch);
       }
       setProfile(profileData);
-      setHousehold(membership ? { ...membership.households, role: membership.role } : null);
+      setHousehold(membership && householdData ? { ...householdData, role: membership.role } : null);
 
       if (membership?.role === "owner") {
         const [{ count: memberCount }, { count: inviteCount }] = await Promise.all([
@@ -149,7 +155,7 @@ export function AuthProvider({ children }) {
       provider: "google",
       options: {
         redirectTo: window.location.origin,
-        scopes: "https://www.googleapis.com/auth/calendar.readonly",
+        scopes: "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.calendarlist.readonly",
         queryParams: { access_type: "offline", prompt: "consent" },
       },
     });
@@ -173,7 +179,7 @@ export function AuthProvider({ children }) {
 
   const createHousehold = async (name) => {
     const { error: createError } = await supabase.rpc("create_household", { household_name: name });
-    if (createError) throw createError;
+    if (createError && !/already belong to a household/i.test(createError.message || "")) throw createError;
     await refreshAccount(session);
   };
 

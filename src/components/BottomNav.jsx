@@ -1,4 +1,4 @@
-import { CalendarDays, CheckSquare, CookingPot, Gift, Home, MessageCircle, ShoppingCart } from "lucide-react";
+import { CalendarDays, CheckSquare, CookingPot, Gift, Home, MessageCircle, ShoppingCart, Sparkles, WalletCards } from "lucide-react";
 
 const TABS = [
   { id: "today", label: "Today", icon: Home },
@@ -7,7 +7,9 @@ const TABS = [
   { id: "tasks", label: "Tasks", icon: CheckSquare },
   { id: "rewards", label: "Rewards", icon: Gift },
   { id: "groceries", label: "Groceries", icon: ShoppingCart },
+  { id: "finance", label: "Finance", icon: WalletCards },
   { id: "chat", label: "Chat", icon: MessageCircle },
+  { id: "famai", label: "Fam AI", icon: Sparkles },
 ];
 
 export default function BottomNav({ active, onChange }) {

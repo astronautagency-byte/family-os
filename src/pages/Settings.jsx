@@ -1,10 +1,11 @@
-import { useState } from "react";
-import { AlertCircle, Bell, CalendarDays, CheckCircle2, ExternalLink, Eye, EyeOff, Info, Link2, Plus, RefreshCw, RotateCcw, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AlertCircle, Bell, CalendarDays, CheckCircle2, ExternalLink, Eye, EyeOff, Info, Link2, Plus, RefreshCw, RotateCcw, Trash2, Upload } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, Card, Modal, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import { FAMILY_COLORS } from "../data/mockData";
+import { supabase } from "../lib/supabase";
 
 function initialsFrom(name) {
   return name
@@ -18,9 +19,9 @@ function initialsFrom(name) {
 function GoogleCalendarCard() {
   const {
     googleClientId, setGoogleClientId,
-    googleConnected, googleStatus, googleError, googleLastSynced, googleEvents,
+    googleConnected, googleStatus, googleError, googleLastSynced, googleEvents, googleCalendars, selectedGoogleCalendarIds,
     googleUsesAccount,
-    connectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar,
+    connectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, toggleGoogleCalendar,
   } = useFamily();
   const [showSetup, setShowSetup] = useState(!googleClientId);
 
@@ -52,6 +53,8 @@ function GoogleCalendarCard() {
         </div>
       )}
 
+      {googleConnected && googleCalendars.length > 0 && <div className="google-calendar-picker"><div><strong>Calendars to sync</strong><span>{selectedGoogleCalendarIds.length} of {googleCalendars.length} selected</span></div><ul>{googleCalendars.map(calendar=><li key={calendar.id}><button onClick={()=>toggleGoogleCalendar(calendar.id)} disabled={isBusy} aria-pressed={selectedGoogleCalendarIds.includes(calendar.id)}><i style={{backgroundColor:calendar.backgroundColor}}/><span><b>{calendar.summary}</b><small>{calendar.primary?"Primary calendar":calendar.accessRole==="reader"?"Read only":"Can add events"}</small></span><em>{selectedGoogleCalendarIds.includes(calendar.id)&&<CheckCircle2/>}</em></button></li>)}</ul></div>}
+
       {!googleUsesAccount && (showSetup || !googleClientId) && !googleConnected && (
         <div className="mb-3">
           <TextField
@@ -62,8 +65,8 @@ function GoogleCalendarCard() {
           />
           <p className="text-[11.5px] text-[var(--color-ink-faint)] leading-relaxed -mt-2">
             One-time setup: create a free OAuth Client ID in Google Cloud Console with the Calendar API enabled,
-            using this app's URL as an authorized origin. Full steps are in the README. Family OS only ever reads
-            your calendar — it never writes to it.
+            using this app's URL as an authorized origin. Full steps are in the README. Events you explicitly add
+            to Google Calendar from FamilyOS can be written back to any selected calendar where you have write access.
           </p>
         </div>
       )}
@@ -95,12 +98,14 @@ function GoogleCalendarCard() {
 function CalendarFeedsCard() {
   const {
     calendarFeeds, calendarFeedStatus, calendarFeedError,
-    addCalendarFeed, syncCalendarFeed, removeCalendarFeed,
+    addCalendarFeed, importCalendarFile, syncCalendarFeed, removeCalendarFeed,
   } = useFamily();
   const [adding, setAdding] = useState(false);
   const [provider, setProvider] = useState("apple");
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [fileBusy, setFileBusy] = useState(false);
   const busy = calendarFeedStatus === "syncing";
 
   const connect = async () => {
@@ -112,6 +117,22 @@ function CalendarFeedsCard() {
       setAdding(false);
     } catch {
       // The shared context displays a provider-specific connection error.
+    }
+  };
+
+  const importFile = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setFileBusy(true);
+    try {
+      await importCalendarFile({ provider, name, fileName: file.name, text: await file.text() });
+      setName("");
+      setAdding(false);
+    } catch {
+      // The shared context displays a user-friendly import error.
+    } finally {
+      setFileBusy(false);
+      event.target.value = "";
     }
   };
 
@@ -135,9 +156,9 @@ function CalendarFeedsCard() {
               <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: feed.color }} />
               <div className="flex-1 min-w-0">
                 <p className="text-[13.5px] font-medium truncate">{feed.name}</p>
-                <p className="text-[11px] text-[var(--color-ink-faint)]">{feed.lastSynced ? `Synced ${new Date(feed.lastSynced).toLocaleString()}` : "Not synced yet"}</p>
+                <p className="text-[11px] text-[var(--color-ink-faint)]">{feed.source === "file" ? `Imported from ${feed.fileName || "calendar file"}` : feed.lastSynced ? `Synced ${new Date(feed.lastSynced).toLocaleString()}` : "Not synced yet"}</p>
               </div>
-              <button disabled={busy} onClick={() => syncCalendarFeed(feed.id)} className="p-2 text-[var(--color-accent)] disabled:opacity-40" aria-label={`Sync ${feed.name}`}><RefreshCw size={15} className={busy ? "animate-spin" : ""} /></button>
+              {feed.source !== "file" && <button disabled={busy} onClick={() => syncCalendarFeed(feed.id)} className="p-2 text-[var(--color-accent)] disabled:opacity-40" aria-label={`Sync ${feed.name}`}><RefreshCw size={15} className={busy ? "animate-spin" : ""} /></button>}
               <button disabled={busy} onClick={() => removeCalendarFeed(feed.id)} className="p-2 text-[var(--color-ink-faint)] disabled:opacity-40" aria-label={`Remove ${feed.name}`}><Trash2 size={15} /></button>
             </li>
           ))}
@@ -160,12 +181,10 @@ function CalendarFeedsCard() {
             <option value="ical">Other iCal feed</option>
           </select>
           <TextField label="Calendar name (optional)" placeholder="e.g. Kat's work calendar" value={name} onChange={(event) => setName(event.target.value)} />
-          <TextField label="Published calendar URL" placeholder="https://…/calendar.ics or webcal://…" value={url} onChange={(event) => setUrl(event.target.value)} inputMode="url" />
-          <p className="text-[11.5px] text-[var(--color-ink-faint)] leading-relaxed -mt-2 mb-3">Paste the private published/subscription link from your calendar settings. Family OS reads it but cannot edit the source calendar.</p>
-          <div className="flex gap-2">
-            <SecondaryButton disabled={busy} onClick={() => setAdding(false)}>Cancel</SecondaryButton>
-            <PrimaryButton disabled={busy || !url.trim()} onClick={connect}>{busy ? "Connecting…" : "Connect feed"}</PrimaryButton>
-          </div>
+          <label className="calendar-file-import"><input type="file" accept=".ics,text/calendar" onChange={importFile} disabled={fileBusy}/><Upload/><strong>{fileBusy ? "Importing…" : "Choose calendar export"}</strong><span>Select an .ics file from Apple Calendar, Outlook, or another calendar app.</span></label>
+          <button className="advanced-calendar-toggle" onClick={() => setShowAdvanced((value) => !value)}>{showAdvanced ? "Hide advanced sync" : "Advanced: sync with a subscription link"}</button>
+          {showAdvanced && <div className="advanced-calendar-fields"><TextField label="Published calendar URL" placeholder="https://…/calendar.ics or webcal://…" value={url} onChange={(event) => setUrl(event.target.value)} inputMode="url" /><p>Use this only if your calendar provider gives you a published or subscription link.</p><PrimaryButton disabled={busy || !url.trim()} onClick={connect}>{busy ? "Connecting…" : "Connect synced feed"}</PrimaryButton></div>}
+          <SecondaryButton disabled={busy || fileBusy} onClick={() => setAdding(false)}>Cancel</SecondaryButton>
         </div>
       ) : (
         <SecondaryButton onClick={() => setAdding(true)} className="flex items-center justify-center gap-2"><Plus size={15} /> Add calendar feed</SecondaryButton>
@@ -175,8 +194,8 @@ function CalendarFeedsCard() {
 }
 
 export default function Settings() {
-  const { members, addMember, updateMember, removeMember, resetToDemoData, notificationPermission, requestNotifications } = useFamily();
-  const { configured, user, invitePartner, updatePassword, signOut, deleteAccount } = useAuth();
+  const { members, addMember, updateMember, removeMember, resetToDemoData, notificationPermission, requestNotifications, sendTestNotification } = useFamily();
+  const { configured, user, household, invitePartner, updatePassword, signOut, deleteAccount } = useAuth();
   const [editingMember, setEditingMember] = useState(null); // member object or "new"
   const [name, setName] = useState("");
   const [role, setRole] = useState("Kid");
@@ -184,6 +203,7 @@ export default function Settings() {
   const [confirmingReset, setConfirmingReset] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteStatus, setInviteStatus] = useState("");
+  const [pendingInvites, setPendingInvites] = useState([]);
   const [newPassword, setNewPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [passwordStatus, setPasswordStatus] = useState("");
@@ -191,6 +211,16 @@ export default function Settings() {
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [notificationTestStatus, setNotificationTestStatus] = useState("");
+  const [testingNotification, setTestingNotification] = useState(false);
+
+  const loadPendingInvites = async () => {
+    if (!configured || !household?.id || !supabase) return;
+    const { data } = await supabase.from("household_invitations").select("id,email,expires_at").eq("household_id", household.id).is("accepted_at", null).gt("expires_at", new Date().toISOString()).order("created_at");
+    setPendingInvites(data || []);
+  };
+
+  useEffect(() => { loadPendingInvites(); }, [configured, household?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openNew = () => {
     setName("");
@@ -216,9 +246,30 @@ export default function Settings() {
     setEditingMember(null);
   };
 
+  const testNotifications = async () => {
+    setTestingNotification(true);
+    setNotificationTestStatus("");
+    try {
+      const result = await sendTestNotification();
+      if (result === "shown") {
+        setNotificationTestStatus("Test sent. If you do not see it, check macOS/browser notification settings or Focus mode.");
+      } else if (result === "denied") {
+        setNotificationTestStatus("Notifications are blocked in your browser settings.");
+      } else if (result === "unsupported") {
+        setNotificationTestStatus("This browser or device does not support web notifications.");
+      } else {
+        setNotificationTestStatus("Notifications still need permission before we can send a test.");
+      }
+    } catch (error) {
+      setNotificationTestStatus(error.message || "Could not send a test notification.");
+    } finally {
+      setTestingNotification(false);
+    }
+  };
+
   return (
     <div className="pb-24 reference-settings">
-      <PageHeader eyebrow="Household" title="Settings" />
+      <PageHeader eyebrow="Household" title="Settings" illustration="settings" />
 
       <div className="px-5 space-y-6 mt-2">
         <section>
@@ -228,8 +279,8 @@ export default function Settings() {
               <Plus size={15} /> Add
             </button>
           </div>
-          <Card className="p-1">
-            <ul>
+          <Card className="family-roster-card">
+            <ul className="family-roster">
               {members.map((m) => (
                 <li
                   key={m.id}
@@ -251,6 +302,13 @@ export default function Settings() {
                   </button>
                 </li>
               ))}
+              {pendingInvites.map((invite) => (
+                <li key={invite.id} className="family-roster-pending">
+                  <div className="family-invite-avatar">{invite.email.slice(0, 1).toUpperCase()}</div>
+                  <div className="min-w-0 flex-1"><p>{invite.email}</p><span>Invitation pending</span></div>
+                  <span className="pending-pill">Pending</span>
+                </li>
+              ))}
               {members.length === 0 && (
                 <li className="px-3 py-6 text-center text-[13.5px] text-[var(--color-ink-soft)]">
                   No family members yet — add your first above.
@@ -258,10 +316,10 @@ export default function Settings() {
               )}
             </ul>
           </Card>
-          {configured && members.length < 2 && (
+          {configured && (
             <Card className="p-4 mt-3">
-              <TextField type="email" label="Invite your partner" placeholder="partner@example.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
-              <PrimaryButton disabled={!inviteEmail.trim()} onClick={async () => { try { await invitePartner(inviteEmail); setInviteStatus("Invitation email sent."); } catch (e) { setInviteStatus(e.message); } }}>Send invitation</PrimaryButton>
+              <TextField type="email" label="Invite a family member" placeholder="family@example.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
+              <PrimaryButton disabled={!inviteEmail.trim()} onClick={async () => { try { await invitePartner(inviteEmail); setInviteStatus("Invitation email sent."); setInviteEmail(""); await loadPendingInvites(); } catch (e) { setInviteStatus(e.message); } }}>Send invitation</PrimaryButton>
               {inviteStatus && <p className="text-[12px] text-[var(--color-ink-soft)] mt-2">{inviteStatus}</p>}
             </Card>
           )}
@@ -278,6 +336,8 @@ export default function Settings() {
           <Card className="p-4">
             <div className="flex items-start gap-3 mb-4"><div className="w-10 h-10 rounded-xl bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0"><Bell size={18} color="var(--color-accent)" /></div><div><p className="font-medium text-[14.5px]">Task assignments</p><p className="text-[12.5px] text-[var(--color-ink-soft)] mt-0.5">Get a device notification when your partner assigns a new task to you.</p></div></div>
             <PrimaryButton onClick={requestNotifications} disabled={notificationPermission === "granted" || notificationPermission === "unsupported"}>{notificationPermission === "granted" ? "Notifications enabled" : notificationPermission === "denied" ? "Blocked in browser settings" : notificationPermission === "unsupported" ? "Not supported on this device" : "Enable notifications"}</PrimaryButton>
+            {notificationPermission === "granted" && <SecondaryButton className="mt-2" onClick={testNotifications} disabled={testingNotification}>{testingNotification ? "Sending test…" : "Send a test notification"}</SecondaryButton>}
+            {notificationTestStatus && <div className="notification-test-status"><CheckCircle2 size={14} /><p>{notificationTestStatus}</p></div>}
             {notificationPermission === "denied" && <p className="text-[11.5px] text-[var(--color-warn)] mt-2">Allow notifications for this site in your browser or device settings, then reload FamilyOS.</p>}
           </Card>
         </section>
@@ -288,7 +348,7 @@ export default function Settings() {
             <div className="flex items-start gap-3 mb-3">
               <Info size={17} className="mt-0.5 shrink-0" color="var(--color-ink-faint)" />
               <p className="text-[13px] text-[var(--color-ink-soft)] leading-relaxed">
-                {configured ? "Your household data is encrypted in transit and stored in Supabase. Row-level security limits access to members of your household." : "Family OS is in local demo mode. Add Supabase environment variables to enable private household sync."}
+                {configured ? "Your household data is encrypted in transit and stored in Supabase. Row-level security limits access to members of your household." : "FamOS is in local demo mode. Add Supabase environment variables to enable private household sync."}
               </p>
             </div>
             {!configured && <SecondaryButton onClick={() => setConfirmingReset(true)} className="flex items-center justify-center gap-2">
@@ -322,9 +382,9 @@ export default function Settings() {
         <section>
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">About</h2>
           <Card className="p-4 flex items-start gap-3">
-            <img src="/icons/icon-192.png" alt="FamOS" className="w-10 h-10 rounded-xl object-cover notion-shadow shrink-0" />
+            <img src="/brand/famos-icon.png" alt="FamOS" className="w-10 h-10 rounded-xl object-cover notion-shadow shrink-0" />
             <div>
-              <p className="font-medium text-[14.5px] text-[var(--color-ink)]">Family OS</p>
+              <p className="font-medium text-[14.5px] text-[var(--color-ink)]">FamOS</p>
               <p className="text-[12.5px] text-[var(--color-ink-soft)]">Version 1.0 · Private {configured ? "& synced" : "& local"}</p>
               <p className="text-[12px] text-[var(--color-ink-soft)] mt-2 leading-relaxed">
                 Developed by the team at{" "}
@@ -333,6 +393,7 @@ export default function Settings() {
                 </a>
                 <br />Part of Astronaut Ventures
               </p>
+              <button onClick={() => { window.location.hash = "privacy"; }} className="mt-3 text-[12px] font-semibold text-[var(--color-accent)]">Privacy policy & legal</button>
             </div>
           </Card>
         </section>

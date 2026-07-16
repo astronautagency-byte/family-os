@@ -71,7 +71,7 @@ export function Tag({ children, color, tone = "neutral" }) {
 export function Card({ children, className = "", as: As = "div", ...props }) {
   return (
     <As
-      className={`kinship-card bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[20px] notion-shadow ${className}`}
+      className={`kinship-card bg-[var(--color-surface)] border border-[var(--color-border)] notion-shadow ${className}`}
       {...props}
     >
       {children}
@@ -88,7 +88,7 @@ export function SectionTitle({ eyebrow, title, action }) {
             {eyebrow}
           </p>
         )}
-        <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)]">
+        <h2 className="ui-section-title">
           {title}
         </h2>
       </div>
@@ -126,9 +126,9 @@ export function Modal({ open, onClose, title, children }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative bg-[var(--color-surface)] w-full sm:max-w-sm sm:rounded-2xl rounded-t-2xl p-5 pb-8 sm:pb-6 safe-bottom fade-up max-h-[85vh] overflow-y-auto border border-[var(--color-border)]">
+      <div className="relative bg-[var(--color-surface)] w-full sm:max-w-sm sm:rounded-2xl rounded-t-2xl px-7 pt-7 pb-12 sm:p-8 safe-bottom fade-up max-h-[85vh] overflow-y-auto border border-[var(--color-border)]">
         <div className="w-10 h-1 bg-[var(--color-border-strong)] rounded-full mx-auto mb-4 sm:hidden" />
-        {title && <h3 className="font-[var(--font-display)] text-[17px] font-semibold mb-4">{title}</h3>}
+        {title && <h3 className="font-[var(--font-display)] text-[19px] font-semibold mb-5">{title}</h3>}
         {children}
       </div>
     </div>

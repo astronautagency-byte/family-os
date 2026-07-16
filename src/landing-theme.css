@@ -1,0 +1,13 @@
+.landing-page{background:var(--color-canvas);color:var(--color-ink)}
+.landing-brand img{padding:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;object-fit:contain!important}
+.landing-feature,.stage-panel,.product-stage,.landing-product-screen,.landing-testimonials article{border-radius:var(--radius-card);border:1px solid var(--color-border);box-shadow:0 2px 4px rgba(27,25,53,.06)}
+.stage-tabs button,.product-tabs button{border-color:var(--color-border);border-radius:var(--radius-control)}
+.stage-tabs button.active,.product-tabs button.active{background:var(--color-accent);border-color:var(--color-accent)}
+.landing-product{background:var(--color-surface-sunken)}
+.landing-float-note{border:1px solid var(--color-border);border-radius:var(--radius-control)!important}
+.landing-float-note.second{background:var(--pastel-yellow)}
+.landing-float-note.third{background:var(--pastel-mint)}
+.product-screen-row,.product-screen-bar>span,.landing-product-screen>button,.stage-chips b{border-radius:var(--radius-control)}
+.landing-product-screen>button{background:var(--color-accent)}
+.landing-section-head>p,.landing-intro>p,.stage-panel>div>p,.product-stage>div>p{color:var(--color-accent)}
+.landing-feature.lilac{background:var(--pastel-lilac)}.landing-feature.yellow{background:var(--pastel-yellow)}.landing-feature.pink{background:var(--pastel-pink)}.landing-feature.mint{background:var(--pastel-mint)}.landing-feature.blue{background:var(--pastel-blue)}.landing-feature.peach{background:var(--pastel-peach)}

@@ -92,3 +92,14 @@ Notes:
 - This uses Google Identity Services' token flow, meant for browser-only apps like this one. There's no refresh token, so the connection lasts for your browser session (about an hour) — reconnecting afterwards is one tap.
 - Imported events show up in **Today** and **Calendar** with a small "Google" tag and can be filtered on/off, but can't be edited from Family OS (edit them in Google Calendar directly — changes will show up next sync).
 - Your Client ID and connection state are saved locally so you don't have to re-paste it every visit.
+# Fam AI (Grok)
+
+Fam AI uses a Supabase Edge Function so the xAI API key never ships to the browser. Configure and deploy it with:
+
+```bash
+supabase secrets set XAI_API_KEY=your_xai_api_key
+supabase secrets set XAI_MODEL=grok-4.5
+supabase functions deploy fam-ai
+```
+
+Grok proposes typed FamilyOS actions for tasks, groceries, events, and meals. The browser displays those actions for confirmation and executes them through the existing authenticated FamilyOS data layer only after approval.

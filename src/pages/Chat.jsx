@@ -45,7 +45,7 @@ export default function Chat() {
 
   return (
     <div className="h-screen pb-20 flex flex-col">
-      <PageHeader eyebrow="Private conversations" title="Family chat" />
+      <PageHeader eyebrow="Private conversations" title="Family chat" illustration="chat" />
 
       <div className="px-5 mt-1 mb-2 flex gap-2 overflow-x-auto pb-1">
         {chatMembers.map((member) => {

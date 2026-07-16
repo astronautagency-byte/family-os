@@ -7,7 +7,7 @@ function Shell({ children }) {
   return (
     <main className="minimal-auth">
       <div className="minimal-auth-inner">
-        <img src="/icons/icon-192.png" alt="FamilyOS" className="minimal-auth-logo" />
+        <img src="/brand/famos-logo.png" alt="FamOS" className="minimal-auth-logo" />
         {children}
       </div>
     </main>
@@ -18,13 +18,13 @@ export function AuthLoading() {
   return <Shell><LoaderCircle className="animate-spin mt-8" color="var(--color-accent)" /></Shell>;
 }
 
-export function SignIn() {
+export function SignIn({ initialCreating = false }) {
   const { signIn, signUp, signInWithGoogle, requestPasswordReset, error } = useAuth();
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState(initialCreating);
   const [busy, setBusy] = useState(false);
   const [localError, setLocalError] = useState("");
   const [notice, setNotice] = useState("");
@@ -91,7 +91,7 @@ export function ResetPassword(){
 }
 
 export function HouseholdOnboarding() {
-  const { invitation, household, createHousehold, acceptInvitation, invitePartner, signOut } = useAuth();
+  const { invitation, household, createHousehold, acceptInvitation, invitePartner, signOut, refreshAccount, session } = useAuth();
   const [name, setName] = useState("Our family");
   const [inviteEmails, setInviteEmails] = useState("");
   const [busy, setBusy] = useState(false);
@@ -123,7 +123,7 @@ export function HouseholdOnboarding() {
         ) : (
           <><TextField type="text" label="Family member emails" placeholder="alex@example.com, sam@example.com" value={inviteEmails} onChange={(e)=>setInviteEmails(e.target.value)}/><p className="onboarding-hint">Separate multiple email addresses with commas. Each person will receive a secure FamilyOS signup invitation.</p><PrimaryButton disabled={busy||!inviteEmails.trim()} onClick={()=>run(async()=>{const emails=inviteEmails.split(",").map(value=>value.trim()).filter(Boolean);for(const email of emails)await invitePartner(email)})}>{busy?"Sending invitations…":"Send invitations & continue"}</PrimaryButton></>
         )}
-        {error && <p className="text-[12.5px] text-[var(--color-warn)] mt-3">{error}</p>}
+        {error && <div className="onboarding-recovery"><p>{error}</p>{/already belong to a household/i.test(error)&&<button disabled={busy} onClick={()=>run(()=>refreshAccount(session))}>Open my existing household</button>}</div>}
       </Card>
       <button onClick={signOut} className="w-full text-center text-[12.5px] text-[var(--color-ink-soft)] mt-5">Sign out</button>
     </Shell>
