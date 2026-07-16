@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { FamilyProvider } from "./context/FamilyContext";
 import BottomNav from "./components/BottomNav";
+import AppTopBar from "./components/AppTopBar";
 import Today from "./pages/Today";
 import CalendarPage from "./pages/Calendar";
 import Meals from "./pages/Meals";
@@ -9,12 +10,13 @@ import Tasks from "./pages/Tasks";
 import Settings from "./pages/Settings";
 import Chat from "./pages/Chat";
 import Finance from "./pages/Finance";
+import Rewards from "./pages/Rewards";
 import { useAuth } from "./context/AuthContext";
-import { AuthLoading, HouseholdOnboarding, SignIn } from "./pages/Auth";
+import { AuthLoading, HouseholdOnboarding, ResetPassword, SignIn } from "./pages/Auth";
 
 export default function App() {
   const [tab, setTab] = useState("today");
-  const { configured, session, household, loading } = useAuth();
+  const { configured, session, household, loading, passwordRecovery, onboardingRequired } = useAuth();
 
   useEffect(() => {
     const applyDaypart = () => {
@@ -27,21 +29,26 @@ export default function App() {
   }, []);
 
   if (configured && loading) return <AuthLoading />;
+  if (configured && passwordRecovery) return <ResetPassword />;
   if (configured && !session) return <SignIn />;
-  if (configured && !household) return <HouseholdOnboarding />;
+  if (configured && (!household || onboardingRequired)) return <HouseholdOnboarding />;
 
   return (
     <FamilyProvider>
-      <div className="max-w-md mx-auto min-h-screen bg-[var(--color-canvas)] relative">
-        {tab === "today" && <Today goTo={setTab} />}
-        {tab === "calendar" && <CalendarPage goTo={setTab} />}
-        {tab === "meals" && <Meals />}
-        {tab === "groceries" && <Groceries />}
-        {tab === "tasks" && <Tasks />}
-        {tab === "chat" && <Chat />}
-        {tab === "finance" && <Finance />}
-        {tab === "settings" && <Settings />}
+      <div className="app-shell">
         <BottomNav active={tab} onChange={setTab} />
+        <main className="app-content">
+          {tab !== "rewards" && <AppTopBar onOpenSettings={() => setTab("settings")} />}
+          {tab === "today" && <Today goTo={setTab} />}
+          {tab === "calendar" && <CalendarPage goTo={setTab} />}
+          {tab === "meals" && <Meals />}
+          {tab === "groceries" && <Groceries />}
+          {tab === "tasks" && <Tasks />}
+          {tab === "chat" && <Chat />}
+          {tab === "finance" && <Finance />}
+          {tab === "settings" && <Settings />}
+          {tab === "rewards" && <Rewards />}
+        </main>
       </div>
     </FamilyProvider>
   );

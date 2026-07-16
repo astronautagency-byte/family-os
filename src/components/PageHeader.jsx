@@ -1,12 +1,12 @@
 export default function PageHeader({ eyebrow, title, titleIcon, subtitle, action }) {
   return (
-    <header className="page-header px-5 pb-3 safe-top">
+    <header className="page-header px-5 pb-4 safe-top">
       <div className="page-header-content flex items-start justify-between gap-3">
         <div>
           {eyebrow && (
             <p className="text-[12px] font-medium text-[var(--color-ink-faint)] mb-0.5">{eyebrow}</p>
           )}
-          <h1 className="font-[var(--font-display)] text-[26px] font-bold tracking-tight text-[var(--color-ink)] flex items-center gap-2">
+          <h1 className="page-title font-[var(--font-display)] text-[30px] font-semibold tracking-[-0.035em] text-[var(--color-ink)] flex items-center gap-2">
             {titleIcon}
             {title}
           </h1>

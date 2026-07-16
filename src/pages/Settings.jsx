@@ -217,7 +217,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="pb-24">
+    <div className="pb-24 reference-settings">
       <PageHeader eyebrow="Household" title="Settings" />
 
       <div className="px-5 space-y-6 mt-2">
@@ -261,7 +261,7 @@ export default function Settings() {
           {configured && members.length < 2 && (
             <Card className="p-4 mt-3">
               <TextField type="email" label="Invite your partner" placeholder="partner@example.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
-              <PrimaryButton disabled={!inviteEmail.trim()} onClick={async () => { try { await invitePartner(inviteEmail); setInviteStatus("Invitation ready — they can sign in with this email to join."); } catch (e) { setInviteStatus(e.message); } }}>Send invitation</PrimaryButton>
+              <PrimaryButton disabled={!inviteEmail.trim()} onClick={async () => { try { await invitePartner(inviteEmail); setInviteStatus("Invitation email sent."); } catch (e) { setInviteStatus(e.message); } }}>Send invitation</PrimaryButton>
               {inviteStatus && <p className="text-[12px] text-[var(--color-ink-soft)] mt-2">{inviteStatus}</p>}
             </Card>
           )}
