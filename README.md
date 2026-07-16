@@ -29,6 +29,8 @@ npm run preview   # serve the production build locally to test
 
 The production build (in `dist/`) includes the web app manifest and service worker needed for "Add to Home Screen" support.
 
+Production domain: `https://fam-os.app/`.
+
 ## Installing on an iPhone (PWA)
 
 1. Deploy the contents of `dist/` to any static host (Vercel, Netlify, Cloudflare Pages, GitHub Pages — all work with zero config for a Vite app), or run it on your home network.
@@ -59,13 +61,16 @@ src/
 
 1. Create a Supabase project and run the SQL files in `supabase/migrations/` in filename order (or use `supabase db push`).
 2. Copy `.env.example` to `.env.local` and fill in the project URL and publishable key.
-3. In Supabase Auth URL Configuration, set the Site URL and add local/deployed redirect URLs (for example `http://localhost:5173/**`).
+3. In Supabase Auth URL Configuration, set the Site URL to `https://fam-os.app/` and add redirect URLs for both production and local development:
+   - `https://fam-os.app/**`
+   - `http://localhost:5173/**`
+   - `http://127.0.0.1:5173/**`
 4. Deploy the family invitation email function:
    ```bash
    supabase functions deploy send-family-invitation
    ```
    Supabase automatically provides `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` to the function.
-5. Configure Supabase Auth email delivery and make sure both your production URL and `http://localhost:5173` are allowed redirect URLs.
+5. Configure Supabase Auth email delivery and make sure `https://fam-os.app/`, `http://localhost:5173`, and `http://127.0.0.1:5173` are allowed redirect URLs.
 6. Start the app and sign in. New owners name their family, then can invite members immediately or skip and add them later from Settings. Invitees receive a secure signup link and join the family after accepting it.
 
 Never put a service-role key in this client application. The publishable key is safe to expose; row-level security protects household data.
@@ -84,7 +89,8 @@ When Google is enabled as a Supabase Auth provider and the app uses **Continue w
 2. Under **APIs & Services → Library**, search for **Google Calendar API** and enable it.
 3. Under **APIs & Services → Credentials**, click **Create Credentials → OAuth client ID**.
    - Application type: **Web application**
-   - Authorized JavaScript origins: add the URL you'll run Family OS from, e.g. `http://localhost:5173` for local dev, or your deployed `https://…` URL.
+   - Authorized JavaScript origins: add `https://fam-os.app`, `http://localhost:5173`, and `http://127.0.0.1:5173`.
+   - If using Supabase Google Auth, also make sure the Supabase Google callback URL is listed under authorized redirect URIs.
 4. Copy the generated **Client ID** (it ends in `.apps.googleusercontent.com`).
 5. In Family OS, go to **Settings → Integrations → Google Calendar**, paste the Client ID, and tap **Connect Google Calendar**. Google will show its normal consent screen — approve read-only calendar access.
 

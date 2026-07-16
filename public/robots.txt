@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://fam-os.app/sitemap.xml
