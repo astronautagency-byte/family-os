@@ -21,11 +21,20 @@ import { AuthLoading, HouseholdOnboarding, ResetPassword, SignIn } from "./pages
 
 gsap.registerPlugin(useGSAP);
 const VALID_TABS = ["today","calendar","meals","tasks","groceries","finance","chat","famai","settings"];
-const tabFromHash = () => VALID_TABS.includes(window.location.hash.slice(1)) ? window.location.hash.slice(1) : "today";
+const PUBLIC_PATHS = ["privacy", "terms", "pricing", "signin", "signup"];
+const VALID_ROUTES = [...VALID_TABS, "landing", ...PUBLIC_PATHS];
+const pathRoute = () => window.location.pathname.replace(/^\/+|\/+$/g, "");
+const routeFromLocation = () => {
+  const hashRoute = window.location.hash.slice(1);
+  if (VALID_ROUTES.includes(hashRoute)) return hashRoute;
+  const route = pathRoute();
+  return PUBLIC_PATHS.includes(route) ? route : "";
+};
+const tabFromLocation = () => VALID_TABS.includes(routeFromLocation()) ? routeFromLocation() : "today";
 
 export default function App() {
-  const [tab, setTabState] = useState(tabFromHash);
-  const [route, setRoute] = useState(() => window.location.hash.slice(1));
+  const [tab, setTabState] = useState(tabFromLocation);
+  const [route, setRoute] = useState(routeFromLocation);
   const setTab = (next) => { setTabState(next); window.history.replaceState(null, "", `#${next}`); };
   const shellRef = useRef(null);
   const { configured, session, household, loading, passwordRecovery, onboardingRequired } = useAuth();
@@ -40,7 +49,15 @@ export default function App() {
     const timer = window.setInterval(applyDaypart, 60_000);
     return () => window.clearInterval(timer);
   }, []);
-  useEffect(() => { const onHashChange = () => { setRoute(window.location.hash.slice(1)); setTabState(tabFromHash()); }; window.addEventListener("hashchange", onHashChange); return () => window.removeEventListener("hashchange", onHashChange); }, []);
+  useEffect(() => {
+    const onLocationChange = () => { setRoute(routeFromLocation()); setTabState(tabFromLocation()); };
+    window.addEventListener("hashchange", onLocationChange);
+    window.addEventListener("popstate", onLocationChange);
+    return () => {
+      window.removeEventListener("hashchange", onLocationChange);
+      window.removeEventListener("popstate", onLocationChange);
+    };
+  }, []);
 
   useGSAP(() => {
     const media = gsap.matchMedia();

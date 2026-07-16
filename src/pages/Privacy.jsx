@@ -1,6 +1,10 @@
 import { ArrowLeft, LockKeyhole } from "lucide-react";
 
-const go = (route) => { window.location.hash = route; };
+const go = (route) => {
+  const target = route === "landing" ? "/" : `/#${route}`;
+  window.history.pushState(null, "", target);
+  window.dispatchEvent(new PopStateEvent("popstate"));
+};
 
 export default function Privacy({ signedIn = false }) {
   return <div className="legal-page">
