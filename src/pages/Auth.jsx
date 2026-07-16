@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Eye, EyeOff, LoaderCircle, LockKeyhole } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { Card, PrimaryButton, TextField } from "../components/ui";
+import { Card, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
 
 function Shell({ children }) {
   return (
@@ -91,7 +91,7 @@ export function ResetPassword(){
 }
 
 export function HouseholdOnboarding() {
-  const { invitation, household, createHousehold, acceptInvitation, invitePartner, signOut, refreshAccount, session } = useAuth();
+  const { invitation, household, createHousehold, acceptInvitation, invitePartner, skipOnboardingInvites, signOut, refreshAccount, session } = useAuth();
   const [name, setName] = useState("Our family");
   const [inviteEmails, setInviteEmails] = useState("");
   const [busy, setBusy] = useState(false);
@@ -105,15 +105,15 @@ export function HouseholdOnboarding() {
 
   return (
     <Shell>
-      <h1 className="minimal-auth-title">{household ? "Invite your family" : "Name your family"}</h1>
-      <p className="recovery-intro">{household ? `Add at least one member to ${household.name} before continuing.` : "Create the private family space everyone will share."}</p>
+      <h1 className="minimal-auth-title">{invitation ? "Join this home" : household ? "Invite your family" : "Name your family"}</h1>
+      <p className="recovery-intro">{invitation ? `Your email is associated with ${invitation.households?.name}. Join to share chat, calendars, tasks, meals, and groceries with this household.` : household ? `Invite members to ${household.name} now, or skip and add them later from Settings.` : "Create the private family space everyone will share."}</p>
       <Card className="p-5">
         {invitation ? (
           <>
-            <p className="text-[12px] font-semibold uppercase tracking-wide text-[var(--color-accent)]">You’re invited</p>
-            <h2 className="font-semibold text-[18px] mt-1 mb-1">Join {invitation.households?.name}</h2>
-            <p className="text-[13px] text-[var(--color-ink-soft)] mb-5">Accept to share schedules, tasks, groceries, and chat.</p>
-            <PrimaryButton disabled={busy} onClick={() => run(acceptInvitation)}>{busy ? "Joining…" : "Join household"}</PrimaryButton>
+            <p className="text-[12px] font-semibold uppercase tracking-wide text-[var(--color-accent)]">Home invitation</p>
+            <h2 className="font-semibold text-[18px] mt-1 mb-1">{invitation.households?.name}</h2>
+            <p className="text-[13px] text-[var(--color-ink-soft)] mb-5">Once you join, you’ll appear as a family member and can use shared calendar, family chat, tasks, meals, and lists.</p>
+            <PrimaryButton disabled={busy} onClick={() => run(acceptInvitation)}>{busy ? "Joining…" : "Join home"}</PrimaryButton>
           </>
         ) : !household ? (
           <>
@@ -121,7 +121,7 @@ export function HouseholdOnboarding() {
             <PrimaryButton disabled={busy || !name.trim()} onClick={() => run(() => createHousehold(name))}>{busy ? "Creating…" : "Continue"}</PrimaryButton>
           </>
         ) : (
-          <><TextField type="text" label="Family member emails" placeholder="alex@example.com, sam@example.com" value={inviteEmails} onChange={(e)=>setInviteEmails(e.target.value)}/><p className="onboarding-hint">Separate multiple email addresses with commas. Each person will receive a secure FamilyOS signup invitation.</p><PrimaryButton disabled={busy||!inviteEmails.trim()} onClick={()=>run(async()=>{const emails=inviteEmails.split(",").map(value=>value.trim()).filter(Boolean);for(const email of emails)await invitePartner(email)})}>{busy?"Sending invitations…":"Send invitations & continue"}</PrimaryButton></>
+          <><TextField type="text" label="Family member emails" placeholder="alex@example.com, sam@example.com" value={inviteEmails} onChange={(e)=>setInviteEmails(e.target.value)}/><p className="onboarding-hint">Separate multiple email addresses with commas. Each person will receive a secure FamilyOS signup invitation.</p><PrimaryButton disabled={busy||!inviteEmails.trim()} onClick={()=>run(async()=>{const emails=inviteEmails.split(",").map(value=>value.trim()).filter(Boolean);for(const email of emails)await invitePartner(email)})}>{busy?"Sending invitations…":"Send invitations & continue"}</PrimaryButton><SecondaryButton type="button" className="mt-2 onboarding-skip-button" disabled={busy} onClick={skipOnboardingInvites}>Skip for now</SecondaryButton></>
         )}
         {error && <div className="onboarding-recovery"><p>{error}</p>{/already belong to a household/i.test(error)&&<button disabled={busy} onClick={()=>run(()=>refreshAccount(session))}>Open my existing household</button>}</div>}
       </Card>

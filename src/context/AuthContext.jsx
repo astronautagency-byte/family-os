@@ -3,6 +3,23 @@ import { isSupabaseConfigured, supabase } from "../lib/supabase";
 
 const AuthContext = createContext(null);
 
+function onboardingSkipKey(householdId, userId) {
+  return `family-os:onboarding-invites-skipped:${householdId}:${userId}`;
+}
+
+async function getFunctionErrorMessage(functionError) {
+  try {
+    const response = functionError?.context;
+    if (response?.clone) {
+      const payload = await response.clone().json();
+      if (payload?.error) return payload.error;
+    }
+  } catch {
+    // FunctionFetchError does not always include a parseable response.
+  }
+  return functionError?.message || "Could not reach the invitation email service.";
+}
+
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -64,7 +81,8 @@ export function AuthProvider({ children }) {
           supabase.from("household_members").select("user_id", { count: "exact", head: true }).eq("household_id", membership.household_id),
           supabase.from("household_invitations").select("id", { count: "exact", head: true }).eq("household_id", membership.household_id).is("accepted_at", null).gt("expires_at", new Date().toISOString()),
         ]);
-        setOnboardingRequired((memberCount || 0) < 2 && (inviteCount || 0) === 0);
+        const skippedInvites = localStorage.getItem(onboardingSkipKey(membership.household_id, nextSession.user.id)) === "true";
+        setOnboardingRequired(!skippedInvites && (memberCount || 0) < 2 && (inviteCount || 0) === 0);
       } else {
         setOnboardingRequired(false);
       }
@@ -191,12 +209,72 @@ export function AuthProvider({ children }) {
   };
 
   const invitePartner = async (email) => {
+    const normalizedEmail = email.trim().toLowerCase();
     const { error: inviteError } = await supabase.functions.invoke("send-family-invitation", {
-      body: { email: email.trim().toLowerCase(), householdId: household.id, redirectTo: window.location.origin },
+      body: { email: normalizedEmail, householdId: household.id, redirectTo: window.location.origin },
     });
-    if (inviteError) throw inviteError;
+    if (!inviteError) {
+      await refreshAccount(session);
+      return { sent: true, message: "Invitation email sent." };
+    }
+
+    const emailServiceMessage = await getFunctionErrorMessage(inviteError);
+    let pendingInviteResult = await supabase.from("household_invitations").insert({
+      household_id: household.id,
+      email: normalizedEmail,
+      invited_by: session.user.id,
+    });
+
+    if (pendingInviteResult.error?.code === "23505") {
+      const { data: existingInvite } = await supabase
+        .from("household_invitations")
+        .select("id, accepted_at, expires_at")
+        .eq("household_id", household.id)
+        .eq("email", normalizedEmail)
+        .maybeSingle();
+
+      if (existingInvite?.accepted_at) {
+        return {
+          sent: false,
+          pending: false,
+          message: "That family member has already accepted an invitation to this home.",
+        };
+      }
+
+      const inviteIsActive = existingInvite?.expires_at && new Date(existingInvite.expires_at) > new Date();
+      if (existingInvite?.id && inviteIsActive) {
+        pendingInviteResult = { error: null };
+      } else if (existingInvite?.id) {
+        const { error: deleteInviteError } = await supabase.from("household_invitations").delete().eq("id", existingInvite.id);
+        if (!deleteInviteError) {
+          pendingInviteResult = await supabase.from("household_invitations").insert({
+            household_id: household.id,
+            email: normalizedEmail,
+            invited_by: session.user.id,
+          });
+        }
+      }
+    }
+
+    if (pendingInviteResult.error) {
+      throw new Error(emailServiceMessage);
+    }
+
     await refreshAccount(session);
+    return {
+      sent: false,
+      pending: true,
+      message:
+        "Invite saved, but the email service is not reachable yet. Deploy/configure the Supabase send-family-invitation Edge Function to send invitation emails.",
+    };
   };
+
+  const skipOnboardingInvites = useCallback(() => {
+    if (household?.id && session?.user?.id) {
+      localStorage.setItem(onboardingSkipKey(household.id, session.user.id), "true");
+    }
+    setOnboardingRequired(false);
+  }, [household?.id, session?.user?.id]);
 
   const value = useMemo(() => ({
     configured: isSupabaseConfigured,
@@ -220,8 +298,9 @@ export function AuthProvider({ children }) {
     createHousehold,
     acceptInvitation,
     invitePartner,
+    skipOnboardingInvites,
     refreshAccount,
-  }), [session, profile, household, invitation, loading, error, passwordRecovery, onboardingRequired, refreshAccount, googleProviderToken]);
+  }), [session, profile, household, invitation, loading, error, passwordRecovery, onboardingRequired, refreshAccount, googleProviderToken, skipOnboardingInvites]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

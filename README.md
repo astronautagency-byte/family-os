@@ -66,7 +66,7 @@ src/
    ```
    Supabase automatically provides `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` to the function.
 5. Configure Supabase Auth email delivery and make sure both your production URL and `http://localhost:5173` are allowed redirect URLs.
-6. Start the app and sign in. New owners must name their family and email at least one invitation before entering the dashboard. Invitees receive a secure signup link and join the family after accepting it.
+6. Start the app and sign in. New owners name their family, then can invite members immediately or skip and add them later from Settings. Invitees receive a secure signup link and join the family after accepting it.
 
 Never put a service-role key in this client application. The publishable key is safe to expose; row-level security protects household data.
 

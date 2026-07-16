@@ -319,7 +319,7 @@ export default function Settings() {
           {configured && (
             <Card className="p-4 mt-3">
               <TextField type="email" label="Invite a family member" placeholder="family@example.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
-              <PrimaryButton disabled={!inviteEmail.trim()} onClick={async () => { try { await invitePartner(inviteEmail); setInviteStatus("Invitation email sent."); setInviteEmail(""); await loadPendingInvites(); } catch (e) { setInviteStatus(e.message); } }}>Send invitation</PrimaryButton>
+              <PrimaryButton disabled={!inviteEmail.trim()} onClick={async () => { try { const result = await invitePartner(inviteEmail); setInviteStatus(result?.message || "Invitation email sent."); setInviteEmail(""); await loadPendingInvites(); } catch (e) { setInviteStatus(e.message); } }}>Send invitation</PrimaryButton>
               {inviteStatus && <p className="text-[12px] text-[var(--color-ink-soft)] mt-2">{inviteStatus}</p>}
             </Card>
           )}
