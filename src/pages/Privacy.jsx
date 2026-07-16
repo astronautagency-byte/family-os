@@ -1,4 +1,4 @@
-import { ArrowLeft, ExternalLink, LockKeyhole } from "lucide-react";
+import { ArrowLeft, LockKeyhole } from "lucide-react";
 
 const go = (route) => { window.location.hash = route; };
 
@@ -21,10 +21,10 @@ export default function Privacy({ signedIn = false }) {
       <section><h2>Retention, security, and your choices</h2><p>We retain information while your account is active and as reasonably needed to operate, secure, or comply with legal obligations. We use reasonable safeguards, but no online service can guarantee absolute security. You can edit or clear many categories of content inside FamOS, disconnect integrations, and contact us about account or privacy requests.</p></section>
       <section><h2>Children</h2><p>Child profiles and access must be created or authorized by a parent or legal guardian. Parents are responsible for deciding what information is appropriate to add and for supervising a child’s use of FamOS.</p></section>
       <section><h2>Changes to this policy</h2><p>We may update this policy as FamOS evolves. The current version and effective date will remain available on this page. Material changes may also be communicated in the app.</p></section>
-      <section><h2>Contact</h2><p>For privacy questions or requests, contact the development team through <a href="https://getastronaut.io" target="_blank" rel="noreferrer">Astronaut Digital <ExternalLink/></a>.</p></section>
+      <section><h2>Contact</h2><p>For privacy questions or requests, contact the development team at Astronaut Digital, part of Astronaut Ventures.</p></section>
 
       <aside className="legal-disclaimer"><h2>Copyright and product disclaimer</h2><p>© 2026 FamOS. All rights reserved. FamOS, its original interface, branding, copy, and associated assets are protected by applicable intellectual-property laws. Third-party names, trademarks, services, and content remain the property of their respective owners.</p><p>FamOS is a family-organization tool and does not provide legal, medical, financial, or professional advice. AI suggestions may be incomplete or inaccurate and should be reviewed before use.</p></aside>
     </main>
-    <footer className="legal-footer"><p>Developed by the team at <a href="https://getastronaut.io" target="_blank" rel="noreferrer">Astronaut Digital</a><br/>Part of Astronaut Ventures</p><small>© 2026 FamOS. All rights reserved.</small></footer>
+    <footer className="legal-footer"><p>Developed by the team at Astronaut Digital<br/>Part of Astronaut Ventures</p><small>© 2026 FamOS. All rights reserved.</small></footer>
   </div>;
 }

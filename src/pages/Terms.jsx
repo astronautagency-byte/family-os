@@ -1,4 +1,4 @@
-import { ArrowLeft, ExternalLink, FileText } from "lucide-react";
+import { ArrowLeft, FileText } from "lucide-react";
 
 const go = (route) => { window.location.hash = route; };
 
@@ -25,10 +25,10 @@ export default function Terms({ signedIn = false }) {
       <section><h2>Changes to FamOS or these terms</h2><p>FamOS will evolve. We may add, modify, suspend, or discontinue features, plans, prices, or add-ons. If we make material changes to these terms, we will update this page and may provide additional notice in the app or by email.</p></section>
       <section><h2>Termination</h2><p>We may suspend or terminate access if you violate these terms, create risk for FamOS or other users, fail to pay charges when due, or use the service unlawfully. You may stop using FamOS at any time and may request account deletion where supported.</p></section>
       <section><h2>Disclaimers and limitation of liability</h2><p>FamOS is provided on an “as is” and “as available” basis. We do not guarantee uninterrupted or error-free operation. To the fullest extent permitted by law, FamOS and its developers are not liable for indirect, incidental, special, consequential, or punitive damages, or for lost data, profits, goodwill, or household disruptions arising from use of the service.</p></section>
-      <section><h2>Contact</h2><p>For terms, billing, or subscription questions, contact the development team through <a href="https://getastronaut.io" target="_blank" rel="noreferrer">Astronaut Digital <ExternalLink/></a>.</p></section>
+      <section><h2>Contact</h2><p>For terms, billing, or subscription questions, contact the development team at Astronaut Digital, part of Astronaut Ventures.</p></section>
 
       <aside className="legal-disclaimer"><h2>Copyright and product disclaimer</h2><p>© 2026 FamOS. All rights reserved. FamOS, its original interface, branding, copy, and associated assets are protected by applicable intellectual-property laws. Third-party names, trademarks, services, and content remain the property of their respective owners.</p><p>These terms are provided for product launch readiness and should be reviewed by qualified counsel before relying on them for legal compliance.</p></aside>
     </main>
-    <footer className="legal-footer"><p>Developed by the team at <a href="https://getastronaut.io" target="_blank" rel="noreferrer">Astronaut Digital</a><br/>Part of Astronaut Ventures</p><small>© 2026 FamOS. All rights reserved.</small></footer>
+    <footer className="legal-footer"><p>Developed by the team at Astronaut Digital<br/>Part of Astronaut Ventures</p><small>© 2026 FamOS. All rights reserved.</small></footer>
   </div>;
 }
