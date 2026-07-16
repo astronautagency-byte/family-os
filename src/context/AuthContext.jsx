@@ -20,6 +20,16 @@ async function getFunctionErrorMessage(functionError) {
   return functionError?.message || "Could not reach the invitation email service.";
 }
 
+function isMissingRpc(error) {
+  return error?.code === "42883" || /could not find the function|schema cache/i.test(error?.message || "");
+}
+
+async function reconcileExistingHouseholdInvitations(householdId) {
+  if (!supabase || !householdId) return;
+  const { error } = await supabase.rpc("reconcile_existing_household_invitations", { target_household: householdId });
+  if (error && !isMissingRpc(error)) console.warn("Could not reconcile existing household invitations.", error);
+}
+
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -44,12 +54,27 @@ export function AuthProvider({ children }) {
     setLoading(true);
     setError(null);
     try {
-      const [{ data: profileData, error: profileError }, { data: membership, error: membershipError }] = await Promise.all([
+      const [{ data: profileData, error: profileError }, { data: membershipData, error: membershipError }] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", nextSession.user.id).single(),
         supabase.from("household_members").select("household_id, role").eq("user_id", nextSession.user.id).limit(1).maybeSingle(),
       ]);
       if (profileError) throw profileError;
       if (membershipError) throw membershipError;
+      let membership = membershipData;
+      if (!membership) {
+        const { data: acceptedHouseholdId, error: claimError } = await supabase.rpc("accept_matching_household_invitation");
+        if (claimError && !isMissingRpc(claimError)) throw claimError;
+        if (acceptedHouseholdId) {
+          const { data: claimedMembership, error: claimedMembershipError } = await supabase
+            .from("household_members")
+            .select("household_id, role")
+            .eq("user_id", nextSession.user.id)
+            .limit(1)
+            .maybeSingle();
+          if (claimedMembershipError) throw claimedMembershipError;
+          membership = claimedMembership;
+        }
+      }
       let householdData = null;
       if (membership?.household_id) {
         const { data, error: householdError } = await supabase.from("households").select("id, name").eq("id", membership.household_id).single();
@@ -214,6 +239,7 @@ export function AuthProvider({ children }) {
       body: { email: normalizedEmail, householdId: household.id, redirectTo: window.location.origin },
     });
     if (!inviteError) {
+      await reconcileExistingHouseholdInvitations(household.id);
       await refreshAccount(session);
       return { sent: true, message: "Invitation email sent." };
     }
@@ -260,6 +286,7 @@ export function AuthProvider({ children }) {
       throw new Error(emailServiceMessage);
     }
 
+    await reconcileExistingHouseholdInvitations(household.id);
     await refreshAccount(session);
     return {
       sent: false,

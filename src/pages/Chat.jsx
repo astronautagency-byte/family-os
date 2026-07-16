@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { LockKeyhole, Send } from "lucide-react";
+import { LockKeyhole, Send, UsersRound } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, colorVar } from "../components/ui";
@@ -17,28 +17,29 @@ export default function Chat() {
   const [sending, setSending] = useState(false);
   const currentUserId = user?.id || members[0]?.id;
   const chatMembers = members.filter((member) => member.id !== currentUserId);
-  const [activeMemberId, setActiveMemberId] = useState(chatMembers[0]?.id || null);
+  const [activeThread, setActiveThread] = useState("household");
   const endRef = useRef(null);
 
   useEffect(() => {
-    if (!chatMembers.some((member) => member.id === activeMemberId)) setActiveMemberId(chatMembers[0]?.id || null);
-  }, [members, activeMemberId]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (activeThread !== "household" && !chatMembers.some((member) => member.id === activeThread)) {
+      setActiveThread("household");
+    }
+  }, [members, activeThread]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const activeMember = memberById[activeMemberId];
+  const activeMember = activeThread === "household" ? null : memberById[activeThread];
   const threadMessages = messages.filter((message) => {
-    const direct = (message.senderId === currentUserId && message.recipientId === activeMemberId)
-      || (message.senderId === activeMemberId && message.recipientId === currentUserId);
-    const legacy = !message.recipientId && (message.senderId === currentUserId || message.senderId === activeMemberId);
-    return direct || legacy;
+    if (activeThread === "household") return !message.recipientId;
+    return (message.senderId === currentUserId && message.recipientId === activeThread)
+      || (message.senderId === activeThread && message.recipientId === currentUserId);
   });
 
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), [threadMessages.length, activeMemberId]);
+  useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), [threadMessages.length, activeThread]);
 
   const submit = async (event) => {
     event.preventDefault();
-    if (!text.trim() || !currentUserId || !activeMemberId || sending) return;
+    if (!text.trim() || !currentUserId || sending) return;
     setSending(true); setSendError("");
-    try { await sendMessage({ text: text.trim(), recipientId: activeMemberId, senderId: currentUserId }); setText(""); }
+    try { await sendMessage({ text: text.trim(), recipientId: activeThread === "household" ? null : activeThread, senderId: currentUserId }); setText(""); }
     catch (e) { setSendError(e.message || "Message could not be sent."); }
     finally { setSending(false); }
   };
@@ -48,15 +49,16 @@ export default function Chat() {
       <PageHeader eyebrow="Private conversations" title="Family chat" illustration="chat" />
 
       <div className="px-5 mt-1 mb-2 flex gap-2 overflow-x-auto pb-1">
+        <button onClick={() => { setActiveThread("household"); setSendError(""); }} className="shrink-0 flex items-center gap-2 rounded-full border pl-2 pr-3 py-1.5 transition-colors" style={{ borderColor: activeThread === "household" ? "var(--color-accent)" : "var(--color-border)", backgroundColor: activeThread === "household" ? "var(--color-accent-soft)" : "var(--color-surface)", color: activeThread === "household" ? "var(--color-accent-strong)" : "var(--color-ink-soft)" }}><span className="w-7 h-7 rounded-full bg-[var(--pastel-mint)] grid place-items-center"><UsersRound size={14} /></span><span className="text-[12.5px] font-semibold">Everyone</span></button>
         {chatMembers.map((member) => {
-          const active = member.id === activeMemberId;
-          return <button key={member.id} onClick={() => { setActiveMemberId(member.id); setSendError(""); }} className="shrink-0 flex items-center gap-2 rounded-full border pl-1.5 pr-3 py-1.5 transition-colors" style={{ borderColor: active ? "var(--color-accent)" : "var(--color-border)", backgroundColor: active ? "var(--color-accent-soft)" : "var(--color-surface)", color: active ? "var(--color-accent-strong)" : "var(--color-ink-soft)" }}><Avatar member={member} size="sm" /><span className="text-[12.5px] font-semibold">{member.name}</span></button>;
+          const active = member.id === activeThread;
+          return <button key={member.id} onClick={() => { setActiveThread(member.id); setSendError(""); }} className="shrink-0 flex items-center gap-2 rounded-full border pl-1.5 pr-3 py-1.5 transition-colors" style={{ borderColor: active ? "var(--color-accent)" : "var(--color-border)", backgroundColor: active ? "var(--color-accent-soft)" : "var(--color-surface)", color: active ? "var(--color-accent-strong)" : "var(--color-ink-soft)" }}><Avatar member={member} size="sm" /><span className="text-[12.5px] font-semibold">{member.name}</span></button>;
         })}
       </div>
 
       <div className="px-5 mb-2 flex items-center gap-2">
         <LockKeyhole size={12} color="var(--color-ink-faint)" />
-        <p className="text-[11.5px] text-[var(--color-ink-faint)]">{activeMember ? `Private chat with ${activeMember.name}` : "Add another family member to start chatting"} · synced live</p>
+        <p className="text-[11.5px] text-[var(--color-ink-faint)]">{activeThread === "household" ? "Household chat for everyone in your home" : activeMember ? `Private chat with ${activeMember.name}` : "Add another family member to start chatting"} · synced live</p>
       </div>
 
       <div className="px-5 py-3 flex-1 overflow-y-auto space-y-3">
@@ -85,7 +87,7 @@ export default function Chat() {
             </div>
           );
         })}
-        {activeMember && threadMessages.length === 0 && <div className="h-full min-h-40 flex flex-col items-center justify-center text-center px-8"><Avatar member={activeMember} size="lg" /><p className="text-[14px] font-medium mt-3">Start a conversation with {activeMember.name}</p><p className="text-[12px] text-[var(--color-ink-faint)] mt-1">Messages stay private to your household.</p></div>}
+        {threadMessages.length === 0 && <div className="h-full min-h-40 flex flex-col items-center justify-center text-center px-8">{activeMember ? <Avatar member={activeMember} size="lg" /> : <span className="w-14 h-14 rounded-full bg-[var(--pastel-mint)] grid place-items-center text-[var(--color-ink)]"><UsersRound size={24} /></span>}<p className="text-[14px] font-medium mt-3">{activeMember ? `Start a conversation with ${activeMember.name}` : "Start the household chat"}</p><p className="text-[12px] text-[var(--color-ink-faint)] mt-1">Messages stay inside your shared home space.</p></div>}
         <div ref={endRef} />
       </div>
 
@@ -96,13 +98,13 @@ export default function Chat() {
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder={activeMember ? `Message ${activeMember.name}` : "Select a family member"}
-          disabled={!activeMember}
+          placeholder={activeThread === "household" ? "Message everyone" : activeMember ? `Message ${activeMember.name}` : "Select a family member"}
+          disabled={activeThread !== "household" && !activeMember}
           className="min-w-0 flex-1 rounded-full bg-[var(--color-surface-sunken)] px-4 py-2.5 text-[14px] outline-none placeholder:text-[var(--color-ink-faint)]"
         />
         <button
           type="submit"
-          disabled={!text.trim() || !activeMember || sending}
+          disabled={!text.trim() || (activeThread !== "household" && !activeMember) || sending}
           className="w-10 h-10 rounded-full flex items-center justify-center disabled:opacity-35"
           style={{ backgroundColor: colorVar(memberById[currentUserId]?.color) }}
           aria-label="Send message"

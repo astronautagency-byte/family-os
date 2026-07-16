@@ -3,8 +3,8 @@ import PageSpotIllustration from "./PageSpotIllustration";
 export default function PageHeader({ eyebrow, title, titleIcon, subtitle, action, illustration }) {
   return (
     <header className="page-header px-5 pb-4 safe-top">
-      <div className="page-header-content flex items-start justify-between gap-3">
-        <div>
+      <div className="page-header-content flex items-center justify-between gap-3">
+        <div className="min-w-0">
           {eyebrow && (
             <p className="page-eyebrow">{eyebrow}</p>
           )}

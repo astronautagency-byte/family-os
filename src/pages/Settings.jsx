@@ -216,6 +216,10 @@ export default function Settings() {
 
   const loadPendingInvites = async () => {
     if (!configured || !household?.id || !supabase) return;
+    const { error: reconcileError } = await supabase.rpc("reconcile_existing_household_invitations", { target_household: household.id });
+    if (reconcileError && reconcileError.code !== "42883" && !/could not find the function|schema cache/i.test(reconcileError.message || "")) {
+      console.warn("Could not reconcile pending invitations.", reconcileError);
+    }
     const { data } = await supabase.from("household_invitations").select("id,email,expires_at").eq("household_id", household.id).is("accepted_at", null).gt("expires_at", new Date().toISOString()).order("created_at");
     setPendingInvites(data || []);
   };
