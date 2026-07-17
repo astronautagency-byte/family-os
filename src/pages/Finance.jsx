@@ -218,7 +218,7 @@ export default function Finance() {
 
   return (
     <div className="pb-24">
-      <PageHeader eyebrow={range.label} title="Finance" illustration="finance" subtitle={`Your household spending this ${financePeriod === "monthly" ? "month" : "week"}.`} />
+      <PageHeader eyebrow={range.label} title="Money without the mystery." illustration="finance" subtitle={`A calmer look at real dollars this ${financePeriod === "monthly" ? "month" : "week"}.`} />
       <div className="px-5 mt-2 space-y-5">
         <div className="grid grid-cols-2 gap-1 rounded-xl bg-[var(--color-surface-sunken)] border border-[var(--color-border)] p-1">
           {["weekly", "monthly"].map((period) => (
@@ -240,7 +240,7 @@ export default function Finance() {
               <div className="flex justify-between mt-2 text-[12px]"><span className={remaining < 0 ? "text-[var(--color-warn)] font-medium" : "text-[var(--color-good)] font-medium"}>{remaining < 0 ? `${money.format(Math.abs(remaining))} over budget` : `${money.format(remaining)} remaining`}</span><span className="text-[var(--color-ink-faint)]">{money.format(activeBudget)} budget</span></div>
             </>
           ) : (
-            <button onClick={() => { setBudgetDraft(""); setSettingBudget(true); }} className="w-full mt-4 rounded-xl bg-[var(--color-accent-soft)] text-[var(--color-accent-strong)] py-2.5 text-[12.5px] font-semibold">Set a {financePeriod} budget</button>
+            <button onClick={() => { setBudgetDraft(""); setSettingBudget(true); }} className="w-full mt-4 rounded-xl bg-[var(--color-accent-soft)] text-[var(--color-accent-strong)] py-2.5 text-[12.5px] font-semibold">Set a spending guardrail</button>
           )}
         </Card>
 
@@ -249,7 +249,7 @@ export default function Finance() {
             <span className="w-11 h-11 rounded-2xl bg-[var(--color-accent-soft)] text-[var(--color-accent)] flex items-center justify-center"><Camera size={19} /></span>
             <span className="flex-1">
               <span className="block font-[var(--font-display)] text-[15px] font-semibold">Scan a receipt</span>
-              <span className="block text-[12px] text-[var(--color-ink-faint)]">Upload or photograph a receipt, then confirm the extracted total and category.</span>
+              <span className="block text-[12px] text-[var(--color-ink-faint)]">Snap it, skim it, confirm the total. No spreadsheet cosplay.</span>
             </span>
             <Sparkles size={17} color="var(--color-accent)" />
           </span>
@@ -273,7 +273,7 @@ export default function Finance() {
             <span className="text-[12px] text-[var(--color-ink-faint)]">{periodExpenses.length} logged</span>
           </div>
           <Card className="p-1">
-            {periodExpenses.length === 0 ? <EmptyState icon={<WalletCards size={25} />} title={`No expenses this ${financePeriod === "monthly" ? "month" : "week"}`} subtitle="Log a purchase or scan a receipt to start tracking your budget." /> : (
+            {periodExpenses.length === 0 ? <EmptyState icon={<WalletCards size={25} />} title={`No expenses this ${financePeriod === "monthly" ? "month" : "week"}`} subtitle="Connect real spending later, or log the occasional purchase for now." /> : (
               <ul>{periodExpenses.map((expense) => {
                 const category = CATEGORIES.find((item) => item.id === expense.category) || CATEGORIES.at(-1);
                 return (
@@ -295,23 +295,23 @@ export default function Finance() {
 
       <button onClick={() => { resetDraft(); setAdding(true); }} className="fixed bottom-24 right-5 w-[52px] h-[52px] rounded-full bg-[var(--color-accent)] shadow-lg flex items-center justify-center active:scale-95 transition-transform" aria-label="Add expense"><Plus color="white" size={24} /></button>
 
-      <Modal open={adding} onClose={() => { setAdding(false); setError(""); }} title="Log expense">
+      <Modal open={adding} onClose={() => { setAdding(false); setError(""); }} title="Add a spend">
         <ExpenseFields draft={draft} setDraft={setDraft} />
         {error && <p className="text-[12px] text-[var(--color-warn)] mb-3">{error}</p>}
-        <PrimaryButton onClick={submitExpense} disabled={busy || !canSubmit}>{busy ? "Saving…" : "Add expense"}</PrimaryButton>
+        <PrimaryButton onClick={submitExpense} disabled={busy || !canSubmit}>{busy ? "Saving…" : "Add it"}</PrimaryButton>
       </Modal>
 
       <Modal open={receiptOpen} onClose={() => { setReceiptOpen(false); setError(""); }} title="Scan receipt">
         <label className="block rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface-sunken)] p-4 text-center mb-4 cursor-pointer">
           {receipt.previewUrl ? <img src={receipt.previewUrl} alt="Receipt preview" className="max-h-48 w-full object-contain rounded-xl bg-white mb-3" /> : <span className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-white text-[var(--color-accent)] flex items-center justify-center"><Upload size={22} /></span>}
           <span className="block text-[13px] font-semibold text-[var(--color-ink)]">{receipt.file ? receipt.file.name : "Upload or take a receipt photo"}</span>
-          <span className="block text-[11.5px] text-[var(--color-ink-faint)] mt-1">On iPhone, choose Camera to capture the receipt in-store.</span>
+          <span className="block text-[11.5px] text-[var(--color-ink-faint)] mt-1">On iPhone, choose Camera and let the tiny robot squint at it.</span>
           <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={(event) => handleReceiptFile(event.target.files?.[0])} />
         </label>
 
         <label className="block mb-4">
           <span className="block text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-2">Receipt text (optional)</span>
-          <textarea value={receipt.text} onChange={(event) => setReceipt((current) => ({ ...current, text: event.target.value }))} placeholder="Paste receipt text here if you have it. This helps before server OCR is connected." className="w-full min-h-24 rounded-2xl border border-[var(--color-border)] bg-[var(--color-field)] px-4 py-3 text-[14px] outline-none focus:border-[var(--color-accent)]" />
+          <textarea value={receipt.text} onChange={(event) => setReceipt((current) => ({ ...current, text: event.target.value }))} placeholder="Paste receipt text here if you have it." className="w-full min-h-24 rounded-2xl border border-[var(--color-border)] bg-[var(--color-field)] px-4 py-3 text-[14px] outline-none focus:border-[var(--color-accent)]" />
         </label>
 
         <button onClick={analyzeReceipt} disabled={receiptBusy || (!receipt.file && !receipt.text.trim())} className="w-full rounded-2xl border border-[var(--color-border)] bg-white px-4 py-3 text-[13px] font-semibold text-[var(--color-accent-strong)] disabled:opacity-45 mb-4">

@@ -1,4 +1,4 @@
-import { CalendarDays, CheckSquare, CookingPot, Home, MessageCircle, ShoppingCart, Sparkles, WalletCards } from "lucide-react";
+import { CalendarDays, CheckSquare, CookingPot, Home, MessageCircle, ShoppingCart, Sparkles } from "lucide-react";
 
 const TABS = [
   { id: "today", label: "Today", icon: Home },
@@ -6,19 +6,18 @@ const TABS = [
   { id: "meals", label: "Meals", icon: CookingPot },
   { id: "tasks", label: "Tasks", icon: CheckSquare },
   { id: "groceries", label: "Groceries", icon: ShoppingCart },
-  { id: "finance", label: "Finance", icon: WalletCards },
   { id: "chat", label: "Chat", icon: MessageCircle },
   { id: "famai", label: "Fam AI", icon: Sparkles },
 ];
 
 export default function BottomNav({ active, onChange }) {
   return (
-    <nav className="primary-nav" aria-label="FamilyOS navigation">
+    <nav className="primary-nav" aria-label="FamOS navigation">
       <div className="nav-brand">
         <img src="/brand/famos-icon-transparent.png" alt="" />
         <div>
           <strong>FamOS</strong>
-          <span>Family command center</span>
+          <span>Your home base</span>
         </div>
       </div>
       <div className="nav-items">
@@ -42,7 +41,7 @@ export default function BottomNav({ active, onChange }) {
           );
         })}
       </div>
-      <p className="nav-foot">Families run better on Fam OS.</p>
+      <p className="nav-foot">Families run better on FamOS.</p>
     </nav>
   );
 }

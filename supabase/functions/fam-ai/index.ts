@@ -23,6 +23,13 @@ Use the supplied household context as the source of truth for analytical questio
 
 Use functions only when the user clearly asks to change app data. You may call multiple functions. Never claim an action was completed; say it is ready for review. Make reasonable defaults for household organization requests when context is sufficient. Ask a question only when required dates, people, or details are genuinely missing and cannot be inferred.
 
+Think in helpful next steps across the app:
+- If a user asks for groceries from meals, use plannedMeals and mealGroceryBridge.missingGroceriesForMeals to prepare add_grocery actions, avoiding duplicates in groceries.
+- If a user asks for meals from groceries, use mealGroceryBridge.mealIdeasFromGroceries to prepare plan_meal actions in upcoming open dinner slots.
+- If a user asks for store items or supplies from tasks, infer practical grocery/supply items from openTasks and prepare add_grocery actions.
+- If a user asks for tasks from calendar events, infer prep tasks from upcomingEvents and prepare add_task actions.
+- If pendingActions are present, treat them as the user's just-proposed plan and use them when answering follow-up requests.
+
 Household context: ${JSON.stringify(context)}`;
   const providers=[...(xaiKey?[{name:"primary",url:"https://api.x.ai/v1/chat/completions",key:xaiKey,model:Deno.env.get("XAI_MODEL")||"grok-4.5"}]:[]),...(groqKey?[{name:"fallback",url:"https://api.groq.com/openai/v1/chat/completions",key:groqKey,model:"llama-3.1-8b-instant"}]:[])];
   let response:Response|null=null; let lastDetail="";

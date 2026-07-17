@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { AlertCircle, Bell, CalendarDays, CheckCircle2, ExternalLink, Eye, EyeOff, ImagePlus, Info, Link2, Plus, RefreshCw, RotateCcw, Trash2, Upload } from "lucide-react";
+import { AlertCircle, Bell, Bot, CalendarDays, CheckCircle2, ExternalLink, Eye, EyeOff, ImagePlus, Info, Link2, Plus, RefreshCw, RotateCcw, ShieldCheck, Trash2, Upload, Users } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, Card, Modal, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import { FAMILY_COLORS } from "../data/mockData";
 import { AVATAR_PRESETS } from "../data/avatarLibrary";
+import { PRICING_PLAN, formatMoney } from "../data/pricingPlan";
 import { supabase } from "../lib/supabase";
 
 function initialsFrom(name) {
@@ -93,7 +94,7 @@ function GoogleCalendarCard() {
           <p className="text-[11.5px] text-[var(--color-ink-faint)] leading-relaxed -mt-2">
             One-time setup: create a free OAuth Client ID in Google Cloud Console with the Calendar API enabled,
             using this app's URL as an authorized origin. Full steps are in the README. Events you explicitly add
-            to Google Calendar from FamilyOS can be written back to any selected calendar where you have write access.
+            to Google Calendar from FamOS can be written back to any selected calendar where you have write access.
           </p>
         </div>
       )}
@@ -229,6 +230,7 @@ export default function Settings() {
   const [color, setColor] = useState(FAMILY_COLORS[0].id);
   const [avatarUrl, setAvatarUrl] = useState("");
   const [avatarStatus, setAvatarStatus] = useState("");
+  const [savingMember, setSavingMember] = useState(false);
   const [confirmingReset, setConfirmingReset] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteStatus, setInviteStatus] = useState("");
@@ -259,7 +261,7 @@ export default function Settings() {
     setInviteActionStatus("Checking for signed-up invitees…");
     const { error } = await supabase.rpc("reconcile_existing_household_invitations", { target_household: household.id });
     if (error) {
-      setInviteActionStatus("Could not auto-join invitees because the live Supabase database is missing the invite reconciliation function. Run supabase/migrations/202607160002_invitation_reconciliation.sql in the Supabase SQL Editor, then click Check again.");
+      setInviteActionStatus("FamOS can’t auto-join invitees until the live Supabase database has the invite reconciliation function. Run supabase/migrations/202607160002_invitation_reconciliation.sql in the Supabase SQL Editor, then click Check again.");
       console.warn("Could not reconcile invitations.", error);
       await loadPendingInvites();
       return;
@@ -300,13 +302,18 @@ export default function Settings() {
     setEditingMember(m);
   };
 
-  const save = () => {
+  const save = async () => {
     if (!name.trim()) return;
+    setSavingMember(true);
     if (editingMember === "new") {
       addMember({ name: name.trim(), role, color, initials: initialsFrom(name), avatarUrl });
     } else {
-      updateMember(editingMember.id, { name: name.trim(), role, color, initials: initialsFrom(name), avatarUrl });
+      const result = await updateMember(editingMember.id, { name: name.trim(), role, color, initials: initialsFrom(name), avatarUrl });
+      if (result?.error) {
+        setAvatarStatus("Saved locally, but Supabase did not accept the profile update. The avatar may reset after refresh until the profile schema/policy is updated.");
+      }
     }
+    setSavingMember(false);
     setEditingMember(null);
   };
 
@@ -344,10 +351,13 @@ export default function Settings() {
       setTestingNotification(false);
     }
   };
+  const includedMembers = PRICING_PLAN.basePlan.membersIncluded;
+  const extraMembers = Math.max(0, members.length - includedMembers);
+  const estimatedMonthlyPlan = PRICING_PLAN.basePlan.price.monthly + extraMembers * PRICING_PLAN.basePlan.additionalMemberPrice.monthly;
 
   return (
     <div className="pb-24 reference-settings">
-      <PageHeader eyebrow="Household" title="Settings" illustration="settings" />
+      <PageHeader eyebrow="Household" title="Settings" illustration="settings" subtitle="Tweak the home base without making it a whole thing." />
 
       <div className="px-5 space-y-6 mt-2">
         <section>
@@ -383,7 +393,7 @@ export default function Settings() {
               {pendingInvites.map((invite) => (
                 <li key={invite.id} className="family-roster-pending">
                   <div className="family-invite-avatar">{invite.email.slice(0, 1).toUpperCase()}</div>
-                  <div className="min-w-0 flex-1"><p>{invite.email}</p><span>Invitation pending</span></div>
+                  <div className="min-w-0 flex-1"><p>{invite.email}</p><span>Still waiting for them to join</span></div>
                   <div className="pending-invite-actions">
                     <span className="pending-pill">Pending</span>
                     <button onClick={reconcileInvites}><RefreshCw size={12} /> Check</button>
@@ -393,7 +403,7 @@ export default function Settings() {
               ))}
               {members.length === 0 && (
                 <li className="px-3 py-6 text-center text-[13.5px] text-[var(--color-ink-soft)]">
-                  No family members yet — add your first above.
+                  No family members yet — invite your first person above.
                 </li>
               )}
             </ul>
@@ -402,10 +412,50 @@ export default function Settings() {
           {configured && (
             <Card className="p-4 mt-3">
               <TextField type="email" label="Invite a family member" placeholder="family@example.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
-              <PrimaryButton disabled={!inviteEmail.trim()} onClick={async () => { try { const result = await invitePartner(inviteEmail); setInviteStatus(result?.message || "Invitation email sent."); setInviteEmail(""); await refreshAccount(session); await loadPendingInvites(); } catch (e) { setInviteStatus(e.message); } }}>Send invitation</PrimaryButton>
+              <PrimaryButton disabled={!inviteEmail.trim()} onClick={async () => { try { const result = await invitePartner(inviteEmail); setInviteStatus(result?.message || "Invite sent. Now we wait politely."); setInviteEmail(""); await refreshAccount(session); await loadPendingInvites(); } catch (e) { setInviteStatus(e.message); } }}>Send invite</PrimaryButton>
               {inviteStatus && <p className="text-[12px] text-[var(--color-ink-soft)] mt-2">{inviteStatus}</p>}
             </Card>
           )}
+        </section>
+
+        <section>
+          <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">Plan & billing</h2>
+          <Card className="p-4">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0">
+                <Users size={18} color="var(--color-accent)" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-[14.5px] text-[var(--color-ink)]">FamOS family plan</p>
+                <p className="text-[12.5px] text-[var(--color-ink-soft)] mt-0.5">
+                  {formatMoney(PRICING_PLAN.basePlan.price.monthly)}/month or {formatMoney(PRICING_PLAN.basePlan.price.yearly)}/year · {includedMembers} members included
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="font-[var(--font-display)] text-[22px] font-bold text-[var(--color-ink)]">{formatMoney(estimatedMonthlyPlan)}</p>
+                <p className="text-[11px] text-[var(--color-ink-faint)]">est. / month</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-2 text-[12.5px] text-[var(--color-ink-soft)]">
+              <div className="flex items-center justify-between gap-3 rounded-xl bg-[var(--color-surface-sunken)] px-3 py-2">
+                <span>Current household members</span>
+                <strong className="text-[var(--color-ink)]">{members.length}</strong>
+              </div>
+              <div className="flex items-center justify-between gap-3 rounded-xl bg-[var(--color-surface-sunken)] px-3 py-2">
+                <span>Additional members</span>
+                <strong className="text-[var(--color-ink)]">{extraMembers} × {formatMoney(PRICING_PLAN.basePlan.additionalMemberPrice.monthly)}/mo</strong>
+              </div>
+              <div className="flex items-center justify-between gap-3 rounded-xl bg-[var(--color-surface-sunken)] px-3 py-2">
+                <span className="inline-flex items-center gap-1.5"><Bot size={14} /> Fam AI add-on</span>
+                <strong className="text-[var(--color-ink)]">{formatMoney(PRICING_PLAN.addOns[0].price.monthly)}/mo · {PRICING_PLAN.addOns[0].queryCapPerMonth} queries</strong>
+              </div>
+              <div className="flex items-start gap-2 rounded-xl bg-[var(--color-good-soft)] px-3 py-2 text-[var(--color-good)]">
+                <ShieldCheck size={14} className="mt-0.5 shrink-0" />
+                <span>{PRICING_PLAN.trial.days}-day trial includes the full base plan and Fam AI turned on. Card required.</span>
+              </div>
+            </div>
+            <SecondaryButton onClick={() => { window.location.hash = "pricing"; }} className="mt-3">View pricing page</SecondaryButton>
+          </Card>
         </section>
 
         <section>
@@ -417,12 +467,12 @@ export default function Settings() {
         <section>
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">Notifications</h2>
           <Card className="p-4">
-            <div className="flex items-start gap-3 mb-4"><div className="w-10 h-10 rounded-xl bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0"><Bell size={18} color="var(--color-accent)" /></div><div><p className="font-medium text-[14.5px]">Task assignments</p><p className="text-[12.5px] text-[var(--color-ink-soft)] mt-0.5">Get browser notifications while FamOS is open. True iPhone push requires installing FamOS to the Home Screen and adding server push support.</p></div></div>
+            <div className="flex items-start gap-3 mb-4"><div className="w-10 h-10 rounded-xl bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0"><Bell size={18} color="var(--color-accent)" /></div><div><p className="font-medium text-[14.5px]">Task nudges</p><p className="text-[12.5px] text-[var(--color-ink-soft)] mt-0.5">Get browser notifications while FamOS is open. True iPhone push needs FamOS installed to the Home Screen plus the next server push phase.</p></div></div>
             <PrimaryButton onClick={requestNotifications} disabled={notificationPermission === "granted" || notificationPermission === "unsupported"}>{notificationPermission === "granted" ? "Browser notifications allowed" : notificationPermission === "denied" ? "Blocked in browser settings" : notificationPermission === "unsupported" ? "Not supported on this device" : "Enable browser notifications"}</PrimaryButton>
             {notificationPermission === "granted" && <SecondaryButton className="mt-2" onClick={testNotifications} disabled={testingNotification}>{testingNotification ? "Sending test…" : "Send a test notification"}</SecondaryButton>}
             {notificationTestStatus && <div className="notification-test-status"><CheckCircle2 size={14} /><p>{notificationTestStatus}</p></div>}
-            <div className="notification-help">On iPhone, web notifications only appear reliably for installed web apps. Add FamOS to your Home Screen from Safari, open it from the icon, then enable notifications. Background task alerts will need the next backend push-notification phase.</div>
-            {notificationPermission === "denied" && <p className="text-[11.5px] text-[var(--color-warn)] mt-2">Allow notifications for this site in your browser or device settings, then reload FamilyOS.</p>}
+            <div className="notification-help">On iPhone, web notifications behave best after FamOS is installed to the Home Screen. Safari is fussy; we don’t make the rules.</div>
+            {notificationPermission === "denied" && <p className="text-[11.5px] text-[var(--color-warn)] mt-2">Allow notifications for this site in your browser or device settings, then reload FamOS.</p>}
           </Card>
         </section>
 
@@ -432,7 +482,7 @@ export default function Settings() {
             <div className="flex items-start gap-3 mb-3">
               <Info size={17} className="mt-0.5 shrink-0" color="var(--color-ink-faint)" />
               <p className="text-[13px] text-[var(--color-ink-soft)] leading-relaxed">
-                {configured ? "Your household data is encrypted in transit and stored in Supabase. Row-level security limits access to members of your household." : "FamOS is in local demo mode. Add Supabase environment variables to enable private household sync."}
+                {configured ? "Your household data is encrypted in transit and stored in Supabase. Row-level security limits access to members of your household." : "FamOS is in local demo mode. Add Supabase environment variables to turn on private household sync."}
               </p>
             </div>
             {!configured && <SecondaryButton onClick={() => setConfirmingReset(true)} className="flex items-center justify-center gap-2">
@@ -492,7 +542,7 @@ export default function Settings() {
 
         <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-2">Avatar</p>
         <div className="avatar-editor">
-          <div className="avatar-editor-preview" style={{ backgroundColor: FAMILY_COLORS.find((item) => item.id === color)?.value || "var(--color-accent)" }}>
+          <div className="avatar-editor-preview" style={{ backgroundColor: avatarUrl ? "#fff" : FAMILY_COLORS.find((item) => item.id === color)?.value || "var(--color-accent)" }}>
             {avatarUrl ? <img src={avatarUrl} alt="" /> : <span>{initialsFrom(name || "Family")}</span>}
           </div>
           <div className="avatar-editor-actions">
@@ -566,8 +616,8 @@ export default function Settings() {
               Remove
             </SecondaryButton>
           )}
-          <PrimaryButton onClick={save} disabled={!name.trim()}>
-            Save
+          <PrimaryButton onClick={save} disabled={!name.trim() || savingMember}>
+            {savingMember ? "Saving…" : "Save"}
           </PrimaryButton>
         </div>
       </Modal>

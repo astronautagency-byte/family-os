@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Baby, Bone, Carrot, Coffee, Cookie, Croissant, CupSoda, Drumstick, FlaskConical, Globe2, GripVertical, HeartPulse, Maximize2, Milk, Package, Pencil, Plus, Sandwich, ScanLine, ScrollText, Snowflake, Soup, SprayCan, Star, Trash2, Wheat, Wine, X } from "lucide-react";
+import { Baby, Bone, Carrot, Clipboard, Coffee, Cookie, Croissant, CupSoda, Download, Drumstick, ExternalLink, FlaskConical, Globe2, GripVertical, HeartPulse, Maximize2, Milk, Package, Pencil, Plus, Sandwich, ScanLine, ScrollText, Share2, ShoppingBag, Snowflake, Soup, SprayCan, Star, Store, Trash2, Truck, Wheat, Wine, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { Card, Checkbox, EmptyState, Modal, PrimaryButton, SecondaryButton, Stepper, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
@@ -7,6 +7,7 @@ import { GROCERY_CATEGORIES } from "../data/mockData";
 
 const emptyDraft = { name: "", category: GROCERY_CATEGORIES[0], quantity: 1, unit: "" };
 const STAPLES_KEY = "family-os:grocery-staples:v1";
+const PRODUCT_LOOKUP_ENDPOINT = "https://world.openfoodfacts.org/api/v2/product";
 const DEFAULT_STAPLES = [
   { id: "milk", name: "Milk", category: "Dairy & Eggs", quantity: 1, unit: "" },
   { id: "eggs", name: "Eggs", category: "Dairy & Eggs", quantity: 1, unit: "dozen" },
@@ -58,6 +59,132 @@ function GroceryIcon({ category, size = 16 }) {
   return <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: background }}><Icon size={size} color={foreground} /></span>;
 }
 
+const GROCERY_DELIVERY_APPS = [
+  {
+    id: "uber",
+    name: "Uber Eats",
+    url: "https://www.ubereats.com/category/grocery",
+    logo: "/logos/grocery/ubereats.png",
+    brandColor: "#06C167",
+    brandSoft: "#EAFBF2",
+    brandBorder: "#BDEFD2",
+  },
+  {
+    id: "doordash",
+    name: "DoorDash",
+    url: "https://www.doordash.com/grocery/",
+    logo: "/logos/grocery/doordash.png",
+    brandColor: "#FF3008",
+    brandSoft: "#FFF0EC",
+    brandBorder: "#FFC8BC",
+  },
+  {
+    id: "instacart",
+    name: "Instacart",
+    url: "https://www.instacart.com/store",
+    logo: "/logos/grocery/instacart.png",
+    brandColor: "#43B02A",
+    brandSoft: "#F0FAE8",
+    brandBorder: "#CFEFBD",
+  },
+];
+
+function GroceryDeliveryLogo({ app }) {
+  return (
+    <img
+      src={app.logo}
+      alt={`${app.name} logo`}
+      className="max-h-[18px] max-w-[92px] object-contain sm:max-h-[20px] sm:max-w-[112px]"
+      loading="lazy"
+    />
+  );
+}
+
+const PRODUCT_CATEGORY_RULES = [
+  { category: "Produce", pattern: /fruit|vegetable|produce|fresh-food|fresh-vegetable|fresh-fruit|plant-based-food/i },
+  { category: "Bakery", pattern: /bread|bakery|baked-good|bun|bagel|croissant|pastry|tortilla/i },
+  { category: "Deli & Prepared Foods", pattern: /prepared|deli|ready-meal|ready-to-eat|meal/i },
+  { category: "Dairy & Eggs", pattern: /dairy|milk|cheese|yogurt|yoghurt|egg|cream|butter/i },
+  { category: "Meat & Seafood", pattern: /meat|seafood|fish|chicken|beef|pork|turkey|poultry|sausage/i },
+  { category: "Breakfast & Cereal", pattern: /breakfast|cereal|granola|oatmeal|muesli/i },
+  { category: "Canned & Jarred", pattern: /canned|jarred|preserve|pickled/i },
+  { category: "Pasta, Rice & Grains", pattern: /pasta|rice|grain|noodle|quinoa|couscous/i },
+  { category: "Condiments & Sauces", pattern: /condiment|sauce|ketchup|mustard|mayonnaise|dressing|salsa/i },
+  { category: "Spices & Baking", pattern: /spice|baking|flour|sugar|extract|yeast|baking-powder/i },
+  { category: "Snacks & Candy", pattern: /snack|candy|confectionery|chocolate|chips|crisps|cookie|cracker|biscuit/i },
+  { category: "Beverages", pattern: /beverage|drink|juice|coffee|tea|water|soda|soft-drink/i },
+  { category: "International Foods", pattern: /asian|mexican|italian|indian|international/i },
+  { category: "Frozen", pattern: /frozen/i },
+  { category: "Beer, Wine & Spirits", pattern: /beer|wine|spirit|alcohol/i },
+  { category: "Health & Personal Care", pattern: /health|personal-care|hygiene|cosmetic|supplement|vitamin/i },
+  { category: "Baby", pattern: /baby|infant|toddler/i },
+  { category: "Pet Supplies", pattern: /pet|dog|cat|animal-food/i },
+  { category: "Paper & Disposable", pattern: /paper|disposable|napkin|tissue|toilet-paper/i },
+  { category: "Household & Cleaning", pattern: /household|cleaning|detergent|laundry|dishwasher|soap/i },
+  { category: "Pantry", pattern: /pantry|grocery|shelf-stable|oil|beans|legumes|nuts|seeds/i },
+];
+
+const ITEM_NAME_CATEGORY_RULES = [
+  { category: "Produce", pattern: /\b(apple|apples|banana|bananas|berry|berries|blueberry|blueberries|strawberry|strawberries|grape|grapes|orange|oranges|lemon|lemons|lime|limes|avocado|avocados|tomato|tomatoes|lettuce|spinach|kale|broccoli|carrot|carrots|celery|pepper|peppers|onion|onions|potato|potatoes|cucumber|cucumbers|mushroom|mushrooms|cilantro|parsley|garlic|ginger)\b/i },
+  { category: "Bakery", pattern: /\b(bread|sourdough|bagel|bagels|bun|buns|roll|rolls|croissant|croissants|muffin|muffins|pita|naan|tortilla|tortillas)\b/i },
+  { category: "Deli & Prepared Foods", pattern: /\b(deli|rotisserie|prepared|ready meal|hummus|sandwich|wrap|sushi|salad kit|salad bowl)\b/i },
+  { category: "Dairy & Eggs", pattern: /\b(milk|cream|half and half|cheese|cheddar|mozzarella|parmesan|yogurt|yoghurt|greek yogurt|butter|eggs?|cottage cheese|sour cream|cream cheese|oat milk|almond milk|soy milk)\b/i },
+  { category: "Meat & Seafood", pattern: /\b(chicken|beef|steak|pork|turkey|ham|bacon|sausage|salmon|tuna|shrimp|fish|cod|ground meat|ground beef|ground turkey)\b/i },
+  { category: "Breakfast & Cereal", pattern: /\b(cereal|granola|oatmeal|oats|pancake mix|waffles|waffle|breakfast bars?)\b/i },
+  { category: "Canned & Jarred", pattern: /\b(canned|can of|jar of|tomato sauce|pickles|olives|jam|jelly|chickpeas|black beans|kidney beans|soup can)\b/i },
+  { category: "Pasta, Rice & Grains", pattern: /\b(pasta|spaghetti|penne|fusilli|macaroni|rice|quinoa|couscous|noodles|ramen|grain|grains)\b/i },
+  { category: "Condiments & Sauces", pattern: /\b(ketchup|mustard|mayo|mayonnaise|hot sauce|bbq sauce|barbecue sauce|soy sauce|salsa|dressing|vinaigrette|marinade|pesto)\b/i },
+  { category: "Spices & Baking", pattern: /\b(flour|sugar|baking soda|baking powder|yeast|vanilla|cinnamon|spice|spices|salt|pepper|chocolate chips)\b/i },
+  { category: "Snacks & Candy", pattern: /\b(chips|crisps|crackers|cookies|cookie|candy|chocolate|popcorn|pretzels|nuts|trail mix|granola bar|snack)\b/i },
+  { category: "Beverages", pattern: /\b(water|sparkling water|juice|soda|pop|coffee|tea|kombucha|sports drink|drink|beverage)\b/i },
+  { category: "International Foods", pattern: /\b(curry paste|miso|sriracha|kimchi|tahini|harissa|samosa|gnocchi|soba|udon)\b/i },
+  { category: "Frozen", pattern: /\b(frozen|ice cream|popsicles|frozen pizza|frozen peas|frozen berries)\b/i },
+  { category: "Beer, Wine & Spirits", pattern: /\b(beer|wine|vodka|gin|rum|whiskey|whisky|tequila|cider|lager|ipa)\b/i },
+  { category: "Health & Personal Care", pattern: /\b(shampoo|conditioner|toothpaste|toothbrush|deodorant|soap|body wash|vitamin|supplement|medicine|bandage)\b/i },
+  { category: "Baby", pattern: /\b(diapers|diaper|wipes|formula|baby food|pacifier|toddler)\b/i },
+  { category: "Pet Supplies", pattern: /\b(dog food|cat food|pet food|treats|litter|cat litter|poop bags)\b/i },
+  { category: "Household & Cleaning", pattern: /\b(dish soap|dishwasher|detergent|laundry|cleaner|cleaning|bleach|spray|sponges|sponge|trash bags|garbage bags)\b/i },
+  { category: "Paper & Disposable", pattern: /\b(paper towels|toilet paper|tissues|napkins|paper plates|paper cups|foil|plastic wrap|parchment)\b/i },
+  { category: "Pantry", pattern: /\b(oil|olive oil|vinegar|beans|lentils|peanut butter|almond butter|honey|maple syrup|broth|stock|flour tortillas)\b/i },
+];
+
+const normalizeBarcode = (value = "") => value.replace(/[^\d]/g, "");
+const barcodeCandidates = (code) => [...new Set([
+  code,
+  code.length === 12 ? `0${code}` : "",
+  code.length === 13 && code.startsWith("0") ? code.slice(1) : "",
+].filter(Boolean))];
+
+const firstCommaValue = (value = "") => value.split(",").map((part) => part.trim()).filter(Boolean)[0] || "";
+
+function productNameFromApi(product = {}) {
+  const productName = (product.product_name_en || product.product_name || product.generic_name_en || product.generic_name || "").trim();
+  const brand = firstCommaValue(product.brands || "");
+  if (!productName) return brand;
+  if (!brand) return productName;
+  return productName.toLowerCase().includes(brand.toLowerCase()) ? productName : `${brand} ${productName}`;
+}
+
+function categoryFromApi(product = {}) {
+  const categoryText = [
+    product.categories,
+    ...(Array.isArray(product.categories_tags) ? product.categories_tags : []),
+  ].filter(Boolean).join(" ");
+  const match = PRODUCT_CATEGORY_RULES.find((rule) => rule.pattern.test(categoryText));
+  return match?.category || "Pantry";
+}
+
+function packageSizeFromApi(product = {}) {
+  const quantity = (product.quantity || product.serving_size || "").trim();
+  return quantity.length <= 28 ? quantity : "";
+}
+
+function categoryFromItemName(name = "", fallback = GROCERY_CATEGORIES[0]) {
+  const normalized = name.trim();
+  if (!normalized) return fallback;
+  return ITEM_NAME_CATEGORY_RULES.find((rule) => rule.pattern.test(normalized))?.category || fallback;
+}
+
 export default function Groceries() {
   const { groceries, addGrocery, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries, clearGroceries, memberById } = useFamily();
   const [editingId, setEditingId] = useState(null); // null closed, "new" for add, or item id
@@ -72,6 +199,9 @@ export default function Groceries() {
   const [barcodeModal, setBarcodeModal] = useState(false);
   const [barcodeDraft, setBarcodeDraft] = useState({ ...emptyDraft, code: "" });
   const [barcodeStatus, setBarcodeStatus] = useState("");
+  const [barcodeLoading, setBarcodeLoading] = useState(false);
+  const [deliveryModal, setDeliveryModal] = useState(false);
+  const [deliveryStatus, setDeliveryStatus] = useState("");
 
   useEffect(() => { localStorage.setItem(STAPLES_KEY, JSON.stringify(staples)); }, [staples]);
 
@@ -86,6 +216,18 @@ export default function Groceries() {
   }, [groceries]);
 
   const checkedCount = groceries.filter((g) => g.checked).length;
+  const deliveryItems = useMemo(() => groceries.filter((item) => !item.checked), [groceries]);
+  const deliveryListText = useMemo(() => {
+    if (!deliveryItems.length) return "";
+    return deliveryItems.map((item) => {
+      const quantity = [item.quantity || 1, item.unit].filter(Boolean).join(" ");
+      return `• ${item.name}${quantity ? ` — ${quantity}` : ""}${item.category ? ` (${item.category})` : ""}`;
+    }).join("\n");
+  }, [deliveryItems]);
+  const deliveryShareText = useMemo(() => {
+    const header = `FamOS grocery list — ${deliveryItems.length} item${deliveryItems.length === 1 ? "" : "s"}`;
+    return deliveryListText ? `${header}\n\n${deliveryListText}` : header;
+  }, [deliveryItems.length, deliveryListText]);
   const focusItems = useMemo(
     () => [...groceries].sort((a, b) => Number(a.checked) - Number(b.checked) || a.category.localeCompare(b.category)),
     [groceries]
@@ -99,6 +241,30 @@ export default function Groceries() {
   const openEdit = (item) => {
     setDraft({ name: item.name, category: item.category, quantity: item.quantity ?? 1, unit: item.unit ?? "" });
     setEditingId(item.id);
+  };
+
+  const updateDraftName = (name) => {
+    setDraft((current) => ({
+      ...current,
+      name,
+      category: categoryFromItemName(name, current.category),
+    }));
+  };
+
+  const updateMasterName = (name) => {
+    setMasterDraft((current) => ({
+      ...current,
+      name,
+      category: categoryFromItemName(name, current.category),
+    }));
+  };
+
+  const updateBarcodeName = (name) => {
+    setBarcodeDraft((current) => ({
+      ...current,
+      name,
+      category: categoryFromItemName(name, current.category),
+    }));
   };
 
   const submit = () => {
@@ -147,12 +313,66 @@ export default function Groceries() {
   const resetBarcodeDraft = () => {
     setBarcodeDraft({ ...emptyDraft, code: "" });
     setBarcodeStatus("");
+    setBarcodeLoading(false);
+  };
+
+  const lookupBarcodeProduct = async (code) => {
+    const cleanCode = normalizeBarcode(code);
+    if (!cleanCode) {
+      setBarcodeStatus("Enter or scan a barcode first.");
+      return null;
+    }
+
+    setBarcodeLoading(true);
+    setBarcodeStatus("Looking up product details…");
+    try {
+      let data = null;
+      let resolvedCode = cleanCode;
+      for (const candidate of barcodeCandidates(cleanCode)) {
+        const url = `${PRODUCT_LOOKUP_ENDPOINT}/${encodeURIComponent(candidate)}.json?fields=code,product_name,product_name_en,generic_name,generic_name_en,brands,categories,categories_tags,quantity,serving_size`;
+        const response = await fetch(url);
+        if (!response.ok) continue;
+        const result = await response.json();
+        if (result.status === 1 && result.product) {
+          data = result;
+          resolvedCode = candidate;
+          break;
+        }
+      }
+      if (!data?.product) {
+        setBarcodeDraft((draft) => ({ ...draft, code: cleanCode }));
+        setBarcodeStatus("Barcode captured, but no product data was found. You can type the item details and save it.");
+        return null;
+      }
+
+      const product = data.product;
+      const productName = productNameFromApi(product);
+      const category = categoryFromApi(product);
+      const unit = packageSizeFromApi(product);
+
+      setBarcodeDraft((draft) => ({
+        ...draft,
+        code: resolvedCode,
+        name: productName || draft.name,
+        category,
+        quantity: draft.quantity || 1,
+        unit: unit || draft.unit,
+      }));
+      setBarcodeStatus(productName ? `Found ${productName}. Review the details, then save it to your list.` : "Product found. Review the details, then save it to your list.");
+      return product;
+    } catch (error) {
+      setBarcodeDraft((draft) => ({ ...draft, code: cleanCode }));
+      setBarcodeStatus("Could not reach the product database. You can still type the item details and save it.");
+      return null;
+    } finally {
+      setBarcodeLoading(false);
+    }
   };
 
   const readBarcodeFromImage = async (file) => {
     if (!file) return;
     if (!("BarcodeDetector" in window)) {
-      setBarcodeStatus("This browser cannot auto-read barcodes yet. Type the barcode below and save it as a favourite.");
+      setBarcodeStatus("This browser cannot auto-read barcodes yet. Type the barcode below, then tap Look up product.");
       return;
     }
 
@@ -166,7 +386,7 @@ export default function Groceries() {
         return;
       }
       setBarcodeDraft((draft) => ({ ...draft, code }));
-      setBarcodeStatus(`Barcode captured: ${code}. Add the item name to save it as a favourite.`);
+      await lookupBarcodeProduct(code);
     } catch (error) {
       setBarcodeStatus("Barcode scanning is not available in this browser yet. You can still enter the code manually.");
     }
@@ -195,12 +415,80 @@ export default function Groceries() {
     setBarcodeModal(false);
   };
 
+  const openDelivery = () => {
+    setDeliveryStatus("");
+    setDeliveryModal(true);
+  };
+
+  const copyDeliveryList = async () => {
+    if (!deliveryItems.length) {
+      setDeliveryStatus("Add a few groceries first, then FamOS can package them up for another app.");
+      return;
+    }
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(deliveryShareText);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = deliveryShareText;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setDeliveryStatus("Copied. Open DoorDash or Instacart and paste/import the list there.");
+    } catch {
+      setDeliveryStatus("Copy did not work in this browser. You can still select the list text and copy it manually.");
+    }
+  };
+
+  const shareDeliveryList = async () => {
+    if (!deliveryItems.length) {
+      setDeliveryStatus("Your active grocery list is empty.");
+      return;
+    }
+    if (navigator?.share) {
+      try {
+        await navigator.share({ title: "FamOS grocery list", text: deliveryShareText });
+        setDeliveryStatus("Shared. Tiny domestic victory.");
+        return;
+      } catch (error) {
+        if (error?.name === "AbortError") return;
+      }
+    }
+    await copyDeliveryList();
+  };
+
+  const downloadDeliveryList = () => {
+    if (!deliveryItems.length) {
+      setDeliveryStatus("Your active grocery list is empty.");
+      return;
+    }
+    const blob = new Blob([deliveryShareText], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "famos-grocery-list.txt";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    setDeliveryStatus("Downloaded as a text list you can import or paste.");
+  };
+
+  const openGroceryPartner = (url) => {
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <div className="pb-24 reference-groceries">
       <PageHeader
-        title="Groceries"
+        title="Groceries, without the ‘did we need eggs?’ text."
         illustration="groceries"
-        subtitle="Keep the pantry full, together."
+        subtitle="One shared list for staples, favourites, and last-minute store thoughts."
         action={<div className="grocery-mode-actions">
           {groceries.length > 0 && <button onClick={() => setFocusMode(true)}><Maximize2 size={14} /> Focus shop</button>}
           {checkedCount > 0 && <button onClick={clearCheckedGroceries}>Clear checked</button>}
@@ -209,6 +497,53 @@ export default function Groceries() {
       />
 
       <div className="px-5 space-y-5 mt-2">
+        <Card
+          className="relative overflow-hidden p-4 border-[var(--color-border)] shadow-[0_18px_45px_rgba(111,85,217,0.12)]"
+          style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--color-good-soft) 72%, white 28%) 0%, color-mix(in srgb, var(--color-accent-soft) 62%, white 38%) 52%, color-mix(in srgb, #fff2c9 70%, white 30%) 100%)" }}
+        >
+          <div className="pointer-events-none absolute -right-12 -top-16 h-36 w-36 rounded-full bg-white/55 blur-2xl" />
+          <div className="pointer-events-none absolute -bottom-16 -left-10 h-32 w-32 rounded-full bg-white/45 blur-2xl" />
+          <div className="relative flex items-start gap-3">
+            <span className="w-11 h-11 rounded-2xl bg-white flex items-center justify-center shrink-0 shadow-sm ring-1 ring-white/70">
+              <Truck size={21} color="var(--color-good)" />
+            </span>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="font-[var(--font-display)] text-[18px] font-semibold tracking-[-0.025em] text-[var(--color-ink)]">Take your list to checkout</p>
+                  <p className="text-[13px] text-[var(--color-ink-soft)] mt-0.5">Copy, share, or open your grocery app and paste the list in. FamOS keeps the list tidy; your delivery app handles the cart.</p>
+                </div>
+                <button
+                  onClick={openDelivery}
+                  disabled={!deliveryItems.length}
+                  className="inline-flex items-center gap-2 rounded-full bg-white text-[var(--color-good)] border border-white/80 px-3 py-2 text-[12px] font-semibold shadow-sm disabled:opacity-45"
+                >
+                  <ShoppingBag size={14} />
+                  {deliveryItems.length ? `${deliveryItems.length} item${deliveryItems.length === 1 ? "" : "s"}` : "List empty"}
+                </button>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {GROCERY_DELIVERY_APPS.map((app) => (
+                  <button
+                    key={app.id}
+                    onClick={() => openGroceryPartner(app.url)}
+                    className="min-h-[44px] rounded-2xl px-2.5 flex items-center justify-center shadow-sm transition-transform hover:-translate-y-0.5 active:scale-[0.98]"
+                    style={{ backgroundColor: app.brandSoft, border: `1px solid ${app.brandBorder}`, boxShadow: `0 10px 22px ${app.brandColor}18` }}
+                    aria-label={`Open ${app.name}`}
+                  >
+                    <GroceryDeliveryLogo app={app} />
+                  </button>
+                ))}
+              </div>
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                <button onClick={copyDeliveryList} disabled={!deliveryItems.length} className="inline-flex items-center justify-center gap-1.5 rounded-full bg-white/95 px-3 py-2 text-[11.5px] font-semibold text-[var(--color-ink)] border border-white/80 shadow-sm disabled:opacity-45"><Clipboard size={13} /> Copy</button>
+                <button onClick={shareDeliveryList} disabled={!deliveryItems.length} className="inline-flex items-center justify-center gap-1.5 rounded-full bg-white/95 px-3 py-2 text-[11.5px] font-semibold text-[var(--color-ink)] border border-white/80 shadow-sm disabled:opacity-45"><Share2 size={13} /> Share</button>
+                <button onClick={downloadDeliveryList} disabled={!deliveryItems.length} className="inline-flex items-center justify-center gap-1.5 rounded-full bg-white/95 px-3 py-2 text-[11.5px] font-semibold text-[var(--color-ink)] border border-white/80 shadow-sm disabled:opacity-45"><Download size={13} /> Save</button>
+              </div>
+            </div>
+          </div>
+        </Card>
+
         <section>
           <div className="flex items-end justify-between mb-3 px-1">
             <div><p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-accent)]">Saved staples</p><h2 className="font-[var(--font-display)] text-[17px] font-semibold">Quick add</h2></div>
@@ -238,7 +573,7 @@ export default function Groceries() {
         <div onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={dropStaple} className={`rounded-2xl transition-all ${dragging ? "ring-2 ring-[var(--color-accent)] bg-[var(--color-accent-soft)] p-2" : ""}`}>
           {dragging && <p className="text-center text-[12px] font-semibold text-[var(--color-accent)] py-3">Drop here to add to your list</p>}
         {groceries.length === 0 ? (
-          <EmptyState title="List's empty" subtitle="Add your first item below." />
+          <EmptyState title="List’s empty" subtitle="Add the first thing before someone remembers it at checkout." />
         ) : (
           Object.entries(grouped).map(([cat, items]) =>
             items.length === 0 ? null : (
@@ -302,12 +637,12 @@ export default function Groceries() {
         <Plus color="white" size={24} />
       </button>
 
-      <Modal open={!!editingId} onClose={() => setEditingId(null)} title={editingId === "new" ? "Add item" : "Edit item"}>
+      <Modal open={!!editingId} onClose={() => setEditingId(null)} title={editingId === "new" ? "Add a grocery" : "Edit grocery"}>
         <TextField
           label="Item"
           placeholder="e.g. Sourdough bread"
           value={draft.name}
-          onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
+          onChange={(e) => updateDraftName(e.target.value)}
           autoFocus
           onKeyDown={(e) => e.key === "Enter" && submit()}
         />
@@ -357,34 +692,106 @@ export default function Groceries() {
             </SecondaryButton>
           )}
           <PrimaryButton onClick={submit} disabled={!draft.name.trim()}>
-            {editingId === "new" ? "Add to list" : "Save"}
+            {editingId === "new" ? "Add it" : "Save"}
           </PrimaryButton>
         </div>
       </Modal>
-      <Modal open={clearing} onClose={()=>setClearing(false)} title="Reset grocery list?"><p className="reset-confirm-copy">This clears the active list. Your saved staples remain available for quick add.</p><div className="reset-confirm-actions"><button onClick={()=>setClearing(false)}>Cancel</button><PrimaryButton onClick={async()=>{await clearGroceries();setClearing(false)}}>Clear grocery list</PrimaryButton></div></Modal>
+      <Modal open={clearing} onClose={()=>setClearing(false)} title="Clear the grocery list?"><p className="reset-confirm-copy">This clears the active list. Your saved staples stay ready for next time.</p><div className="reset-confirm-actions"><button onClick={()=>setClearing(false)}>Cancel</button><PrimaryButton onClick={async()=>{await clearGroceries();setClearing(false)}}>Clear list</PrimaryButton></div></Modal>
 
-      <Modal open={!!masterEditing} onClose={() => setMasterEditing(null)} title={masterEditing === "new" ? "Add master item" : "Edit master item"}>
-        <TextField label="Item" placeholder="e.g. Greek yogurt" value={masterDraft.name} onChange={(e) => setMasterDraft((draft) => ({ ...draft, name: e.target.value }))} autoFocus />
+      <Modal open={!!masterEditing} onClose={() => setMasterEditing(null)} title={masterEditing === "new" ? "Save a favourite" : "Edit favourite"}>
+        <TextField label="Item" placeholder="e.g. Greek yogurt" value={masterDraft.name} onChange={(e) => updateMasterName(e.target.value)} autoFocus />
         <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-2">Category</p>
         <div className="flex flex-wrap gap-2 mb-4">{GROCERY_CATEGORIES.map((category) => <button key={category} onClick={() => setMasterDraft((draft) => ({ ...draft, category }))} className="rounded-full px-3 py-1.5 text-[13px] font-medium border" style={{ borderColor: masterDraft.category === category ? "var(--color-accent)" : "var(--color-border)", backgroundColor: masterDraft.category === category ? "var(--color-accent-soft)" : "transparent" }}>{category}</button>)}</div>
         <div className="flex items-end gap-3 mb-5"><div><p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-1.5">Default quantity</p><Stepper value={masterDraft.quantity} onChange={(quantity) => setMasterDraft((draft) => ({ ...draft, quantity }))} /></div><div className="flex-1"><TextField label="Unit" placeholder="bag, dozen, lb" value={masterDraft.unit} onChange={(e) => setMasterDraft((draft) => ({ ...draft, unit: e.target.value }))} /></div></div>
-        <div className="flex gap-2">{masterEditing !== "new" && <SecondaryButton onClick={() => { setStaples((current) => current.filter((item) => item.id !== masterEditing)); setMasterEditing(null); }}>Remove</SecondaryButton>}<PrimaryButton onClick={saveMasterItem} disabled={!masterDraft.name.trim()}>Save master item</PrimaryButton></div>
+        <div className="flex gap-2">{masterEditing !== "new" && <SecondaryButton onClick={() => { setStaples((current) => current.filter((item) => item.id !== masterEditing)); setMasterEditing(null); }}>Remove</SecondaryButton>}<PrimaryButton onClick={saveMasterItem} disabled={!masterDraft.name.trim()}>Save favourite</PrimaryButton></div>
       </Modal>
 
-      <Modal open={barcodeModal} onClose={() => setBarcodeModal(false)} title="Scan a favourite">
-        <p className="barcode-note">Scan or enter a barcode, then save the product as a favourite so you can add the exact brand again later.</p>
+      <Modal open={barcodeModal} onClose={() => setBarcodeModal(false)} title="Scan and save">
+        <p className="barcode-note">Scan or enter a barcode. FamOS will look up the product, fill in the details, and save it for the next shop.</p>
         <label className="barcode-actions">
-          <input type="file" accept="image/*" capture="environment" onChange={(event) => readBarcodeFromImage(event.target.files?.[0])} />
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={(event) => {
+              readBarcodeFromImage(event.target.files?.[0]);
+              event.target.value = "";
+            }}
+          />
           <ScanLine size={16} />
           Use camera to scan
         </label>
         {barcodeStatus && <p className="barcode-result">{barcodeStatus}</p>}
-        <TextField label="Barcode (optional)" placeholder="e.g. 012345678905" value={barcodeDraft.code} onChange={(event) => setBarcodeDraft((draft) => ({ ...draft, code: event.target.value }))} inputMode="numeric" />
-        <TextField label="Product name" placeholder="e.g. Dave's Killer Bread" value={barcodeDraft.name} onChange={(event) => setBarcodeDraft((draft) => ({ ...draft, name: event.target.value }))} />
+        <div className="barcode-lookup-row">
+          <TextField label="Barcode" placeholder="e.g. 012345678905" value={barcodeDraft.code} onChange={(event) => setBarcodeDraft((draft) => ({ ...draft, code: event.target.value }))} inputMode="numeric" />
+          <SecondaryButton onClick={() => lookupBarcodeProduct(barcodeDraft.code)} disabled={!normalizeBarcode(barcodeDraft.code) || barcodeLoading}>
+            {barcodeLoading ? "Looking…" : "Look up"}
+          </SecondaryButton>
+        </div>
+        <TextField label="Product name" placeholder="e.g. Dave's Killer Bread" value={barcodeDraft.name} onChange={(event) => updateBarcodeName(event.target.value)} />
         <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-2">Category</p>
         <div className="flex flex-wrap gap-2 mb-4">{GROCERY_CATEGORIES.map((category) => <button key={category} onClick={() => setBarcodeDraft((draft) => ({ ...draft, category }))} className="rounded-full px-3 py-1.5 text-[13px] font-medium border" style={{ borderColor: barcodeDraft.category === category ? "var(--color-accent)" : "var(--color-border)", backgroundColor: barcodeDraft.category === category ? "var(--color-accent-soft)" : "transparent" }}>{category}</button>)}</div>
         <div className="flex items-end gap-3 mb-5"><div><p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-1.5">Default quantity</p><Stepper value={barcodeDraft.quantity} onChange={(quantity) => setBarcodeDraft((draft) => ({ ...draft, quantity }))} /></div><div className="flex-1"><TextField label="Unit" placeholder="loaf, box, bag" value={barcodeDraft.unit} onChange={(event) => setBarcodeDraft((draft) => ({ ...draft, unit: event.target.value }))} /></div></div>
         <PrimaryButton onClick={saveBarcodeFavourite} disabled={!barcodeDraft.name.trim()}>Save favourite & add</PrimaryButton>
+      </Modal>
+
+      <Modal open={deliveryModal} onClose={() => setDeliveryModal(false)} title="Export grocery list">
+        <div className="space-y-4">
+          <div className="rounded-2xl bg-[var(--color-good-soft)] border border-[var(--color-border)] p-3 flex items-start gap-3">
+            <Store size={18} color="var(--color-good)" className="mt-0.5 shrink-0" />
+            <div>
+              <p className="text-[13px] font-semibold text-[var(--color-ink)]">{deliveryItems.length} active grocery item{deliveryItems.length === 1 ? "" : "s"}</p>
+              <p className="text-[11.5px] text-[var(--color-ink-soft)] leading-snug">FamOS will package your list so you can paste it into DoorDash, Instacart, notes, messages, or wherever the grocery run is happening.</p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-[var(--color-border)] overflow-hidden bg-white dark:bg-[var(--color-surface)]">
+            <div className="px-3 py-2 bg-[var(--color-surface-sunken)] flex items-center justify-between">
+              <p className="text-[12px] font-semibold text-[var(--color-ink)]">Ready-to-copy list</p>
+              <p className="text-[11.5px] text-[var(--color-ink-soft)]">{deliveryItems.length} items</p>
+            </div>
+            <textarea
+              readOnly
+              value={deliveryListText || "Your active grocery list is empty."}
+              className="w-full min-h-[170px] resize-none bg-transparent px-3 py-3 text-[14px] leading-6 text-[var(--color-ink)] outline-none"
+              aria-label="Grocery list export text"
+            />
+          </div>
+
+          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-sunken)] p-3">
+            <p className="text-[12.5px] text-[var(--color-ink-soft)] leading-relaxed">
+              FamOS gets the list clean and ready. DoorDash or Instacart can handle the store choice, prices, substitutions, and delivery details inside their own checkout flow.
+            </p>
+          </div>
+
+          {deliveryStatus && <p className="text-[12.5px] leading-snug text-[var(--color-good)]">{deliveryStatus}</p>}
+
+          <div>
+            <p className="mb-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">Choose where to shop</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {GROCERY_DELIVERY_APPS.map((app) => (
+                <button
+                  key={app.id}
+                  onClick={() => openGroceryPartner(app.url)}
+                  className="min-h-[52px] rounded-2xl bg-white px-3 flex items-center justify-between shadow-sm transition-transform active:scale-[0.98]"
+                  style={{ border: `1px solid ${app.brandColor}44` }}
+                >
+                  <GroceryDeliveryLogo app={app} />
+                  <ExternalLink size={15} />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">List actions</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <PrimaryButton onClick={copyDeliveryList} disabled={!deliveryItems.length}><span className="inline-flex items-center justify-center gap-2"><Clipboard size={15} /> Copy list</span></PrimaryButton>
+              <SecondaryButton onClick={shareDeliveryList} disabled={!deliveryItems.length}><span className="inline-flex items-center justify-center gap-2"><Share2 size={15} /> Share</span></SecondaryButton>
+              <SecondaryButton onClick={downloadDeliveryList} disabled={!deliveryItems.length}><span className="inline-flex items-center justify-center gap-2"><Download size={15} /> Download</span></SecondaryButton>
+            </div>
+          </div>
+        </div>
       </Modal>
 
       {focusMode && (

@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Dices, Sparkles, WandSparkles } from "lucide-react";
-import { CUISINES, recipesByCuisine, suggestByIngredients } from "../data/recipeBox";
+import { CUISINES, normaliseDietaryPreferences, recipesByCuisine, suggestByIngredients } from "../data/recipeBox";
 import { supabase } from "../lib/supabase";
 
 const MEAL_TYPES = ["breakfast", "lunch", "dinner"];
 
-export default function MealSuggestions({ onPick, mealType: fixedMealType }) {
+export default function MealSuggestions({ onPick, mealType: fixedMealType, dietaryPreferences }) {
   const [mode, setMode] = useState("ingredients"); // "ingredients" | "cuisine"
   const [ingredientInput, setIngredientInput] = useState("");
   const [cuisine, setCuisine] = useState(null);
@@ -14,17 +14,32 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType }) {
   const [aiError, setAiError] = useState("");
   const [selectedMealType, setSelectedMealType] = useState("dinner");
   const mealType = fixedMealType || selectedMealType;
+  const diet = normaliseDietaryPreferences(dietaryPreferences);
+  const dietSummary = [
+    ...diet.restrictions.map((restriction) => restriction.replace(/-/g, " ")),
+    diet.avoidIngredients ? `avoids ${diet.avoidIngredients}` : "",
+  ].filter(Boolean).join(" · ");
+  const hasDietPrefs = Boolean(dietSummary);
 
-  const matches = mode === "ingredients" ? suggestByIngredients(ingredientInput, 8, mealType) : cuisine ? recipesByCuisine(cuisine, mealType) : [];
+  const matches = mode === "ingredients" ? suggestByIngredients(ingredientInput, 8, mealType, diet) : cuisine ? recipesByCuisine(cuisine, mealType, diet) : [];
   const roulette = () => {
-    const choices = CUISINES.flatMap((item) => recipesByCuisine(item, mealType));
+    const choices = CUISINES.flatMap((item) => recipesByCuisine(item, mealType, diet));
     const recipe = choices[Math.floor(Math.random() * choices.length)];
     if (recipe) onPick(recipe.title, `Meal roulette · ${recipe.cuisine}`);
   };
   const askAI = async () => {
     if (!ingredientInput.trim()) return;
     setAiBusy(true); setAiError("");
-    const { data, error } = await supabase.functions.invoke("meal-suggestions", { body: { ingredients: ingredientInput, mealType } });
+    const { data, error } = await supabase.functions.invoke("meal-suggestions", {
+      body: {
+        ingredients: ingredientInput,
+        mealType,
+        dietaryPreferences: diet,
+        dietaryRestrictions: diet.restrictions,
+        avoidIngredients: diet.avoidIngredients,
+        dietaryNotes: diet.notes,
+      },
+    });
     if (error) {
       let message = error.message;
       try {
@@ -40,7 +55,7 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType }) {
     <div className="rounded-2xl bg-[var(--color-surface-sunken)] border border-[var(--color-border)] p-3.5 mb-5 notion-shadow">
       <div className="flex items-center gap-1.5 mb-3">
         <Sparkles size={14} color="var(--color-accent)" />
-        <p className="text-[12.5px] font-semibold text-[var(--color-ink)]">Need ideas?</p>
+        <p className="text-[12.5px] font-semibold text-[var(--color-ink)]">Dinner brain stuck?</p>
       </div>
 
       {fixedMealType ? (
@@ -51,8 +66,10 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType }) {
         </div>
       )}
 
+      {hasDietPrefs && <p className="meal-suggestion-diet-note">Tuned for {dietSummary}.</p>}
+
       <button onClick={roulette} className="w-full flex items-center justify-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] py-2 text-[12.5px] font-semibold text-[var(--color-accent)] mb-3">
-        <Dices size={15} /> Meal roulette
+        <Dices size={15} /> Spin dinner roulette
       </button>
 
       <div className="flex gap-1.5 mb-3 bg-[var(--color-surface)] rounded-xl p-1 border border-[var(--color-border)]">
@@ -82,7 +99,7 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType }) {
         <input
           value={ingredientInput}
           onChange={(e) => setIngredientInput(e.target.value)}
-          placeholder="What's in the fridge? e.g. chicken, rice, broccoli"
+          placeholder="What’s hanging around? e.g. chicken, rice, broccoli"
           className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[13.5px] text-[var(--color-ink)] placeholder:text-[var(--color-ink-faint)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] mb-3"
         />
       ) : (
@@ -105,10 +122,10 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType }) {
       )}
 
       {mode === "ingredients" && ingredientInput.trim() === "" ? (
-        <p className="text-[12px] text-[var(--color-ink-faint)] px-1">Type a few ingredients to get quick matches.</p>
+        <p className="text-[12px] text-[var(--color-ink-faint)] px-1">Type a few ingredients and we’ll find a way through dinner.</p>
       ) : matches.length === 0 ? (
         <p className="text-[12px] text-[var(--color-ink-faint)] px-1">
-          {mode === "ingredients" ? "No matches yet — try different ingredients." : "Pick a cuisine above."}
+          {mode === "ingredients" ? "No matches yet — toss in another ingredient." : "Pick a cuisine above."}
         </p>
       ) : (
         <ul className="space-y-1">
@@ -131,9 +148,9 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType }) {
       {mode === "ingredients" && (
         <div className="mt-3 pt-3 border-t border-[var(--color-border)]">
           <button onClick={askAI} disabled={aiBusy || !ingredientInput.trim()} className="w-full flex items-center justify-center gap-2 rounded-xl bg-[var(--color-accent)] text-white py-2.5 text-[12.5px] font-semibold disabled:opacity-50">
-            <WandSparkles size={15} /> {aiBusy ? "Creating ideas…" : "Ask AI for fresh ideas"}
+            <WandSparkles size={15} /> {aiBusy ? "Thinking through dinner…" : "Ask Fam AI for ideas"}
           </button>
-          {!ingredientInput.trim() && <p className="text-[11.5px] text-[var(--color-ink-faint)] mt-2 text-center">Enter ingredients above to enable AI suggestions.</p>}
+          {!ingredientInput.trim() && <p className="text-[11.5px] text-[var(--color-ink-faint)] mt-2 text-center">Add ingredients first, then Fam AI can riff.</p>}
           {aiError && <p className="text-[11.5px] text-[var(--color-warn)] mt-2">{aiError}</p>}
           {aiMeals.length > 0 && <ul className="space-y-1 mt-2">{aiMeals.map((meal) => <li key={meal.title}><button onClick={() => onPick(meal.title, meal.notes)} className="w-full rounded-xl bg-white border border-[var(--color-border)] px-3 py-2 text-left"><span className="block text-[13.5px] font-medium">{meal.title}</span><span className="block text-[11px] text-[var(--color-ink-faint)] mt-0.5">{meal.notes}</span></button></li>)}</ul>}
         </div>

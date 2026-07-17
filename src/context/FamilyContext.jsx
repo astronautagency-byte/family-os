@@ -15,6 +15,7 @@ import { supabase } from "../lib/supabase";
 const STORAGE_KEY = "family-os:v1";
 const GOOGLE_STORAGE_KEY = "family-os:google:v1";
 const CALENDAR_FEEDS_STORAGE_KEY = "family-os:calendar-feeds:v1";
+const AVATAR_OVERRIDES_KEY = "family-os:avatar-overrides:v1";
 
 function loadState() {
   try {
@@ -44,6 +45,28 @@ function loadCalendarFeedState() {
     console.warn("Could not read saved calendar feeds.", e);
   }
   return { feeds: [], events: [] };
+}
+
+function loadAvatarOverrides() {
+  try {
+    const raw = localStorage.getItem(AVATAR_OVERRIDES_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    console.warn("Could not read saved avatar choices.", e);
+    return {};
+  }
+}
+
+function saveAvatarOverride(memberId, avatarUrl) {
+  if (!memberId) return;
+  try {
+    const overrides = loadAvatarOverrides();
+    if (avatarUrl) overrides[memberId] = avatarUrl;
+    else delete overrides[memberId];
+    localStorage.setItem(AVATAR_OVERRIDES_KEY, JSON.stringify(overrides));
+  } catch (e) {
+    console.warn("Could not save avatar choice locally.", e);
+  }
 }
 
 function makeId(prefix) {
@@ -151,7 +174,7 @@ export function FamilyProvider({ children }) {
     role: membershipRole === "owner" ? "Household owner" : "Family member",
     color: row.color,
     initials: row.initials,
-    avatarUrl: row.avatar_url || (row.id === user?.id ? user.user_metadata?.avatar_url || user.user_metadata?.picture || "" : ""),
+    avatarUrl: loadAvatarOverrides()[row.id] || row.avatar_url || (row.id === user?.id ? user.user_metadata?.avatar_url || user.user_metadata?.picture || "" : ""),
   });
   const mapTask = (row) => ({ id: row.id, title: row.title, assigneeId: row.assignee_id, due: row.due_date, done: row.is_done, recurring: row.recurrence, taskType: row.task_type || "home" });
   const mapGrocery = (row) => ({ id: row.id, name: row.name, category: row.category, quantity: Number(row.quantity), unit: row.unit, checked: row.is_checked, addedBy: row.added_by });
@@ -231,15 +254,35 @@ export function FamilyProvider({ children }) {
   const addMember = (member) =>
     setMembers((prev) => [...prev, { id: makeId("mem"), ...member }]);
   const updateMember = async (id, patch) => {
+    setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)));
+    if (patch.avatarUrl !== undefined) saveAvatarOverride(id, patch.avatarUrl);
     if (remote) {
       const dbPatch = {};
       if (patch.name !== undefined) dbPatch.display_name = patch.name;
       if (patch.color !== undefined) dbPatch.color = patch.color;
       if (patch.initials !== undefined) dbPatch.initials = patch.initials;
       if (patch.avatarUrl !== undefined) dbPatch.avatar_url = patch.avatarUrl;
-      await runRemote(supabase.from("profiles").update(dbPatch).eq("id", id));
+      const { error } = await supabase.from("profiles").update(dbPatch).eq("id", id);
+      if (error) {
+        if (dbPatch.avatar_url !== undefined && /avatar_url|schema cache/i.test(error.message || "")) {
+          const { avatar_url: _avatarUrl, ...profilePatchWithoutAvatar } = dbPatch;
+          if (Object.keys(profilePatchWithoutAvatar).length) {
+            const retry = await supabase.from("profiles").update(profilePatchWithoutAvatar).eq("id", id);
+            if (retry.error) {
+              console.warn("Could not sync profile update.", retry.error);
+              setDataError(retry.error.message);
+              return { error: retry.error };
+            }
+          }
+          setDataError(null);
+          return { error: null, localOnlyAvatar: true };
+        }
+        console.warn("Could not sync profile update.", error);
+        setDataError(error.message);
+        return { error };
+      }
     }
-    setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)));
+    return { error: null };
   };
   const removeMember = (id) =>
     setMembers((prev) => prev.filter((m) => m.id !== id));

@@ -121,3 +121,42 @@ supabase functions deploy fam-ai
 ```
 
 Grok proposes typed FamilyOS actions for tasks, groceries, events, and meals. The browser displays those actions for confirmation and executes them through the existing authenticated FamilyOS data layer only after approval.
+
+## DoorDash grocery delivery (optional)
+
+The grocery delivery flow is handled by the `doordash-grocery` Supabase Edge Function so DoorDash credentials stay server-side. Do not add live DoorDash credentials to `.env.local`, client code, or committed files.
+
+Set the secrets in the live Supabase project:
+
+```bash
+supabase secrets set DOORDASH_DEVELOPER_ID=your_developer_id
+supabase secrets set DOORDASH_KEY_ID=your_key_id
+supabase secrets set DOORDASH_SIGNING_SECRET=your_signing_secret
+```
+
+Then configure the grocery stores FamilyOS can offer at checkout. The preferred format is a JSON array:
+
+```bash
+supabase secrets set DOORDASH_GROCERY_STORES='[
+  {
+    "id": "preferred-store",
+    "name": "Preferred grocery store",
+    "externalBusinessId": "your_doordash_external_business_id",
+    "externalStoreId": "your_doordash_external_store_id",
+    "pickupAddress": "123 Grocery St, Toronto, ON",
+    "currency": "CAD"
+  }
+]'
+```
+
+Deploy or redeploy the function after the secrets are set:
+
+```bash
+supabase functions deploy doordash-grocery
+```
+
+Notes:
+- The function creates DoorDash Drive quotes/deliveries and passes the grocery list as shopper instructions and item metadata.
+- The current grocery subtotal is an app-side estimate unless a DoorDash-supported merchant catalog/pricing integration is connected.
+- DoorDash delivery fees come from the live quote response when credentials and store settings are configured.
+- For local testing against a non-production DoorDash base URL, set `DOORDASH_API_BASE` as another Supabase secret.

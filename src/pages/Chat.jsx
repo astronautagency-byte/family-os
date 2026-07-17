@@ -48,7 +48,7 @@ export default function Chat() {
 
   return (
     <div className="h-screen pb-20 flex flex-col">
-      <PageHeader eyebrow="Private conversations" title="Family chat" illustration="chat" />
+      <PageHeader eyebrow="Private conversations" title="Chat, minus the chaos." illustration="chat" subtitle="Quick decisions, saved from the scroll." />
 
       <div className="px-5 mt-1 mb-2 flex gap-2 overflow-x-auto pb-1">
         <button onClick={() => { setActiveThread("household"); setSendError(""); }} className="shrink-0 flex items-center gap-2 rounded-full border pl-2 pr-3 py-1.5 transition-colors" style={{ borderColor: activeThread === "household" ? "var(--color-accent)" : "var(--color-border)", backgroundColor: activeThread === "household" ? "var(--color-accent-soft)" : "var(--color-surface)", color: activeThread === "household" ? "var(--color-accent-strong)" : "var(--color-ink-soft)" }}><span className="w-7 h-7 rounded-full bg-[var(--pastel-mint)] grid place-items-center"><UsersRound size={14} /></span><span className="text-[12.5px] font-semibold">Everyone</span></button>
@@ -60,7 +60,7 @@ export default function Chat() {
 
       <div className="px-5 mb-2 flex items-center gap-2">
         <LockKeyhole size={12} color="var(--color-ink-faint)" />
-        <p className="text-[11.5px] text-[var(--color-ink-faint)]">{activeThread === "household" ? "Household chat for everyone in your home" : activeMember ? `Private chat with ${activeMember.name}` : "Add another family member to start chatting"} · synced live</p>
+        <p className="text-[11.5px] text-[var(--color-ink-faint)]">{activeThread === "household" ? "The all-hands household thread" : activeMember ? `Private chat with ${activeMember.name}` : "Add another family member to start chatting"} · synced live</p>
       </div>
 
       <div className="px-5 py-3 flex-1 overflow-y-auto space-y-3">
@@ -89,7 +89,7 @@ export default function Chat() {
             </div>
           );
         })}
-        {threadMessages.length === 0 && <div className="h-full min-h-40 flex flex-col items-center justify-center text-center px-8">{activeMember ? <Avatar member={activeMember} size="lg" /> : <span className="w-14 h-14 rounded-full bg-[var(--pastel-mint)] grid place-items-center text-[var(--color-ink)]"><UsersRound size={24} /></span>}<p className="text-[14px] font-medium mt-3">{activeMember ? `Start a conversation with ${activeMember.name}` : "Start the household chat"}</p><p className="text-[12px] text-[var(--color-ink-faint)] mt-1">Messages stay inside your shared home space.</p></div>}
+        {threadMessages.length === 0 && <div className="h-full min-h-40 flex flex-col items-center justify-center text-center px-8">{activeMember ? <Avatar member={activeMember} size="lg" /> : <span className="w-14 h-14 rounded-full bg-[var(--pastel-mint)] grid place-items-center text-[var(--color-ink)]"><UsersRound size={24} /></span>}<p className="text-[14px] font-medium mt-3">{activeMember ? `Say hi to ${activeMember.name}` : "Start the household chat"}</p><p className="text-[12px] text-[var(--color-ink-faint)] mt-1">Messages stay inside your shared home space.</p></div>}
         <div ref={endRef} />
       </div>
 
@@ -100,7 +100,7 @@ export default function Chat() {
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder={activeThread === "household" ? "Message everyone" : activeMember ? `Message ${activeMember.name}` : "Select a family member"}
+          placeholder={activeThread === "household" ? "Tell everyone…" : activeMember ? `Message ${activeMember.name}` : "Select a family member"}
           disabled={activeThread !== "household" && !activeMember}
           className="min-w-0 flex-1 rounded-full bg-[var(--color-surface-sunken)] px-4 py-2.5 text-[14px] outline-none placeholder:text-[var(--color-ink-faint)]"
         />

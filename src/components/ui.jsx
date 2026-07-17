@@ -16,7 +16,7 @@ export function Avatar({ member, size = "md" }) {
   return (
     <div
       className={`${sizes[size]} relative overflow-hidden rounded-full flex items-center justify-center font-semibold text-white shrink-0 ring-2 ring-white`}
-      style={{ backgroundColor: colorVar(member.color) }}
+      style={{ backgroundColor: member.avatarUrl ? "#fff" : colorVar(member.color) }}
       title={member.name}
     >
       {member.initials}

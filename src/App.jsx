@@ -12,7 +12,6 @@ import Groceries from "./pages/Groceries";
 import Tasks from "./pages/Tasks";
 import Settings from "./pages/Settings";
 import Chat from "./pages/Chat";
-import Finance from "./pages/Finance";
 import FamAI from "./pages/FamAI";
 import Landing from "./pages/Landing";
 import Privacy from "./pages/Privacy";
@@ -21,7 +20,7 @@ import { useAuth } from "./context/AuthContext";
 import { AuthLoading, HouseholdOnboarding, ResetPassword, SignIn } from "./pages/Auth";
 
 gsap.registerPlugin(useGSAP);
-const VALID_TABS = ["today","calendar","meals","tasks","groceries","finance","chat","famai","settings"];
+const VALID_TABS = ["today","calendar","meals","tasks","groceries","chat","famai","settings"];
 const PUBLIC_PATHS = ["privacy", "terms", "pricing", "signin", "signup"];
 const VALID_ROUTES = [...VALID_TABS, "landing", ...PUBLIC_PATHS];
 const pathRoute = () => window.location.pathname.replace(/^\/+|\/+$/g, "");
@@ -36,6 +35,7 @@ const tabFromLocation = () => VALID_TABS.includes(routeFromLocation()) ? routeFr
 export default function App() {
   const [tab, setTabState] = useState(tabFromLocation);
   const [route, setRoute] = useState(routeFromLocation);
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("familyos:theme") === "dark");
   const setTab = (next) => { setTabState(next); window.history.replaceState(null, "", `#${next}`); };
   const shellRef = useRef(null);
   const { configured, session, household, loading, passwordRecovery, onboardingRequired } = useAuth();
@@ -59,6 +59,9 @@ export default function App() {
       window.removeEventListener("popstate", onLocationChange);
     };
   }, []);
+  useEffect(() => {
+    localStorage.setItem("familyos:theme", darkMode ? "dark" : "light");
+  }, [darkMode]);
 
   useGSAP(() => {
     const media = gsap.matchMedia();
@@ -88,10 +91,10 @@ export default function App() {
 
   return (
     <FamilyProvider>
-      <div className="app-shell" ref={shellRef}>
+      <div className={`app-shell ${darkMode ? "theme-dark" : ""}`} ref={shellRef}>
         <BottomNav active={tab} onChange={setTab} />
         <main className="app-content">
-          <AppTopBar onOpenSettings={() => setTab("settings")} onNavigate={setTab} />
+          <AppTopBar onOpenSettings={() => setTab("settings")} onNavigate={setTab} darkMode={darkMode} onToggleDarkMode={() => setDarkMode((value) => !value)} />
           {tab === "today" && <Today goTo={setTab} />}
           {tab === "calendar" && <CalendarPage goTo={setTab} />}
           {tab === "meals" && <Meals />}
@@ -99,7 +102,6 @@ export default function App() {
           {tab === "tasks" && <Tasks />}
           {tab === "chat" && <Chat />}
           {tab === "famai" && <FamAI />}
-          {tab === "finance" && <Finance />}
           {tab === "settings" && <Settings />}
         </main>
         <InstallPrompt />

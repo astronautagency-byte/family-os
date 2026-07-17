@@ -66,30 +66,52 @@
   </head>
   <body>
     <div id="root">
-      <main style="font-family: Inter, Arial, sans-serif; max-width: 880px; margin: 0 auto; padding: 56px 24px; color: #17172f;">
-        <img src="/brand/famos-icon-transparent.png" alt="FamOS logo" width="88" height="88" style="object-fit: contain;" />
-        <p style="margin: 24px 0 8px; color: #7952e8; font-size: 13px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;">FamOS</p>
-        <h1 style="margin: 0 0 18px; font-size: 44px; line-height: 1; letter-spacing: -0.04em;">FamOS is a private family coordination app.</h1>
-        <p style="font-size: 18px; line-height: 1.6; color: #56515d;">
-          FamOS helps households keep family life in sync with shared calendars, Google Calendar sync, meal planning, grocery lists, tasks, family chat, finance planning, and AI-assisted organization.
-        </p>
-        <section style="margin-top: 32px; display: grid; gap: 18px;">
-          <article>
-            <h2 style="font-size: 22px; margin: 0 0 8px;">Purpose of the app</h2>
-            <p style="margin: 0; line-height: 1.6; color: #56515d;">FamOS gives invited household members one private place to coordinate schedules, responsibilities, meals, shopping, messages, and household planning.</p>
-          </article>
-          <article>
-            <h2 style="font-size: 22px; margin: 0 0 8px;">Why FamOS uses Google Calendar</h2>
-            <p style="margin: 0; line-height: 1.6; color: #56515d;">When a user chooses to connect Google Calendar, FamOS requests calendar access so selected Google Calendar events can appear in the shared family calendar and new family events can be added back to writable connected calendars.</p>
-          </article>
-          <article>
-            <h2 style="font-size: 22px; margin: 0 0 8px;">Privacy and control</h2>
-            <p style="margin: 0; line-height: 1.6; color: #56515d;">Household data is visible only to invited members of the same FamOS home. Users can disconnect calendar access from Settings.</p>
-          </article>
-        </section>
-        <p style="margin-top: 34px;"><a href="/privacy" style="color: #7952e8; font-weight: 700;">Privacy Policy</a> · <a href="/terms" style="color: #7952e8; font-weight: 700;">Terms of Service</a></p>
-      </main>
-    </div>
-    <script type="module" src="/src/main.jsx"></script>
+    <main style="font-family: Inter, Arial, sans-serif; max-width: 980px; margin: 0 auto; padding: 44px 24px 64px; color: #17172f;">
+      <header style="display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 54px;">
+        <a href="/" style="display: inline-flex; align-items: center; gap: 10px; color: #17172f; text-decoration: none;">
+          <img src="/brand/famos-icon-transparent.png" alt="FamOS logo" width="58" height="58" style="object-fit: contain;" />
+          <strong style="font-size: 28px; letter-spacing: -0.06em; line-height: 1;">Fam<span style="color: #7952e8;">OS</span></strong>
+        </a>
+        <nav style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <a href="/#signin" style="display: inline-flex; min-height: 44px; align-items: center; justify-content: center; padding: 0 18px; border: 1px solid #ddd8ff; border-radius: 999px; color: #17172f; font-weight: 700; text-decoration: none;">Sign in</a>
+          <a href="/#signup" style="display: inline-flex; min-height: 44px; align-items: center; justify-content: center; padding: 0 20px; border-radius: 999px; background: #6d5ce7; color: white; font-weight: 800; text-decoration: none;">Get started</a>
+        </nav>
+      </header>
+
+      <p style="margin: 0 0 14px; color: #6d5ce7; font-size: 13px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;">Meet FamOS</p>
+      <h1 style="max-width: 720px; margin: 0 0 18px; font-size: clamp(40px, 8vw, 72px); line-height: 0.98; letter-spacing: -0.06em;">Families run better on FamOS.</h1>
+      <p style="max-width: 760px; margin: 0; color: #555264; font-size: 20px; line-height: 1.55;">
+        FamOS is a private family coordination app for shared calendars, Google Calendar sync, meal planning, grocery lists, tasks, family chat, household planning, and AI-assisted organization.
+      </p>
+
+      <div style="margin: 30px 0 40px; padding: 18px 20px; border: 1px solid #ddd8ff; border-radius: 22px; background: #faf8ff; color: #514f62; font-size: 15px; line-height: 1.55;">
+        Seeing this simplified page on a tablet? The full FamOS app may still be loading, or your browser may need a Safari/iPadOS update. You can still use the links above to sign in or create your family space once the full app loads.
+      </div>
+
+      <section style="display: grid; gap: 26px; margin-top: 34px;">
+        <article>
+          <h2 style="margin: 0 0 8px; font-size: 26px; letter-spacing: -0.03em;">Purpose of the app</h2>
+          <p style="margin: 0; color: #555264; font-size: 17px; line-height: 1.6;">FamOS gives invited household members one private place to coordinate schedules, responsibilities, meals, shopping, messages, and household planning.</p>
+        </article>
+        <article>
+          <h2 style="margin: 0 0 8px; font-size: 26px; letter-spacing: -0.03em;">Why FamOS uses Google Calendar</h2>
+          <p style="margin: 0; color: #555264; font-size: 17px; line-height: 1.6;">When a user chooses to connect Google Calendar, FamOS requests calendar access so selected Google Calendar events can appear in the shared family calendar and new family events can be added back to writable connected calendars.</p>
+        </article>
+        <article>
+          <h2 style="margin: 0 0 8px; font-size: 26px; letter-spacing: -0.03em;">Privacy and control</h2>
+          <p style="margin: 0; color: #555264; font-size: 17px; line-height: 1.6;">Household data is visible only to invited members of the same FamOS home. Users can disconnect calendar access from Settings.</p>
+        </article>
+      </section>
+
+      <p style="margin-top: 34px; display: flex; gap: 14px; flex-wrap: wrap; align-items: center;">
+        <a href="/#signin" style="color: #6d5ce7; font-weight: 800;">Sign in</a>
+        <a href="/#signup" style="color: #6d5ce7; font-weight: 800;">Get started</a>
+        <a href="/privacy" style="color: #6d5ce7; font-weight: 700;">Privacy Policy</a>
+        <a href="/terms" style="color: #6d5ce7; font-weight: 700;">Terms of Service</a>
+      </p>
+    </main>
+  </div>
+
+  <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

@@ -61,11 +61,23 @@ export function AuthProvider({ children }) {
     setError(null);
     try {
       const [{ data: profileData, error: profileError }, { data: membershipData, error: membershipError }] = await Promise.all([
-        supabase.from("profiles").select("*").eq("id", nextSession.user.id).single(),
-        supabase.from("household_members").select("household_id, role").eq("user_id", nextSession.user.id).limit(1).maybeSingle(),
+        supabase.from("profiles").select("*").eq("id", nextSession.user.id).maybeSingle(),
+        supabase.from("household_members").select("household_id, role").eq("user_id", nextSession.user.id).order("joined_at", { ascending: true }).limit(1).maybeSingle(),
       ]);
-      if (profileError) throw profileError;
+      if (profileError && profileError.code !== "PGRST116") throw profileError;
       if (membershipError) throw membershipError;
+      const fallbackProfile = {
+        id: nextSession.user.id,
+        email: nextSession.user.email || "",
+        display_name: nextSession.user.user_metadata?.display_name || nextSession.user.user_metadata?.full_name || nextSession.user.user_metadata?.name || (nextSession.user.email || "").split("@")[0] || "Family member",
+        initials: ((nextSession.user.user_metadata?.display_name || nextSession.user.user_metadata?.full_name || nextSession.user.user_metadata?.name || nextSession.user.email || "?")
+          .trim()
+          .split(/\s+|@/)
+          .slice(0, 2)
+          .map((part) => part[0]?.toUpperCase())
+          .join("") || "?"),
+      };
+      const accountProfile = profileData || fallbackProfile;
       let membership = membershipData;
       if (!membership) {
         const { data: acceptedHouseholdId, error: claimError } = await supabase.rpc("accept_matching_household_invitation");
@@ -84,9 +96,9 @@ export function AuthProvider({ children }) {
       let householdData = null;
       let householdProfileData = null;
       if (membership?.household_id) {
-        const { data, error: householdError } = await supabase.from("households").select("id, name").eq("id", membership.household_id).single();
-        if (householdError) throw householdError;
-        householdData = data;
+        const { data, error: householdError } = await supabase.from("households").select("id, name").eq("id", membership.household_id).maybeSingle();
+        if (householdError && householdError.code !== "PGRST116") console.warn("Could not load household details; using membership fallback.", householdError);
+        householdData = data || { id: membership.household_id, name: "Home" };
         const { data: profileRow, error: householdProfileError } = await supabase
           .from("household_profiles")
           .select("*")
@@ -101,20 +113,20 @@ export function AuthProvider({ children }) {
       const providerName = metadata.display_name || metadata.full_name || metadata.name || "";
       const googleAvatar = metadata.avatar_url || metadata.picture || "";
       const emailName = (nextSession.user.email || "").split("@")[0];
-      const profileNameIsGeneric = !profileData.display_name || profileData.display_name.toLowerCase() === emailName.toLowerCase();
+      const profileNameIsGeneric = !accountProfile.display_name || accountProfile.display_name.toLowerCase() === emailName.toLowerCase();
       const profilePatch = {};
-      if (providerName && profileNameIsGeneric && providerName !== profileData.display_name) {
+      if (providerName && profileNameIsGeneric && providerName !== accountProfile.display_name) {
         profilePatch.display_name = providerName;
         profilePatch.initials = providerName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("");
       }
-      if (googleAvatar && Object.hasOwn(profileData, "avatar_url") && !profileData.avatar_url) {
+      if (googleAvatar && Object.hasOwn(accountProfile, "avatar_url") && !accountProfile.avatar_url) {
         profilePatch.avatar_url = googleAvatar;
       }
-      if (Object.keys(profilePatch).length) {
+      if (profileData && Object.keys(profilePatch).length) {
         const { error: profileUpdateError } = await supabase.from("profiles").update(profilePatch).eq("id", nextSession.user.id);
-        if (!profileUpdateError) Object.assign(profileData, profilePatch);
+        if (!profileUpdateError) Object.assign(accountProfile, profilePatch);
       }
-      setProfile(profileData);
+      setProfile(accountProfile);
       setHousehold(membership && householdData ? { ...householdData, role: membership.role } : null);
       setHouseholdProfile(householdProfileData);
 
@@ -126,7 +138,8 @@ export function AuthProvider({ children }) {
         const skippedInvites = localStorage.getItem(onboardingSkipKey(membership.household_id, nextSession.user.id)) === "true";
         const localProfileComplete = localStorage.getItem(onboardingProfileKey(membership.household_id, nextSession.user.id)) === "true";
         const profileComplete = Boolean(householdProfileData?.completed_at) || localProfileComplete;
-        setOnboardingRequired(!profileComplete || (!skippedInvites && (memberCount || 0) < 2 && (inviteCount || 0) === 0));
+        const hasFinishedInitialSetup = profileComplete || skippedInvites || (memberCount || 0) >= 2 || (inviteCount || 0) > 0;
+        setOnboardingRequired(!hasFinishedInitialSetup);
       } else {
         setOnboardingRequired(false);
       }

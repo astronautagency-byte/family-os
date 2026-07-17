@@ -40,10 +40,10 @@ export function SignIn({ initialCreating = false }) {
     try {
       if (creating) {
         const data = await signUp(email, password, displayName);
-        if (!data.session) setNotice("Account created. Check your email once to confirm it, then sign in.");
+        if (!data.session) setNotice("Account created. Give your inbox a quick peek, then come back and sign in.");
       } else await signIn(email, password);
     }
-    catch (e) { setLocalError(e.message || "Could not authenticate."); }
+    catch (e) { setLocalError(e.message || "Could not get you in just yet."); }
     finally { setBusy(false); }
   };
 
@@ -51,7 +51,7 @@ export function SignIn({ initialCreating = false }) {
 
   return (
     <Shell>
-      <h1 className="minimal-auth-title">{creating ? "Create your account" : "Welcome back"}</h1>
+      <h1 className="minimal-auth-title">{creating ? "Start your FamOS home" : "Welcome back"}</h1>
       <Card className="minimal-auth-card">
         <form onSubmit={submit}>
           {creating && <TextField label="Your name" placeholder="e.g. Kat" value={displayName} onChange={(e) => setDisplayName(e.target.value)} autoComplete="name" required />}
@@ -60,13 +60,13 @@ export function SignIn({ initialCreating = false }) {
           <div className="password-actions"><button type="button" onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff size={16} /> : <Eye size={16} />} {showPassword ? "Hide password" : "Show password"}</button>{!creating&&<button type="button" onClick={()=>setForgot(true)}>Forgot?</button>}</div>
           {(localError || error) && <p className="text-[12.5px] text-[var(--color-warn)] mb-3">{localError || error}</p>}
           {notice && <p className="text-[12.5px] text-[var(--color-good)] mb-3">{notice}</p>}
-          <PrimaryButton type="submit" disabled={busy || !email.trim() || password.length < 6 || (creating && !displayName.trim())}>{busy ? "Please wait…" : creating ? "Create account" : "Sign in"}</PrimaryButton>
+          <PrimaryButton type="submit" disabled={busy || !email.trim() || password.length < 6 || (creating && !displayName.trim())}>{busy ? "One sec…" : creating ? "Create my home" : "Sign in"}</PrimaryButton>
           <div className="minimal-or"><span />OR<span /></div>
           <button type="button" onClick={async () => { try { await signInWithGoogle(); } catch (e) { setLocalError(e.message); } }} className="minimal-google">
             <GoogleMark /> Continue with Google
           </button>
           <button type="button" onClick={() => { setCreating((value) => !value); setLocalError(""); setNotice(""); }} className="w-full text-center text-[12.5px] text-[var(--color-accent)] mt-4">
-            {creating ? "Already have an account? Sign in" : "Don't have an account? Sign up"}
+            {creating ? "Already have a home? Sign in" : "New here? Start your home"}
           </button>
         </form>
       </Card>
@@ -77,8 +77,8 @@ export function SignIn({ initialCreating = false }) {
 
 function ForgotPassword({ onBack, requestPasswordReset, initialEmail }) {
   const [email,setEmail]=useState(initialEmail||""); const [busy,setBusy]=useState(false); const [sent,setSent]=useState(false); const [error,setError]=useState("");
-  const submit=async(e)=>{e.preventDefault();if(!email.trim())return;setBusy(true);setError("");try{await requestPasswordReset(email);setSent(true)}catch(err){setError(err.message||"Could not send reset email.")}finally{setBusy(false)}};
-  return <Shell><h1 className="minimal-auth-title">Reset password</h1><p className="recovery-intro">{sent?"Check your inbox for a secure password-reset link.":"Enter the email address connected to your FamilyOS account."}</p><Card className="minimal-auth-card">{sent?<><div className="recovery-sent"><MailIcon/><strong>Email sent</strong><span>We sent a recovery link to {email}.</span></div><button className="minimal-google" onClick={onBack}>Back to sign in</button></>:<form onSubmit={submit}><TextField type="email" label="Email address" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email" required/>{error&&<p className="text-[12.5px] text-[var(--color-warn)] mb-3">{error}</p>}<PrimaryButton type="submit" disabled={busy||!email.trim()}>{busy?"Sending…":"Send reset link"}</PrimaryButton><button type="button" className="recovery-back" onClick={onBack}>Back to sign in</button></form>}</Card></Shell>;
+  const submit=async(e)=>{e.preventDefault();if(!email.trim())return;setBusy(true);setError("");try{await requestPasswordReset(email);setSent(true)}catch(err){setError(err.message||"Could not send the reset email yet.")}finally{setBusy(false)}};
+  return <Shell><h1 className="minimal-auth-title">Let’s get you back in</h1><p className="recovery-intro">{sent?"Check your inbox for a secure reset link. Tiny detour, then you’re back.":"Enter the email tied to your FamOS account and we’ll send a secure reset link."}</p><Card className="minimal-auth-card">{sent?<><div className="recovery-sent"><MailIcon/><strong>Email sent</strong><span>We sent a recovery link to {email}.</span></div><button className="minimal-google" onClick={onBack}>Back to sign in</button></>:<form onSubmit={submit}><TextField type="email" label="Email address" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email" required/>{error&&<p className="text-[12.5px] text-[var(--color-warn)] mb-3">{error}</p>}<PrimaryButton type="submit" disabled={busy||!email.trim()}>{busy?"Sending…":"Send reset link"}</PrimaryButton><button type="button" className="recovery-back" onClick={onBack}>Back to sign in</button></form>}</Card></Shell>;
 }
 
 function MailIcon(){return <span className="recovery-mail">@</span>}
@@ -88,7 +88,7 @@ function GoogleMark(){return <svg className="google-mark" viewBox="0 0 24 24" ar
 export function ResetPassword(){
  const {updatePassword}=useAuth(); const [password,setPassword]=useState(""); const [confirm,setConfirm]=useState(""); const [show,setShow]=useState(false); const [busy,setBusy]=useState(false); const [error,setError]=useState(""); const valid=password.length>=6&&password===confirm;
  const submit=async(e)=>{e.preventDefault();if(!valid)return;setBusy(true);setError("");try{await updatePassword(password)}catch(err){setError(err.message||"Could not update password.");setBusy(false)}};
- return <Shell><h1 className="minimal-auth-title">Choose a new password</h1><p className="recovery-intro">Use at least six characters and choose something you don’t use elsewhere.</p><Card className="minimal-auth-card"><form onSubmit={submit}><TextField type={show?"text":"password"} label="New password" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="new-password" minLength={6} required/><TextField type={show?"text":"password"} label="Confirm password" value={confirm} onChange={e=>setConfirm(e.target.value)} autoComplete="new-password" minLength={6} required/><div className="password-actions"><button type="button" onClick={()=>setShow(v=>!v)}>{show?<EyeOff size={16}/>:<Eye size={16}/>} {show?"Hide passwords":"Show passwords"}</button></div>{confirm&&password!==confirm&&<p className="text-[12.5px] text-[var(--color-warn)] mb-3">Passwords do not match.</p>}{error&&<p className="text-[12.5px] text-[var(--color-warn)] mb-3">{error}</p>}<PrimaryButton type="submit" disabled={busy||!valid}>{busy?"Saving…":"Save new password"}</PrimaryButton></form></Card></Shell>;
+ return <Shell><h1 className="minimal-auth-title">Choose a new password</h1><p className="recovery-intro">Pick something sturdy. Future-you deserves a smooth login.</p><Card className="minimal-auth-card"><form onSubmit={submit}><TextField type={show?"text":"password"} label="New password" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="new-password" minLength={6} required/><TextField type={show?"text":"password"} label="Confirm password" value={confirm} onChange={e=>setConfirm(e.target.value)} autoComplete="new-password" minLength={6} required/><div className="password-actions"><button type="button" onClick={()=>setShow(v=>!v)}>{show?<EyeOff size={16}/>:<Eye size={16}/>} {show?"Hide passwords":"Show passwords"}</button></div>{confirm&&password!==confirm&&<p className="text-[12.5px] text-[var(--color-warn)] mb-3">Those passwords are almost friends, but not quite.</p>}{error&&<p className="text-[12.5px] text-[var(--color-warn)] mb-3">{error}</p>}<PrimaryButton type="submit" disabled={busy||!valid}>{busy?"Saving…":"Save new password"}</PrimaryButton></form></Card></Shell>;
 }
 
 export function HouseholdOnboarding() {
@@ -126,21 +126,21 @@ export function HouseholdOnboarding() {
 
   const run = async (action) => {
     setBusy(true); setError("");
-    try { await action(); } catch (e) { setError(e.message || "Something went wrong."); }
+    try { await action(); } catch (e) { setError(e.message || "Something tripped. Try again in a moment."); }
     finally { setBusy(false); }
   };
 
   return (
     <Shell>
-      <h1 className="minimal-auth-title">{invitation ? "Join this home" : profileStep ? "Set up your family" : household ? "Invite your family" : "Name your family"}</h1>
-      <p className="recovery-intro">{invitation ? `Your email is associated with ${invitation.households?.name}. Join to share chat, calendars, tasks, meals, and groceries with this household.` : profileStep ? "Tell FamOS a little about your household so the app can feel useful from day one." : household ? `Invite members to ${household.name} now, or skip and add them later from Settings.` : "Create the private family space everyone will share."}</p>
+      <h1 className="minimal-auth-title">{invitation ? "Come on in" : profileStep ? "Make FamOS feel like home" : household ? "Invite your people" : "What should we call home?"}</h1>
+      <p className="recovery-intro">{invitation ? `You’ve been invited to ${invitation.households?.name}. Join the shared space for chat, calendars, tasks, meals, and groceries.` : profileStep ? "A few quick details help FamOS start useful instead of generic." : household ? `Invite people to ${household.name} now, or skip and add them later from Settings.` : "Create the private family space everyone will share. Cozy, but organized."}</p>
       <Card className="p-5">
         {invitation ? (
           <>
             <p className="text-[12px] font-semibold uppercase tracking-wide text-[var(--color-accent)]">Home invitation</p>
             <h2 className="font-semibold text-[18px] mt-1 mb-1">{invitation.households?.name}</h2>
-            <p className="text-[13px] text-[var(--color-ink-soft)] mb-5">Once you join, you’ll appear as a family member and can use shared calendar, family chat, tasks, meals, and lists.</p>
-            <PrimaryButton disabled={busy} onClick={() => run(acceptInvitation)}>{busy ? "Joining…" : "Join home"}</PrimaryButton>
+            <p className="text-[13px] text-[var(--color-ink-soft)] mb-5">Once you join, you’ll show up as a family member and can use the shared calendar, chat, tasks, meals, and lists.</p>
+            <PrimaryButton disabled={busy} onClick={() => run(acceptInvitation)}>{busy ? "Joining…" : "Join this home"}</PrimaryButton>
           </>
         ) : !household ? (
           <>
@@ -227,15 +227,15 @@ export function HouseholdOnboarding() {
             <label className="partner-consent">
               <input type="checkbox" checked={partnerPersonalizationOptIn} onChange={(event) => setPartnerPersonalizationOptIn(event.target.checked)} />
               <span>
-                <strong>Use my household profile for partner personalization</strong>
-                <small>Optional. This can help FamOS recommend relevant integrations, offers, and sponsored experiences later. We should never sell identifiable household data without explicit consent.</small>
+                <strong>Use my household profile to make suggestions more relevant</strong>
+                <small>Optional. This can help FamOS recommend better integrations and partner offers later. Identifiable household data should never be sold without explicit consent.</small>
               </span>
             </label>
 
             <PrimaryButton disabled={busy} onClick={saveProfile}>{busy ? "Saving…" : "Save family profile"}</PrimaryButton>
           </div>
         ) : (
-          <><TextField type="text" label="Family member emails" placeholder="alex@example.com, sam@example.com" value={inviteEmails} onChange={(e)=>setInviteEmails(e.target.value)}/><p className="onboarding-hint">Separate multiple email addresses with commas. Each person will receive a secure FamilyOS signup invitation.</p><PrimaryButton disabled={busy||!inviteEmails.trim()} onClick={()=>run(async()=>{const emails=inviteEmails.split(",").map(value=>value.trim()).filter(Boolean);for(const email of emails)await invitePartner(email)})}>{busy?"Sending invitations…":"Send invitations & continue"}</PrimaryButton><SecondaryButton type="button" className="mt-2 onboarding-skip-button" disabled={busy} onClick={skipOnboardingInvites}>Skip for now</SecondaryButton></>
+          <><TextField type="text" label="Family member emails" placeholder="alex@example.com, sam@example.com" value={inviteEmails} onChange={(e)=>setInviteEmails(e.target.value)}/><p className="onboarding-hint">Separate multiple emails with commas. Each person gets a secure FamOS invite.</p><PrimaryButton disabled={busy||!inviteEmails.trim()} onClick={()=>run(async()=>{const emails=inviteEmails.split(",").map(value=>value.trim()).filter(Boolean);for(const email of emails)await invitePartner(email)})}>{busy?"Sending invites…":"Send invites & continue"}</PrimaryButton><SecondaryButton type="button" className="mt-2 onboarding-skip-button" disabled={busy} onClick={skipOnboardingInvites}>Skip for now</SecondaryButton></>
         )}
         {error && <div className="onboarding-recovery"><p>{error}</p>{/already belong to a household/i.test(error)&&<button disabled={busy} onClick={()=>run(()=>refreshAccount(session))}>Open my existing household</button>}</div>}
       </Card>
