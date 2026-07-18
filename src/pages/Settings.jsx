@@ -305,13 +305,6 @@ export default function Settings() {
     setPendingInvites(data || []);
   };
 
-  const reconcileInvites = async () => {
-    if (!configured || !household?.id || !supabase) return;
-    setInviteActionStatus("Refreshing invitations…");
-    await loadPendingInvites();
-    setInviteActionStatus("Invitation list refreshed.");
-  };
-
   const revokeInvite = async (invite) => {
     if (!supabase) return;
     const { error } = await supabase.from("household_invitations").delete().eq("id", invite.id);
@@ -351,6 +344,21 @@ export default function Settings() {
       setInviteStatus(error.message || "Could not send this invitation.");
     } finally {
       setInviting(false);
+    }
+  };
+
+  const resendHouseholdInvite = async (invite) => {
+    if (!invite?.email || inviting) return;
+    setInviting(true);
+    setInviteActionStatus("");
+    try {
+      const result = await invitePartner(invite.email, invite.phone || "");
+      setInviteActionStatus(result?.message || `Invitation resent to ${invite.email}.`);
+    } catch (error) {
+      setInviteActionStatus(error.message || `Could not resend the invitation to ${invite.email}.`);
+    } finally {
+      setInviting(false);
+      await loadPendingInvites();
     }
   };
 
@@ -497,7 +505,7 @@ export default function Settings() {
                   <div className="min-w-0 flex-1"><p>{invite.email}</p><span>{invite.phone ? `${invite.phone} · ` : ""}Still waiting for them to join</span></div>
                   <div className="pending-invite-actions">
                     <span className="pending-pill">Pending</span>
-                    <button onClick={reconcileInvites}><RefreshCw size={12} /> Refresh</button>
+                    <button disabled={inviting} onClick={() => resendHouseholdInvite(invite)}><RefreshCw size={12} /> {inviting ? "Sending…" : "Resend"}</button>
                     <button className="danger" onClick={() => revokeInvite(invite)}><Trash2 size={12} /> Revoke</button>
                   </div>
                 </li>

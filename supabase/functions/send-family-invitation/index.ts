@@ -19,6 +19,20 @@ const escapeHtml = (value = "") => value
   .replaceAll('"', "&quot;")
   .replaceAll("'", "&#039;");
 
+async function findAuthUserByEmail(admin: ReturnType<typeof createClient>, email: string) {
+  // `profiles` can briefly lag behind Auth (or contain a legacy/orphaned row),
+  // so it is not a reliable way to decide between an invite and a magic link.
+  // The Admin API is the source of truth for whether this email can receive OTP.
+  for (let page = 1; page <= 10; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw error;
+    const match = data.users.find((candidate) => candidate.email?.toLowerCase() === email);
+    if (match) return match;
+    if (data.users.length < 1000) return null;
+  }
+  return null;
+}
+
 function invitationEmail({
   actionLink,
   appOrigin: _appOrigin,
@@ -101,6 +115,7 @@ FamOS — Families Run Better on FamOS`;
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const requestId = crypto.randomUUID();
   try {
     const authorization = request.headers.get("Authorization");
     if (!authorization) throw new Error("You must be signed in to invite family members.");
@@ -158,11 +173,19 @@ Deno.serve(async (request) => {
     }
     if (invitationError) throw invitationError;
 
-    const { data: existingProfile } = await admin.from("profiles").select("id").ilike("email", normalizedEmail).maybeSingle();
+    const existingAuthUser = await findAuthUserByEmail(admin, normalizedEmail);
     const appOrigin = new URL(redirectTo || "https://fam-os.app").origin;
-    const callbackUrl = existingProfile ? `${appOrigin}/signin` : `${appOrigin}/signin?invite=1`;
+    const callbackUrl = existingAuthUser ? `${appOrigin}/signin` : `${appOrigin}/signin?invite=1`;
     const householdName = household?.name || "your family home";
     const inviterName = inviterProfile?.display_name || user.user_metadata?.display_name || user.email?.split("@")[0] || "A family member";
+    console.log(JSON.stringify({
+      event: "family_invitation_started",
+      requestId,
+      existingAccount: Boolean(existingAuthUser),
+      emailProvider: resendKey ? "resend" : "supabase_smtp",
+      smsRequested: Boolean(normalizedPhone),
+      awsRegion: Deno.env.get("AWS_REGION") || "ca-central-1",
+    }));
     const sms = { requested: Boolean(normalizedPhone), sent: false, message: "" };
     if (normalizedPhone) {
       const awsAccessKeyId = Deno.env.get("AWS_ACCESS_KEY_ID");
@@ -189,6 +212,7 @@ Deno.serve(async (request) => {
           }));
           sms.sent = Boolean(result.MessageId);
           sms.message = sms.sent ? "" : "Amazon SNS did not return a message ID";
+          console.log(JSON.stringify({ event: "family_invitation_sms", requestId, sent: sms.sent }));
         } catch (error) {
           const awsMessage = error.message || "";
           sms.message = /needs a subscription|can't determine whether.*sandbox|PinpointSmsVoiceV2/i.test(awsMessage)
@@ -196,6 +220,12 @@ Deno.serve(async (request) => {
             : /authorization|not authorized|accessdenied/i.test(awsMessage)
               ? "The FamOS AWS key is missing sns:Publish permission."
               : awsMessage || "Amazon SNS did not accept the message";
+          console.error(JSON.stringify({
+            event: "family_invitation_sms_failed",
+            requestId,
+            errorName: error?.name || "Error",
+            message: sms.message,
+          }));
         }
       }
     }
@@ -205,7 +235,7 @@ Deno.serve(async (request) => {
     // for an existing account. Once RESEND_API_KEY is present, the branded
     // FamOS template below becomes the delivery path automatically.
     if (!resendKey) {
-      if (existingProfile) {
+      if (existingAuthUser) {
         const deliveryClient = createClient(url, anonKey, { auth: { autoRefreshToken: false, persistSession: false } });
         const { error: otpError } = await deliveryClient.auth.signInWithOtp({
           email: normalizedEmail,
@@ -216,16 +246,17 @@ Deno.serve(async (request) => {
         const { error: defaultInviteError } = await admin.auth.admin.inviteUserByEmail(normalizedEmail, { redirectTo: callbackUrl });
         if (defaultInviteError) throw defaultInviteError;
       }
+      console.log(JSON.stringify({ event: "family_invitation_email", requestId, provider: "supabase_smtp", sent: true }));
       return json({
         sent: true,
-        existingAccount: Boolean(existingProfile),
+        existingAccount: Boolean(existingAuthUser),
         pending: true,
         provider: "supabase",
         sms,
       });
     }
 
-    const linkType = existingProfile ? "magiclink" : "invite";
+    const linkType = existingAuthUser ? "magiclink" : "invite";
     const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
       type: linkType,
       email: normalizedEmail,
@@ -253,16 +284,23 @@ Deno.serve(async (request) => {
     });
     const emailResult = await emailResponse.json();
     if (!emailResponse.ok) throw new Error(emailResult?.message || "The invitation was saved, but the branded email could not be sent.");
+    console.log(JSON.stringify({ event: "family_invitation_email", requestId, provider: "resend", sent: true }));
 
     return json({
       sent: true,
-      existingAccount: Boolean(existingProfile),
+      existingAccount: Boolean(existingAuthUser),
       pending: true,
       emailId: emailResult.id,
       provider: "resend",
       sms,
     });
   } catch (error) {
+    console.error(JSON.stringify({
+      event: "family_invitation_failed",
+      requestId,
+      errorName: error?.name || "Error",
+      message: error?.message || "Unknown invitation error",
+    }));
     return json({ error: error.message }, 400);
   }
 });

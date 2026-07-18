@@ -1,4 +1,4 @@
-import { CalendarDays, ChefHat, ChevronRight, Clock3, Home, ListChecks, MapPin, Moon, ShoppingCart, Sparkles, Sun, Users } from "lucide-react";
+import { CalendarDays, ChefHat, ChevronRight, Clock3, Home, ListChecks, MapPin, ShoppingCart, Sparkles, Users } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, AvatarStack, Card, Checkbox, EmptyState, Tag, colorVar } from "../components/ui";
@@ -55,7 +55,6 @@ export default function Today({ goTo }) {
   const weekDays = Array.from({ length: 7 }, (_, index) => addDays(today, index));
   const weekEnd = weekDays[weekDays.length - 1];
   const greeting = greetingInfo();
-  const GreetingIcon = greeting.icon === "sun" ? Sun : Moon;
   const allEvents = [...events, ...googleEvents, ...feedEvents];
 
   const todaysEvents = allEvents
@@ -118,20 +117,21 @@ export default function Today({ goTo }) {
   const signedInMember = members.find((member) => member.id === user?.id);
   const firstName = (signedInMember?.name || profile?.display_name || "").trim().split(/\s+/)[0];
   const greetingName = firstName ? firstName.charAt(0).toUpperCase() + firstName.slice(1) : "";
+  const shortenedGreeting = greeting.text.replace(/^Good\s+/i, "");
+  const greetingLabel = shortenedGreeting.charAt(0).toUpperCase() + shortenedGreeting.slice(1);
 
   return (
     <div className="pb-24 reference-dashboard">
       <PageHeader
         eyebrow={fullDateLabel(today)}
-        title={`${greeting.text}${greetingName ? `, ${greetingName}` : ""}`}
-        subtitle={dailyEncouragement(today)}
-        titleIcon={
-          <span
-            className="inline-flex items-center justify-center w-7 h-7 rounded-full shrink-0 bg-white border border-[var(--color-border)]"
-          >
-            <GreetingIcon size={15} color={greeting.icon === "sun" ? "var(--color-warn)" : "var(--color-accent)"} strokeWidth={2.2} />
+        title={
+          <span className="today-greeting-copy">
+            <span>{greetingLabel}{greetingName ? "," : ""}</span>
+            {greetingName && <span>{greetingName}</span>}
           </span>
         }
+        subtitle={dailyEncouragement(today)}
+        illustration="home"
       />
 
       <div className="px-5 space-y-6 mt-2">
@@ -292,10 +292,10 @@ export default function Today({ goTo }) {
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Groceries</p>
-                <h2 className="ui-section-title">Grocery radar</h2>
+                <h2 className="ui-section-title">Grocery list</h2>
               </div>
               <button onClick={() => goTo("groceries")} className="text-[13px] font-semibold text-[var(--color-accent)] flex items-center gap-0.5">
-                Shop list <ChevronRight size={14} />
+                View list <ChevronRight size={14} />
               </button>
             </div>
             {activeGroceries.length === 0 ? (
@@ -304,12 +304,12 @@ export default function Today({ goTo }) {
               <>
                 <div className="flex flex-wrap gap-2 mb-3">
                   {groceryCategories.slice(0, 4).map(([category, count]) => (
-                    <span key={category} className="inline-flex items-center rounded-full border border-[var(--color-border)] bg-white px-2.5 py-1 text-xs font-medium text-[var(--color-good)]">{category} · {count}</span>
+                    <span key={category} className="today-category-chip inline-flex items-center rounded-full border border-[var(--color-border)] bg-white px-2.5 py-1 text-xs font-medium text-[var(--color-good)]">{category} · {count}</span>
                   ))}
                 </div>
                 <div className="grid sm:grid-cols-2 gap-2">
                   {activeGroceries.slice(0, 6).map((item) => (
-                    <div key={item.id} className="rounded-2xl border border-[var(--color-border)] bg-white px-3 py-2.5">
+                    <div key={item.id} className="today-list-item rounded-2xl border border-[var(--color-border)] bg-white px-3 py-2.5">
                       <p className="text-[13px] font-semibold text-[var(--color-ink)] truncate">{item.name}</p>
                       <p className="text-[11.5px] text-[var(--color-ink-soft)]">{item.category || "Other"}{item.quantity ? ` · ${item.quantity}${item.unit ? ` ${item.unit}` : ""}` : ""}</p>
                     </div>
@@ -325,20 +325,22 @@ export default function Today({ goTo }) {
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Tasks</p>
-                <h2 className="ui-section-title">Tiny missions</h2>
+                <h2 className="ui-section-title">Today’s tasks</h2>
               </div>
               <button onClick={() => goTo("tasks")} className="text-[13px] font-semibold text-[var(--color-accent)] flex items-center gap-0.5">
-                Task board <ChevronRight size={14} />
+                View tasks <ChevronRight size={14} />
               </button>
             </div>
             {todaysTasks.length === 0 ? (
-              <EmptyState title="Nothing due today" subtitle="You’re all caught up. Frame it." />
+              <div className="today-compact-empty">
+                <EmptyState title="No tasks due today" subtitle="You’re all caught up." />
+              </div>
             ) : (
               <ul className="grid md:grid-cols-2 gap-2">
                 {todaysTasks.map((t) => {
                   const assignee = memberById[t.assigneeId];
                   return (
-                    <li key={t.id} className="flex items-center gap-3 px-3 py-2.5 rounded-2xl bg-white border border-[var(--color-border)]">
+                    <li key={t.id} className="today-list-item flex items-center gap-3 px-3 py-2.5 rounded-2xl bg-white border border-[var(--color-border)]">
                       <Checkbox checked={t.done} onChange={() => toggleTask(t.id)} color={assignee?.color} />
                       <span className={`flex-1 text-[14px] ${t.done ? "line-through text-[var(--color-ink-faint)]" : "text-[var(--color-ink)]"}`}>
                         {t.title}

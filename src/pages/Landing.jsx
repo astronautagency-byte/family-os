@@ -1,19 +1,20 @@
 import { useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowRight, Baby, Bot, CalendarDays, Check, CheckSquare, ChefHat, Gift, GraduationCap, Heart, LockKeyhole, MessageCircle, Minus, Plus, ShieldCheck, ShoppingCart, Sparkles, Users } from "lucide-react";
 import "../landing.css";
 import "../landing-theme.css";
 import { PRICING_PLAN, formatMoney } from "../data/pricingPlan";
-gsap.registerPlugin(useGSAP);
+gsap.registerPlugin(useGSAP, ScrollTrigger);
 
 const features = [
-  { label: "Calendar", title: "One calendar. Fewer surprises.", copy: "Sync multiple Google Calendars, colour-code the week, and add places with Google Maps suggestions.", icon: CalendarDays, art: "calendar", tone: "lilac" },
-  { label: "Meals", title: "Meal planning for the week.", copy: "Plan one or two weeks, save recipes, set dietary notes, and launch a hands-free cook mode.", icon: ChefHat, art: "meals", tone: "yellow" },
-  { label: "Tasks", title: "Chores with an owner.", copy: "Assign the thing, clear the list, and keep rewards ready for kid accounts when the time is right.", icon: CheckSquare, art: "tasks", tone: "pink" },
-  { label: "Groceries", title: "Shared grocery lists.", copy: "Quick-add favourites, scan barcodes, focus shop in-store, then copy or share the list to your grocery app.", icon: ShoppingCart, art: "groceries", tone: "mint" },
-  { label: "Family chat", title: "Family chat, with context.", copy: "Message the household without losing the plan you were talking about.", icon: MessageCircle, art: "chat", tone: "blue" },
-  { label: "Fam AI", title: "Helpful suggestions when you need them.", copy: "Ask for meals from groceries, groceries from meals, or tasks from calendar events.", icon: Bot, art: "famai", tone: "peach" },
+  { label: "Calendar", title: "One calendar. Fewer surprises.", previewHeadline: "Every calendar, one clear week.", copy: "Sync multiple Google Calendars, colour-code event types, and add places with Maps suggestions.", icon: CalendarDays, art: "calendar", tone: "lilac" },
+  { label: "Meals", title: "Meal planning for the week.", previewHeadline: "Plan meals without the daily scramble.", copy: "Plan one or two weeks, save recipes, set dietary notes, and launch a hands-free cook mode.", icon: ChefHat, art: "meals", tone: "yellow" },
+  { label: "Tasks", title: "Chores with an owner.", previewHeadline: "Give every task a clear owner.", copy: "Assign the thing, clear the list, and keep rewards ready for kid accounts when the time is right.", icon: CheckSquare, art: "tasks", tone: "pink" },
+  { label: "Groceries", title: "Shared grocery lists.", previewHeadline: "One list, ready for the store.", copy: "Quick-add favourites, scan barcodes, focus shop in-store, then copy or share the list to your grocery app.", icon: ShoppingCart, art: "groceries", tone: "mint" },
+  { label: "Family chat", title: "Family chat, with context.", previewHeadline: "Keep family conversations together.", copy: "Message the household without losing the plan you were talking about.", icon: MessageCircle, art: "chat", tone: "blue" },
+  { label: "Fam AI", title: "Helpful suggestions when you need them.", previewHeadline: "Helpful next steps from household context.", copy: "Ask for meals from groceries, groceries from meals, or tasks from calendar events.", icon: Bot, art: "famai", tone: "peach" },
 ];
 
 const capabilityHighlights = [
@@ -54,6 +55,7 @@ const pricingAddOns = [
 ];
 
 function PricingSection({ signedIn }) {
+  const pricingRef = useRef(null);
   const [billing, setBilling] = useState("monthly");
   const [members, setMembers] = useState(PRICING_PLAN.basePlan.membersIncluded);
   const [addOns, setAddOns] = useState({ fam_ai: PRICING_PLAN.trial.famAiPretoggled });
@@ -71,8 +73,16 @@ function PricingSection({ signedIn }) {
   const displayedTotal = billing === "annual" ? annualTotal : monthlySubtotal;
   const savings = monthlySubtotal * 12 - annualTotal;
   const annualizeMonthly = (value) => value * 12 * annualDiscount;
+  useGSAP(() => {
+    const media = gsap.matchMedia();
+    media.add("(prefers-reduced-motion: no-preference)", () => {
+      gsap.fromTo(".pricing-card-head h3", { scale: .94, autoAlpha: .72 }, { scale: 1, autoAlpha: 1, duration: .38, ease: "back.out(1.7)", overwrite: "auto" });
+      gsap.fromTo(".pricing-total b", { y: 7, autoAlpha: .55 }, { y: 0, autoAlpha: 1, duration: .34, ease: "power2.out", overwrite: "auto" });
+    });
+    return () => media.revert();
+  }, { scope: pricingRef, dependencies: [billing, members, addOnCost], revertOnUpdate: true });
 
-  return <section className="landing-pricing" id="pricing">
+  return <section className="landing-pricing" id="pricing" ref={pricingRef}>
     <div className="landing-section-head"><p>Simple pricing</p><h2>Start small.<br/>Invite the whole crew.</h2><span>Try FamOS free for {PRICING_PLAN.trial.days} days. {PRICING_PLAN.basePlan.membersIncluded} people are included, then each extra member is {formatMoney(PRICING_PLAN.basePlan.additionalMemberPrice.monthly)}/month.</span></div>
     <div className="pricing-shell">
       <div className="pricing-main">
@@ -83,7 +93,7 @@ function PricingSection({ signedIn }) {
         <article className="pricing-card">
           <div className="pricing-card-head">
             <span><Users/></span>
-            <div><p>Family plan</p><h3>{formatMoney(displayedTotal)}<small>{billing === "annual" ? "/year" : "/month"}</small></h3></div>
+            <div><p>Family plan</p><h3><span>{formatMoney(displayedTotal)}</span><small>{billing === "annual" ? "per year" : "per month"}</small></h3></div>
           </div>
           <p className="pricing-note">{billing === "annual" ? `${formatMoney(annualTotal)} billed yearly after your ${PRICING_PLAN.trial.days}-day free trial — about ${formatMoney(annualMonthlyEquivalent)}/month.` : `Billed monthly after your ${PRICING_PLAN.trial.days}-day free trial. Card required.`}</p>
           <div className="family-size-control">
@@ -154,8 +164,82 @@ export default function Landing({ signedIn = false }) {
   const [stage, setStage] = useState(2);
   const [feature, setFeature] = useState(0);
   const selectedStage = stages[stage];
-  useGSAP(() => { const media=gsap.matchMedia(); media.add("(prefers-reduced-motion: no-preference)",()=>{gsap.from(".landing-nav",{y:-18,autoAlpha:0,duration:.55,ease:"power2.out"});gsap.from(".landing-hero-copy>*",{y:20,autoAlpha:0,duration:.55,stagger:.07,ease:"power2.out"});gsap.from(".landing-hero-media",{scale:.96,autoAlpha:0,duration:.75,ease:"power2.out"});gsap.to(".landing-float-card",{y:-9,rotation:"+=1.2",duration:2.4,stagger:.35,repeat:-1,yoyo:true,ease:"sine.inOut"});});return()=>media.revert();},{scope:root});
+  useGSAP(() => {
+    const media = gsap.matchMedia();
+    media.add("(prefers-reduced-motion: no-preference)", () => {
+      gsap.from(".landing-nav", { y: -18, autoAlpha: 0, duration: .55, ease: "power2.out" });
+      gsap.from(".landing-hero-copy>*", { y: 20, autoAlpha: 0, duration: .55, stagger: .07, ease: "power2.out" });
+      gsap.from(".landing-hero-media", { scale: .96, autoAlpha: 0, duration: .75, ease: "power2.out" });
+      gsap.to(".landing-float-card", { y: -9, rotation: "+=1.2", duration: 2.4, stagger: .35, repeat: -1, yoyo: true, ease: "sine.inOut" });
+
+      const revealTargets = gsap.utils.toArray(".landing-purpose, .landing-section-head, .stage-panel, .landing-feature, .capability-grid article, .product-stage, .landing-ai, .landing-step-grid article, .landing-testimonials article, .landing-community, .landing-bento>article, .pricing-shell, .landing-privacy, .landing-final");
+      gsap.set(revealTargets, { y: 24, autoAlpha: 0 });
+      ScrollTrigger.batch(revealTargets, {
+        start: "top 88%",
+        once: true,
+        interval: .08,
+        batchMax: 4,
+        onEnter: (batch) => gsap.to(batch, { y: 0, autoAlpha: 1, duration: .62, stagger: .07, ease: "power3.out", overwrite: "auto" }),
+      });
+
+      gsap.to(".landing-hero-media", {
+        yPercent: 4,
+        ease: "none",
+        scrollTrigger: { trigger: ".landing-hero", start: "top top", end: "bottom top", scrub: .8 },
+      });
+
+      gsap.fromTo(".landing-scroll-progress", { scaleX: 0 }, {
+        scaleX: 1,
+        ease: "none",
+        scrollTrigger: { trigger: root.current, start: "top top", end: "bottom bottom", scrub: .25 },
+      });
+
+      gsap.utils.toArray(".landing-section-head h2, .landing-intro h2, .landing-community h2, .landing-privacy h2, .landing-final h2").forEach((heading) => {
+        gsap.from(heading, {
+          x: -26,
+          autoAlpha: 0,
+          duration: .7,
+          ease: "power3.out",
+          scrollTrigger: { trigger: heading, start: "top 86%", once: true },
+        });
+      });
+
+      gsap.utils.toArray(".stage-family-art, .landing-feature-top img, .landing-ai-art>img, .landing-final>img, .community-avatars").forEach((art) => {
+        gsap.fromTo(art, { yPercent: -3 }, {
+          yPercent: 4,
+          ease: "none",
+          scrollTrigger: { trigger: art, start: "top bottom", end: "bottom top", scrub: 1 },
+        });
+      });
+
+      gsap.utils.toArray(".purpose-grid article svg, .capability-grid article>span").forEach((icon, index) => {
+        gsap.to(icon, {
+          y: index % 2 ? 5 : -5,
+          rotation: index % 2 ? 3 : -3,
+          duration: 1.8 + (index % 3) * .25,
+          repeat: -1,
+          yoyo: true,
+          ease: "sine.inOut",
+        });
+      });
+
+      const interactiveCards = gsap.utils.toArray(".purpose-grid article, .landing-feature, .capability-grid article, .landing-step-grid article");
+      const listeners = interactiveCards.map((card) => {
+        const enter = () => gsap.to(card, { y: -5, scale: 1.012, duration: .28, ease: "power2.out", overwrite: "auto" });
+        const leave = () => gsap.to(card, { y: 0, scale: 1, duration: .42, ease: "power3.out", overwrite: "auto" });
+        card.addEventListener("pointerenter", enter);
+        card.addEventListener("pointerleave", leave);
+        return () => {
+          card.removeEventListener("pointerenter", enter);
+          card.removeEventListener("pointerleave", leave);
+        };
+      });
+      return () => listeners.forEach((remove) => remove());
+    });
+    return () => media.revert();
+  }, { scope: root });
   return <div className="landing-page" ref={root}>
+    <div className="landing-scroll-progress" aria-hidden="true" />
     <nav className="landing-nav">
       <button className="landing-brand" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}><img src="/brand/famos-icon-transparent.png" alt=""/><strong>Fam<span>OS</span></strong></button>
       <div className="landing-links"><a href="#features">Features</a><a href="#how-it-works">How it works</a><a href="#families">For every family</a><a href="#pricing">Pricing</a></div>
@@ -168,17 +252,17 @@ export default function Landing({ signedIn = false }) {
         <div className="landing-hero-media"><img src="/marketing/family-planning-hero.png" alt="FamOS helping a family coordinate calendars, groceries, tasks, budgets, and AI planning at home"/><svg className="hero-squiggle hero-squiggle-one" viewBox="0 0 150 70" aria-hidden="true"><path d="M5 49c20-55 42 30 64-7s37-19 44 4 24 8 31-12"/></svg><svg className="hero-squiggle hero-squiggle-two" viewBox="0 0 110 62" aria-hidden="true"><path d="M4 30c15-27 28 27 43 0s27-16 33 3 17 8 25-9"/></svg><span className="hero-spark hero-spark-one" aria-hidden="true">✦</span><span className="hero-spark hero-spark-two" aria-hidden="true">✦</span><span className="landing-float-note landing-float-card"><CheckSquare/> Three things handled before breakfast</span><span className="landing-float-note landing-float-card second"><CalendarDays/><b>4:30</b> Soccer pickup</span><span className="landing-float-note landing-float-card third"><ShoppingCart/><b>6 items</b> Shared grocery list</span></div>
       </section>
 
-      <section className="landing-purpose" id="app-purpose"><div><p>Meet FamOS</p><h2>One place for family life.</h2><span>FamOS helps your household manage shared calendars, Google Calendar sync, meals, saved recipes, dietary needs, groceries, barcode scanning, chat, tasks, and Fam AI.</span><div className="purpose-actions"><button onClick={() => go(signedIn ? "today" : "signup")}>{signedIn ? "Open FamOS" : "Start free trial"}<ArrowRight/></button>{!signedIn&&<button onClick={() => go("signin")}>Sign in</button>}</div></div><div className="purpose-grid"><article><CalendarDays/><h3>Calendars in sync</h3><p>Sync multiple Google Calendars, colour-code event types, and add places with Maps suggestions.</p></article><article><Users/><h3>Household updates</h3><p>Invite your people, share updates, chat, and give tasks a clear owner.</p></article><article><LockKeyhole/><h3>Private by design</h3><p>Your home space belongs to your household. Disconnect access anytime.</p></article></div></section>
+      <section className="landing-purpose" id="app-purpose"><div><p>Meet FamOS</p><h2>Family life, together.</h2><span>Calendars, meals, groceries, tasks, chat, and helpful planning—all in one private household space.</span><div className="purpose-actions"><button onClick={() => go(signedIn ? "today" : "signup")}>{signedIn ? "Open FamOS" : "Start free trial"}<ArrowRight/></button>{!signedIn&&<button onClick={() => go("signin")}>Sign in</button>}</div></div><div className="purpose-grid"><article><CalendarDays/><h3>Shared calendars</h3><p>Sync Google Calendars, colour-code the week, and add real places.</p></article><article><Users/><h3>Family updates</h3><p>Share plans, chat, and give every task a clear owner.</p></article><article><LockKeyhole/><h3>Private home</h3><p>Your household controls who can see and join your space.</p></article></div></section>
 
       <section className="landing-intro" id="families"><p>WHY FAMOS</p><h2>All the moving parts.<br/>One warm, shared place.</h2><blockquote>FamOS puts the “Fam” in family.</blockquote><div className="landing-family-pills"><span>New parents</span><span>Busy households</span><span>Co-parents</span><span>Multigenerational families</span><span>Families across cities</span></div></section>
 
-      <section className="landing-stages"><div className="landing-section-head"><p>Built for every chapter</p><h2>Wherever your family is,<br/>FamOS fits.</h2><span>Pick a chapter. The app flexes around the real-life version.</span></div><div className="stage-tabs" role="tablist">{stages.map(({id,label,icon:Icon},index)=><button role="tab" aria-selected={stage===index} className={`${id} ${stage===index?"active":""}`} onClick={()=>setStage(index)} key={label}><Icon/>{label}</button>)}</div><div className={`stage-panel stage-${selectedStage.id}`} key={selectedStage.id}><div><p>{selectedStage.label}</p><h3>{selectedStage.title}</h3><span>{selectedStage.copy}</span><div className="stage-chips">{selectedStage.chips.map(item=><b key={item}><Check/>{item}</b>)}</div></div><img className="stage-family-art" src={selectedStage.artSrc} alt="" aria-hidden="true"/></div></section>
+      <section className="landing-stages"><div className="landing-section-head"><p>Built for every chapter</p><h2><span className="no-orphan-line">Wherever your family is,</span><br/>FamOS fits.</h2><span>Pick a chapter. The app flexes around the real-life version.</span></div><div className="stage-tabs" role="tablist">{stages.map(({id,label,icon:Icon},index)=><button role="tab" aria-selected={stage===index} className={`${id} ${stage===index?"active":""}`} onClick={()=>setStage(index)} key={label}><Icon/>{label}</button>)}</div><div className={`stage-panel stage-${selectedStage.id}`} key={selectedStage.id}><div><p>{selectedStage.label}</p><h3>{selectedStage.title}</h3><span>{selectedStage.copy}</span><div className="stage-chips">{selectedStage.chips.map(item=><b key={item}><Check/>{item}</b>)}</div></div><img className="stage-family-art" src={selectedStage.artSrc} alt="" aria-hidden="true"/></div></section>
 
       <section className="landing-features" id="features"><div className="landing-section-head"><p>Everything in sync</p><h2>Plan the week<br/>with less back-and-forth.</h2><span>FamOS keeps schedules, meals, lists, and tasks easy to find.</span></div><div className="landing-feature-grid">{features.map(({title,copy,icon:Icon,art,tone})=><article className={`landing-feature ${tone}`} key={title}><div className="landing-feature-top"><span><Icon/></span><img src={`/illustrations/${art}-editorial.png`} alt="" aria-hidden="true"/></div><h3>{title}</h3><p>{copy}</p></article>)}</div></section>
 
       <section className="landing-capabilities"><div className="landing-section-head"><p>Little helpers, big relief</p><h2>The details that make it useful.</h2><span>Not just pretty screens. These are the small, practical moments that make FamOS feel like it actually lives with your family.</span></div><div className="capability-grid">{capabilityHighlights.map(({title,copy,icon:Icon,tone})=><article className={tone} key={title}><span><Icon/></span><h3>{title}</h3><p>{copy}</p></article>)}</div></section>
 
-      <section className="landing-product"><div className="landing-section-head"><p>See it work</p><h2>See how<br/>FamOS works.</h2><span>Choose a feature to preview the flow.</span></div><div className="product-tabs" role="tablist">{features.map(({label,title,icon:Icon},index)=><button role="tab" aria-selected={feature===index} className={feature===index?"active":""} onClick={()=>setFeature(index)} key={title}><Icon/>{label}</button>)}</div><div className="product-stage"><div key={feature}><p>{features[feature].title}</p><h3>{features[feature].copy}</h3><ul><li><Check/> Shared across your household</li><li><Check/> Context-aware next steps</li><li><Check/> Review before anything changes</li></ul></div><ProductPreview feature={feature}/></div></section>
+      <section className="landing-product"><div className="landing-section-head"><p>See it work</p><h2>See how<br/>FamOS works.</h2><span>Choose a feature to preview the flow.</span></div><div className="product-tabs" role="tablist">{features.map(({label,title,icon:Icon},index)=><button role="tab" aria-selected={feature===index} className={feature===index?"active":""} onClick={()=>setFeature(index)} key={title}><Icon/>{label}</button>)}</div><div className="product-stage"><div key={feature}><p>{features[feature].title}</p><h3>{features[feature].previewHeadline}</h3><span className="product-stage-copy">{features[feature].copy}</span><ul><li><Check/> Shared across your household</li><li><Check/> Context-aware next steps</li><li><Check/> Review before anything changes</li></ul></div><ProductPreview feature={feature}/></div></section>
 
       <section className="landing-ai" id="how-it-works"><div className="landing-ai-art"><img src="/illustrations/famai-editorial.png" alt="Fam AI planning a family weekend"/><svg className="ai-squiggle" viewBox="0 0 130 60" aria-hidden="true"><path d="M4 42c18-47 34 23 53-7s31-13 38 5 18 5 30-17"/></svg><span className="ai-bubble one">Use what’s in the pantry for dinners</span><span className="ai-bubble two">Ready for your review ✓</span></div><div><p className="landing-kicker"><Bot/> Meet Fam AI</p><h2>Plan faster.<br/>Review first.</h2><p>Ask for meal ideas, grocery lists, task plans, or schedule help. Fam AI suggests the next step and waits for approval.</p><ul><li><Check/> Connects meals, groceries, tasks, and calendar</li><li><Check/> Suggests actions from household context</li><li><Check/> Always asks before changing FamOS</li></ul></div></section>
 

@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Bookmark, CandyOff, Check, ChefHat, Clock, Coffee, Dices, FishOff, Leaf, ListChecks, MilkOff, NutOff, Plus, Soup, Sparkles, Sprout, Trash2, Users, WheatOff, X } from "lucide-react";
+import { ArrowLeft, Bookmark, CalendarPlus, CandyOff, Check, ChefHat, Clock, Coffee, Dices, FishOff, Leaf, ListChecks, MilkOff, NutOff, Soup, Sparkles, Sprout, Trash2, Users, WheatOff, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { AvatarStack, Card, Modal, PrimaryButton, SecondaryButton, TextField, colorVar } from "../components/ui";
 import PageHeader from "../components/PageHeader";
-import MealSuggestions from "../components/MealSuggestions";
 import { MEAL_SLOTS } from "../data/mockData";
-import { groceryItemsForMealTitle, recipeDetailForTitle, recipeSearchProfileForMeal } from "../data/recipeBox";
+import { CUISINES, groceryItemsForMealTitle, normaliseDietaryPreferences, recipeDetailForTitle, recipeSearchProfileForMeal, recipesByCuisine } from "../data/recipeBox";
 import { addDays, formatDayLabel, todayISO } from "../lib/dates";
 import { supabase } from "../lib/supabase";
 
@@ -67,8 +66,7 @@ export default function Meals() {
   const [clearing, setClearing] = useState(false);
   const [editing, setEditing] = useState(null); // { date, slot }
   const [draft, setDraft] = useState({ title: "", notes: "", cookIds: [] });
-  const [showIdeas, setShowIdeas] = useState(false);
-  const [showEditorIdeas, setShowEditorIdeas] = useState(false);
+  const [showSavedRecipes, setShowSavedRecipes] = useState(false);
   const [ingredientsAdded, setIngredientsAdded] = useState(false);
   const [cookMeal, setCookMeal] = useState(null);
   const [cookRecipe, setCookRecipe] = useState(null);
@@ -77,6 +75,7 @@ export default function Meals() {
   const [cookMode, setCookMode] = useState(false);
   const [cookStep, setCookStep] = useState(0);
   const [savedRecipes, setSavedRecipes] = useState(() => readStoredJson(SAVED_RECIPES_KEY, []));
+  const [planningRecipe, setPlanningRecipe] = useState(null);
   const [dietaryPreferences, setDietaryPreferences] = useState(() => {
     const onboardingPreferences = householdProfileExtra ? {
       restrictions: householdProfileExtra.dietaryRestrictions || [],
@@ -105,13 +104,36 @@ export default function Meals() {
   const openEditor = (date, slot) => {
     const existing = mealFor(date, slot);
     setDraft({ title: existing?.title ?? "", notes: existing?.notes ?? "", cookIds: existing?.cookIds ?? [] });
-    setShowEditorIdeas(false);
+    setShowSavedRecipes(false);
     setIngredientsAdded(false);
     setEditing({ date, slot, mealId: existing?.id || null });
   };
 
   const toggleCook = (id) =>
     setDraft((d) => ({ ...d, cookIds: d.cookIds.includes(id) ? d.cookIds.filter((x) => x !== id) : [...d.cookIds, id] }));
+
+  const rouletteForSlot = async (date, slot) => {
+    const diet = normaliseDietaryPreferences(dietaryPreferences);
+    const choices = CUISINES.flatMap((cuisine) => recipesByCuisine(cuisine, slot, diet));
+    const choice = choices[Math.floor(Math.random() * choices.length)];
+    if (!choice) return;
+    await setMealForSlot(date, slot, {
+      title: choice.title,
+      notes: `${SLOT_META[slot].label} roulette · ${choice.cuisine}`,
+      cookIds: [],
+    });
+  };
+
+  const chooseSavedRecipe = async (recipeToPlan) => {
+    if (!editing || !recipeToPlan?.title) return;
+    await setMealForSlot(editing.date, editing.slot, {
+      title: recipeToPlan.title,
+      notes: `Saved recipe · ${recipeToPlan.cuisine || "Family favourite"}`,
+      cookIds: draft.cookIds,
+    });
+    setEditing(null);
+    setShowSavedRecipes(false);
+  };
 
   const save = () => {
     setMealForSlot(editing.date, editing.slot, draft);
@@ -358,17 +380,21 @@ export default function Meals() {
     setCookLoading(false);
   };
 
+  const addSavedRecipeToPlan = async (date, slot) => {
+    if (!planningRecipe?.title) return;
+    await setMealForSlot(date, slot, {
+      title: planningRecipe.title,
+      notes: `Saved recipe · ${planningRecipe.cuisine || "Family favourite"}`,
+      cookIds: [],
+    });
+    setPlanningRecipe(null);
+  };
+
   return (
     <div className="pb-24 reference-meals">
       <PageHeader eyebrow="Nourish & connect" title="Meal planner" illustration="meals" subtitle="Plan meals, save recipes, and start cook mode." action={meals.length?<button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button>:null} />
 
       <div className="meal-range-toggle px-5" aria-label="Meal planning range"><button className={horizon===7?"selected":""} onClick={()=>setHorizon(7)}>1 week</button><button className={horizon===14?"selected":""} onClick={()=>setHorizon(14)}>2 weeks</button></div>
-
-      <div className="meal-ideas-launcher px-5">
-        <button onClick={() => setShowIdeas((value) => !value)}><Dices /> Spin dinner roulette</button>
-        <button onClick={() => setShowIdeas(true)}><Sparkles /> Help me choose</button>
-      </div>
-      {showIdeas && <div className="px-5"><MealSuggestions mealType="dinner" dietaryPreferences={dietaryPreferences} onPick={async (title, notes) => { await setMealForSlot(todayISO(), "dinner", { title, notes, cookIds: [] }); setShowIdeas(false); }} /></div>}
 
       <section className="meal-preferences-card" aria-label="Meal planning preferences">
         <div className="meal-preferences-copy">
@@ -412,6 +438,10 @@ export default function Meals() {
                   <button className="saved-recipe-main" onClick={() => openSavedRecipe(savedRecipe)}>
                     <span>{savedRecipe.title}</span>
                     <small>{savedRecipe.readyInMinutes || 35} min · {savedRecipe.cuisine || "Family favourite"}</small>
+                    <strong><ChefHat size={14} /> Cook this recipe</strong>
+                  </button>
+                  <button className="saved-recipe-plan" onClick={() => setPlanningRecipe(savedRecipe)}>
+                    <CalendarPlus size={14} /><span>Add to plan</span>
                   </button>
                   <button className="saved-recipe-remove" onClick={() => removeSavedRecipe(id)} aria-label={`Remove ${savedRecipe.title}`}><X size={14} /></button>
                 </article>
@@ -425,7 +455,7 @@ export default function Meals() {
         {weekDays.map((date) => {
           const isToday = date === todayISO();
           return (
-            <Card key={date} className="p-4">
+            <Card key={date} className="meal-day-card p-4">
               <div className="flex items-center justify-between mb-3">
                 <p className="font-[var(--font-display)] font-semibold text-[15px] text-[var(--color-ink)]">
                   {formatDayLabel(date)}
@@ -443,25 +473,37 @@ export default function Meals() {
                   const cooks = (meal?.cookIds ?? []).map((id) => memberById[id]).filter(Boolean);
                   const isDinner = slot === "dinner";
                   return (
-                    <button
-                      key={slot}
-                      onClick={() => meal?.title ? openCookRecipe(meal) : openEditor(date, slot)}
-                      className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors"
-                      style={{ backgroundColor: isDinner ? "var(--color-surface-sunken)" : "transparent" }}
-                    >
-                      <Icon size={16} color="var(--color-ink-faint)" className="shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-ink-faint)]">
-                          {SLOT_META[slot].label}
-                        </p>
-                        <p className={`text-[14px] truncate ${meal?.title ? "text-[var(--color-ink)] font-medium" : "text-[var(--color-ink-faint)]"}`}>
-                          {meal?.title || "Pick something"}
-                        </p>
-                        {meal?.title && <span className="meal-cook-hint">Tap to cook step by step</span>}
+                    <div className={`meal-slot-row ${isDinner ? "is-dinner" : ""}`} key={slot}>
+                      <button
+                        onClick={() => meal?.title ? openCookRecipe(meal) : openEditor(date, slot)}
+                        className="meal-slot-button flex items-center gap-3 text-left transition-colors"
+                      >
+                        <Icon size={16} color="var(--color-ink-faint)" className="shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="meal-slot-label text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-ink-faint)]">
+                            {SLOT_META[slot].label}
+                          </p>
+                          <p className={`meal-slot-value text-[14px] truncate ${meal?.title ? "has-meal text-[var(--color-ink)] font-medium" : "is-empty text-[var(--color-ink-faint)]"}`}>
+                            {meal?.title || "Add a meal"}
+                          </p>
+                          {meal?.title && <span className="meal-cook-hint"><ChefHat size={12} /> Cook Mode available</span>}
+                        </div>
+                        {cooks.length > 0 && <AvatarStack members={cooks} size="sm" />}
+                      </button>
+                      <div className="meal-slot-actions">
+                        {meal?.title && (
+                          <button className="meal-start-cooking" onClick={() => openCookRecipe(meal)} aria-label={`Start cooking ${meal.title}`}>
+                            <ChefHat size={15} /><span>Cook</span>
+                          </button>
+                        )}
+                        <button className="meal-slot-tool" onClick={() => rouletteForSlot(date, slot)} aria-label={`Choose a random ${SLOT_META[slot].label.toLowerCase()}`} title="Meal roulette">
+                          <Dices size={15} /><span>Surprise me</span>
+                        </button>
+                        <button className="meal-slot-tool" onClick={() => { openEditor(date, slot); setShowSavedRecipes(true); }} aria-label={`Choose a saved recipe for ${SLOT_META[slot].label.toLowerCase()}`} title="Saved recipes">
+                          <Bookmark size={15} /><span>Saved</span>
+                        </button>
                       </div>
-                      {cooks.length > 0 && <AvatarStack members={cooks} size="sm" />}
-                      {!meal?.title && <Plus size={15} color="var(--color-ink-faint)" />}
-                    </button>
+                    </div>
                   );
                 })}
               </div>
@@ -485,14 +527,16 @@ export default function Meals() {
           onChange={(e) => setDraft((d) => ({ ...d, notes: e.target.value }))}
         />
 
-        <button className="modal-ideas-toggle" onClick={() => setShowEditorIdeas((value) => !value)}>
-          <Sparkles size={17} /> {showEditorIdeas ? "Hide meal ideas" : "Stuck? Let’s find something"}
-        </button>
-        {showEditorIdeas && <MealSuggestions
-          mealType={editing?.slot}
-          dietaryPreferences={dietaryPreferences}
-          onPick={(title, notes) => { setDraft((d) => ({ ...d, title, notes: d.notes || notes })); setIngredientsAdded(false); setShowEditorIdeas(false); }}
-        />}
+        <div className="meal-editor-tools">
+          <button onClick={() => editing && rouletteForSlot(editing.date, editing.slot).then(() => setEditing(null))}><Dices size={16} /> Roulette</button>
+          <button onClick={() => setShowSavedRecipes((value) => !value)}><Bookmark size={16} /> Saved recipes</button>
+        </div>
+        {showSavedRecipes && (
+          <div className="saved-recipe-picker">
+            <div><strong>Saved recipes</strong><span>{savedRecipes.length ? "Choose one for this meal." : "Save recipes from Cook Mode and they’ll appear here."}</span></div>
+            {savedRecipes.length > 0 && <ul>{savedRecipes.map((saved) => <li key={saved.id}><button onClick={() => chooseSavedRecipe(saved)}><span>{saved.title}</span><small>{saved.cuisine} · {saved.readyInMinutes} min</small></button></li>)}</ul>}
+          </div>
+        )}
 
         {recipe && (
           <div className="recipe-detail-card">
@@ -556,6 +600,29 @@ export default function Meals() {
         </div>
       </Modal>
       <Modal open={clearing} onClose={()=>setClearing(false)} title="Clear the meal plan?"><p className="reset-confirm-copy">This clears planned meals. Your ideas and family members stay put.</p><div className="reset-confirm-actions"><button onClick={()=>setClearing(false)}>Cancel</button><PrimaryButton onClick={async()=>{await clearMeals();setClearing(false)}}>Clear meals</PrimaryButton></div></Modal>
+      <Modal open={!!planningRecipe} onClose={() => setPlanningRecipe(null)} title={planningRecipe ? `Add ${planningRecipe.title}` : "Add recipe to plan"}>
+        <p className="saved-plan-intro">Choose when you want to make it. Selecting an occupied meal replaces the current plan.</p>
+        <div className="saved-plan-days">
+          {weekDays.map((date) => (
+            <section key={date}>
+              <strong>{formatDayLabel(date)}</strong>
+              <div>
+                {MEAL_SLOTS.map((slot) => {
+                  const existing = mealFor(date, slot);
+                  const Icon = SLOT_META[slot].icon;
+                  return (
+                    <button key={slot} onClick={() => addSavedRecipeToPlan(date, slot)}>
+                      <Icon size={15} />
+                      <span>{SLOT_META[slot].label}</span>
+                      <small>{existing?.title || "Open"}</small>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+        </div>
+      </Modal>
       {cookMeal && cookRecipe && (
         <div className="cook-focus-screen" role="dialog" aria-modal="true" aria-label={`Recipe for ${cookRecipe.title}`}>
           <div className="cook-focus-shell">
@@ -605,7 +672,10 @@ export default function Meals() {
                   </ol>
                   {cookRecipe.sourceUrl && <a className="cook-source-link" href={cookRecipe.sourceUrl} target="_blank" rel="noreferrer">Open original recipe</a>}
                 </Card>
-                <button className="cook-primary-action" onClick={() => { setCookMode(true); setCookStep(0); }}>Start cooking</button>
+                <button className="cook-primary-action" onClick={() => { setCookMode(true); setCookStep(0); }}>
+                  <ChefHat size={21} />
+                  <span><strong>Start Cook Mode</strong><small>Hands-friendly, one step at a time</small></span>
+                </button>
               </div>
             ) : (
               <div className="cook-guide-layout">

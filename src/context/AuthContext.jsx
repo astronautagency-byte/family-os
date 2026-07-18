@@ -682,8 +682,7 @@ export function AuthProvider({ children }) {
     return {
       sent: false,
       pending: true,
-      message:
-        "Invite saved, but the email service is not reachable yet. Deploy/configure the Supabase send-family-invitation Edge Function to send invitation emails.",
+      message: `Invite saved, but delivery failed: ${emailServiceMessage}`,
     };
   };
 
