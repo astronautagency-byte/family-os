@@ -127,6 +127,22 @@ async function getFunctionErrorMessage(functionError) {
   return functionError?.message || "Could not reach the invitation email service.";
 }
 
+function getAuthErrorMessage(authError, fallback) {
+  const candidates = [
+    authError?.message,
+    authError?.error_description,
+    authError?.error,
+    authError?.cause?.message,
+    authError?.context?.message,
+  ];
+  const message = candidates.find((candidate) => typeof candidate === "string" && candidate.trim());
+  if (!message || message === "{}" || message === "[object Object]") return fallback;
+  if (/error sending (recovery|magic link|email)|unexpected_failure/i.test(message)) {
+    return "FamOS could not send the email right now. Please try again shortly.";
+  }
+  return message;
+}
+
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -366,7 +382,9 @@ export function AuthProvider({ children }) {
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
       redirectTo: window.location.origin,
     });
-    if (resetError) throw resetError;
+    if (resetError) {
+      throw new Error(getAuthErrorMessage(resetError, "FamOS could not send the reset email right now. Please try again shortly."));
+    }
   };
 
   const requestInvitePasswordCode = async (email) => {
@@ -383,7 +401,9 @@ export function AuthProvider({ children }) {
       email: normalizedEmail,
       options: { shouldCreateUser: false },
     });
-    if (codeError) throw codeError;
+    if (codeError) {
+      throw new Error(getAuthErrorMessage(codeError, "FamOS could not send the invitation code right now. Please try again shortly."));
+    }
   };
 
   const completeInvitePasswordSetup = async (email, token, password) => {
