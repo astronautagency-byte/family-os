@@ -122,11 +122,14 @@ export default function Today({ goTo }) {
   const greetingName = firstName ? firstName.charAt(0).toUpperCase() + firstName.slice(1) : "";
   const shortenedGreeting = greeting.text.replace(/^Good\s+/i, "");
   const greetingLabel = shortenedGreeting.charAt(0).toUpperCase() + shortenedGreeting.slice(1);
-  const latitude = householdProfileExtra?.latitude;
-  const longitude = householdProfileExtra?.longitude;
+  const storedLatitude = householdProfileExtra?.latitude;
+  const storedLongitude = householdProfileExtra?.longitude;
+  const latitude = storedLatitude === null || storedLatitude === undefined || storedLatitude === "" ? NaN : Number(storedLatitude);
+  const longitude = storedLongitude === null || storedLongitude === undefined || storedLongitude === "" ? NaN : Number(storedLongitude);
+  const hasWeatherLocation = Number.isFinite(latitude) && Number.isFinite(longitude);
 
   useEffect(() => {
-    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    if (!hasWeatherLocation) {
       setWeather(null);
       return;
     }
@@ -154,7 +157,7 @@ export default function Today({ goTo }) {
       })
       .catch((error) => { if (error.name !== "AbortError") setWeatherError(error.message); });
     return () => controller.abort();
-  }, [latitude, longitude]);
+  }, [hasWeatherLocation, latitude, longitude]);
 
   const weatherRisk = weather && (weather.rainChance >= 50 || weather.wind_speed_10m >= 40);
   const disruptedEvents = weatherRisk ? todaysEvents.filter((event) => event.location) : [];
@@ -178,7 +181,7 @@ export default function Today({ goTo }) {
             </div>
             {weather && <p>{weather.rainChance}% rain · Feels like {Math.round(weather.apparent_temperature)}° · Wind {Math.round(weather.wind_speed_10m)} km/h</p>}
           </div>
-          {!Number.isFinite(latitude) && <button onClick={() => goTo("settings")} className="weather-address-action"><MapPin size={16} /><span><strong>Add an address to turn on weather</strong><small>FamOS will also flag today’s location-based events when weather may disrupt them.</small></span><ChevronRight size={16} /></button>}
+          {!hasWeatherLocation && <button onClick={() => goTo("settings")} className="weather-address-action"><MapPin size={16} /><span><strong>Add an address to turn on weather</strong><small>FamOS will also flag today’s location-based events when weather may disrupt them.</small></span><ChevronRight size={16} /></button>}
           {disruptedEvents.length > 0 && <button onClick={() => goTo("calendar")} className="weather-event-warning"><CloudRain size={16} /><span><strong>Weather may affect {disruptedEvents.length} event{disruptedEvents.length === 1 ? "" : "s"} today</strong><small>{disruptedEvents.map((event) => event.title).join(", ")}</small></span><ChevronRight size={16} /></button>}
           {weatherError && <small className="address-autocomplete-warning">{weatherError}</small>}
         </Card>

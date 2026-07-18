@@ -268,6 +268,14 @@ export default function Settings() {
   const [householdAvoid, setHouseholdAvoid] = useState("");
   const [householdSaving, setHouseholdSaving] = useState(false);
   const [householdStatus, setHouseholdStatus] = useState("");
+  const householdLocationResolved = (
+    householdLatitude !== null
+    && householdLatitude !== ""
+    && householdLongitude !== null
+    && householdLongitude !== ""
+    && Number.isFinite(Number(householdLatitude))
+    && Number.isFinite(Number(householdLongitude))
+  );
 
   const openHouseholdEditor = () => {
     setHouseholdName(household?.name || "");
@@ -854,6 +862,7 @@ export default function Settings() {
           <TextField label="City" value={householdCity} onChange={(event) => setHouseholdCity(event.target.value)} placeholder="e.g. Toronto" autoComplete="address-level2" />
           <TextField label="Country" value={householdCountry} onChange={(event) => setHouseholdCountry(event.target.value)} placeholder="e.g. Canada" autoComplete="country-name" />
         </div>
+        <p className="text-[11.5px] leading-relaxed text-[var(--color-ink-faint)] -mt-1 mb-3">City and country fill automatically when Google Maps resolves the home address.</p>
         <p className="settings-field-label">Household dietary preferences</p>
         <div className="settings-dietary-picker">
           {HOUSEHOLD_DIETARY_OPTIONS.map((restriction) => (
@@ -871,7 +880,7 @@ export default function Settings() {
         {householdStatus && <p className="settings-save-status">{householdStatus}</p>}
         <div className="flex gap-2">
           <SecondaryButton onClick={() => setEditingHousehold(false)}>Cancel</SecondaryButton>
-          <PrimaryButton onClick={saveHousehold} disabled={householdSaving || !householdName.trim()}>{householdSaving ? "Saving…" : "Save household"}</PrimaryButton>
+          <PrimaryButton onClick={saveHousehold} disabled={householdSaving || !householdName.trim() || (Boolean(householdAddress.trim()) && !householdLocationResolved)}>{householdSaving ? "Saving…" : "Save household"}</PrimaryButton>
         </div>
       </Modal>
 

@@ -20,6 +20,7 @@ export default function AddressAutocomplete({ label = "Home address", value = ""
   const [status, setStatus] = useState("");
   const requestRef = useRef(0);
   const sessionTokenRef = useRef(null);
+  const resolvedAddressRef = useRef("");
 
   useEffect(() => {
     loadGooglePlaces()
@@ -48,22 +49,35 @@ export default function AddressAutocomplete({ label = "Home address", value = ""
     return () => window.clearTimeout(timer);
   }, [maps, value]);
 
+  const resolveAddress = async (description, placeId) => {
+    if (!maps || !description?.trim()) return;
+    try {
+      const geocoder = new maps.google.maps.Geocoder();
+      const response = await geocoder.geocode({
+        ...(placeId ? { placeId } : { address: description.trim() }),
+      });
+      const details = addressParts(response.results?.[0]);
+      resolvedAddressRef.current = details.address || description;
+      onChange({ ...details, address: details.address || description });
+      setStatus("");
+    } catch (error) {
+      setStatus(error?.message || "Choose an address suggestion so FamOS can find local weather.");
+    }
+  };
+
   const select = async (suggestion) => {
     const prediction = suggestion.placePrediction;
     const description = prediction?.text?.toString?.() || prediction?.legacyPrediction?.description || "";
     setSuggestions([]);
     if (!description) return;
-    try {
-      const geocoder = new maps.google.maps.Geocoder();
-      const response = await geocoder.geocode({
-        placeId: prediction?.placeId || prediction?.legacyPrediction?.place_id,
-        address: description,
-      });
-      const details = addressParts(response.results?.[0]);
-      onChange({ ...details, address: details.address || description });
-      setStatus("");
-    } catch {
-      onChange({ address: description });
+    await resolveAddress(description, prediction?.placeId || prediction?.legacyPrediction?.place_id);
+  };
+
+  const handleBlur = () => {
+    window.setTimeout(() => setSuggestions([]), 150);
+    const address = value.trim();
+    if (maps && address.length >= 3 && address !== resolvedAddressRef.current) {
+      resolveAddress(address);
     }
   };
 
@@ -77,8 +91,17 @@ export default function AddressAutocomplete({ label = "Home address", value = ""
           value={value}
           placeholder={placeholder}
           autoComplete="street-address"
-          onChange={(event) => onChange({ address: event.target.value })}
-          onBlur={() => window.setTimeout(() => setSuggestions([]), 150)}
+          onChange={(event) => {
+            resolvedAddressRef.current = "";
+            onChange({
+              address: event.target.value,
+              city: "",
+              country: "",
+              latitude: null,
+              longitude: null,
+            });
+          }}
+          onBlur={handleBlur}
         />
       </span>
       {suggestions.length > 0 && <span className="address-autocomplete-results">
