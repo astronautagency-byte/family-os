@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
+import { ShieldCheck } from "lucide-react";
 import { FamilyProvider } from "./context/FamilyContext";
 import BottomNav from "./components/BottomNav";
 import AppTopBar from "./components/AppTopBar";
@@ -16,21 +17,23 @@ import FamAI from "./pages/FamAI";
 import Landing from "./pages/Landing";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
+import Admin from "./pages/Admin";
 import { useAuth } from "./context/AuthContext";
 import { AuthLoading, HouseholdOnboarding, ResetPassword, SignIn } from "./pages/Auth";
+import { supabase } from "./lib/supabase";
 
 gsap.registerPlugin(useGSAP);
 const VALID_TABS = ["today","calendar","meals","tasks","groceries","chat","famai","settings"];
 const PUBLIC_ROUTES = ["privacy", "terms", "pricing", "signin", "signup"];
 const ROUTE_ALIASES = { "sign-in": "signin", "lsign-in": "signin", "sign-up": "signup" };
-const VALID_ROUTES = [...VALID_TABS, "landing", ...PUBLIC_ROUTES];
+const VALID_ROUTES = [...VALID_TABS, "landing", "admin", ...PUBLIC_ROUTES];
 const normalizeRoute = (route = "") => ROUTE_ALIASES[route] || route;
 const pathRoute = () => normalizeRoute(window.location.pathname.replace(/^\/+|\/+$/g, ""));
 const routeFromLocation = () => {
   const hashRoute = normalizeRoute(window.location.hash.slice(1));
   if (VALID_ROUTES.includes(hashRoute)) return hashRoute;
   const route = pathRoute();
-  return PUBLIC_ROUTES.includes(route) ? route : "";
+  return [...PUBLIC_ROUTES, "admin"].includes(route) ? route : "";
 };
 const tabFromLocation = () => VALID_TABS.includes(routeFromLocation()) ? routeFromLocation() : "today";
 
@@ -38,6 +41,7 @@ export default function App() {
   const [tab, setTabState] = useState(tabFromLocation);
   const [route, setRoute] = useState(routeFromLocation);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("familyos:theme") === "dark");
+  const [runtimeConfig, setRuntimeConfig] = useState({ status: "active", features: {} });
   const setTab = (next) => { setTabState(next); window.history.replaceState(null, "", `#${next}`); };
   const shellRef = useRef(null);
   const { configured, session, household, loading, passwordRecovery, onboardingRequired } = useAuth();
@@ -64,6 +68,17 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("familyos:theme", darkMode ? "dark" : "light");
   }, [darkMode]);
+  useEffect(() => {
+    if (!configured || !session || !household?.id || publicRoute === "admin") return;
+    let active = true;
+    supabase.rpc("household_runtime_config", { target_household: household.id }).then(({ data, error }) => {
+      if (!active || error || !data) return;
+      setRuntimeConfig(data);
+      const featureKey = tab === "famai" ? "fam_ai" : tab;
+      if (data.features?.[featureKey] === false) setTab("today");
+    });
+    return () => { active = false; };
+  }, [configured, session, household?.id, publicRoute, tab]);
 
   useGSAP(() => {
     if (!shellRef.current) return undefined;
@@ -84,6 +99,7 @@ export default function App() {
 
   if (configured && loading) return <AuthLoading />;
   if (configured && passwordRecovery) return <ResetPassword />;
+  if (publicRoute === "admin") return <Admin />;
   if (publicRoute === "landing" || publicRoute === "pricing") return <Landing signedIn={!!session} />;
   if (publicRoute === "privacy") return <Privacy signedIn={!!session} />;
   if (publicRoute === "terms") return <Terms signedIn={!!session} />;
@@ -91,11 +107,19 @@ export default function App() {
   if (configured && !session && publicRoute === "signup") return <SignIn key="signup" initialCreating />;
   if (configured && !session) return <Landing />;
   if (configured && (!household || onboardingRequired)) return <HouseholdOnboarding />;
+  if (["suspended", "disabled"].includes(runtimeConfig.status)) return (
+    <main className="admin-denied">
+      <ShieldCheck />
+      <h1>This family account is paused</h1>
+      <p>Your household data is safe. Contact FamOS support to restore access.</p>
+      <button onClick={() => supabase.auth.signOut()}>Sign out</button>
+    </main>
+  );
 
   return (
     <FamilyProvider>
       <div className={`app-shell ${darkMode ? "theme-dark" : ""}`} ref={shellRef}>
-        <BottomNav active={tab} onChange={setTab} />
+        <BottomNav active={tab} onChange={setTab} features={runtimeConfig.features} />
         <main className="app-content">
           <AppTopBar onOpenSettings={() => setTab("settings")} onNavigate={setTab} darkMode={darkMode} onToggleDarkMode={() => setDarkMode((value) => !value)} />
           {tab === "today" && <Today goTo={setTab} />}

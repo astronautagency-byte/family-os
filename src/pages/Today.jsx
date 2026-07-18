@@ -1,4 +1,5 @@
-import { CalendarDays, ChefHat, ChevronRight, Clock3, Home, ListChecks, MapPin, ShoppingCart, Sparkles, Users } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CalendarDays, ChefHat, ChevronRight, CloudRain, Clock3, Home, ListChecks, MapPin, ShoppingCart, Sparkles, Sun, Users } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, AvatarStack, Card, Checkbox, EmptyState, Tag, colorVar } from "../components/ui";
@@ -50,7 +51,9 @@ function ProgressLine({ label, value, total, color = "var(--color-accent)" }) {
 
 export default function Today({ goTo }) {
   const { members, memberById, events, googleEvents, feedEvents, meals, tasks, groceries, toggleTask } = useFamily();
-  const { profile, user } = useAuth();
+  const { profile, user, householdProfileExtra } = useAuth();
+  const [weather, setWeather] = useState(null);
+  const [weatherError, setWeatherError] = useState("");
   const today = todayISO();
   const weekDays = Array.from({ length: 7 }, (_, index) => addDays(today, index));
   const weekEnd = weekDays[weekDays.length - 1];
@@ -119,6 +122,42 @@ export default function Today({ goTo }) {
   const greetingName = firstName ? firstName.charAt(0).toUpperCase() + firstName.slice(1) : "";
   const shortenedGreeting = greeting.text.replace(/^Good\s+/i, "");
   const greetingLabel = shortenedGreeting.charAt(0).toUpperCase() + shortenedGreeting.slice(1);
+  const latitude = householdProfileExtra?.latitude;
+  const longitude = householdProfileExtra?.longitude;
+
+  useEffect(() => {
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      setWeather(null);
+      return;
+    }
+    const controller = new AbortController();
+    const url = new URL("https://api.open-meteo.com/v1/forecast");
+    url.search = new URLSearchParams({
+      latitude: String(latitude),
+      longitude: String(longitude),
+      current: "temperature_2m,apparent_temperature,weather_code,precipitation,rain,wind_speed_10m",
+      hourly: "precipitation_probability,weather_code",
+      timezone: "auto",
+      forecast_days: "1",
+    });
+    fetch(url, { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error("Weather is unavailable.");
+        return response.json();
+      })
+      .then((data) => {
+        const nowHour = data.current?.time?.slice(0, 13);
+        const index = data.hourly?.time?.findIndex((time) => time.startsWith(nowHour));
+        const rainChance = index >= 0 ? data.hourly.precipitation_probability?.[index] : Math.max(...(data.hourly?.precipitation_probability || [0]));
+        setWeather({ ...data.current, rainChance: rainChance || 0 });
+        setWeatherError("");
+      })
+      .catch((error) => { if (error.name !== "AbortError") setWeatherError(error.message); });
+    return () => controller.abort();
+  }, [latitude, longitude]);
+
+  const weatherRisk = weather && (weather.rainChance >= 50 || weather.wind_speed_10m >= 40);
+  const disruptedEvents = weatherRisk ? todaysEvents.filter((event) => event.location) : [];
 
   return (
     <div className="pb-24 reference-dashboard">
@@ -130,6 +169,18 @@ export default function Today({ goTo }) {
       />
 
       <div className="px-5 space-y-6 mt-2">
+        {(weather || weatherError || householdProfileExtra?.address) && <Card className="weather-now-card p-4">
+          <div className="weather-now-main">
+            <span>{weatherRisk ? <CloudRain size={22} /> : <Sun size={22} />}</span>
+            <div>
+              <strong>{weather ? `${Math.round(weather.temperature_2m)}°` : "Weather"}</strong>
+              <small>{householdProfileExtra?.city || householdProfileExtra?.address || "Your home"}</small>
+            </div>
+            {weather && <p>{weather.rainChance}% rain · Feels like {Math.round(weather.apparent_temperature)}° · Wind {Math.round(weather.wind_speed_10m)} km/h</p>}
+          </div>
+          {disruptedEvents.length > 0 && <button onClick={() => goTo("calendar")} className="weather-event-warning"><CloudRain size={16} /><span><strong>Weather may affect {disruptedEvents.length} event{disruptedEvents.length === 1 ? "" : "s"} today</strong><small>{disruptedEvents.map((event) => event.title).join(", ")}</small></span><ChevronRight size={16} /></button>}
+          {weatherError && <small className="address-autocomplete-warning">{weatherError}</small>}
+        </Card>}
         <section className="m3-grid grid-cols-2 lg:grid-cols-4">
           <MiniMetric icon={CalendarDays} label="Calendar today" value={todaysEvents.length} note={nextEvent ? `Next: ${formatTime(nextEvent.start)}` : "Beautifully empty"} onClick={() => goTo("calendar")} />
           <MiniMetric icon={ListChecks} label="Open tasks" value={openTaskCount} note={openTaskCount ? "A few tiny missions remain" : "Nothing due today"} tone="rose" onClick={() => goTo("tasks")} />

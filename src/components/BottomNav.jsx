@@ -10,7 +10,10 @@ const TABS = [
   { id: "famai", label: "Fam AI", icon: Sparkles },
 ];
 
-export default function BottomNav({ active, onChange }) {
+const FEATURE_KEYS = { calendar: "calendar", meals: "meals", tasks: "tasks", groceries: "groceries", chat: "chat", famai: "fam_ai" };
+
+export default function BottomNav({ active, onChange, features = {} }) {
+  const visibleTabs = TABS.filter((tab) => tab.id === "today" || features[FEATURE_KEYS[tab.id]] !== false);
   return (
     <nav className="primary-nav m3-navigation" aria-label="FamOS navigation">
       <div className="nav-brand">
@@ -21,7 +24,7 @@ export default function BottomNav({ active, onChange }) {
         </div>
       </div>
       <div className="nav-items">
-        {TABS.map((tab) => {
+        {visibleTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = active === tab.id;
           return (

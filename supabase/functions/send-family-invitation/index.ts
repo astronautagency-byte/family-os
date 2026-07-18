@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { PublishCommand, SNSClient } from "npm:@aws-sdk/client-sns@3";
+import { SendEmailCommand, SESv2Client } from "npm:@aws-sdk/client-sesv2@3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -125,6 +126,10 @@ Deno.serve(async (request) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const resendKey = Deno.env.get("RESEND_API_KEY");
     const fromEmail = Deno.env.get("FAMOS_FROM_EMAIL") || "FamOS <invites@fam-os.app>";
+    const awsAccessKeyId = Deno.env.get("AWS_ACCESS_KEY_ID");
+    const awsSecretAccessKey = Deno.env.get("AWS_SECRET_ACCESS_KEY");
+    const awsRegion = Deno.env.get("AWS_REGION") || "ca-central-1";
+    const hasAwsMessaging = Boolean(awsAccessKeyId && awsSecretAccessKey);
 
     const userClient = createClient(url, anonKey, { global: { headers: { Authorization: authorization } } });
     const admin = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
@@ -184,17 +189,35 @@ Deno.serve(async (request) => {
       event: "family_invitation_started",
       requestId,
       existingAccount: Boolean(existingAuthUser),
-      emailProvider: resendKey ? "resend" : "supabase_smtp",
+      emailProvider: resendKey ? "resend" : hasAwsMessaging ? "aws_ses" : "supabase_smtp",
       smsRequested: Boolean(normalizedPhone),
-      awsRegion: Deno.env.get("AWS_REGION") || "ca-central-1",
+      awsRegion,
     }));
     const sms = { requested: Boolean(normalizedPhone), sent: false, message: "" };
     if (normalizedPhone) {
-      const awsAccessKeyId = Deno.env.get("AWS_ACCESS_KEY_ID");
-      const awsSecretAccessKey = Deno.env.get("AWS_SECRET_ACCESS_KEY");
-      const awsRegion = Deno.env.get("AWS_REGION") || "ca-central-1";
+      const textbeltKey = Deno.env.get("TEXTBELT_API_KEY");
       if (!awsAccessKeyId || !awsSecretAccessKey) {
-        sms.message = "Amazon SNS is not configured yet";
+        if (!textbeltKey) {
+          sms.message = "No SMS provider is configured yet";
+        } else {
+          const joinUrl = `${appOrigin}/signin?invited=1&email=${encodeURIComponent(normalizedEmail)}`;
+          try {
+            const textbeltResponse = await fetch("https://textbelt.com/text", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                phone: normalizedPhone.startsWith("+") ? normalizedPhone : `+${normalizedPhone}`,
+                message: `${inviterName} invited you to ${householdName} on FamOS. Join here: ${joinUrl} Reply STOP to opt out.`,
+                key: textbeltKey,
+              }),
+            });
+            const textbeltResult = await textbeltResponse.json();
+            sms.sent = Boolean(textbeltResponse.ok && textbeltResult?.success);
+            sms.message = sms.sent ? "" : textbeltResult?.error || "The SMS provider did not accept the message";
+          } catch (error) {
+            sms.message = error?.message || "The SMS provider could not be reached";
+          }
+        }
       } else {
         const joinUrl = `${appOrigin}/signin?invited=1&email=${encodeURIComponent(normalizedEmail)}`;
         try {
@@ -236,7 +259,7 @@ Deno.serve(async (request) => {
     // Supabase sends either an invite for a new Auth account or a sign-in OTP
     // for an existing account. Once RESEND_API_KEY is present, the branded
     // FamOS template below becomes the delivery path automatically.
-    if (!resendKey) {
+    if (!resendKey && !hasAwsMessaging) {
       if (existingAuthUser) {
         const deliveryClient = createClient(url, anonKey, { auth: { autoRefreshToken: false, persistSession: false } });
         const { error: otpError } = await deliveryClient.auth.signInWithOtp({
@@ -272,28 +295,54 @@ Deno.serve(async (request) => {
       householdName,
       inviterName,
     });
-    const emailResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from: fromEmail,
-        to: [normalizedEmail],
-        subject: `${inviterName} invited you to ${householdName} on FamOS`,
-        html: content.html,
-        text: content.text,
-        tags: [{ name: "category", value: "household-invitation" }],
-      }),
-    });
-    const emailResult = await emailResponse.json();
-    if (!emailResponse.ok) throw new Error(emailResult?.message || "The invitation was saved, but the branded email could not be sent.");
-    console.log(JSON.stringify({ event: "family_invitation_email", requestId, provider: "resend", sent: true }));
+    let emailId = "";
+    let provider = "aws_ses";
+    if (resendKey) {
+      const emailResponse = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from: fromEmail,
+          to: [normalizedEmail],
+          subject: `${inviterName} invited you to ${householdName} on FamOS`,
+          html: content.html,
+          text: content.text,
+          tags: [{ name: "category", value: "household-invitation" }],
+        }),
+      });
+      const emailResult = await emailResponse.json();
+      if (!emailResponse.ok) throw new Error(emailResult?.message || "The invitation was saved, but the branded email could not be sent.");
+      emailId = emailResult.id;
+      provider = "resend";
+    } else {
+      const ses = new SESv2Client({
+        region: awsRegion,
+        credentials: { accessKeyId: awsAccessKeyId!, secretAccessKey: awsSecretAccessKey! },
+      });
+      const emailResult = await ses.send(new SendEmailCommand({
+        FromEmailAddress: fromEmail,
+        Destination: { ToAddresses: [normalizedEmail] },
+        Content: {
+          Simple: {
+            Subject: { Data: `${inviterName} invited you to ${householdName} on FamOS`, Charset: "UTF-8" },
+            Body: {
+              Html: { Data: content.html, Charset: "UTF-8" },
+              Text: { Data: content.text, Charset: "UTF-8" },
+            },
+          },
+        },
+      }));
+      emailId = emailResult.MessageId || "";
+      if (!emailId) throw new Error("Amazon SES did not return a message ID.");
+    }
+    console.log(JSON.stringify({ event: "family_invitation_email", requestId, provider, sent: true }));
 
     return json({
       sent: true,
       existingAccount: Boolean(existingAuthUser),
       pending: true,
-      emailId: emailResult.id,
-      provider: "resend",
+      emailId,
+      provider,
       sms,
     });
   } catch (error) {

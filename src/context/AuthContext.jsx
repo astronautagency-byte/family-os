@@ -232,6 +232,9 @@ export function AuthProvider({ children }) {
           mealNotes: profileRow.meal_notes || localHouseholdExtra?.mealNotes || "",
           city: profileRow.city || localHouseholdExtra?.city || "",
           country: profileRow.country || localHouseholdExtra?.country || "",
+          address: profileRow.address || localHouseholdExtra?.address || "",
+          latitude: profileRow.latitude ?? localHouseholdExtra?.latitude ?? null,
+          longitude: profileRow.longitude ?? localHouseholdExtra?.longitude ?? null,
           updatedAt: profileRow.updated_at || localHouseholdExtra?.updatedAt || null,
         } : localHouseholdExtra;
 
@@ -351,7 +354,14 @@ export function AuthProvider({ children }) {
     });
     if (signInError) {
       if (/invalid login credentials/i.test(signInError.message || "")) {
-        throw new Error("The email or password is incorrect. If you were invited and have not created a password yet, open your FamOS invitation email to finish setup.");
+        const normalizedEmail = email.trim().toLowerCase();
+        const { data: inviteStatus } = await supabase.functions.invoke("prepare-invited-account", {
+          body: { email: normalizedEmail },
+        });
+        if (inviteStatus?.invited) {
+          throw new Error("INVITED_ACCOUNT_PASSWORD_REQUIRED");
+        }
+        throw new Error("The email or password is incorrect.");
       }
       throw signInError;
     }
@@ -524,6 +534,9 @@ export function AuthProvider({ children }) {
       meal_notes: profileInput.mealNotes?.trim() || "",
       city: profileInput.city?.trim() || "",
       country: profileInput.country?.trim() || "",
+      address: profileInput.address?.trim() || "",
+      latitude: profileInput.latitude ?? null,
+      longitude: profileInput.longitude ?? null,
       completed_at: completedAt,
     };
     const extraProfile = {
@@ -533,13 +546,16 @@ export function AuthProvider({ children }) {
       mealNotes: profileInput.mealNotes || "",
       city: profileInput.city || "",
       country: profileInput.country || "",
+      address: profileInput.address || "",
+      latitude: profileInput.latitude ?? null,
+      longitude: profileInput.longitude ?? null,
       updatedAt: completedAt,
     };
     const memberPayload = { profileType: extraProfile.profileType, calendarPreference: "family", completedAt };
     let { error: profileError } = await supabase
       .from("household_profiles")
       .upsert(payload, { onConflict: "household_id" });
-    if (profileError && /profile_type|dietary_restrictions|avoid_ingredients|meal_notes|city|country|schema cache/i.test(profileError.message || "")) {
+    if (profileError && /profile_type|dietary_restrictions|avoid_ingredients|meal_notes|city|country|address|latitude|longitude|schema cache/i.test(profileError.message || "")) {
       const {
         profile_type: _profileType,
         dietary_restrictions: _dietaryRestrictions,
@@ -547,6 +563,9 @@ export function AuthProvider({ children }) {
         meal_notes: _mealNotes,
         city: _city,
         country: _country,
+        address: _address,
+        latitude: _latitude,
+        longitude: _longitude,
         ...legacyPayload
       } = payload;
       ({ error: profileError } = await supabase.from("household_profiles").upsert(legacyPayload, { onConflict: "household_id" }));
@@ -592,6 +611,9 @@ export function AuthProvider({ children }) {
       avoid_ingredients: input.avoidIngredients?.trim() || "",
       city: input.city?.trim() || "",
       country: input.country?.trim() || "",
+      address: input.address?.trim() || "",
+      latitude: input.latitude ?? null,
+      longitude: input.longitude ?? null,
     };
     const { error: profileError } = await supabase.from("household_profiles").upsert(profilePatch, { onConflict: "household_id" });
     if (profileError) throw profileError;
@@ -603,6 +625,9 @@ export function AuthProvider({ children }) {
       avoidIngredients: profilePatch.avoid_ingredients,
       city: profilePatch.city,
       country: profilePatch.country,
+      address: profilePatch.address,
+      latitude: profilePatch.latitude,
+      longitude: profilePatch.longitude,
       updatedAt: new Date().toISOString(),
     }));
   }, [household?.id, household?.role, session?.user?.id]);

@@ -40,9 +40,7 @@ Deno.serve(async (request) => {
 
     // Use the same generic response for missing invitations so this endpoint
     // does not disclose whether arbitrary email addresses have FamOS accounts.
-    if (!invitation) {
-      return respond({ ready: true });
-    }
+    if (!invitation) return respond({ ready: true, invited: false });
 
     const { data: profile, error: profileError } = await admin
       .from("profiles")
@@ -66,7 +64,7 @@ Deno.serve(async (request) => {
       }
     }
 
-    return respond({ ready: true });
+    return respond({ ready: true, invited: true });
   } catch (error) {
     return respond({ error: error.message || "Could not prepare the invited account." }, 400);
   }

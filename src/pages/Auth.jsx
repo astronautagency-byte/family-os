@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { Card, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
 import { FAMILY_COLORS } from "../data/mockData";
 import { AVATAR_PRESETS } from "../data/avatarLibrary";
+import AddressAutocomplete from "../components/AddressAutocomplete";
 
 function resizeAvatarImage(file) {
   return new Promise((resolve, reject) => {
@@ -74,8 +75,9 @@ export function SignIn({ initialCreating = false }) {
         await signIn(email, password);
       }
     } catch (e) {
-      setLocalError(e.message || "Could not sign in. Please try again.");
-      setNeedsPasswordSetup(/invited|invitation email|created a password/i.test(e.message || ""));
+      const invitedAccount = e.message === "INVITED_ACCOUNT_PASSWORD_REQUIRED";
+      setLocalError(invitedAccount ? "" : e.message || "Could not sign in. Please try again.");
+      setNeedsPasswordSetup(invitedAccount);
     } finally {
       setBusy(false);
     }
@@ -321,6 +323,9 @@ export function HouseholdOnboarding() {
   const [mealNotes, setMealNotes] = useState("");
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("");
+  const [address, setAddress] = useState("");
+  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState(null);
   const [groceryImportText, setGroceryImportText] = useState("");
   const [partnerPersonalizationOptIn, setPartnerPersonalizationOptIn] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(AVATAR_PRESETS[0]?.url || "");
@@ -355,6 +360,9 @@ export function HouseholdOnboarding() {
         setMealNotes(draft.mealNotes || "");
         setCity(draft.city || "");
         setCountry(draft.country || "");
+        setAddress(draft.address || "");
+        setLatitude(draft.latitude ?? null);
+        setLongitude(draft.longitude ?? null);
         setGroceryImportText(draft.groceryImportText || "");
         setPartnerPersonalizationOptIn(Boolean(draft.partnerPersonalizationOptIn));
         setAvatarUrl(draft.avatarUrl || AVATAR_PRESETS[0]?.url || "");
@@ -378,14 +386,14 @@ export function HouseholdOnboarding() {
       familySize, adultCount, childCount, familyDynamic, lifeStage, planningPriorities,
       primaryColor, profileType, calendarPreference, dietaryRestrictions, avoidIngredients,
       mealNotes, groceryImportText, partnerPersonalizationOptIn, avatarUrl, inviteMembers,
-      city, country,
+      city, country, address, latitude, longitude,
       ownerStep, memberStep,
     }));
   }, [
     draftKey, draftLoaded, familySize, adultCount, childCount, familyDynamic, lifeStage,
     planningPriorities, primaryColor, profileType, calendarPreference, dietaryRestrictions,
     avoidIngredients, mealNotes, groceryImportText, partnerPersonalizationOptIn, avatarUrl,
-    inviteMembers, city, country, ownerStep, memberStep,
+    inviteMembers, city, country, address, latitude, longitude, ownerStep, memberStep,
   ]);
 
   const title = useMemo(() => {
@@ -454,6 +462,9 @@ export function HouseholdOnboarding() {
       mealNotes,
       city,
       country,
+      address,
+      latitude,
+      longitude,
       groceryImportText,
       partnerPersonalizationOptIn,
       avatarUrl,
@@ -493,6 +504,12 @@ export function HouseholdOnboarding() {
             setCity={setCity}
             country={country}
             setCountry={setCountry}
+            address={address}
+            setAddress={setAddress}
+            latitude={latitude}
+            setLatitude={setLatitude}
+            longitude={longitude}
+            setLongitude={setLongitude}
             planningPriorities={planningPriorities}
             togglePriority={togglePriority}
             primaryColor={primaryColor}
@@ -597,6 +614,17 @@ function OwnerProfileStep(props) {
           <OnboardingChoiceGroup icon={<UsersRound size={15} />} label="Your role" value={props.profileType} onChange={props.setProfileType} options={[["parent", "Parent / guardian", UserRound], ["child", "Child", Baby]]} />
           <OnboardingChoiceGroup icon={<House size={15} />} label="Family dynamic" value={props.familyDynamic} onChange={props.setFamilyDynamic} options={[["two_parent", "Two-parent home", UsersRound], ["single_parent", "Single parent", UserRound], ["coparenting", "Co-parenting", HeartHandshake], ["blended", "Blended family", UsersRound], ["multigenerational", "Multigenerational", House], ["chosen_family", "Chosen family", Sparkles]]} />
           <OnboardingChoiceGroup icon={<Sparkles size={15} />} label="Life stage" value={props.lifeStage} onChange={props.setLifeStage} options={[["pregnant", "Pregnant", HeartHandshake], ["newborn", "Newborn", Baby], ["toddler", "Toddler", Baby], ["school_age", "School age", BriefcaseBusiness], ["teens", "Teenagers", UsersRound], ["adult_family", "Adult family", House]]} />
+          <AddressAutocomplete
+            label="Home address"
+            value={props.address}
+            onChange={(place) => {
+              props.setAddress(place.address ?? props.address);
+              if (place.city !== undefined) props.setCity(place.city);
+              if (place.country !== undefined) props.setCountry(place.country);
+              if (place.latitude !== undefined) props.setLatitude(place.latitude);
+              if (place.longitude !== undefined) props.setLongitude(place.longitude);
+            }}
+          />
           <div className="onboarding-grid onboarding-grid-two onboarding-location-grid">
             <TextField label="City" placeholder="e.g. Toronto" value={props.city} onChange={(event) => props.setCity(event.target.value)} autoComplete="address-level2" />
             <TextField label="Country" placeholder="e.g. Canada" value={props.country} onChange={(event) => props.setCountry(event.target.value)} autoComplete="country-name" />

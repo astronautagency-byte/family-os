@@ -8,6 +8,7 @@ import { FAMILY_COLORS } from "../data/mockData";
 import { AVATAR_PRESETS } from "../data/avatarLibrary";
 import { PRICING_PLAN, formatMoney } from "../data/pricingPlan";
 import { supabase } from "../lib/supabase";
+import AddressAutocomplete from "../components/AddressAutocomplete";
 
 const HOUSEHOLD_DIETARY_OPTIONS = ["Vegetarian", "Vegan", "Gluten-free", "Dairy-free", "Nut-free", "Shellfish-free", "Low sugar"];
 
@@ -259,6 +260,9 @@ export default function Settings() {
   const [householdName, setHouseholdName] = useState("");
   const [householdCity, setHouseholdCity] = useState("");
   const [householdCountry, setHouseholdCountry] = useState("");
+  const [householdAddress, setHouseholdAddress] = useState("");
+  const [householdLatitude, setHouseholdLatitude] = useState(null);
+  const [householdLongitude, setHouseholdLongitude] = useState(null);
   const [householdDietary, setHouseholdDietary] = useState([]);
   const [householdAvoid, setHouseholdAvoid] = useState("");
   const [householdSaving, setHouseholdSaving] = useState(false);
@@ -268,6 +272,9 @@ export default function Settings() {
     setHouseholdName(household?.name || "");
     setHouseholdCity(householdProfileExtra?.city || "");
     setHouseholdCountry(householdProfileExtra?.country || "");
+    setHouseholdAddress(householdProfileExtra?.address || "");
+    setHouseholdLatitude(householdProfileExtra?.latitude ?? null);
+    setHouseholdLongitude(householdProfileExtra?.longitude ?? null);
     setHouseholdDietary(householdProfileExtra?.dietaryRestrictions || []);
     setHouseholdAvoid(householdProfileExtra?.avoidIngredients || "");
     setHouseholdStatus("");
@@ -282,6 +289,9 @@ export default function Settings() {
         name: householdName,
         city: householdCity,
         country: householdCountry,
+        address: householdAddress,
+        latitude: householdLatitude,
+        longitude: householdLongitude,
         dietaryRestrictions: householdDietary,
         avoidIngredients: householdAvoid,
       });
@@ -432,6 +442,16 @@ export default function Settings() {
     } finally {
       setTestingNotification(false);
     }
+  };
+
+  const openNotificationSettings = () => {
+    const isAppleMobile = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isAppleMobile) {
+      window.location.href = "app-settings:";
+      setNotificationTestStatus("In Settings, open Apps → FamOS (or Safari) → Notifications and turn Allow Notifications on.");
+      return;
+    }
+    setNotificationTestStatus("Open this site’s permissions from the icon beside the address bar, allow Notifications, then reload FamOS.");
   };
   const includedMembers = PRICING_PLAN.basePlan.membersIncluded;
   const isMasterOwner = household?.created_by
@@ -598,6 +618,7 @@ export default function Settings() {
           <Card className="p-4">
             <div className="flex items-start gap-3 mb-4"><div className="w-10 h-10 rounded-xl bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0"><Bell size={18} color="var(--color-accent)" /></div><div><p className="font-medium text-[14.5px]">Household notifications</p><p className="text-[12.5px] text-[var(--color-ink-soft)] mt-0.5">Get notified about assigned tasks and meals, chat messages, groceries, and family calendar updates on every enabled device.</p></div></div>
             <PrimaryButton onClick={requestNotifications} disabled={notificationPermission === "granted" || notificationPermission === "unsupported"}>{notificationPermission === "granted" ? "Browser notifications allowed" : notificationPermission === "denied" ? "Blocked in browser settings" : notificationPermission === "unsupported" ? "Not supported on this device" : "Enable browser notifications"}</PrimaryButton>
+            {notificationPermission === "denied" && <SecondaryButton className="mt-2" onClick={openNotificationSettings}><ExternalLink size={15} /> Open notification settings</SecondaryButton>}
             {notificationPermission === "granted" && <SecondaryButton className="mt-2" onClick={testNotifications} disabled={testingNotification}>{testingNotification ? "Sending test…" : "Send a test notification"}</SecondaryButton>}
             {notificationTestStatus && <div className="notification-test-status"><CheckCircle2 size={14} /><p>{notificationTestStatus}</p></div>}
             <div className="notification-help">On iPhone and iPad, install FamOS to the Home Screen first, open the installed app, then enable notifications. Apple only permits background Web Push for Home Screen web apps.</div>
@@ -803,6 +824,16 @@ export default function Settings() {
 
       <Modal open={editingHousehold} onClose={() => setEditingHousehold(false)} title="Edit household">
         <TextField label="Household name" value={householdName} onChange={(event) => setHouseholdName(event.target.value)} placeholder="e.g. The Miller Family" />
+        <AddressAutocomplete
+          value={householdAddress}
+          onChange={(place) => {
+            setHouseholdAddress(place.address ?? householdAddress);
+            if (place.city !== undefined) setHouseholdCity(place.city);
+            if (place.country !== undefined) setHouseholdCountry(place.country);
+            if (place.latitude !== undefined) setHouseholdLatitude(place.latitude);
+            if (place.longitude !== undefined) setHouseholdLongitude(place.longitude);
+          }}
+        />
         <div className="settings-location-fields">
           <TextField label="City" value={householdCity} onChange={(event) => setHouseholdCity(event.target.value)} placeholder="e.g. Toronto" autoComplete="address-level2" />
           <TextField label="Country" value={householdCountry} onChange={(event) => setHouseholdCountry(event.target.value)} placeholder="e.g. Canada" autoComplete="country-name" />

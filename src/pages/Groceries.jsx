@@ -173,11 +173,6 @@ function categoryFromApi(product = {}) {
   return match?.category || "Pantry";
 }
 
-function packageSizeFromApi(product = {}) {
-  const quantity = (product.quantity || product.serving_size || "").trim();
-  return quantity.length <= 28 ? quantity : "";
-}
-
 function categoryFromItemName(name = "", fallback = GROCERY_CATEGORIES[0]) {
   const normalized = name.trim();
   if (!normalized) return fallback;
@@ -227,7 +222,7 @@ export default function Groceries() {
     if (!deliveryItems.length) return "";
     return deliveryItems.map((item) => {
       const quantity = [item.quantity || 1, item.unit].filter(Boolean).join(" ");
-      return `• ${item.name}${quantity ? ` — ${quantity}` : ""}${item.category ? ` (${item.category})` : ""}`;
+      return `• ${item.name}${item.brand ? ` — ${item.brand}` : ""}${quantity ? ` — ${quantity}` : ""}${item.category ? ` (${item.category})` : ""}`;
     }).join("\n");
   }, [deliveryItems]);
   const deliveryShareText = useMemo(() => {
@@ -374,8 +369,6 @@ export default function Groceries() {
       const product = data.product;
       const productName = productNameFromApi(product);
       const category = categoryFromApi(product);
-      const unit = packageSizeFromApi(product);
-
       setBarcodeDraft((draft) => ({
         ...draft,
         code: resolvedCode,
@@ -383,7 +376,7 @@ export default function Groceries() {
         brand: firstCommaValue(product.brands || "") || draft.brand,
         category,
         quantity: draft.quantity || 1,
-        unit: unit || draft.unit,
+        unit: "",
         imageUrl: product.image_front_small_url || product.image_front_url || draft.imageUrl,
       }));
       setBarcodeStatus(productName ? `Found ${productName}. Review the details, then save it to your list.` : "Product found. Review the details, then save it to your list.");
@@ -460,7 +453,7 @@ export default function Groceries() {
     name: barcodeDraft.name.trim(),
     category: barcodeDraft.category,
     quantity: barcodeDraft.quantity || 1,
-    unit: barcodeDraft.unit.trim(),
+    unit: "",
     barcode: normalizeBarcode(barcodeDraft.code),
     brand: barcodeDraft.brand.trim(),
     price: barcodeDraft.price === "" ? null : Number(barcodeDraft.price),
@@ -674,11 +667,12 @@ export default function Groceries() {
                           <GroceryIcon category={item.category} />
                           <button onClick={() => openEdit(item)} className="flex-1 min-w-0 flex items-center gap-2 text-left">
                             <span
-                              className={`text-[14.5px] truncate ${
+                              className={`min-w-0 text-[14.5px] ${
                                 item.checked ? "line-through text-[var(--color-ink-faint)]" : "text-[var(--color-ink)]"
                               }`}
                             >
-                              {item.name}
+                              <span className="block truncate">{item.name}</span>
+                              {item.brand && <small className="block truncate text-[11px] text-[var(--color-ink-soft)] no-underline">{item.brand}</small>}
                             </span>
                             {qtyLabel && (
                               <span
@@ -827,7 +821,6 @@ export default function Groceries() {
         <div className="flex flex-wrap gap-2 mb-4">{GROCERY_CATEGORIES.map((category) => <button key={category} onClick={() => setBarcodeDraft((draft) => ({ ...draft, category }))} className="rounded-full px-3 py-1.5 text-[13px] font-medium border" style={{ borderColor: barcodeDraft.category === category ? "var(--color-accent)" : "var(--color-border)", backgroundColor: barcodeDraft.category === category ? "var(--color-accent-soft)" : "transparent" }}>{category}</button>)}</div>
         <div className="barcode-detail-grid">
           <div><p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-1.5">Quantity</p><Stepper value={barcodeDraft.quantity} onChange={(quantity) => setBarcodeDraft((draft) => ({ ...draft, quantity }))} /></div>
-          <TextField label="Unit" placeholder="loaf, box, bag" value={barcodeDraft.unit} onChange={(event) => setBarcodeDraft((draft) => ({ ...draft, unit: event.target.value }))} />
           <TextField label="Price (optional)" type="number" inputMode="decimal" min="0" step="0.01" placeholder="$0.00" value={barcodeDraft.price} onChange={(event) => setBarcodeDraft((draft) => ({ ...draft, price: event.target.value }))} />
         </div>
         <p className="barcode-price-note">Prices vary by store and are not encoded in UPC barcodes, so confirm the current shelf price.</p>
