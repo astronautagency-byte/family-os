@@ -1526,6 +1526,10 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .onboarding-actions{display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:12px;padding-top:20px;border-top:1px solid var(--color-border)}
 .onboarding-actions>button{width:100%;min-height:48px;justify-content:center}
 .onboarding-actions>button:first-child{display:flex;align-items:center;gap:5px}
+.onboarding-address-preview{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px;border:1px solid var(--color-border);border-radius:18px;background:var(--color-surface-sunken)}
+.onboarding-address-preview>div{min-width:0;padding:10px 12px;border-radius:12px;background:var(--color-surface)}
+.onboarding-address-preview>div.wide{grid-column:1/-1}.onboarding-address-preview span,.onboarding-address-preview strong{display:block}.onboarding-address-preview span{margin-bottom:4px;color:var(--color-ink-faint);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.onboarding-address-preview strong{overflow:hidden;color:var(--color-ink);font-size:12.5px;font-weight:650;text-overflow:ellipsis;white-space:nowrap}.onboarding-address-preview strong:only-child{color:var(--color-ink-faint)}
+.onboarding-location-note{padding:12px 14px;border-radius:14px;background:var(--pastel-blue);color:var(--color-ink-soft);font-size:11.5px;line-height:1.5}
 .onboarding-grid.onboarding-grid-two{grid-template-columns:repeat(2,minmax(0,1fr))}
 .onboarding-full{grid-column:1/-1}
 .onboarding-field{display:grid;gap:6px;text-align:left}

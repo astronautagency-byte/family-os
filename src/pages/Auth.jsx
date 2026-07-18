@@ -303,6 +303,8 @@ export function HouseholdOnboarding() {
   const [avoidIngredients, setAvoidIngredients] = useState("");
   const [mealNotes, setMealNotes] = useState("");
   const [city, setCity] = useState("");
+  const [region, setRegion] = useState("");
+  const [postalCode, setPostalCode] = useState("");
   const [country, setCountry] = useState("");
   const [address, setAddress] = useState("");
   const [latitude, setLatitude] = useState(null);
@@ -340,6 +342,8 @@ export function HouseholdOnboarding() {
         setAvoidIngredients(draft.avoidIngredients || "");
         setMealNotes(draft.mealNotes || "");
         setCity(draft.city || "");
+        setRegion(draft.region || "");
+        setPostalCode(draft.postalCode || "");
         setCountry(draft.country || "");
         setAddress(draft.address || "");
         setLatitude(draft.latitude ?? null);
@@ -367,14 +371,14 @@ export function HouseholdOnboarding() {
       familySize, adultCount, childCount, familyDynamic, lifeStage, planningPriorities,
       primaryColor, profileType, calendarPreference, dietaryRestrictions, avoidIngredients,
       mealNotes, groceryImportText, partnerPersonalizationOptIn, avatarUrl, inviteMembers,
-      city, country, address, latitude, longitude,
+      city, region, postalCode, country, address, latitude, longitude,
       ownerStep, memberStep,
     }));
   }, [
     draftKey, draftLoaded, familySize, adultCount, childCount, familyDynamic, lifeStage,
     planningPriorities, primaryColor, profileType, calendarPreference, dietaryRestrictions,
     avoidIngredients, mealNotes, groceryImportText, partnerPersonalizationOptIn, avatarUrl,
-    inviteMembers, city, country, address, latitude, longitude, ownerStep, memberStep,
+    inviteMembers, city, region, postalCode, country, address, latitude, longitude, ownerStep, memberStep,
   ]);
 
   const title = useMemo(() => {
@@ -481,6 +485,10 @@ export function HouseholdOnboarding() {
             setLifeStage={setLifeStage}
             city={city}
             setCity={setCity}
+            region={region}
+            setRegion={setRegion}
+            postalCode={postalCode}
+            setPostalCode={setPostalCode}
             country={country}
             setCountry={setCountry}
             address={address}
@@ -603,15 +611,29 @@ function OwnerProfileStep(props) {
             onChange={(place) => {
               props.setAddress(place.address ?? props.address);
               if (place.city !== undefined) props.setCity(place.city);
+              if (place.region !== undefined) props.setRegion(place.region);
+              if (place.postalCode !== undefined) props.setPostalCode(place.postalCode);
               if (place.country !== undefined) props.setCountry(place.country);
               if (place.latitude !== undefined) props.setLatitude(place.latitude);
               if (place.longitude !== undefined) props.setLongitude(place.longitude);
             }}
           />
-          <p className="onboarding-inline-note">
-            {props.city && props.country
-              ? `${props.city}, ${props.country} was filled automatically.`
-              : "City and country fill automatically from Google Maps. You can also skip this and add an address later in Settings."}
+          <div className="onboarding-address-preview" aria-live="polite">
+            {[
+              ["Address", props.address],
+              ["City", props.city],
+              ["Province / state", props.region],
+              ["Postal code", props.postalCode],
+              ["Country", props.country],
+            ].map(([label, value]) => (
+              <div key={label} className={label === "Address" ? "wide" : ""}>
+                <span>{label}</span>
+                <strong>{value || "Filled automatically"}</strong>
+              </div>
+            ))}
+          </div>
+          <p className="onboarding-location-note">
+            Your home address helps FamOS personalize local weather, your household experience, and future location-based product updates. It is optional, shared only with your household, and can be added or changed later in Settings.
           </p>
         </>}
 

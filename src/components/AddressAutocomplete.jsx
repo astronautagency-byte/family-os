@@ -8,6 +8,8 @@ function addressParts(result) {
   return {
     address: result?.formatted_address || "",
     city: part("locality") || part("postal_town") || part("administrative_area_level_2"),
+    region: part("administrative_area_level_1"),
+    postalCode: part("postal_code"),
     country: part("country"),
     latitude: result?.geometry?.location?.lat?.() ?? null,
     longitude: result?.geometry?.location?.lng?.() ?? null,
@@ -96,6 +98,8 @@ export default function AddressAutocomplete({ label = "Home address", value = ""
             onChange({
               address: event.target.value,
               city: "",
+              region: "",
+              postalCode: "",
               country: "",
               latitude: null,
               longitude: null,
