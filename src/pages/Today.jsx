@@ -169,18 +169,19 @@ export default function Today({ goTo }) {
       />
 
       <div className="px-5 space-y-6 mt-2">
-        {(weather || weatherError || householdProfileExtra?.address) && <Card className="weather-now-card p-4">
+        <Card className="weather-now-card p-4">
           <div className="weather-now-main">
             <span>{weatherRisk ? <CloudRain size={22} /> : <Sun size={22} />}</span>
             <div>
-              <strong>{weather ? `${Math.round(weather.temperature_2m)}°` : "Weather"}</strong>
-              <small>{householdProfileExtra?.city || householdProfileExtra?.address || "Your home"}</small>
+              <strong>{weather ? `${Math.round(weather.temperature_2m)}°` : "Local weather"}</strong>
+              <small>{householdProfileExtra?.city || householdProfileExtra?.address || "Add your home address"}</small>
             </div>
             {weather && <p>{weather.rainChance}% rain · Feels like {Math.round(weather.apparent_temperature)}° · Wind {Math.round(weather.wind_speed_10m)} km/h</p>}
           </div>
+          {!Number.isFinite(latitude) && <button onClick={() => goTo("settings")} className="weather-address-action"><MapPin size={16} /><span><strong>Add an address to turn on weather</strong><small>FamOS will also flag today’s location-based events when weather may disrupt them.</small></span><ChevronRight size={16} /></button>}
           {disruptedEvents.length > 0 && <button onClick={() => goTo("calendar")} className="weather-event-warning"><CloudRain size={16} /><span><strong>Weather may affect {disruptedEvents.length} event{disruptedEvents.length === 1 ? "" : "s"} today</strong><small>{disruptedEvents.map((event) => event.title).join(", ")}</small></span><ChevronRight size={16} /></button>}
           {weatherError && <small className="address-autocomplete-warning">{weatherError}</small>}
-        </Card>}
+        </Card>
         <section className="m3-grid grid-cols-2 lg:grid-cols-4">
           <MiniMetric icon={CalendarDays} label="Calendar today" value={todaysEvents.length} note={nextEvent ? `Next: ${formatTime(nextEvent.start)}` : "Beautifully empty"} onClick={() => goTo("calendar")} />
           <MiniMetric icon={ListChecks} label="Open tasks" value={openTaskCount} note={openTaskCount ? "A few tiny missions remain" : "Nothing due today"} tone="rose" onClick={() => goTo("tasks")} />

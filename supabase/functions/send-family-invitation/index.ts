@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { PublishCommand, SNSClient } from "npm:@aws-sdk/client-sns@3";
-import { SendEmailCommand, SESv2Client } from "npm:@aws-sdk/client-sesv2@3";
+import { GetAccountCommand, SendEmailCommand, SESv2Client } from "npm:@aws-sdk/client-sesv2@3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -130,6 +130,22 @@ Deno.serve(async (request) => {
     const awsSecretAccessKey = Deno.env.get("AWS_SECRET_ACCESS_KEY");
     const awsRegion = Deno.env.get("AWS_REGION") || "ca-central-1";
     const hasAwsMessaging = Boolean(awsAccessKeyId && awsSecretAccessKey);
+    let awsEmailEnabled = false;
+    if (hasAwsMessaging) {
+      try {
+        const account = await new SESv2Client({
+          region: awsRegion,
+          credentials: { accessKeyId: awsAccessKeyId!, secretAccessKey: awsSecretAccessKey! },
+        }).send(new GetAccountCommand({}));
+        awsEmailEnabled = Boolean(account.ProductionAccessEnabled && account.SendingEnabled);
+      } catch (error) {
+        console.warn(JSON.stringify({
+          event: "family_invitation_ses_status_unavailable",
+          requestId,
+          message: error?.message || String(error),
+        }));
+      }
+    }
 
     const userClient = createClient(url, anonKey, { global: { headers: { Authorization: authorization } } });
     const admin = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
@@ -189,7 +205,7 @@ Deno.serve(async (request) => {
       event: "family_invitation_started",
       requestId,
       existingAccount: Boolean(existingAuthUser),
-      emailProvider: resendKey ? "resend" : hasAwsMessaging ? "aws_ses" : "supabase_smtp",
+      emailProvider: resendKey ? "resend" : awsEmailEnabled ? "aws_ses" : "supabase_smtp",
       smsRequested: Boolean(normalizedPhone),
       awsRegion,
     }));
@@ -259,7 +275,7 @@ Deno.serve(async (request) => {
     // Supabase sends either an invite for a new Auth account or a sign-in OTP
     // for an existing account. Once RESEND_API_KEY is present, the branded
     // FamOS template below becomes the delivery path automatically.
-    if (!resendKey && !hasAwsMessaging) {
+    if (!resendKey && !awsEmailEnabled) {
       if (existingAuthUser) {
         const deliveryClient = createClient(url, anonKey, { auth: { autoRefreshToken: false, persistSession: false } });
         const { error: otpError } = await deliveryClient.auth.signInWithOtp({

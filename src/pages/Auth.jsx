@@ -352,7 +352,7 @@ export function HouseholdOnboarding() {
         } else if (draft.inviteEmails) {
           setInviteMembers(draft.inviteEmails.split(/[\n,;]+/).filter(Boolean).map((email) => ({ ...newInviteMember(), email: email.trim() })));
         }
-        setOwnerStep(Math.max(0, Math.min(Number(draft.ownerStep) || 0, 4)));
+        setOwnerStep(Math.max(0, Math.min(Number(draft.ownerStep) || 0, 5)));
         setMemberStep(Math.max(0, Math.min(Number(draft.memberStep) || 0, 1)));
       }
     } catch {
@@ -380,7 +380,7 @@ export function HouseholdOnboarding() {
   const title = useMemo(() => {
     if (invitation && !household) return "Come on in";
     if (!household) return "What should we call home?";
-    if (ownerProfileStep) return ["Who’s at home?", "What matters most?", "Make meals easier", "Bring your grocery list", "One last thing"][ownerStep];
+    if (ownerProfileStep) return ["Who’s at home?", "Where is home?", "What matters most?", "Make meals easier", "Bring your grocery list", "One last thing"][ownerStep];
     if (memberProfileStep) return ["How should we set you up?", "Choose your calendar view"][memberStep];
     return "Invite your people";
   }, [household, invitation, memberProfileStep, memberStep, ownerProfileStep, ownerStep]);
@@ -390,6 +390,7 @@ export function HouseholdOnboarding() {
     if (!household) return "Create the private home space everyone will share. Cozy, but organized.";
     if (ownerProfileStep) return [
       "Start with the basics. You can change these later in Settings.",
+      "Add your home address so FamOS can show local weather and flag weather-sensitive plans.",
       "Pick the areas you want FamOS to focus on first.",
       "Optional details that make meal ideas more useful.",
       "Optional. Paste what you already buy and we’ll organize it.",
@@ -574,7 +575,7 @@ function OwnerProfileStep(props) {
     ["Vegetarian", Leaf], ["Vegan", Salad], ["Gluten-free", WheatOff], ["Dairy-free", ChefHat],
     ["Nut-free", HeartHandshake], ["Shellfish-free", ShieldCheck], ["Low sugar", Sparkles],
   ];
-  const steps = ["Household", "Priorities", "Food", "Groceries", "Connect"];
+  const steps = ["Household", "Address", "Priorities", "Food", "Groceries", "Connect"];
   const next = () => {
     if (props.step === 0 && props.adultCount + props.childCount !== props.familySize) return;
     props.setStep((step) => Math.min(step + 1, steps.length - 1));
@@ -595,6 +596,9 @@ function OwnerProfileStep(props) {
           <OnboardingChoiceGroup icon={<UsersRound size={15} />} label="Your role" value={props.profileType} onChange={props.setProfileType} options={[["parent", "Parent / guardian", UserRound], ["child", "Child", Baby]]} />
           <OnboardingChoiceGroup icon={<House size={15} />} label="Family dynamic" value={props.familyDynamic} onChange={props.setFamilyDynamic} options={[["two_parent", "Two-parent home", UsersRound], ["single_parent", "Single parent", UserRound], ["coparenting", "Co-parenting", HeartHandshake], ["blended", "Blended family", UsersRound], ["multigenerational", "Multigenerational", House], ["chosen_family", "Chosen family", Sparkles]]} />
           <OnboardingChoiceGroup icon={<Sparkles size={15} />} label="Life stage" value={props.lifeStage} onChange={props.setLifeStage} options={[["pregnant", "Pregnant", HeartHandshake], ["newborn", "Newborn", Baby], ["toddler", "Toddler", Baby], ["school_age", "School age", BriefcaseBusiness], ["teens", "Teenagers", UsersRound], ["adult_family", "Adult family", House]]} />
+        </>}
+
+        {props.step === 1 && <>
           <AddressAutocomplete
             label="Home address"
             value={props.address}
@@ -610,14 +614,15 @@ function OwnerProfileStep(props) {
             <TextField label="City" placeholder="e.g. Toronto" value={props.city} onChange={(event) => props.setCity(event.target.value)} autoComplete="address-level2" />
             <TextField label="Country" placeholder="e.g. Canada" value={props.country} onChange={(event) => props.setCountry(event.target.value)} autoComplete="country-name" />
           </div>
+          <p className="onboarding-inline-note">Your address is shared only with your household and powers local weather and event alerts.</p>
         </>}
 
-        {props.step === 1 && <div className="onboarding-choice-group onboarding-priority-grid">
+        {props.step === 2 && <div className="onboarding-choice-group onboarding-priority-grid">
           <span><Sparkles size={15} /> Choose all that apply</span>
           <div>{[["calendar", "Schedules", CalendarDays], ["meals", "Meal planning", ChefHat], ["groceries", "Groceries", ShoppingCart], ["tasks", "Chores & tasks", CheckSquare], ["finance", "Budgeting", WalletCards], ["chat", "Family chat", MessageCircle]].map(([value, label, Icon]) => <button type="button" key={value} className={props.planningPriorities.includes(value) ? "selected" : ""} onClick={() => props.togglePriority(value)}><Icon size={16} />{label}{props.planningPriorities.includes(value) && <Check className="onboarding-pill-check" size={13} />}</button>)}</div>
         </div>}
 
-        {props.step === 2 && <>
+        {props.step === 3 && <>
           <div className="onboarding-choice-group">
             <span><ChefHat size={15} /> Dietary preferences</span>
             <div>{restrictions.map(([restriction, Icon]) => <button type="button" key={restriction} className={props.dietaryRestrictions.includes(restriction) ? "selected" : ""} onClick={() => props.toggleRestriction(restriction)}><Icon size={15} />{restriction}</button>)}</div>
@@ -628,9 +633,9 @@ function OwnerProfileStep(props) {
           </div>
         </>}
 
-        {props.step === 3 && <label className="onboarding-field onboarding-full onboarding-grocery-import"><span><ShoppingCart size={15} /> Paste your current grocery list</span><textarea placeholder={"Milk\nEggs\nBananas x6\nGreek yogurt"} value={props.groceryImportText} onChange={(e) => props.setGroceryImportText(e.target.value)} /><small>One item per line works best. We’ll add them to Groceries and remember them as staples.</small></label>}
+        {props.step === 4 && <label className="onboarding-field onboarding-full onboarding-grocery-import"><span><ShoppingCart size={15} /> Paste your current grocery list</span><textarea placeholder={"Milk\nEggs\nBananas x6\nGreek yogurt"} value={props.groceryImportText} onChange={(e) => props.setGroceryImportText(e.target.value)} /><small>One item per line works best. We’ll add them to Groceries and remember them as staples.</small></label>}
 
-        {props.step === 4 && <>
+        {props.step === 5 && <>
           <GoogleCalendarStep signInWithGoogle={props.signInWithGoogle} googleProviderToken={props.googleProviderToken} busy={props.busy} run={props.run} />
           <div className="onboarding-choice-group">
             <span><Palette size={15} /> Your colour</span>
@@ -649,7 +654,7 @@ function OwnerProfileStep(props) {
         step={props.step}
         lastStep={steps.length - 1}
         busy={props.busy}
-        nextDisabled={(props.step === 0 && !basicsValid) || (props.step === 1 && !props.planningPriorities.length)}
+        nextDisabled={(props.step === 0 && !basicsValid) || (props.step === 1 && (!props.address.trim() || !Number.isFinite(props.latitude) || !Number.isFinite(props.longitude))) || (props.step === 2 && !props.planningPriorities.length)}
         onBack={() => props.setStep((step) => Math.max(0, step - 1))}
         onNext={next}
         onFinish={props.onSave}
@@ -725,7 +730,13 @@ function InviteStep({ inviteMembers, setInviteMembers, busy, invitePartner, run,
     if (missingConsent) throw new Error(`Confirm SMS invitation consent for ${missingConsent.name}.`);
     const duplicateEmail = invitations.find((member, index) => invitations.findIndex((candidate) => candidate.email === member.email) !== index);
     if (duplicateEmail) throw new Error(`${duplicateEmail.email} is listed more than once.`);
-    for (const member of invitations) await invitePartner(member.email, member.phone, member.name);
+    const results = [];
+    for (const member of invitations) {
+      results.push(await invitePartner(member.email, member.phone, member.name));
+    }
+    const failed = results.find((result) => !result?.sent);
+    if (failed) throw new Error(failed.message || "The invitation was saved, but delivery could not be confirmed.");
+    skipOnboardingInvites();
   });
 
   return (
