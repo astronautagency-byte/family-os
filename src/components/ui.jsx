@@ -1,5 +1,6 @@
 import { FAMILY_COLORS } from "../data/mockData";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { CalendarDays, Check, ChevronLeft, ChevronRight, X } from "lucide-react";
 
 export function colorVar(colorId) {
@@ -124,8 +125,22 @@ export function Checkbox({ checked, onChange, color, label = "Toggle selection" 
 }
 
 export function Modal({ open, onClose, title, children }) {
+  useEffect(() => {
+    if (!open) return undefined;
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open, onClose]);
+
   if (!open) return null;
-  return (
+  return createPortal(
     <div className="m3-dialog-layer fixed inset-0 z-50 flex items-end sm:items-center justify-center" role="presentation">
       <div className="m3-scrim absolute inset-0" onClick={onClose} />
       <div className="modal-card m3-dialog relative bg-[var(--color-surface)] w-full sm:max-w-sm px-7 pt-7 pb-12 sm:p-8 safe-bottom fade-up max-h-[85vh] overflow-y-auto" role="dialog" aria-modal="true" aria-label={title || "Dialog"}>
@@ -134,7 +149,8 @@ export function Modal({ open, onClose, title, children }) {
         {title && <h3 className="font-[var(--font-display)] text-[19px] font-semibold mb-5 pr-10">{title}</h3>}
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
