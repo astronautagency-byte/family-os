@@ -13,6 +13,32 @@ const json = (body: Record<string, unknown>, status = 200) => new Response(JSON.
   headers: { ...corsHeaders, "Content-Type": "application/json" },
 });
 
+function errorMessage(error: unknown) {
+  if (error instanceof Error && error.message && error.message.trim() !== "{}") return error.message;
+  if (typeof error === "string" && error.trim() && error.trim() !== "{}") return error;
+  if (error && typeof error === "object") {
+    const record = error as Record<string, unknown>;
+    if (typeof record.message === "string" && record.message.trim() && record.message.trim() !== "{}") return record.message;
+    if (typeof record.error_description === "string" && record.error_description.trim()) return record.error_description;
+    if (typeof record.error === "string" && record.error.trim()) return record.error;
+    if (record.error && typeof record.error === "object") {
+      const nested = record.error as Record<string, unknown>;
+      if (typeof nested.message === "string" && nested.message.trim() && nested.message.trim() !== "{}") return nested.message;
+    }
+    const diagnostic = [record.name, record.code, record.Code, record.__type, record.$fault]
+      .filter((value) => typeof value === "string" && value.trim() && value.trim() !== "{}")
+      .join(" · ");
+    if (diagnostic) return diagnostic;
+    try {
+      const serialized = JSON.stringify(error);
+      if (serialized && serialized !== "{}") return serialized;
+    } catch {
+      // Fall through to the stable user-facing message.
+    }
+  }
+  return "Invitation delivery failed unexpectedly. Please try again.";
+}
+
 const escapeHtml = (value = "") => value
   .replaceAll("&", "&amp;")
   .replaceAll("<", "&lt;")
@@ -117,6 +143,9 @@ FamOS — Families Run Better on FamOS`;
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   const requestId = crypto.randomUUID();
+  let stage = "initialization";
+  let invitationSaved = false;
+  let partialSms: { requested: boolean; sent: boolean; message: string } | null = null;
   try {
     const authorization = request.headers.get("Authorization");
     if (!authorization) throw new Error("You must be signed in to invite family members.");
@@ -147,9 +176,10 @@ Deno.serve(async (request) => {
       }
     }
 
-    const userClient = createClient(url, anonKey, { global: { headers: { Authorization: authorization } } });
     const admin = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
-    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    const accessToken = authorization.replace(/^Bearer\s+/i, "").trim();
+    stage = "session validation";
+    const { data: { user }, error: userError } = await admin.auth.getUser(accessToken);
     if (userError || !user) throw new Error("Your session has expired. Please sign in again.");
 
     const { email, phone, name, householdId, redirectTo } = await request.json();
@@ -160,6 +190,7 @@ Deno.serve(async (request) => {
     if (normalizedPhone && !/^\+?\d{10,15}$/.test(normalizedPhone)) throw new Error("Enter the mobile number with country code, for example +1 416 555 0123.");
     if (normalizedEmail === user.email?.toLowerCase()) throw new Error("Invite another family member, not yourself.");
 
+    stage = "household authorization";
     const [{ data: membership }, { data: household }, { data: inviterProfile }] = await Promise.all([
       admin.from("household_members").select("role").eq("household_id", householdId).eq("user_id", user.id).maybeSingle(),
       admin.from("households").select("name").eq("id", householdId).maybeSingle(),
@@ -189,13 +220,16 @@ Deno.serve(async (request) => {
       accepted_at: null,
       expires_at: expiresAt,
     };
+    stage = "saving the pending invitation";
     let { error: invitationError } = await admin.from("household_invitations").upsert(invitationPayload, { onConflict: "household_id,email" });
     if (invitationError && /invited_name|phone|schema cache|column/i.test(invitationError.message || "")) {
       const { phone: _phone, invited_name: _invitedName, ...legacyPayload } = invitationPayload;
       ({ error: invitationError } = await admin.from("household_invitations").upsert(legacyPayload, { onConflict: "household_id,email" }));
     }
     if (invitationError) throw invitationError;
+    invitationSaved = true;
 
+    stage = "checking the invited account";
     const existingAuthUser = await findAuthUserByEmail(admin, normalizedEmail);
     const appOrigin = new URL(redirectTo || "https://fam-os.app").origin;
     const callbackUrl = existingAuthUser ? `${appOrigin}/signin` : `${appOrigin}/signin?invite=1`;
@@ -205,12 +239,28 @@ Deno.serve(async (request) => {
       event: "family_invitation_started",
       requestId,
       existingAccount: Boolean(existingAuthUser),
-      emailProvider: resendKey ? "resend" : awsEmailEnabled ? "aws_ses" : "supabase_smtp",
+      emailProvider: resendKey ? "resend" : hasAwsMessaging ? "aws_ses" : "supabase_smtp",
+      awsEmailStatusConfirmed: awsEmailEnabled,
       smsRequested: Boolean(normalizedPhone),
       awsRegion,
     }));
     const sms = { requested: Boolean(normalizedPhone), sent: false, message: "" };
+    partialSms = sms;
+    const sendSupabaseEmail = async () => {
+      if (existingAuthUser) {
+        const deliveryClient = createClient(url, anonKey, { auth: { autoRefreshToken: false, persistSession: false } });
+        const { error } = await deliveryClient.auth.signInWithOtp({
+          email: normalizedEmail,
+          options: { shouldCreateUser: false, emailRedirectTo: callbackUrl },
+        });
+        if (error) throw error;
+      } else {
+        const { error } = await admin.auth.admin.inviteUserByEmail(normalizedEmail, { redirectTo: callbackUrl });
+        if (error) throw error;
+      }
+    };
     if (normalizedPhone) {
+      stage = "sending the invitation SMS";
       const textbeltKey = Deno.env.get("TEXTBELT_API_KEY");
       if (!awsAccessKeyId || !awsSecretAccessKey) {
         if (!textbeltKey) {
@@ -255,7 +305,7 @@ Deno.serve(async (request) => {
           sms.message = sms.sent ? "" : "Amazon SNS did not return a message ID";
           console.log(JSON.stringify({ event: "family_invitation_sms", requestId, sent: sms.sent }));
         } catch (error) {
-          const awsMessage = error.message || "";
+          const awsMessage = errorMessage(error);
           sms.message = /needs a subscription|can't determine whether.*sandbox|PinpointSmsVoiceV2/i.test(awsMessage)
             ? `Amazon SMS onboarding is incomplete in ${awsRegion}. Activate AWS End User Messaging SMS in that region, verify a sandbox destination, and try again.`
             : /authorization|not authorized|accessdenied/i.test(awsMessage)
@@ -264,7 +314,7 @@ Deno.serve(async (request) => {
           console.error(JSON.stringify({
             event: "family_invitation_sms_failed",
             requestId,
-            errorName: error?.name || "Error",
+            errorName: error instanceof Error ? error.name : "Error",
             message: sms.message,
           }));
         }
@@ -275,18 +325,9 @@ Deno.serve(async (request) => {
     // Supabase sends either an invite for a new Auth account or a sign-in OTP
     // for an existing account. Once RESEND_API_KEY is present, the branded
     // FamOS template below becomes the delivery path automatically.
-    if (!resendKey && !awsEmailEnabled) {
-      if (existingAuthUser) {
-        const deliveryClient = createClient(url, anonKey, { auth: { autoRefreshToken: false, persistSession: false } });
-        const { error: otpError } = await deliveryClient.auth.signInWithOtp({
-          email: normalizedEmail,
-          options: { shouldCreateUser: false, emailRedirectTo: callbackUrl },
-        });
-        if (otpError) throw otpError;
-      } else {
-        const { error: defaultInviteError } = await admin.auth.admin.inviteUserByEmail(normalizedEmail, { redirectTo: callbackUrl });
-        if (defaultInviteError) throw defaultInviteError;
-      }
+    if (!resendKey && !hasAwsMessaging) {
+      stage = "sending the Supabase invitation email";
+      await sendSupabaseEmail();
       console.log(JSON.stringify({ event: "family_invitation_email", requestId, provider: "supabase_smtp", sent: true }));
       return json({
         sent: true,
@@ -298,6 +339,7 @@ Deno.serve(async (request) => {
     }
 
     const linkType = existingAuthUser ? "magiclink" : "invite";
+    stage = "creating the secure invitation link";
     const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
       type: linkType,
       email: normalizedEmail,
@@ -314,6 +356,7 @@ Deno.serve(async (request) => {
     let emailId = "";
     let provider = "aws_ses";
     if (resendKey) {
+      stage = "sending the Resend invitation email";
       const emailResponse = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
@@ -331,25 +374,44 @@ Deno.serve(async (request) => {
       emailId = emailResult.id;
       provider = "resend";
     } else {
+      stage = "sending the Amazon SES invitation email";
       const ses = new SESv2Client({
         region: awsRegion,
         credentials: { accessKeyId: awsAccessKeyId!, secretAccessKey: awsSecretAccessKey! },
       });
-      const emailResult = await ses.send(new SendEmailCommand({
-        FromEmailAddress: fromEmail,
-        Destination: { ToAddresses: [normalizedEmail] },
-        Content: {
-          Simple: {
-            Subject: { Data: `${inviterName} invited you to ${householdName} on FamOS`, Charset: "UTF-8" },
-            Body: {
-              Html: { Data: content.html, Charset: "UTF-8" },
-              Text: { Data: content.text, Charset: "UTF-8" },
+      try {
+        const emailResult = await ses.send(new SendEmailCommand({
+          FromEmailAddress: fromEmail,
+          Destination: { ToAddresses: [normalizedEmail] },
+          Content: {
+            Simple: {
+              Subject: { Data: `${inviterName} invited you to ${householdName} on FamOS`, Charset: "UTF-8" },
+              Body: {
+                Html: { Data: content.html, Charset: "UTF-8" },
+                Text: { Data: content.text, Charset: "UTF-8" },
+              },
             },
           },
-        },
-      }));
-      emailId = emailResult.MessageId || "";
-      if (!emailId) throw new Error("Amazon SES did not return a message ID.");
+        }));
+        emailId = emailResult.MessageId || "";
+        if (!emailId) throw new Error("Amazon SES did not return a message ID.");
+      } catch (sesError) {
+        const sesMessage = errorMessage(sesError);
+        console.warn(JSON.stringify({ event: "family_invitation_ses_fallback", requestId, message: sesMessage }));
+        try {
+          await sendSupabaseEmail();
+        } catch (fallbackError) {
+          throw new Error(`Amazon SES: ${sesMessage}. Supabase email fallback: ${errorMessage(fallbackError)}`);
+        }
+        return json({
+          sent: true,
+          existingAccount: Boolean(existingAuthUser),
+          pending: true,
+          provider: "supabase_fallback",
+          providerWarning: sesMessage,
+          sms,
+        });
+      }
     }
     console.log(JSON.stringify({ event: "family_invitation_email", requestId, provider, sent: true }));
 
@@ -362,12 +424,23 @@ Deno.serve(async (request) => {
       sms,
     });
   } catch (error) {
+    const detail = errorMessage(error);
+    const message = `Invitation failed during ${stage}: ${detail}`;
     console.error(JSON.stringify({
       event: "family_invitation_failed",
       requestId,
-      errorName: error?.name || "Error",
-      message: error?.message || "Unknown invitation error",
+      errorName: error instanceof Error ? error.name : "Error",
+      message,
     }));
-    return json({ error: error.message }, 400);
+    if (invitationSaved) {
+      return json({
+        sent: false,
+        pending: true,
+        emailError: message,
+        sms: partialSms,
+        requestId,
+      });
+    }
+    return json({ error: message, requestId }, 400);
   }
 });

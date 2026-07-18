@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { isSupabaseConfigured, supabase } from "../lib/supabase";
+import { invokeEdgeFunction, isSupabaseConfigured, supabase } from "../lib/supabase";
 
 const AuthContext = createContext(null);
 const STAPLES_KEY = "family-os:grocery-staples:v1";
@@ -115,16 +115,24 @@ async function importStapleGroceries(text, householdId, userId) {
 }
 
 async function getFunctionErrorMessage(functionError) {
+  const response = functionError?.context;
   try {
-    const response = functionError?.context;
-    if (response?.clone) {
-      const payload = await response.clone().json();
-      if (payload?.error) return payload.error;
+    if (response) {
+      const readable = response.clone ? response.clone() : response;
+      const text = await readable.text();
+      const payload = text ? JSON.parse(text) : null;
+      if (typeof payload?.error === "string" && payload.error.trim()) return payload.error;
+      if (payload?.error?.message) return payload.error.message;
+      if (payload?.message) return payload.message;
+      if (text && text !== "{}") return `${text} (HTTP ${response.status || "error"})`;
     }
   } catch {
     // FunctionFetchError does not always include a parseable response.
   }
-  return functionError?.message || "Could not reach the invitation email service.";
+  const message = functionError?.message;
+  return message && message !== "{}"
+    ? message
+    : `Invitation service returned ${response?.status || "an unexpected error"}. Please try again.`;
 }
 
 export function AuthProvider({ children }) {
@@ -675,9 +683,21 @@ export function AuthProvider({ children }) {
 
   const invitePartner = async (email, phone = "", name = "") => {
     const normalizedEmail = email.trim().toLowerCase();
-    const { data: inviteData, error: inviteError } = await supabase.functions.invoke("send-family-invitation", {
-      body: { email: normalizedEmail, phone: phone.trim(), name: name.trim(), householdId: household.id, redirectTo: `${window.location.origin}/signin?invite=1` },
-    });
+    let inviteData = null;
+    let inviteError = null;
+    try {
+      inviteData = await invokeEdgeFunction("send-family-invitation", {
+        email: normalizedEmail,
+        phone: phone.trim(),
+        name: name.trim(),
+        householdId: household.id,
+        redirectTo: `${window.location.origin}/signin?invite=1`,
+      });
+    } catch (error) {
+      inviteError = error instanceof Error
+        ? error
+        : new Error(`Invitation request failed: ${JSON.stringify(error) || String(error)}`);
+    }
     if (!inviteError) {
       const sent = Boolean(inviteData?.sent);
       return {
@@ -688,11 +708,13 @@ export function AuthProvider({ children }) {
           ? `Invitation email sent${inviteData?.provider ? ` through ${inviteData.provider === "resend" ? "FamOS email" : "Supabase"}` : ""}.${inviteData?.sms?.sent ? " SMS invitation sent too." : inviteData?.sms?.requested ? ` SMS was not sent: ${inviteData.sms.message || "provider unavailable"}.` : ""} They’ll remain listed as Pending until they join.`
           : inviteData?.existingAccount
             ? "Invitation saved. They already have a FamOS login and will see this home when they sign in."
-            : "Invitation saved, but the email provider did not confirm delivery.",
+            : `Invitation saved, but email was not sent: ${inviteData?.emailError || "the email provider did not confirm delivery"}.${inviteData?.sms?.sent ? " SMS invitation sent successfully." : inviteData?.sms?.requested ? ` SMS was not sent: ${inviteData.sms.message || "provider unavailable"}.` : ""}`,
       };
     }
 
-    const emailServiceMessage = await getFunctionErrorMessage(inviteError);
+    const emailServiceMessage = inviteError instanceof Error && inviteError.message
+      ? inviteError.message
+      : await getFunctionErrorMessage(inviteError);
     const pendingInvitePayload = {
       household_id: household.id,
       email: normalizedEmail,

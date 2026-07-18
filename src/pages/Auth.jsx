@@ -763,7 +763,7 @@ function InviteStep({ inviteMembers, setInviteMembers, busy, invitePartner, run,
     for (const member of invitations) {
       results.push(await invitePartner(member.email, member.phone, member.name));
     }
-    const failed = results.find((result) => !result?.sent);
+    const failed = results.find((result) => !result?.sent && !result?.pending);
     if (failed) throw new Error(failed.message || "The invitation was saved, but delivery could not be confirmed.");
     skipOnboardingInvites();
   });

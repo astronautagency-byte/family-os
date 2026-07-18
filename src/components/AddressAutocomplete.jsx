@@ -1,19 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { MapPin } from "lucide-react";
 import { fetchGooglePlaceSuggestions, googleMapsApiKey, loadGooglePlaces } from "../lib/googleMapsPlaces";
+import { googleAddressParts, googlePredictionText } from "../lib/googleAddress";
 
-function addressParts(result) {
-  const components = result?.address_components || [];
-  const part = (type) => components.find((component) => component.types?.includes(type))?.long_name || "";
-  return {
-    address: result?.formatted_address || "",
-    city: part("locality") || part("postal_town") || part("administrative_area_level_2"),
-    region: part("administrative_area_level_1"),
-    postalCode: part("postal_code"),
-    country: part("country"),
-    latitude: result?.geometry?.location?.lat?.() ?? null,
-    longitude: result?.geometry?.location?.lng?.() ?? null,
-  };
+function geocodeAddress(maps, request) {
+  return new Promise((resolve, reject) => {
+    const geocoder = new maps.google.maps.Geocoder();
+    geocoder.geocode(request, (results, status) => {
+      const ok = maps.google.maps.GeocoderStatus?.OK || "OK";
+      if (status === ok && results?.[0]) resolve(results[0]);
+      else reject(new Error(status && status !== "ZERO_RESULTS" ? `Google Maps returned ${status}.` : "Google Maps could not resolve this address."));
+    });
+  });
 }
 
 export default function AddressAutocomplete({ label = "Home address", value = "", onChange, placeholder = "Start typing your address" }) {
@@ -51,14 +49,21 @@ export default function AddressAutocomplete({ label = "Home address", value = ""
     return () => window.clearTimeout(timer);
   }, [maps, value]);
 
-  const resolveAddress = async (description, placeId) => {
+  const resolveAddress = async (description, placeId, prediction) => {
     if (!maps || !description?.trim()) return;
     try {
-      const geocoder = new maps.google.maps.Geocoder();
-      const response = await geocoder.geocode({
-        ...(placeId ? { placeId } : { address: description.trim() }),
-      });
-      const details = addressParts(response.results?.[0]);
+      let result;
+      if (typeof prediction?.toPlace === "function") {
+        const place = prediction.toPlace();
+        await place.fetchFields({ fields: ["formattedAddress", "addressComponents", "location"] });
+        result = place;
+      } else {
+        result = await geocodeAddress(maps, placeId ? { placeId } : { address: description.trim() });
+      }
+      const details = googleAddressParts(result);
+      if (!Number.isFinite(details.latitude) || !Number.isFinite(details.longitude)) {
+        throw new Error("Google Maps did not return coordinates for this address.");
+      }
       resolvedAddressRef.current = details.address || description;
       onChange({ ...details, address: details.address || description });
       setStatus("");
@@ -69,10 +74,10 @@ export default function AddressAutocomplete({ label = "Home address", value = ""
 
   const select = async (suggestion) => {
     const prediction = suggestion.placePrediction;
-    const description = prediction?.text?.toString?.() || prediction?.legacyPrediction?.description || "";
+    const description = googlePredictionText(prediction);
     setSuggestions([]);
     if (!description) return;
-    await resolveAddress(description, prediction?.placeId || prediction?.legacyPrediction?.place_id);
+    await resolveAddress(description, prediction?.placeId || prediction?.legacyPrediction?.place_id, prediction);
   };
 
   const handleBlur = () => {
@@ -111,7 +116,7 @@ export default function AddressAutocomplete({ label = "Home address", value = ""
       {suggestions.length > 0 && <span className="address-autocomplete-results">
         {suggestions.map((suggestion, index) => {
           const prediction = suggestion.placePrediction;
-          const text = prediction?.text?.toString?.() || prediction?.legacyPrediction?.description || "";
+          const text = googlePredictionText(prediction);
           return <button type="button" key={prediction?.placeId || prediction?.legacyPrediction?.place_id || `${text}-${index}`} onMouseDown={(event) => event.preventDefault()} onClick={() => select(suggestion)}><MapPin size={15} /><span>{text}</span></button>;
         })}
       </span>}
