@@ -1826,8 +1826,11 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   }
   body .app-content .reference-dashboard .page-title {
     max-width: 24ch;
-    font-size: clamp(11px, 3vw, 12px) !important;
-    line-height: 1.12 !important;
+    height: auto;
+    min-height: 0;
+    align-items: flex-start;
+    font-size: 22px !important;
+    line-height: 1.15 !important;
   }
   body .app-content .page-title > svg,
   body .app-content .page-title > span {
@@ -1842,14 +1845,16 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
     height: 12px;
   }
   body .app-content .reference-dashboard .today-greeting-copy {
-    display: flex;
+    display: grid;
     flex: 1 1 auto;
     min-width: 0;
-    flex-direction: column;
-    gap: 1px;
+    align-content: start;
+    gap: 2px;
+    line-height: 1.15 !important;
   }
   body .app-content .reference-dashboard .today-greeting-copy > span {
     display: block;
+    line-height: inherit !important;
   }
   body .app-content .reference-dashboard .today-greeting-copy > span + span {
     margin-left: 0;
@@ -1907,7 +1912,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 @media (max-width: 380px) {
   body .app-content .page-title { font-size: 12px !important; }
   body .app-content .reference-dashboard .page-title {
-    font-size: 11px !important;
+    font-size: 20px !important;
   }
   body .app-content .page-header-aside {
     min-width: 72px;
@@ -1930,8 +1935,10 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   body .app-content .reference-dashboard .page-title,
   body .app-content .reference-dashboard .today-greeting-copy,
   body .app-content .reference-dashboard .today-greeting-copy > span {
-    font-size: 14px !important;
-    line-height: 1.12 !important;
+    height: auto;
+    min-height: 0;
+    font-size: 22px !important;
+    line-height: 1.15 !important;
   }
   body .app-content .page-subtitle {
     font-size: 11.5px !important;
