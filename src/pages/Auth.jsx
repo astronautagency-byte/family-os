@@ -444,6 +444,8 @@ export function HouseholdOnboarding() {
       avoidIngredients,
       mealNotes,
       city,
+      region,
+      postalCode,
       country,
       address,
       latitude,

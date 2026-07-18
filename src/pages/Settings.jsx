@@ -260,6 +260,8 @@ export default function Settings() {
   const [editingHousehold, setEditingHousehold] = useState(false);
   const [householdName, setHouseholdName] = useState("");
   const [householdCity, setHouseholdCity] = useState("");
+  const [householdRegion, setHouseholdRegion] = useState("");
+  const [householdPostalCode, setHouseholdPostalCode] = useState("");
   const [householdCountry, setHouseholdCountry] = useState("");
   const [householdAddress, setHouseholdAddress] = useState("");
   const [householdLatitude, setHouseholdLatitude] = useState(null);
@@ -280,6 +282,8 @@ export default function Settings() {
   const openHouseholdEditor = () => {
     setHouseholdName(household?.name || "");
     setHouseholdCity(householdProfileExtra?.city || "");
+    setHouseholdRegion(householdProfileExtra?.region || "");
+    setHouseholdPostalCode(householdProfileExtra?.postalCode || "");
     setHouseholdCountry(householdProfileExtra?.country || "");
     setHouseholdAddress(householdProfileExtra?.address || "");
     setHouseholdLatitude(householdProfileExtra?.latitude ?? null);
@@ -297,6 +301,8 @@ export default function Settings() {
       await updateHouseholdSettings({
         name: householdName,
         city: householdCity,
+        region: householdRegion,
+        postalCode: householdPostalCode,
         country: householdCountry,
         address: householdAddress,
         latitude: householdLatitude,
@@ -853,16 +859,28 @@ export default function Settings() {
           onChange={(place) => {
             setHouseholdAddress(place.address ?? householdAddress);
             if (place.city !== undefined) setHouseholdCity(place.city);
+            if (place.region !== undefined) setHouseholdRegion(place.region);
+            if (place.postalCode !== undefined) setHouseholdPostalCode(place.postalCode);
             if (place.country !== undefined) setHouseholdCountry(place.country);
             if (place.latitude !== undefined) setHouseholdLatitude(place.latitude);
             if (place.longitude !== undefined) setHouseholdLongitude(place.longitude);
           }}
         />
-        <div className="settings-location-fields">
-          <TextField label="City" value={householdCity} onChange={(event) => setHouseholdCity(event.target.value)} placeholder="e.g. Toronto" autoComplete="address-level2" />
-          <TextField label="Country" value={householdCountry} onChange={(event) => setHouseholdCountry(event.target.value)} placeholder="e.g. Canada" autoComplete="country-name" />
+        <div className="onboarding-address-preview settings-address-preview" aria-live="polite">
+          {[
+            ["Address", householdAddress],
+            ["City", householdCity],
+            ["Province / state", householdRegion],
+            ["Postal code", householdPostalCode],
+            ["Country", householdCountry],
+          ].map(([label, value]) => (
+            <div key={label} className={label === "Address" ? "wide" : ""}>
+              <span>{label}</span>
+              <strong>{value || "Filled automatically"}</strong>
+            </div>
+          ))}
         </div>
-        <p className="text-[11.5px] leading-relaxed text-[var(--color-ink-faint)] -mt-1 mb-3">City and country fill automatically when Google Maps resolves the home address.</p>
+        <p className="text-[11.5px] leading-relaxed text-[var(--color-ink-faint)] -mt-1 mb-3">Google Maps fills these details automatically. Your address powers local weather and location-aware household features.</p>
         <p className="settings-field-label">Household dietary preferences</p>
         <div className="settings-dietary-picker">
           {HOUSEHOLD_DIETARY_OPTIONS.map((restriction) => (
