@@ -124,12 +124,7 @@ export default function Today({ goTo }) {
     <div className="pb-24 reference-dashboard">
       <PageHeader
         eyebrow={fullDateLabel(today)}
-        title={
-          <span className="today-greeting-copy">
-            <span>{greetingLabel}{greetingName ? "," : ""}</span>
-            {greetingName && <span>{greetingName}</span>}
-          </span>
-        }
+        title={`${greetingLabel}${greetingName ? `, ${greetingName}` : ""}`}
         subtitle={dailyEncouragement(today)}
         illustration="home"
       />
