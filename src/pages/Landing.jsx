@@ -44,10 +44,26 @@ const stages = [
   { id: "extended", label: "Extended family", icon: Users, title: "Extended family, connected.", copy: "Care, celebrations, errands, and everyday support across generations and locations.", artSrc: "/illustrations/stage-extended.png", chips: ["Grandma’s visit", "Prescription pickup", "Family dinner"] },
 ];
 
-const testimonials = [
-  { quote: "We stopped asking ‘who knew about this?’ FamOS gives everyone the same version of the week.", name: "Maya", detail: "Parent of two · Toronto", avatar: "/marketing/testimonials/maya.png" },
-  { quote: "The grocery list, school calendar, and chores finally feel like one shared system.", name: "Jordan", detail: "Co-parent · Vancouver", avatar: "/marketing/testimonials/jordan.png" },
-  { quote: "Our teenager uses it because their plans feel shared, not handed down.", name: "Sam", detail: "Parent of a teenager · Ottawa", avatar: "/marketing/testimonials/sam.png" },
+const familyScenarios = [
+  { title: "One version of the week", copy: "School events, appointments, pickups, and meal plans stay visible to the whole household.", label: "For busy households", avatar: "/marketing/testimonials/maya.png" },
+  { title: "A shared system between homes", copy: "Calendars, groceries, and tasks travel with the family instead of living on one wall or one phone.", label: "For co-parents", avatar: "/marketing/testimonials/jordan.png" },
+  { title: "Plans teens can own", copy: "Give every person a clear view of what is happening and what belongs to them.", label: "For growing families", avatar: "/marketing/testimonials/sam.png" },
+];
+
+const comparisonRows = [
+  { label: "Upfront hardware", famos: "None — use the screens you already own", display: "Dedicated display purchase", organizer: "Usually none" },
+  { label: "Use it anywhere", famos: "Phone, tablet, laptop, or wall-mounted screen", display: "Centred on a home display and companion app", organizer: "Mobile and web access varies" },
+  { label: "Plan that grows", famos: "Pricing scales with household members", display: "Hardware plus optional subscription", organizer: "Free and premium bundles" },
+  { label: "Choose your extras", famos: "Add Fam AI when your family needs it", display: "Features depend on device and plan", organizer: "Premium features depend on plan" },
+  { label: "Family coordination", famos: "Calendar, meals, groceries, tasks, chat, rewards, and AI", display: "Strong shared calendar and home display", organizer: "Core organizer features vary by app" },
+  { label: "Try before committing", famos: `${PRICING_PLAN.trial.days}-day free trial`, display: "Offers and trials vary", organizer: "Free tiers or trials vary" },
+];
+
+const connectedRoadmap = [
+  { status: "Available", title: "Multiple calendars, one family view", copy: "Connect more than one Google Calendar, colour-code events, and see the week together without replacing the calendars you already use.", icon: CalendarDays },
+  { status: "Available", title: "Choose what joins the family calendar", copy: "Keep external calendars connected while deciding which events belong in the shared FamOS view.", icon: CheckSquare },
+  { status: "In development", title: "Private or shared by default", copy: "Granular controls are being designed so each person can decide which calendars, plans, and details stay private or become visible to the household.", icon: LockKeyhole },
+  { status: "Exploring", title: "Bring WhatsApp context into FamOS", copy: "We are exploring a consent-based way to turn selected family conversations into useful plans without importing every message or exposing private chats.", icon: MessageCircle },
 ];
 
 const pricingAddOns = [
@@ -173,7 +189,7 @@ export default function Landing({ signedIn = false }) {
       gsap.from(".landing-hero-media", { scale: .96, autoAlpha: 0, duration: .75, ease: "power2.out" });
       gsap.to(".landing-float-card", { y: -9, rotation: "+=1.2", duration: 2.4, stagger: .35, repeat: -1, yoyo: true, ease: "sine.inOut" });
 
-      const revealTargets = gsap.utils.toArray(".landing-purpose, .landing-section-head, .stage-panel, .landing-feature, .capability-grid article, .product-stage, .landing-ai, .landing-step-grid article, .landing-testimonials article, .landing-community, .landing-bento>article, .pricing-shell, .landing-privacy, .landing-final");
+      const revealTargets = gsap.utils.toArray(".landing-purpose, .landing-section-head, .stage-panel, .landing-feature, .capability-grid article, .product-stage, .landing-ai, .landing-step-grid article, .landing-testimonials article, .landing-comparison, .landing-connected, .connected-grid article, .landing-community, .landing-bento>article, .pricing-shell, .landing-privacy, .landing-final");
       gsap.set(revealTargets, { y: 24, autoAlpha: 0 });
       ScrollTrigger.batch(revealTargets, {
         start: "top 88%",
@@ -290,7 +306,7 @@ export default function Landing({ signedIn = false }) {
     <div className="landing-scroll-progress" aria-hidden="true" />
     <nav className="landing-nav">
       <button className="landing-brand" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}><img src="/brand/famos-icon-transparent.png" alt=""/><strong>Fam<span>OS</span></strong></button>
-      <div className="landing-links"><a href="#features">Features</a><a href="#how-it-works">How it works</a><a href="#families">For every family</a><a href="#pricing">Pricing</a></div>
+        <div className="landing-links"><a href="#features">Features</a><a href="#how-it-works">How it works</a><a href="#compare">Compare</a><a href="#pricing">Pricing</a></div>
       <div className="landing-actions">{!signedIn&&<button className="landing-signin" onClick={() => go("signin")}>Sign in</button>}<button className="landing-join" onClick={() => go(signedIn ? "today" : "signup")}>{signedIn ? "Open FamOS" : "Get started"}<ArrowRight/></button></div>
     </nav>
 
@@ -316,7 +332,11 @@ export default function Landing({ signedIn = false }) {
 
       <section className="landing-steps"><div className="landing-section-head"><p>Start together</p><h2>From new account<br/>to “we’ve got this.”</h2></div><div className="landing-step-grid"><article><b>1</b><h3>Name your home</h3><p>Create the private space your household will share.</p></article><article><b>2</b><h3>Invite your people</h3><p>Send secure invites now, or skip and do it later. We’re not bossy.</p></article><article><b>3</b><h3>Make it yours</h3><p>Connect calendars, choose roles, and start planning together.</p></article></div></section>
 
-      <section className="landing-testimonials"><div className="landing-section-head"><p>What families say</p><h2>Built for busy<br/>households.</h2><span>Sample feedback showing how FamOS can help.</span></div><div>{testimonials.map((item)=><article key={item.name}><span>{"★★★★★"}</span><blockquote>“{item.quote}”</blockquote><footer><img src={item.avatar} alt="" aria-hidden="true"/><span><b>{item.name}</b><small>{item.detail}</small></span></footer></article>)}</div><small className="testimonial-note">Sample testimonials and AI-generated portraits for design demonstration.</small></section>
+      <section className="landing-testimonials"><div className="landing-section-head"><p>Made for real family life</p><h2>One home base.<br/>Many kinds of family.</h2><span>See how FamOS fits the situations families coordinate every day.</span></div><div>{familyScenarios.map((item)=><article key={item.title}><span><Check/> {item.label}</span><h3>{item.title}</h3><p>{item.copy}</p><footer><img src={item.avatar} alt="" aria-hidden="true"/><b>Built around shared family life</b></footer></article>)}</div></section>
+
+      <section className="landing-comparison" id="compare"><div className="landing-section-head"><p>Why FamOS</p><h2>Your family hub,<br/>without another device.</h2><span>Use FamOS across the screens you already have, then add people and features as your household grows.</span></div><div className="comparison-shell"><div className="comparison-head"><span>What matters</span><strong>FamOS</strong><span>Dedicated displays</span><span>Organizer apps</span></div>{comparisonRows.map((row)=><div className="comparison-row" key={row.label}><b>{row.label}</b><strong><Check/>{row.famos}</strong><span>{row.display}</span><span>{row.organizer}</span></div>)}</div><div className="comparison-highlights"><article><Sparkles/><h3>AI that knows the plan</h3><p>Fam AI can connect meals, groceries, tasks, and schedules—then asks before changing anything.</p></article><article><Users/><h3>Sharing at the core</h3><p>Invite family from anywhere, assign clear owners, and keep the same household view on every device.</p></article><article><CheckSquare/><h3>Start simple, add later</h3><p>Begin with the essentials, try FamOS free, and turn on additional help when it earns a place in family life.</p></article></div><small className="comparison-note">Category comparison based on publicly available product information for dedicated displays such as Skylight Calendar and organizer apps such as Cozi and FamilyWall, reviewed July 2026. Features and offers can change.</small></section>
+
+      <section className="landing-connected"><div className="landing-section-head"><p>Connected on your terms</p><h2>Bring the family together.<br/>Keep control of what you share.</h2><span>FamOS is growing toward a flexible connection layer for the calendars and conversations your family already uses.</span></div><div className="connected-grid">{connectedRoadmap.map(({status,title,copy,icon:Icon})=><article key={title}><div><Icon/><span className={status === "Available" ? "available" : ""}>{status}</span></div><h3>{title}</h3><p>{copy}</p></article>)}</div><small>Roadmap items are directional and may change as we validate privacy, consent, and platform requirements with families.</small></section>
 
       <section className="landing-community"><div className="community-avatars" aria-hidden="true"><img src="/marketing/testimonials/maya.png" alt=""/><img src="/marketing/testimonials/jordan.png" alt=""/><img src="/marketing/testimonials/sam.png" alt=""/></div><p>One home for everyone.</p><h2>Built for every family<br/>stage.</h2><span>From first appointments to school runs, teen schedules, and extended family care, FamOS keeps everyone on the same page.</span><button onClick={()=>go(signedIn?"today":"signup")}>{signedIn?"Open your family space":"Get started"}<ArrowRight/></button><div className="community-facts"><article><b>Shared Household</b><small>One private space for your people.</small></article><article><b>Meal Planning</b><small>Recipes, cook mode, and dietary needs.</small></article><article><b>Sync Multiple Calendars</b><small>Google calendars, colours, and places.</small></article><article><b>Assign Chores & Rewards</b><small>Owners now, rewards when ready.</small></article><article><b>Get Help with Fam AI</b><small>Helpful suggestions when you need them.</small></article></div></section>
 
