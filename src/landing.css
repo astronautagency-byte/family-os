@@ -445,12 +445,31 @@
     box-sizing: border-box;
     gap: 10px;
   }
-  .landing-brand { min-width: 0; flex: 1 1 auto; }
+  .landing-brand {
+    min-width: 0;
+    height: 40px;
+    flex: 1 1 auto;
+    align-items: center;
+  }
   .landing-brand img { width: 34px; height: 34px; }
-  .landing-brand strong { font-size: 18px; }
-  .landing-actions { flex: 0 0 auto; margin-left: auto; }
+  .landing-brand strong { font-size: 18px; line-height: 1; }
+  .landing-actions {
+    height: 40px;
+    flex: 0 0 auto;
+    align-items: center;
+    margin-left: auto;
+  }
   .landing-signin,
-  .landing-join { min-height: 40px; padding-inline: 12px; white-space: nowrap; }
+  .landing-join {
+    display: inline-flex !important;
+    height: 40px;
+    min-height: 40px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 12px;
+    line-height: 1;
+    white-space: nowrap;
+  }
 
   .landing-hero {
     padding: 44px var(--landing-phone-gutter) 52px !important;
