@@ -9,6 +9,7 @@ import { AVATAR_PRESETS } from "../data/avatarLibrary";
 import { PRICING_PLAN, formatMoney } from "../data/pricingPlan";
 import { supabase } from "../lib/supabase";
 import AddressAutocomplete from "../components/AddressAutocomplete";
+import { formatPhoneInput, isValidPhoneNumber, normalizePhoneE164 } from "../utils/phone";
 
 const HOUSEHOLD_DIETARY_OPTIONS = ["Vegetarian", "Vegan", "Gluten-free", "Dairy-free", "Nut-free", "Shellfish-free", "Low sugar"];
 
@@ -330,6 +331,10 @@ export default function Settings() {
   const sendHouseholdInvite = async (event) => {
     event?.preventDefault();
     if (!inviteName.trim() || !inviteEmail.trim() || inviting) return;
+    if (invitePhone.trim() && !isValidPhoneNumber(invitePhone)) {
+      setInviteStatus("Enter a valid mobile number with its country code.");
+      return;
+    }
     if (invitePhone.trim() && !inviteSmsConsent) {
       setInviteStatus("Confirm that this person agreed to receive a one-time invitation by text.");
       return;
@@ -338,10 +343,11 @@ export default function Settings() {
     setInviteStatus("");
     setSmsFallbackUrl("");
     try {
-      const result = await invitePartner(inviteEmail, invitePhone, inviteName);
+      const normalizedInvitePhone = invitePhone.trim() ? normalizePhoneE164(invitePhone) : "";
+      const result = await invitePartner(inviteEmail, normalizedInvitePhone, inviteName);
       setInviteStatus(result?.message || "Invitation sent.");
       if (invitePhone.trim() && result?.sms?.requested && !result.sms.sent) {
-        const normalizedPhone = invitePhone.replace(/[^\d+]/g, "");
+        const normalizedPhone = normalizePhoneE164(invitePhone);
         const joinUrl = `${window.location.origin}/signin?invited=1&email=${encodeURIComponent(inviteEmail.trim().toLowerCase())}`;
         const message = `You’re invited to ${household?.name || "a family home"} on FamOS. Join your family home: ${joinUrl} Reply STOP to opt out.`;
         const separator = /iPad|iPhone|iPod/.test(navigator.userAgent) ? "&" : "?";
@@ -524,7 +530,14 @@ export default function Settings() {
               {pendingInvites.map((invite) => (
                 <li key={invite.id} className="family-roster-pending">
                   <div className="family-invite-avatar">{(invite.invited_name || invite.email).slice(0, 1).toUpperCase()}</div>
-                  <div className="min-w-0 flex-1"><p>{invite.invited_name || invite.email}</p>{invite.invited_name && <span>{invite.email}</span>}<span>{invite.phone ? `${invite.phone} · ` : ""}Still waiting for them to join</span></div>
+                  <div className="family-invite-details min-w-0 flex-1">
+                    <p>{invite.invited_name || invite.email}</p>
+                    <div className="family-invite-meta">
+                      {invite.invited_name && <span>{invite.email}</span>}
+                      {invite.phone && <span>{invite.phone}</span>}
+                    </div>
+                    <span className="family-invite-status">Still waiting for them to join</span>
+                  </div>
                   <div className="pending-invite-actions">
                     <span className="pending-pill">Pending</span>
                     <button disabled={inviting} onClick={() => resendHouseholdInvite(invite)}><RefreshCw size={12} /> {inviting ? "Sending…" : "Resend"}</button>
@@ -547,7 +560,10 @@ export default function Settings() {
                   <TextField type="text" label="Family member’s name" placeholder="e.g. Sam Lee" value={inviteName} onChange={(e) => setInviteName(e.target.value)} autoComplete="name" />
                   <TextField type="email" label="Email address" placeholder="family@example.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} autoComplete="email" />
                 </div>
-                <TextField type="tel" label="Mobile number (optional)" placeholder="+1 416 555 0123" value={invitePhone} onChange={(e) => setInvitePhone(e.target.value)} autoComplete="tel" />
+                <div className="invite-phone-field">
+                  <TextField type="tel" label="Mobile number (optional)" placeholder="+1 (416) 555-0123" value={invitePhone} onChange={(e) => setInvitePhone(formatPhoneInput(e.target.value))} autoComplete="tel" inputMode="tel" aria-invalid={Boolean(invitePhone && !isValidPhoneNumber(invitePhone))} />
+                  {invitePhone && !isValidPhoneNumber(invitePhone) && <small>Enter 10 digits, or include + and the country code.</small>}
+                </div>
                 {invitePhone.trim() && (
                   <label className="mb-4 flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-sunken)] p-3 text-[12.5px] leading-relaxed text-[var(--color-ink-soft)]">
                     <input

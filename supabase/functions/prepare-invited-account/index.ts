@@ -49,6 +49,13 @@ Deno.serve(async (request) => {
       .maybeSingle();
     if (profileError) throw profileError;
 
+    // A profile means this email already completed FamOS registration. A stale
+    // or duplicate pending invitation must never turn an existing member back
+    // into a first-time password-setup flow.
+    if (profile) {
+      return respond({ ready: true, invited: false, existingAccount: true });
+    }
+
     if (!profile) {
       const { error: createError } = await admin.auth.admin.createUser({
         email: normalizedEmail,

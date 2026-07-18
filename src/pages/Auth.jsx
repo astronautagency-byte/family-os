@@ -5,6 +5,7 @@ import { Card, PrimaryButton, SecondaryButton, TextField } from "../components/u
 import { FAMILY_COLORS } from "../data/mockData";
 import { AVATAR_PRESETS } from "../data/avatarLibrary";
 import AddressAutocomplete from "../components/AddressAutocomplete";
+import { formatPhoneInput, isValidPhoneNumber, normalizePhoneE164 } from "../utils/phone";
 
 function resizeAvatarImage(file) {
   return new Promise((resolve, reject) => {
@@ -47,8 +48,9 @@ export function AuthLoading() {
 }
 
 export function SignIn({ initialCreating = false }) {
-  const { signIn, signUp, requestPasswordReset, requestInvitePasswordCode, completeInvitePasswordSetup, error } = useAuth();
+  const { signIn, signUp, requestPasswordReset, requestInvitePasswordCode, error } = useAuth();
   const inviteParams = useMemo(() => new URLSearchParams(window.location.search), []);
+  const openedInvitation = inviteParams.get("invited") === "1";
   const [email, setEmail] = useState(() => inviteParams.get("email") || "");
   const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
@@ -56,9 +58,9 @@ export function SignIn({ initialCreating = false }) {
   const [creating, setCreating] = useState(initialCreating);
   const [busy, setBusy] = useState(false);
   const [localError, setLocalError] = useState("");
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState(() => openedInvitation ? "Already registered? Sign in normally. New invited members can create a password below." : "");
   const [forgot, setForgot] = useState(false);
-  const [needsPasswordSetup, setNeedsPasswordSetup] = useState(() => inviteParams.get("invited") === "1");
+  const [needsPasswordSetup, setNeedsPasswordSetup] = useState(false);
 
   const submit = async (event) => {
     event.preventDefault();
@@ -91,7 +93,6 @@ export function SignIn({ initialCreating = false }) {
       <InvitedPasswordSetup
         initialEmail={email}
         requestCode={requestInvitePasswordCode}
-        completeSetup={completeInvitePasswordSetup}
         onBack={() => { setNeedsPasswordSetup(false); setLocalError(""); setPassword(""); }}
       />
     );
@@ -121,6 +122,11 @@ export function SignIn({ initialCreating = false }) {
           <PrimaryButton type="submit" disabled={busy || !email.trim() || password.length < 6 || (creating && !displayName.trim())}>
             {busy ? "One sec…" : creating ? "Create account" : "Sign in"}
           </PrimaryButton>
+          {!creating && openedInvitation && (
+            <button type="button" onClick={() => { setNeedsPasswordSetup(true); setLocalError(""); }} className="w-full text-center text-[12.5px] text-[var(--color-accent)] mt-4">
+              New invited member? Create your password
+            </button>
+          )}
           <button type="button" onClick={() => { setCreating((value) => !value); setLocalError(""); setNotice(""); }} className="w-full text-center text-[12.5px] text-[var(--color-accent)] mt-4">
             {creating ? "Already have an account? Sign in" : "New here? Create an account"}
           </button>
@@ -131,41 +137,23 @@ export function SignIn({ initialCreating = false }) {
   );
 }
 
-function InvitedPasswordSetup({ initialEmail, requestCode, completeSetup, onBack }) {
+function InvitedPasswordSetup({ initialEmail, requestCode, onBack }) {
   const [email, setEmail] = useState(initialEmail || "");
-  const [code, setCode] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [show, setShow] = useState(false);
-  const [codeSent, setCodeSent] = useState(false);
+  const [linkSent, setLinkSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const valid = code.trim().length >= 6 && password.length >= 6 && password === confirm;
 
-  const sendCode = async (event) => {
-    event.preventDefault();
+  const sendLink = async (event) => {
+    event?.preventDefault?.();
     if (!email.trim()) return;
     setBusy(true);
     setError("");
     try {
       await requestCode(email);
-      setCodeSent(true);
+      setLinkSent(true);
     } catch (err) {
-      setError(err.message || "Could not send the verification code.");
+      setError(err.message || "Could not send the secure setup link.");
     } finally {
-      setBusy(false);
-    }
-  };
-
-  const finish = async (event) => {
-    event.preventDefault();
-    if (!valid) return;
-    setBusy(true);
-    setError("");
-    try {
-      await completeSetup(email, code, password);
-    } catch (err) {
-      setError(err.message || "Could not finish setting up your password.");
       setBusy(false);
     }
   };
@@ -174,31 +162,24 @@ function InvitedPasswordSetup({ initialEmail, requestCode, completeSetup, onBack
     <Shell>
       <h1 className="minimal-auth-title">Create your password</h1>
       <p className="recovery-intro">
-        {codeSent
-          ? `Enter the verification code sent to ${email}, then choose your password.`
-          : "Verify your invited email, then create your password right here in FamOS."}
+        {linkSent
+          ? `Open the secure link sent to ${email} to create your password and join your family.`
+          : "Enter the email that received your FamOS invitation."}
       </p>
       <Card className="minimal-auth-card">
-        {!codeSent ? (
-          <form onSubmit={sendCode}>
+        {!linkSent ? (
+          <form onSubmit={sendLink}>
             <TextField type="email" label="Invited email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required />
             {error && <p className="text-[12.5px] text-[var(--color-warn)] mb-3">{error}</p>}
-            <PrimaryButton type="submit" disabled={busy || !email.trim()}>{busy ? "Sending…" : "Send verification code"}</PrimaryButton>
+            <PrimaryButton type="submit" disabled={busy || !email.trim()}>{busy ? "Sending…" : "Send secure setup link"}</PrimaryButton>
             <button type="button" className="recovery-back" onClick={onBack}>Back to sign in</button>
           </form>
         ) : (
-          <form onSubmit={finish}>
-            <TextField label="Verification code" inputMode="numeric" autoComplete="one-time-code" placeholder="6-digit code" value={code} onChange={(event) => setCode(event.target.value.replace(/\s/g, ""))} required />
-            <TextField type={show ? "text" : "password"} label="New password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" minLength={6} required />
-            <TextField type={show ? "text" : "password"} label="Confirm password" value={confirm} onChange={(event) => setConfirm(event.target.value)} autoComplete="new-password" minLength={6} required />
-            <div className="password-actions">
-              <button type="button" onClick={() => setShow((value) => !value)}>{show ? <EyeOff size={16} /> : <Eye size={16} />} {show ? "Hide passwords" : "Show passwords"}</button>
-              <button type="button" disabled={busy} onClick={sendCode}>Resend code</button>
-            </div>
-            {confirm && password !== confirm && <p className="text-[12.5px] text-[var(--color-warn)] mb-3">Those passwords do not match yet.</p>}
-            {error && <p className="text-[12.5px] text-[var(--color-warn)] mb-3">{error}</p>}
-            <PrimaryButton type="submit" disabled={busy || !valid}>{busy ? "Creating password…" : "Create password & join home"}</PrimaryButton>
-          </form>
+          <>
+            <div className="recovery-sent"><Mail size={18} /><strong>Setup link sent</strong><span>Open the email on this device to continue securely.</span></div>
+            <button type="button" className="minimal-google" disabled={busy} onClick={sendLink}>{busy ? "Sending…" : "Resend setup link"}</button>
+            <button type="button" className="recovery-back" onClick={onBack}>Back to sign in</button>
+          </>
         )}
       </Card>
     </Shell>
@@ -731,15 +712,15 @@ function InviteStep({ inviteMembers, setInviteMembers, busy, invitePartner, run,
 
   const sendInvites = () => run(async () => {
     const invitations = inviteMembers
-      .map((member) => ({ ...member, name: member.name.trim(), email: member.email.trim().toLowerCase(), phone: member.phone.trim() }))
+      .map((member) => ({ ...member, name: member.name.trim(), email: member.email.trim().toLowerCase(), phone: normalizePhoneE164(member.phone) }))
       .filter((member) => member.name || member.email || member.phone);
     if (!invitations.length) throw new Error("Add at least one family member or skip this step.");
+    const invalidPhone = inviteMembers.find((member) => member.phone.trim() && !isValidPhoneNumber(member.phone));
+    if (invalidPhone) throw new Error(`Add a valid mobile number with country code for ${invalidPhone.name || "this family member"}.`);
     const incomplete = invitations.find((member) => !member.name || !member.email || !member.phone);
     if (incomplete) throw new Error("Add a name, email address, and mobile number for each family member.");
     const invalidEmail = invitations.find((member) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(member.email));
     if (invalidEmail) throw new Error(`Check the email address “${invalidEmail.email}” and try again.`);
-    const invalidPhone = invitations.find((member) => !/^\+?[\d\s().-]{10,20}$/.test(member.phone));
-    if (invalidPhone) throw new Error(`Add a valid mobile number with country code for ${invalidPhone.name}.`);
     const missingConsent = invitations.find((member) => !member.smsConsent);
     if (missingConsent) throw new Error(`Confirm SMS invitation consent for ${missingConsent.name}.`);
     const duplicateEmail = invitations.find((member, index) => invitations.findIndex((candidate) => candidate.email === member.email) !== index);
@@ -759,7 +740,10 @@ function InviteStep({ inviteMembers, setInviteMembers, busy, invitePartner, run,
             <div className="onboarding-invite-fields">
               <TextField type="text" label="Name" placeholder="e.g. Sam Lee" value={member.name} onChange={(event) => updateInvite(index, "name", event.target.value)} autoComplete="name" />
               <TextField type="email" label="Email" placeholder="sam@example.com" value={member.email} onChange={(event) => updateInvite(index, "email", event.target.value)} autoComplete="email" />
-              <TextField type="tel" label="Mobile number" placeholder="+1 416 555 0123" value={member.phone} onChange={(event) => updateInvite(index, "phone", event.target.value)} autoComplete="tel" />
+              <div className="invite-phone-field">
+                <TextField type="tel" label="Mobile number" placeholder="+1 (416) 555-0123" value={member.phone} onChange={(event) => updateInvite(index, "phone", formatPhoneInput(event.target.value))} autoComplete="tel" inputMode="tel" aria-invalid={Boolean(member.phone && !isValidPhoneNumber(member.phone))} />
+                {member.phone && !isValidPhoneNumber(member.phone) && <small>Enter 10 digits, or include + and the country code.</small>}
+              </div>
             </div>
             <label className="partner-consent onboarding-invite-consent">
               <input type="checkbox" checked={member.smsConsent} onChange={(event) => updateInvite(index, "smsConsent", event.target.checked)} />

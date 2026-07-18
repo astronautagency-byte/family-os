@@ -166,6 +166,7 @@ export default function Landing({ signedIn = false }) {
   const selectedStage = stages[stage];
   useGSAP(() => {
     const media = gsap.matchMedia();
+    ScrollTrigger.config({ ignoreMobileResize: true });
     media.add("(prefers-reduced-motion: no-preference)", () => {
       gsap.from(".landing-nav", { y: -18, autoAlpha: 0, duration: .55, ease: "power2.out" });
       gsap.from(".landing-hero-copy>*", { y: 20, autoAlpha: 0, duration: .55, stagger: .07, ease: "power2.out" });
@@ -180,6 +181,7 @@ export default function Landing({ signedIn = false }) {
         interval: .08,
         batchMax: 4,
         onEnter: (batch) => gsap.to(batch, { y: 0, autoAlpha: 1, duration: .62, stagger: .07, ease: "power3.out", overwrite: "auto" }),
+        onEnterBack: (batch) => gsap.to(batch, { y: 0, autoAlpha: 1, duration: .45, stagger: .04, ease: "power2.out", overwrite: "auto" }),
       });
 
       gsap.to(".landing-hero-media", {
@@ -234,7 +236,53 @@ export default function Landing({ signedIn = false }) {
           card.removeEventListener("pointerleave", leave);
         };
       });
-      return () => listeners.forEach((remove) => remove());
+
+      // Mobile Safari finalizes its viewport and image/font geometry after the
+      // first paint. Refreshing at those milestones keeps reveal triggers from
+      // being calculated off-screen and leaving sections permanently hidden.
+      let refreshFrames = 0;
+      let revealFrame = 0;
+      const refresh = () => {
+        cancelAnimationFrame(refreshFrames);
+        refreshFrames = requestAnimationFrame(() => {
+          ScrollTrigger.sort();
+          ScrollTrigger.refresh(true);
+        });
+      };
+      const revealVisible = () => {
+        cancelAnimationFrame(revealFrame);
+        revealFrame = requestAnimationFrame(() => {
+          revealTargets.forEach((target) => {
+            const bounds = target.getBoundingClientRect();
+            const style = getComputedStyle(target);
+            if (bounds.top < innerHeight * .92 && bounds.bottom > 0 && (style.visibility === "hidden" || Number(style.opacity) < .05)) {
+              gsap.to(target, { y: 0, autoAlpha: 1, duration: .5, ease: "power2.out", overwrite: "auto" });
+            }
+          });
+        });
+      };
+      const refreshTimers = [window.setTimeout(refresh, 180), window.setTimeout(refresh, 850)];
+      const ready = document.fonts?.ready?.then(refresh).catch(() => {});
+      window.addEventListener("load", refresh);
+      window.addEventListener("pageshow", refresh);
+      window.addEventListener("scroll", revealVisible, { passive: true });
+      window.visualViewport?.addEventListener("resize", refresh);
+      window.visualViewport?.addEventListener("resize", revealVisible);
+      refresh();
+      revealVisible();
+
+      return () => {
+        void ready;
+        listeners.forEach((remove) => remove());
+        refreshTimers.forEach(window.clearTimeout);
+        cancelAnimationFrame(refreshFrames);
+        cancelAnimationFrame(revealFrame);
+        window.removeEventListener("load", refresh);
+        window.removeEventListener("pageshow", refresh);
+        window.removeEventListener("scroll", revealVisible);
+        window.visualViewport?.removeEventListener("resize", refresh);
+        window.visualViewport?.removeEventListener("resize", revealVisible);
+      };
     });
     return () => media.revert();
   }, { scope: root });

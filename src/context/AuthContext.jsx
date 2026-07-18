@@ -127,22 +127,6 @@ async function getFunctionErrorMessage(functionError) {
   return functionError?.message || "Could not reach the invitation email service.";
 }
 
-function getAuthErrorMessage(authError, fallback) {
-  const candidates = [
-    authError?.message,
-    authError?.error_description,
-    authError?.error,
-    authError?.cause?.message,
-    authError?.context?.message,
-  ];
-  const message = candidates.find((candidate) => typeof candidate === "string" && candidate.trim());
-  if (!message || message === "{}" || message === "[object Object]") return fallback;
-  if (/error sending (recovery|magic link|email)|unexpected_failure/i.test(message)) {
-    return "FamOS could not send the email right now. Please try again shortly.";
-  }
-  return message;
-}
-
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -389,30 +373,44 @@ export function AuthProvider({ children }) {
 
   const requestPasswordReset = async (email) => {
     setError(null);
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
-      redirectTo: window.location.origin,
+    const { error: resetError } = await supabase.functions.invoke("send-password-email", {
+      body: {
+        email: email.trim().toLowerCase(),
+        purpose: "reset",
+        origin: window.location.origin,
+      },
     });
     if (resetError) {
-      throw new Error(getAuthErrorMessage(resetError, "FamOS could not send the reset email right now. Please try again shortly."));
+      const detail = await getFunctionErrorMessage(resetError);
+      throw new Error(detail || "FamOS could not send the reset email right now. Please try again shortly.");
     }
   };
 
   const requestInvitePasswordCode = async (email) => {
     setError(null);
     const normalizedEmail = email.trim().toLowerCase();
-    const { error: prepareError } = await supabase.functions.invoke("prepare-invited-account", {
+    const { data: prepareData, error: prepareError } = await supabase.functions.invoke("prepare-invited-account", {
       body: { email: normalizedEmail },
     });
     if (prepareError) {
       const detail = await getFunctionErrorMessage(prepareError);
       throw new Error(detail || "Could not prepare this invited account.");
     }
-    const { error: codeError } = await supabase.auth.signInWithOtp({
-      email: normalizedEmail,
-      options: { shouldCreateUser: false },
+    if (!prepareData?.invited) {
+      throw new Error(prepareData?.existingAccount
+        ? "This email already has a FamOS account. Sign in normally or use Forgot? to reset its password."
+        : "We could not find an active FamOS invitation for this email.");
+    }
+    const { error: codeError } = await supabase.functions.invoke("send-password-email", {
+      body: {
+        email: normalizedEmail,
+        purpose: "invitation",
+        origin: window.location.origin,
+      },
     });
     if (codeError) {
-      throw new Error(getAuthErrorMessage(codeError, "FamOS could not send the invitation code right now. Please try again shortly."));
+      const detail = await getFunctionErrorMessage(codeError);
+      throw new Error(detail || "FamOS could not send the invitation link right now. Please try again shortly.");
     }
   };
 

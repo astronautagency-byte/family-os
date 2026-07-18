@@ -1,0 +1,107 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+import { SendEmailCommand, SESv2Client } from "npm:@aws-sdk/client-sesv2@3";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+const respond = (body: Record<string, unknown>, status = 200) => new Response(JSON.stringify(body), {
+  status,
+  headers: { ...corsHeaders, "Content-Type": "application/json" },
+});
+
+function emailContent(actionLink: string, purpose: string) {
+  const invited = purpose === "invitation";
+  const title = invited ? "Create your FamOS password" : "Reset your FamOS password";
+  const intro = invited
+    ? "Your family is waiting for you in FamOS. Use the secure button below to create your password and join the shared home."
+    : "We received a request to reset your FamOS password. Use the secure button below to choose a new one.";
+  const button = invited ? "Create my password" : "Reset my password";
+  const text = `${title}\n\n${intro}\n\n${button}: ${actionLink}\n\nThis secure link expires and can only be used once. If you did not request this email, you can safely ignore it.\n\nFamOS — Families run better on FamOS.`;
+  const html = `<!doctype html>
+<html><body style="margin:0;background:#f7f3ff;font-family:Arial,sans-serif;color:#17152d">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f3ff;padding:32px 16px">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border:1px solid #e3dcfa;border-radius:24px;overflow:hidden">
+        <tr><td style="padding:30px 34px 18px;text-align:center">
+          <img src="https://fam-os.app/brand/famos-logo.png" width="110" alt="FamOS" style="display:block;margin:0 auto 24px">
+          <h1 style="margin:0 0 12px;font-size:30px;line-height:1.15;color:#17152d">${title}</h1>
+          <p style="margin:0;color:#625e72;font-size:16px;line-height:1.6">${intro}</p>
+        </td></tr>
+        <tr><td style="padding:10px 34px 30px;text-align:center">
+          <a href="${actionLink}" style="display:inline-block;background:#6550dc;color:#fff;text-decoration:none;font-weight:700;font-size:16px;padding:15px 28px;border-radius:999px">${button}</a>
+          <p style="margin:22px 0 0;color:#8a8698;font-size:12px;line-height:1.5">This secure link expires and can only be used once. If you did not request it, you can safely ignore this email.</p>
+        </td></tr>
+        <tr><td style="background:#201d38;padding:20px 34px;color:#c8c3d8;font-size:12px;line-height:1.6;text-align:center">
+          FamOS · Families run better on FamOS<br>
+          <a href="https://fam-os.app/privacy" style="color:#b9aaff">Privacy</a> &nbsp;·&nbsp;
+          <a href="https://fam-os.app/terms" style="color:#b9aaff">Terms</a>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+  return { title, text, html };
+}
+
+Deno.serve(async (request) => {
+  if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  try {
+    const { email, purpose = "reset", origin } = await request.json();
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      return respond({ sent: true });
+    }
+
+    const url = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const accessKeyId = Deno.env.get("AWS_ACCESS_KEY_ID");
+    const secretAccessKey = Deno.env.get("AWS_SECRET_ACCESS_KEY");
+    const region = Deno.env.get("AWS_REGION") || "ca-central-1";
+    const fromEmail = Deno.env.get("FAMOS_FROM_EMAIL") || "FamOS <invites@fam-os.app>";
+    if (!accessKeyId || !secretAccessKey) throw new Error("AWS email delivery is not configured.");
+
+    const requestedOrigin = String(origin || "");
+    const safeOrigin = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(requestedOrigin)
+      ? requestedOrigin
+      : "https://fam-os.app";
+    const admin = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
+    const { data, error } = await admin.auth.admin.generateLink({
+      type: "recovery",
+      email: normalizedEmail,
+      options: { redirectTo: safeOrigin },
+    });
+
+    // Keep the response generic so this endpoint cannot enumerate accounts.
+    if (error || !data?.properties?.action_link) {
+      console.warn(JSON.stringify({ event: "password_email_skipped", purpose, reason: error?.message || "no_action_link" }));
+      return respond({ sent: true });
+    }
+
+    const content = emailContent(data.properties.action_link, purpose);
+    const ses = new SESv2Client({
+      region,
+      credentials: { accessKeyId, secretAccessKey },
+    });
+    const result = await ses.send(new SendEmailCommand({
+      FromEmailAddress: fromEmail,
+      Destination: { ToAddresses: [normalizedEmail] },
+      Content: {
+        Simple: {
+          Subject: { Data: content.title, Charset: "UTF-8" },
+          Body: {
+            Html: { Data: content.html, Charset: "UTF-8" },
+            Text: { Data: content.text, Charset: "UTF-8" },
+          },
+        },
+      },
+    }));
+    console.log(JSON.stringify({ event: "password_email_sent", purpose, messageId: result.MessageId }));
+    return respond({ sent: true });
+  } catch (error) {
+    console.error(JSON.stringify({ event: "password_email_failed", message: error?.message || String(error) }));
+    return respond({ error: "FamOS could not send this email right now. Please try again shortly." }, 500);
+  }
+});
