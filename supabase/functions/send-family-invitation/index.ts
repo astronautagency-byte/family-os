@@ -131,10 +131,11 @@ Deno.serve(async (request) => {
     const { data: { user }, error: userError } = await userClient.auth.getUser();
     if (userError || !user) throw new Error("Your session has expired. Please sign in again.");
 
-    const { email, phone, householdId, redirectTo } = await request.json();
+    const { email, phone, name, householdId, redirectTo } = await request.json();
     if (!email?.trim() || !householdId) throw new Error("Email and household are required.");
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedPhone = String(phone || "").replace(/[^\d+]/g, "");
+    const invitedName = String(name || "").trim().slice(0, 120);
     if (normalizedPhone && !/^\+?\d{10,15}$/.test(normalizedPhone)) throw new Error("Enter the mobile number with country code, for example +1 416 555 0123.");
     if (normalizedEmail === user.email?.toLowerCase()) throw new Error("Invite another family member, not yourself.");
 
@@ -161,14 +162,15 @@ Deno.serve(async (request) => {
     const invitationPayload = {
       household_id: householdId,
       email: normalizedEmail,
+      ...(invitedName ? { invited_name: invitedName } : {}),
       ...(normalizedPhone ? { phone: normalizedPhone } : {}),
       invited_by: user.id,
       accepted_at: null,
       expires_at: expiresAt,
     };
     let { error: invitationError } = await admin.from("household_invitations").upsert(invitationPayload, { onConflict: "household_id,email" });
-    if (invitationError && normalizedPhone && /phone|schema cache|column/i.test(invitationError.message || "")) {
-      const { phone: _phone, ...legacyPayload } = invitationPayload;
+    if (invitationError && /invited_name|phone|schema cache|column/i.test(invitationError.message || "")) {
+      const { phone: _phone, invited_name: _invitedName, ...legacyPayload } = invitationPayload;
       ({ error: invitationError } = await admin.from("household_invitations").upsert(legacyPayload, { onConflict: "household_id,email" }));
     }
     if (invitationError) throw invitationError;

@@ -234,6 +234,7 @@ export default function Settings() {
   const [avatarStatus, setAvatarStatus] = useState("");
   const [savingMember, setSavingMember] = useState(false);
   const [confirmingReset, setConfirmingReset] = useState(false);
+  const [inviteName, setInviteName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [invitePhone, setInvitePhone] = useState("");
   const [inviteSmsConsent, setInviteSmsConsent] = useState(false);
@@ -294,8 +295,8 @@ export default function Settings() {
 
   const loadPendingInvites = async () => {
     if (!configured || !household?.id || !supabase) return;
-    let { data, error } = await supabase.from("household_invitations").select("id,email,phone,expires_at").eq("household_id", household.id).is("accepted_at", null).gt("expires_at", new Date().toISOString()).order("created_at");
-    if (error && /phone|schema cache|column/i.test(error.message || "")) {
+    let { data, error } = await supabase.from("household_invitations").select("id,invited_name,email,phone,expires_at").eq("household_id", household.id).is("accepted_at", null).gt("expires_at", new Date().toISOString()).order("created_at");
+    if (error && /invited_name|phone|schema cache|column/i.test(error.message || "")) {
       ({ data, error } = await supabase.from("household_invitations").select("id,email,expires_at").eq("household_id", household.id).is("accepted_at", null).gt("expires_at", new Date().toISOString()).order("created_at"));
     }
     if (error) {
@@ -318,7 +319,7 @@ export default function Settings() {
 
   const sendHouseholdInvite = async (event) => {
     event?.preventDefault();
-    if (!inviteEmail.trim() || inviting) return;
+    if (!inviteName.trim() || !inviteEmail.trim() || inviting) return;
     if (invitePhone.trim() && !inviteSmsConsent) {
       setInviteStatus("Confirm that this person agreed to receive a one-time invitation by text.");
       return;
@@ -327,7 +328,7 @@ export default function Settings() {
     setInviteStatus("");
     setSmsFallbackUrl("");
     try {
-      const result = await invitePartner(inviteEmail, invitePhone);
+      const result = await invitePartner(inviteEmail, invitePhone, inviteName);
       setInviteStatus(result?.message || "Invitation sent.");
       if (invitePhone.trim() && result?.sms?.requested && !result.sms.sent) {
         const normalizedPhone = invitePhone.replace(/[^\d+]/g, "");
@@ -336,6 +337,7 @@ export default function Settings() {
         const separator = /iPad|iPhone|iPod/.test(navigator.userAgent) ? "&" : "?";
         setSmsFallbackUrl(`sms:${normalizedPhone}${separator}body=${encodeURIComponent(message)}`);
       }
+      setInviteName("");
       setInviteEmail("");
       setInvitePhone("");
       setInviteSmsConsent(false);
@@ -352,7 +354,7 @@ export default function Settings() {
     setInviting(true);
     setInviteActionStatus("");
     try {
-      const result = await invitePartner(invite.email, invite.phone || "");
+      const result = await invitePartner(invite.email, invite.phone || "", invite.invited_name || "");
       setInviteActionStatus(result?.message || `Invitation resent to ${invite.email}.`);
     } catch (error) {
       setInviteActionStatus(error.message || `Could not resend the invitation to ${invite.email}.`);
@@ -501,8 +503,8 @@ export default function Settings() {
               ))}
               {pendingInvites.map((invite) => (
                 <li key={invite.id} className="family-roster-pending">
-                  <div className="family-invite-avatar">{invite.email.slice(0, 1).toUpperCase()}</div>
-                  <div className="min-w-0 flex-1"><p>{invite.email}</p><span>{invite.phone ? `${invite.phone} · ` : ""}Still waiting for them to join</span></div>
+                  <div className="family-invite-avatar">{(invite.invited_name || invite.email).slice(0, 1).toUpperCase()}</div>
+                  <div className="min-w-0 flex-1"><p>{invite.invited_name || invite.email}</p>{invite.invited_name && <span>{invite.email}</span>}<span>{invite.phone ? `${invite.phone} · ` : ""}Still waiting for them to join</span></div>
                   <div className="pending-invite-actions">
                     <span className="pending-pill">Pending</span>
                     <button disabled={inviting} onClick={() => resendHouseholdInvite(invite)}><RefreshCw size={12} /> {inviting ? "Sending…" : "Resend"}</button>
@@ -521,7 +523,10 @@ export default function Settings() {
           {configured && (
             <Card className="p-4 mt-3">
               <form onSubmit={sendHouseholdInvite}>
-                <TextField type="email" label="Invite a family member" placeholder="family@example.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
+                <div className="settings-invite-fields">
+                  <TextField type="text" label="Family member’s name" placeholder="e.g. Sam Lee" value={inviteName} onChange={(e) => setInviteName(e.target.value)} autoComplete="name" />
+                  <TextField type="email" label="Email address" placeholder="family@example.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} autoComplete="email" />
+                </div>
                 <TextField type="tel" label="Mobile number (optional)" placeholder="+1 416 555 0123" value={invitePhone} onChange={(e) => setInvitePhone(e.target.value)} autoComplete="tel" />
                 {invitePhone.trim() && (
                   <label className="mb-4 flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-sunken)] p-3 text-[12.5px] leading-relaxed text-[var(--color-ink-soft)]">
@@ -534,7 +539,7 @@ export default function Settings() {
                     <span>I confirm this person agreed to receive a one-time FamOS invitation by text. Standard message rates may apply.</span>
                   </label>
                 )}
-                <PrimaryButton type="submit" disabled={inviting || !inviteEmail.trim() || (Boolean(invitePhone.trim()) && !inviteSmsConsent)}>{inviting ? "Sending invitation…" : "Send invite"}</PrimaryButton>
+                <PrimaryButton type="submit" disabled={inviting || !inviteName.trim() || !inviteEmail.trim() || (Boolean(invitePhone.trim()) && !inviteSmsConsent)}>{inviting ? "Sending invitation…" : "Send invite"}</PrimaryButton>
               </form>
               {inviteStatus && <p className="text-[12px] text-[var(--color-ink-soft)] mt-2">{inviteStatus}</p>}
               {smsFallbackUrl && <a className="m3-button m3-button-outlined w-full mt-2" href={smsFallbackUrl}>Send with Messages instead</a>}

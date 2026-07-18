@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Baby, BriefcaseBusiness, CalendarDays, Check, CheckSquare, ChefHat, ChevronLeft, Eye, EyeOff, HeartHandshake, House, ImagePlus, Leaf, LoaderCircle, LockKeyhole, Mail, MessageCircle, Palette, Salad, ShieldCheck, ShoppingCart, Sparkles, UserRound, UsersRound, WalletCards, WheatOff } from "lucide-react";
+import { Baby, BriefcaseBusiness, CalendarDays, Check, CheckSquare, ChefHat, ChevronLeft, Eye, EyeOff, HeartHandshake, House, ImagePlus, Leaf, LoaderCircle, LockKeyhole, Mail, MessageCircle, Palette, Plus, Salad, ShieldCheck, ShoppingCart, Sparkles, Trash2, UserRound, UsersRound, WalletCards, WheatOff } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { Card, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
 import { FAMILY_COLORS } from "../data/mockData";
@@ -27,6 +27,8 @@ function resizeAvatarImage(file) {
     reader.readAsDataURL(file);
   });
 }
+
+const newInviteMember = () => ({ name: "", email: "", phone: "", smsConsent: false });
 
 function Shell({ children, wide = false }) {
   return (
@@ -304,7 +306,7 @@ export function HouseholdOnboarding() {
     googleProviderToken,
   } = useAuth();
   const [name, setName] = useState("Our family");
-  const [inviteEmails, setInviteEmails] = useState("");
+  const [inviteMembers, setInviteMembers] = useState([newInviteMember()]);
   const [familySize, setFamilySize] = useState(3);
   const [adultCount, setAdultCount] = useState(2);
   const [childCount, setChildCount] = useState(1);
@@ -356,7 +358,11 @@ export function HouseholdOnboarding() {
         setGroceryImportText(draft.groceryImportText || "");
         setPartnerPersonalizationOptIn(Boolean(draft.partnerPersonalizationOptIn));
         setAvatarUrl(draft.avatarUrl || AVATAR_PRESETS[0]?.url || "");
-        setInviteEmails(draft.inviteEmails || "");
+        if (Array.isArray(draft.inviteMembers) && draft.inviteMembers.length) {
+          setInviteMembers(draft.inviteMembers.map((member) => ({ ...newInviteMember(), ...member })));
+        } else if (draft.inviteEmails) {
+          setInviteMembers(draft.inviteEmails.split(/[\n,;]+/).filter(Boolean).map((email) => ({ ...newInviteMember(), email: email.trim() })));
+        }
         setOwnerStep(Math.max(0, Math.min(Number(draft.ownerStep) || 0, 4)));
         setMemberStep(Math.max(0, Math.min(Number(draft.memberStep) || 0, 1)));
       }
@@ -371,7 +377,7 @@ export function HouseholdOnboarding() {
     localStorage.setItem(draftKey, JSON.stringify({
       familySize, adultCount, childCount, familyDynamic, lifeStage, planningPriorities,
       primaryColor, profileType, calendarPreference, dietaryRestrictions, avoidIngredients,
-      mealNotes, groceryImportText, partnerPersonalizationOptIn, avatarUrl, inviteEmails,
+      mealNotes, groceryImportText, partnerPersonalizationOptIn, avatarUrl, inviteMembers,
       city, country,
       ownerStep, memberStep,
     }));
@@ -379,7 +385,7 @@ export function HouseholdOnboarding() {
     draftKey, draftLoaded, familySize, adultCount, childCount, familyDynamic, lifeStage,
     planningPriorities, primaryColor, profileType, calendarPreference, dietaryRestrictions,
     avoidIngredients, mealNotes, groceryImportText, partnerPersonalizationOptIn, avatarUrl,
-    inviteEmails, city, country, ownerStep, memberStep,
+    inviteMembers, city, country, ownerStep, memberStep,
   ]);
 
   const title = useMemo(() => {
@@ -532,7 +538,7 @@ export function HouseholdOnboarding() {
             setAvatarStatus={setAvatarStatus}
           />
         ) : (
-          <InviteStep inviteEmails={inviteEmails} setInviteEmails={setInviteEmails} busy={busy} invitePartner={invitePartner} run={run} skipOnboardingInvites={skipOnboardingInvites} />
+          <InviteStep inviteMembers={inviteMembers} setInviteMembers={setInviteMembers} busy={busy} invitePartner={invitePartner} run={run} skipOnboardingInvites={skipOnboardingInvites} />
         )}
         {error && <div className="onboarding-recovery"><p>{error}</p>{/already belong to a household/i.test(error) && <button disabled={busy} onClick={() => run(() => refreshAccount(session))}>Open my existing household</button>}</div>}
       </Card>
@@ -686,19 +692,57 @@ function OnboardingActions({ step, lastStep, busy, nextDisabled, onBack, onNext,
   );
 }
 
-function InviteStep({ inviteEmails, setInviteEmails, busy, invitePartner, run, skipOnboardingInvites }) {
+function InviteStep({ inviteMembers, setInviteMembers, busy, invitePartner, run, skipOnboardingInvites }) {
+  const updateInvite = (index, field, value) => {
+    setInviteMembers((members) => members.map((member, memberIndex) => memberIndex === index ? { ...member, [field]: value } : member));
+  };
+
+  const removeInvite = (index) => {
+    setInviteMembers((members) => members.length === 1 ? [newInviteMember()] : members.filter((_, memberIndex) => memberIndex !== index));
+  };
+
   const sendInvites = () => run(async () => {
-    const emails = [...new Set(inviteEmails.split(/[\n,;]+/).map((value) => value.trim().toLowerCase()).filter(Boolean))];
-    const invalidEmail = emails.find((email) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
-    if (invalidEmail) throw new Error(`Check the email address “${invalidEmail}” and try again.`);
-    for (const email of emails) await invitePartner(email);
+    const invitations = inviteMembers
+      .map((member) => ({ ...member, name: member.name.trim(), email: member.email.trim().toLowerCase(), phone: member.phone.trim() }))
+      .filter((member) => member.name || member.email || member.phone);
+    if (!invitations.length) throw new Error("Add at least one family member or skip this step.");
+    const incomplete = invitations.find((member) => !member.name || !member.email || !member.phone);
+    if (incomplete) throw new Error("Add a name, email address, and mobile number for each family member.");
+    const invalidEmail = invitations.find((member) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(member.email));
+    if (invalidEmail) throw new Error(`Check the email address “${invalidEmail.email}” and try again.`);
+    const invalidPhone = invitations.find((member) => !/^\+?[\d\s().-]{10,20}$/.test(member.phone));
+    if (invalidPhone) throw new Error(`Add a valid mobile number with country code for ${invalidPhone.name}.`);
+    const missingConsent = invitations.find((member) => !member.smsConsent);
+    if (missingConsent) throw new Error(`Confirm SMS invitation consent for ${missingConsent.name}.`);
+    const duplicateEmail = invitations.find((member, index) => invitations.findIndex((candidate) => candidate.email === member.email) !== index);
+    if (duplicateEmail) throw new Error(`${duplicateEmail.email} is listed more than once.`);
+    for (const member of invitations) await invitePartner(member.email, member.phone, member.name);
   });
 
   return (
     <>
-      <TextField type="text" label="Family member emails" placeholder="alex@example.com, sam@example.com" value={inviteEmails} onChange={(e) => setInviteEmails(e.target.value)} />
-      <p className="onboarding-hint">Separate multiple emails with commas or new lines. Each person gets a secure FamOS invite.</p>
-      <PrimaryButton disabled={busy || !inviteEmails.trim()} onClick={sendInvites}>{busy ? "Sending invites…" : "Send invites & continue"}</PrimaryButton>
+      <div className="onboarding-invite-list">
+        {inviteMembers.map((member, index) => (
+          <section className="onboarding-invite-person" key={index}>
+            <div className="onboarding-invite-person-head">
+              <strong>Family member {index + 1}</strong>
+              <button type="button" onClick={() => removeInvite(index)} aria-label={`Remove family member ${index + 1}`}><Trash2 size={15} /></button>
+            </div>
+            <div className="onboarding-invite-fields">
+              <TextField type="text" label="Name" placeholder="e.g. Sam Lee" value={member.name} onChange={(event) => updateInvite(index, "name", event.target.value)} autoComplete="name" />
+              <TextField type="email" label="Email" placeholder="sam@example.com" value={member.email} onChange={(event) => updateInvite(index, "email", event.target.value)} autoComplete="email" />
+              <TextField type="tel" label="Mobile number" placeholder="+1 416 555 0123" value={member.phone} onChange={(event) => updateInvite(index, "phone", event.target.value)} autoComplete="tel" />
+            </div>
+            <label className="partner-consent onboarding-invite-consent">
+              <input type="checkbox" checked={member.smsConsent} onChange={(event) => updateInvite(index, "smsConsent", event.target.checked)} />
+              <span><strong>SMS invitation consent confirmed</strong><small>This person agreed to receive one FamOS invitation text. Standard message rates may apply.</small></span>
+            </label>
+          </section>
+        ))}
+      </div>
+      <button type="button" className="onboarding-add-invite" onClick={() => setInviteMembers((members) => [...members, newInviteMember()])}><Plus size={16} /> Add another family member</button>
+      <p className="onboarding-hint">Each person receives a secure email invitation and a one-time SMS invitation.</p>
+      <PrimaryButton disabled={busy || !inviteMembers.some((member) => member.name.trim() || member.email.trim() || member.phone.trim())} onClick={sendInvites}>{busy ? "Sending invites…" : "Send invites & continue"}</PrimaryButton>
       <SecondaryButton type="button" className="mt-2 onboarding-skip-button" disabled={busy} onClick={skipOnboardingInvites}>Skip for now</SecondaryButton>
     </>
   );

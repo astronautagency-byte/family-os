@@ -29,7 +29,7 @@ Deno.serve(async (request) => {
     // active household invitation that was issued by an existing member.
     const { data: invitation, error: invitationError } = await admin
       .from("household_invitations")
-      .select("id")
+      .select("id, invited_name, phone")
       .ilike("email", normalizedEmail)
       .is("accepted_at", null)
       .gt("expires_at", new Date().toISOString())
@@ -55,7 +55,11 @@ Deno.serve(async (request) => {
       const { error: createError } = await admin.auth.admin.createUser({
         email: normalizedEmail,
         email_confirm: true,
-        user_metadata: { invited_to_famos: true },
+        user_metadata: {
+          invited_to_famos: true,
+          ...(invitation.invited_name ? { display_name: invitation.invited_name } : {}),
+          ...(invitation.phone ? { phone: invitation.phone } : {}),
+        },
       });
       if (createError && !/already.*registered|already exists/i.test(createError.message || "")) {
         throw createError;

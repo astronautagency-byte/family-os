@@ -618,10 +618,10 @@ export function AuthProvider({ children }) {
     await refreshAccount(session);
   };
 
-  const invitePartner = async (email, phone = "") => {
+  const invitePartner = async (email, phone = "", name = "") => {
     const normalizedEmail = email.trim().toLowerCase();
     const { data: inviteData, error: inviteError } = await supabase.functions.invoke("send-family-invitation", {
-      body: { email: normalizedEmail, phone: phone.trim(), householdId: household.id, redirectTo: `${window.location.origin}/signin?invite=1` },
+      body: { email: normalizedEmail, phone: phone.trim(), name: name.trim(), householdId: household.id, redirectTo: `${window.location.origin}/signin?invite=1` },
     });
     if (!inviteError) {
       const sent = Boolean(inviteData?.sent);
@@ -638,11 +638,21 @@ export function AuthProvider({ children }) {
     }
 
     const emailServiceMessage = await getFunctionErrorMessage(inviteError);
-    let pendingInviteResult = await supabase.from("household_invitations").insert({
+    const pendingInvitePayload = {
       household_id: household.id,
       email: normalizedEmail,
+      ...(name.trim() ? { invited_name: name.trim() } : {}),
+      ...(phone.trim() ? { phone: phone.trim() } : {}),
       invited_by: session.user.id,
-    });
+    };
+    let pendingInviteResult = await supabase.from("household_invitations").insert(pendingInvitePayload);
+    if (pendingInviteResult.error && /invited_name|phone|schema cache|column/i.test(pendingInviteResult.error.message || "")) {
+      pendingInviteResult = await supabase.from("household_invitations").insert({
+        household_id: household.id,
+        email: normalizedEmail,
+        invited_by: session.user.id,
+      });
+    }
 
     if (pendingInviteResult.error?.code === "23505") {
       const { data: existingInvite } = await supabase
@@ -666,11 +676,14 @@ export function AuthProvider({ children }) {
       } else if (existingInvite?.id) {
         const { error: deleteInviteError } = await supabase.from("household_invitations").delete().eq("id", existingInvite.id);
         if (!deleteInviteError) {
-          pendingInviteResult = await supabase.from("household_invitations").insert({
-            household_id: household.id,
-            email: normalizedEmail,
-            invited_by: session.user.id,
-          });
+          pendingInviteResult = await supabase.from("household_invitations").insert(pendingInvitePayload);
+          if (pendingInviteResult.error && /invited_name|phone|schema cache|column/i.test(pendingInviteResult.error.message || "")) {
+            pendingInviteResult = await supabase.from("household_invitations").insert({
+              household_id: household.id,
+              email: normalizedEmail,
+              invited_by: session.user.id,
+            });
+          }
         }
       }
     }
