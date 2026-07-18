@@ -380,7 +380,7 @@ export function HouseholdOnboarding() {
   const title = useMemo(() => {
     if (invitation && !household) return "Come on in";
     if (!household) return "What should we call home?";
-    if (ownerProfileStep) return ["Who’s at home?", "Where is home?", "What matters most?", "Make meals easier", "Bring your grocery list", "One last thing"][ownerStep];
+    if (ownerProfileStep) return ["Who’s at home?", "Where is home? (optional)", "What matters most?", "Make meals easier", "Bring your grocery list", "One last thing"][ownerStep];
     if (memberProfileStep) return ["How should we set you up?", "Choose your calendar view"][memberStep];
     return "Invite your people";
   }, [household, invitation, memberProfileStep, memberStep, ownerProfileStep, ownerStep]);
@@ -390,7 +390,7 @@ export function HouseholdOnboarding() {
     if (!household) return "Create the private home space everyone will share. Cozy, but organized.";
     if (ownerProfileStep) return [
       "Start with the basics. You can change these later in Settings.",
-      "Add your home address so FamOS can show local weather and flag weather-sensitive plans.",
+      "Optional. Choose a Google Maps suggestion to add local weather and weather-sensitive event alerts, or skip this for now.",
       "Pick the areas you want FamOS to focus on first.",
       "Optional details that make meal ideas more useful.",
       "Optional. Paste what you already buy and we’ll organize it.",
@@ -426,9 +426,6 @@ export function HouseholdOnboarding() {
   const saveOwnerProfile = () => run(async () => {
     if (adultCount + childCount !== familySize) {
       throw new Error("Family members should equal the number of adults plus kids.");
-    }
-    if (!planningPriorities.length) {
-      throw new Error("Choose at least one thing FamOS should help with first.");
     }
     await saveHouseholdProfile({
       familySize,
@@ -600,8 +597,9 @@ function OwnerProfileStep(props) {
 
         {props.step === 1 && <>
           <AddressAutocomplete
-            label="Home address"
+            label="Home address (optional)"
             value={props.address}
+            placeholder="Start typing and choose an address"
             onChange={(place) => {
               props.setAddress(place.address ?? props.address);
               if (place.city !== undefined) props.setCity(place.city);
@@ -610,11 +608,11 @@ function OwnerProfileStep(props) {
               if (place.longitude !== undefined) props.setLongitude(place.longitude);
             }}
           />
-          <div className="onboarding-grid onboarding-grid-two onboarding-location-grid">
-            <TextField label="City" placeholder="e.g. Toronto" value={props.city} onChange={(event) => props.setCity(event.target.value)} autoComplete="address-level2" />
-            <TextField label="Country" placeholder="e.g. Canada" value={props.country} onChange={(event) => props.setCountry(event.target.value)} autoComplete="country-name" />
-          </div>
-          <p className="onboarding-inline-note">Your address is shared only with your household and powers local weather and event alerts.</p>
+          <p className="onboarding-inline-note">
+            {props.city && props.country
+              ? `${props.city}, ${props.country} was filled automatically.`
+              : "City and country fill automatically from Google Maps. You can also skip this and add an address later in Settings."}
+          </p>
         </>}
 
         {props.step === 2 && <div className="onboarding-choice-group onboarding-priority-grid">
@@ -654,7 +652,14 @@ function OwnerProfileStep(props) {
         step={props.step}
         lastStep={steps.length - 1}
         busy={props.busy}
-        nextDisabled={(props.step === 0 && !basicsValid) || (props.step === 1 && (!props.address.trim() || !Number.isFinite(props.latitude) || !Number.isFinite(props.longitude))) || (props.step === 2 && !props.planningPriorities.length)}
+        nextDisabled={props.step === 0 && !basicsValid}
+        nextLabel={
+          (props.step === 1 && !props.address.trim())
+          || (props.step === 3 && !props.dietaryRestrictions.length && !props.avoidIngredients.trim() && !props.mealNotes.trim())
+          || (props.step === 4 && !props.groceryImportText.trim())
+            ? "Skip for now"
+            : undefined
+        }
         onBack={() => props.setStep((step) => Math.max(0, step - 1))}
         onNext={next}
         onFinish={props.onSave}
@@ -694,13 +699,13 @@ function OnboardingProgress({ steps, current }) {
   );
 }
 
-function OnboardingActions({ step, lastStep, busy, nextDisabled, onBack, onNext, onFinish, finishLabel }) {
+function OnboardingActions({ step, lastStep, busy, nextDisabled, nextLabel, onBack, onNext, onFinish, finishLabel }) {
   const isLast = step === lastStep;
   return (
     <div className="onboarding-actions">
       {step > 0 ? <SecondaryButton type="button" disabled={busy} onClick={onBack}><ChevronLeft size={16} /> Back</SecondaryButton> : <span />}
       <PrimaryButton disabled={busy || nextDisabled} onClick={isLast ? onFinish : onNext}>
-        {busy ? "Saving…" : isLast ? finishLabel : "Continue"}
+        {busy ? "Saving…" : isLast ? finishLabel : nextLabel || "Continue"}
       </PrimaryButton>
     </div>
   );
