@@ -16,6 +16,13 @@ const STORAGE_KEY = "family-os:v1";
 const GOOGLE_STORAGE_KEY = "family-os:google:v1";
 const CALENDAR_FEEDS_STORAGE_KEY = "family-os:calendar-feeds:v1";
 const AVATAR_OVERRIDES_KEY = "family-os:avatar-overrides:v1";
+const VAPID_PUBLIC_KEY = "BK4WksXI5RRZqDhurNH8v2VbinrSKrBLzOA6xni__siwCbKjhtJ1T0N3GOSVKKQPNAnENCacYtdlLW553fadxHQ";
+
+function base64UrlToUint8Array(value) {
+  const padding = "=".repeat((4 - value.length % 4) % 4);
+  const raw = atob((value + padding).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from([...raw].map((character) => character.charCodeAt(0)));
+}
 
 function loadState() {
   try {
@@ -132,8 +139,43 @@ export function FamilyProvider({ children }) {
     if (typeof Notification === "undefined") return "unsupported";
     const permission = await Notification.requestPermission();
     setNotificationPermission(permission);
+    if (permission === "granted" && remote && "PushManager" in window) {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        let subscription = await registration.pushManager.getSubscription();
+        if (!subscription) {
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: base64UrlToUint8Array(VAPID_PUBLIC_KEY),
+          });
+        }
+        const deviceLabel = [navigator.userAgentData?.platform || navigator.platform, /iPhone|iPad/.test(navigator.userAgent) ? "iOS Home Screen" : ""].filter(Boolean).join(" · ");
+        const { error } = await supabase.from("push_subscriptions").upsert({
+          user_id: user.id,
+          endpoint: subscription.endpoint,
+          subscription: subscription.toJSON(),
+          device_label: deviceLabel,
+        }, { onConflict: "user_id,endpoint" });
+        if (error) throw error;
+      } catch (error) {
+        console.warn("Could not register this device for background push.", error);
+      }
+    }
     return permission;
   };
+
+  const sendHouseholdPush = (notification, targetUserIds = []) => {
+    if (!remote) return;
+    supabase.functions.invoke("send-household-push", {
+      body: { householdId: household.id, targetUserIds: targetUserIds.filter(Boolean), notification },
+    }).then(({ error }) => {
+      if (error) console.warn("Could not send household push.", error);
+    });
+  };
+
+  useEffect(() => {
+    if (remote && notificationPermission === "granted") requestNotifications();
+  }, [remote, notificationPermission, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sendTestNotification = async () => {
     if (typeof Notification === "undefined") return "unsupported";
@@ -150,12 +192,50 @@ export function FamilyProvider({ children }) {
     return "shown";
   };
 
-  const showTaskNotification = async (row) => {
+  const showHouseholdNotification = async ({ title, body, tag, url }) => {
     if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
-    const options = { body: row.due_date ? `Due ${row.due_date}` : "A new task was assigned to you.", icon: "/icons/icon-192.png", badge: "/icons/icon-192.png", tag: `task-${row.id}`, data: { url: "/#tasks" } };
+    const options = { body, icon: "/icons/icon-192.png", badge: "/icons/icon-192.png", tag, data: { url }, renotify: true };
     const registration = await getNotificationRegistration();
-    if (registration) registration.showNotification(`New task: ${row.title}`, options);
-    else showLocalNotification(`New task: ${row.title}`, options);
+    if (registration) await registration.showNotification(title, options);
+    else showLocalNotification(title, options);
+  };
+
+  const notifyFromChange = (table, payload) => {
+    const row = payload.new || {};
+    if (!row.id || payload.eventType === "DELETE") return;
+    if (table === "tasks") {
+      if (row.created_by === user.id || row.assignee_id !== user.id) return;
+      showHouseholdNotification({
+        title: payload.eventType === "UPDATE" ? "Task updated" : "New task assigned",
+        body: row.due_date ? `${row.title} · Due ${row.due_date}` : row.title,
+        tag: `task-${row.id}`,
+        url: "/#tasks",
+      });
+      return;
+    }
+    if (table === "messages") {
+      if (row.sender_id === user.id || (row.recipient_id && row.recipient_id !== user.id)) return;
+      const sender = memberById[row.sender_id]?.name || "A family member";
+      showHouseholdNotification({ title: `${sender} sent a message`, body: row.body, tag: `message-${row.id}`, url: "/#chat" });
+      return;
+    }
+    if (table === "grocery_items") {
+      if (row.added_by === user.id || payload.eventType !== "INSERT") return;
+      const sender = memberById[row.added_by]?.name || "A family member";
+      showHouseholdNotification({ title: "Grocery added", body: `${sender} added ${row.name}`, tag: `grocery-${row.id}`, url: "/#groceries" });
+      return;
+    }
+    if (table === "meals") {
+      if (row.created_by === user.id) return;
+      const cooks = row.cook_ids || [];
+      if (cooks.length && !cooks.includes(user.id)) return;
+      showHouseholdNotification({ title: cooks.includes(user.id) ? "Meal assigned to you" : "Meal plan updated", body: `${row.title || "A meal"} · ${row.meal_date} ${row.slot}`, tag: `meal-${row.id}`, url: "/#meals" });
+      return;
+    }
+    if (table === "events") {
+      if (row.created_by === user.id || payload.eventType !== "INSERT") return;
+      showHouseholdNotification({ title: "Family calendar updated", body: row.title, tag: `event-${row.id}`, url: "/#calendar" });
+    }
   };
 
   useEffect(() => {
@@ -171,13 +251,26 @@ export function FamilyProvider({ children }) {
   const mapProfile = (row, membershipRole) => ({
     id: row.id,
     name: row.display_name || row.email,
+    email: row.email || "",
     role: membershipRole === "owner" ? "Household owner" : "Family member",
     color: row.color,
     initials: row.initials,
     avatarUrl: loadAvatarOverrides()[row.id] || row.avatar_url || (row.id === user?.id ? user.user_metadata?.avatar_url || user.user_metadata?.picture || "" : ""),
   });
   const mapTask = (row) => ({ id: row.id, title: row.title, assigneeId: row.assignee_id, due: row.due_date, done: row.is_done, recurring: row.recurrence, taskType: row.task_type || "home" });
-  const mapGrocery = (row) => ({ id: row.id, name: row.name, category: row.category, quantity: Number(row.quantity), unit: row.unit, checked: row.is_checked, addedBy: row.added_by });
+  const mapGrocery = (row) => ({
+    id: row.id,
+    name: row.name,
+    category: row.category,
+    quantity: Number(row.quantity),
+    unit: row.unit,
+    checked: row.is_checked,
+    addedBy: row.added_by,
+    barcode: row.barcode || "",
+    brand: row.brand || "",
+    price: row.price == null ? null : Number(row.price),
+    imageUrl: row.image_url || "",
+  });
   const mapEvent = (row) => ({ id: row.id, title: row.title, start: row.starts_at, end: row.ends_at, location: row.location, source: row.source === "familyos" ? "local" : row.source, memberIds: (row.event_participants || []).map((p) => p.user_id) });
   const mapMeal = (row) => ({ id: row.id, date: row.meal_date, slot: row.slot, title: row.title, notes: row.notes, cookIds: row.cook_ids || [] });
   const mapMessage = (row) => ({ id: row.id, senderId: row.sender_id, recipientId: row.recipient_id || null, text: row.body, sentAt: row.created_at });
@@ -229,12 +322,12 @@ export function FamilyProvider({ children }) {
   useEffect(() => {
     if (!remote) return undefined;
     const channel = supabase.channel(`household:${household.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "tasks", filter: `household_id=eq.${household.id}` }, loadRemoteData)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "tasks", filter: `household_id=eq.${household.id}` }, (payload) => { if (payload.new?.assignee_id === user.id && payload.new?.created_by !== user.id) showTaskNotification(payload.new); })
-      .on("postgres_changes", { event: "*", schema: "public", table: "grocery_items", filter: `household_id=eq.${household.id}` }, loadRemoteData)
+      .on("postgres_changes", { event: "*", schema: "public", table: "tasks", filter: `household_id=eq.${household.id}` }, (payload) => { notifyFromChange("tasks", payload); loadRemoteData(); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "grocery_items", filter: `household_id=eq.${household.id}` }, (payload) => { notifyFromChange("grocery_items", payload); loadRemoteData(); })
       .on("postgres_changes", { event: "*", schema: "public", table: "events", filter: `household_id=eq.${household.id}` }, loadRemoteData)
-      .on("postgres_changes", { event: "*", schema: "public", table: "meals", filter: `household_id=eq.${household.id}` }, loadRemoteData)
-      .on("postgres_changes", { event: "*", schema: "public", table: "messages", filter: `household_id=eq.${household.id}` }, loadRemoteData)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "events", filter: `household_id=eq.${household.id}` }, (payload) => notifyFromChange("events", payload))
+      .on("postgres_changes", { event: "*", schema: "public", table: "meals", filter: `household_id=eq.${household.id}` }, (payload) => { notifyFromChange("meals", payload); loadRemoteData(); })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `household_id=eq.${household.id}` }, (payload) => { notifyFromChange("messages", payload); loadRemoteData(); })
       .on("postgres_changes", { event: "*", schema: "public", table: "expenses", filter: `household_id=eq.${household.id}` }, loadRemoteData)
       .on("postgres_changes", { event: "*", schema: "public", table: "household_members", filter: `household_id=eq.${household.id}` }, loadRemoteData)
       .on("postgres_changes", { event: "*", schema: "public", table: "household_finance_settings", filter: `household_id=eq.${household.id}` }, loadRemoteData)
@@ -284,8 +377,28 @@ export function FamilyProvider({ children }) {
     }
     return { error: null };
   };
-  const removeMember = (id) =>
+  const removeMember = async (id) => {
+    if (remote) {
+      const { data, error } = await supabase.functions.invoke("remove-household-member", {
+        body: { targetUserId: id },
+      });
+      if (error) {
+        let message = data?.error || error.message;
+        try {
+          if (error.context instanceof Response) {
+            const details = await error.context.clone().json();
+            message = details?.error || message;
+          }
+        } catch {
+          // Keep the client error when the function did not return JSON.
+        }
+        const removalError = new Error(message || "Could not remove this family member.");
+        setDataError(removalError.message);
+        throw removalError;
+      }
+    }
     setMembers((prev) => prev.filter((m) => m.id !== id));
+  };
 
   // ---- Tasks ----
   const toggleTask = async (id) => { const task = tasks.find((item) => item.id === id); if (remote) await runRemote(supabase.from("tasks").update({ is_done: !task.done }).eq("id", id)); setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t))); };
@@ -299,6 +412,7 @@ export function FamilyProvider({ children }) {
       }
       if (result.error) throw result.error;
       setTasks((prev) => [...prev, mapTask(result.data)]);
+      sendHouseholdPush({ title: "New task assigned", body: task.title, tag: `task-${result.data.id}`, url: "/#tasks" }, task.assigneeId ? [task.assigneeId] : []);
     } else setTasks((prev) => [...prev, { id: makeId("task"), done: false, taskType: "home", ...task }]);
   };
   const updateTask = async (id, patch) => {
@@ -310,6 +424,7 @@ export function FamilyProvider({ children }) {
     if (patch.recurring !== undefined) dbPatch.recurrence = patch.recurring;
     if (patch.taskType !== undefined) dbPatch.task_type = patch.taskType;
     if (remote) await runRemote(supabase.from("tasks").update(dbPatch).eq("id", id));
+    if (remote && patch.assigneeId) sendHouseholdPush({ title: "Task assigned to you", body: patch.title || tasks.find((task) => task.id === id)?.title || "A household task", tag: `task-${id}`, url: "/#tasks" }, [patch.assigneeId]);
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
   };
   const removeTask = async (id) => { if (remote) await runRemote(supabase.from("tasks").delete().eq("id", id)); setTasks((prev) => prev.filter((t) => t.id !== id)); };
@@ -317,7 +432,28 @@ export function FamilyProvider({ children }) {
 
   // ---- Groceries ----
   const toggleGrocery = async (id) => { const item = groceries.find((g) => g.id === id); if (remote) await runRemote(supabase.from("grocery_items").update({ is_checked: !item.checked }).eq("id", id)); setGroceries((prev) => prev.map((g) => (g.id === id ? { ...g, checked: !g.checked } : g))); };
-  const addGrocery = async (item) => { if (remote) { const { data, error } = await supabase.from("grocery_items").insert({ household_id: household.id, name: item.name, category: item.category, quantity: item.quantity || 1, unit: item.unit || "", added_by: user.id }).select().single(); if (error) throw error; setGroceries((prev) => [...prev, mapGrocery(data)]); } else setGroceries((prev) => [...prev, { id: makeId("gro"), checked: false, quantity: 1, unit: "", ...item }]); };
+  const addGrocery = async (item) => {
+    if (remote) {
+      const row = {
+        household_id: household.id,
+        name: item.name,
+        category: item.category,
+        quantity: item.quantity || 1,
+        unit: item.unit || "",
+        added_by: user.id,
+        barcode: item.barcode || null,
+        brand: item.brand || "",
+        price: item.price ?? null,
+        image_url: item.imageUrl || "",
+      };
+      const { data, error } = await supabase.from("grocery_items").insert(row).select().single();
+      if (error) throw error;
+      setGroceries((prev) => [...prev, mapGrocery(data)]);
+      sendHouseholdPush({ title: "Grocery added", body: item.name, tag: `grocery-${data.id}`, url: "/#groceries" });
+    } else {
+      setGroceries((prev) => [...prev, { id: makeId("gro"), checked: false, quantity: 1, unit: "", ...item }]);
+    }
+  };
   const updateGrocery = async (id, patch) => {
     if (remote) await runRemote(supabase.from("grocery_items").update({ name: patch.name, category: patch.category, quantity: patch.quantity, unit: patch.unit, is_checked: patch.checked }).eq("id", id));
     setGroceries((prev) => prev.map((g) => (g.id === id ? { ...g, ...patch } : g)));
@@ -328,7 +464,7 @@ export function FamilyProvider({ children }) {
 
   // ---- Meals ----
   const setMealForSlot = async (date, slot, patch) => {
-    if (remote) { const { data, error } = await supabase.from("meals").upsert({ household_id: household.id, meal_date: date, slot, title: patch.title || "", notes: patch.notes || "", cook_ids: patch.cookIds || [] }, { onConflict: "household_id,meal_date,slot" }).select().single(); if (error) throw error; setMeals((prev) => [...prev.filter((m) => !(m.date === date && m.slot === slot)), mapMeal(data)]); return; }
+    if (remote) { const { data, error } = await supabase.from("meals").upsert({ household_id: household.id, meal_date: date, slot, title: patch.title || "", notes: patch.notes || "", cook_ids: patch.cookIds || [], created_by: user.id }, { onConflict: "household_id,meal_date,slot" }).select().single(); if (error) throw error; setMeals((prev) => [...prev.filter((m) => !(m.date === date && m.slot === slot)), mapMeal(data)]); sendHouseholdPush({ title: patch.cookIds?.length ? "Meal assigned" : "Meal plan updated", body: `${patch.title || "Meal"} · ${date} ${slot}`, tag: `meal-${data.id}`, url: "/#meals" }, patch.cookIds || []); return; }
     setMeals((prev) => {
       const existing = prev.find((m) => m.date === date && m.slot === slot);
       if (existing) {
@@ -341,7 +477,7 @@ export function FamilyProvider({ children }) {
   const clearMeals = async () => { if (remote) await runRemote(supabase.from("meals").delete().eq("household_id", household.id)); setMeals([]); };
 
   // ---- Events ----
-  const addEvent = async (event) => { if (remote) { const { data, error } = await supabase.from("events").insert({ household_id: household.id, title: event.title, starts_at: event.start, ends_at: event.end, location: event.location || "", created_by: user.id }).select().single(); if (error) throw error; if (event.memberIds?.length) await runRemote(supabase.from("event_participants").insert(event.memberIds.map((userId) => ({ event_id: data.id, user_id: userId })))); setEvents((prev) => [...prev, { ...mapEvent(data), memberIds: event.memberIds || [] }]); } else setEvents((prev) => [...prev, { id: makeId("evt"), source: "local", ...event }]); };
+  const addEvent = async (event) => { if (remote) { const { data, error } = await supabase.from("events").insert({ household_id: household.id, title: event.title, starts_at: event.start, ends_at: event.end, location: event.location || "", created_by: user.id }).select().single(); if (error) throw error; if (event.memberIds?.length) await runRemote(supabase.from("event_participants").insert(event.memberIds.map((userId) => ({ event_id: data.id, user_id: userId })))); setEvents((prev) => [...prev, { ...mapEvent(data), memberIds: event.memberIds || [] }]); sendHouseholdPush({ title: "Family calendar updated", body: event.title, tag: `event-${data.id}`, url: "/#calendar" }, event.memberIds || []); } else setEvents((prev) => [...prev, { id: makeId("evt"), source: "local", ...event }]); };
   const updateEvent = async (id, patch) => { if (remote) await runRemote(supabase.from("events").update({ title: patch.title, starts_at: patch.start, ends_at: patch.end, location: patch.location }).eq("id", id)); setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e))); };
   const removeEvent = async (id) => { if (remote) await runRemote(supabase.from("events").delete().eq("id", id)); setEvents((prev) => prev.filter((e) => e.id !== id)); };
   const clearEvents = async () => { if (remote) await runRemote(supabase.from("events").delete().eq("household_id", household.id)); setEvents([]); };
@@ -357,6 +493,7 @@ export function FamilyProvider({ children }) {
       }
       if (result.error) throw result.error;
       setMessages((prev) => [...prev, { ...mapMessage(result.data), recipientId: result.data.recipient_id || message.recipientId || null }]);
+      sendHouseholdPush({ title: `${memberById[user.id]?.name || "A family member"} sent a message`, body: message.text, tag: `message-${result.data.id}`, url: "/#chat" }, message.recipientId ? [message.recipientId] : []);
     } else setMessages((prev) => [...prev, { id: makeId("msg"), sentAt: new Date().toISOString(), ...message }]);
   };
 
@@ -460,7 +597,14 @@ export function FamilyProvider({ children }) {
 
   const connectGoogleCalendar = async () => {
     if (configured) {
-      await signInWithGoogle();
+      setGoogleStatus("connecting");
+      setGoogleError(null);
+      try {
+        await signInWithGoogle();
+      } catch (e) {
+        setGoogleStatus("error");
+        setGoogleError(e.message || "Could not connect to Google Calendar.");
+      }
       return;
     }
     setGoogleStatus("connecting");
@@ -483,6 +627,17 @@ export function FamilyProvider({ children }) {
       setGoogleAccessTokenState(token);
       await syncGoogleEvents(token);
     } catch {
+      if (configured) {
+        setGoogleStatus("connecting");
+        setGoogleError(null);
+        try {
+          await signInWithGoogle();
+        } catch (reconnectError) {
+          setGoogleStatus("error");
+          setGoogleError(reconnectError.message || "Could not reconnect Google Calendar.");
+        }
+        return;
+      }
       // Silent refresh failed (likely expired / revoked) — ask for consent again.
       try {
         const { accessToken } = await requestGoogleAccessToken(googleClientId, { silent: false });

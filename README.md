@@ -65,13 +65,45 @@ src/
    - `https://fam-os.app/**`
    - `http://localhost:5173/**`
    - `http://127.0.0.1:5173/**`
-4. Deploy the family invitation email function:
+4. Add the branded invitation email secrets. `FAMOS_FROM_EMAIL` must use a domain verified in Resend:
+   ```bash
+   supabase secrets set RESEND_API_KEY=re_... FAMOS_FROM_EMAIL="FamOS <invites@fam-os.app>"
+   ```
+   To send optional transactional SMS invitations through Amazon SNS, add an IAM access key with `sns:Publish` permission:
+   ```bash
+   supabase secrets set \
+     AWS_ACCESS_KEY_ID=... \
+     AWS_SECRET_ACCESS_KEY=... \
+     AWS_REGION=ca-central-1
+   ```
+   `AWS_SNS_SENDER_ID=FamOS` is optional and only applies in countries that support sender IDs.
+
+   Before sending, activate **AWS End User Messaging SMS** in the same `AWS_REGION`, verify at least one sandbox destination, and send a console test. New accounts are sandboxed and can only message verified destinations until AWS approves SMS Production Access.
+
+   A minimal IAM policy for the Supabase function key is:
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Action": "sns:Publish",
+         "Resource": "*"
+       }
+     ]
+   }
+   ```
+   The administrator configuring or inspecting the AWS SMS account also needs read access to AWS End User Messaging SMS, including `sms-voice:DescribeAccountAttributes`. Do not add administrator permissions to the key stored in Supabase.
+5. Deploy the family invitation email function:
    ```bash
    supabase functions deploy send-family-invitation
+   supabase functions deploy prepare-invited-account
    ```
-   Supabase automatically provides `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` to the function.
-5. Configure Supabase Auth email delivery and make sure `https://fam-os.app/`, `http://localhost:5173`, and `http://127.0.0.1:5173` are allowed redirect URLs.
-6. Start the app and sign in. New owners name their family, then can invite members immediately or skip and add them later from Settings. Invitees receive a secure signup link and join the family after accepting it.
+   Supabase automatically provides `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`. The function generates Supabase-secured links and uses Resend only for the FamOS-branded delivery.
+6. Configure Supabase Auth URL settings and make sure `https://fam-os.app/`, `http://localhost:5173`, and `http://127.0.0.1:5173` are allowed redirect URLs.
+7. Start the app and sign in. New owners name their family, then can invite members immediately or skip and add them later from Settings. New invitees create a password from the secure link; existing users sign in and confirm the waiting household.
+
+For inline invited-member password setup, paste `supabase/templates/magic_link.html` into **Authentication → Email Templates → Magic Link**. The `{{ .Token }}` variable is required: FamOS asks the member for this one-time code and never requires them to click an email link.
 
 Never put a service-role key in this client application. The publishable key is safe to expose; row-level security protects household data.
 

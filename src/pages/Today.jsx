@@ -69,8 +69,6 @@ export default function Today({ goTo }) {
     .sort((a, b) => a.start.localeCompare(b.start));
 
   const dinner = meals.find((m) => m.date === today && m.slot === "dinner");
-  const dinnerCooks = (dinner?.cookIds ?? []).map((id) => memberById[id]).filter(Boolean);
-  const weekMeals = meals.filter((m) => m.date >= today && m.date <= weekEnd && m.title);
   const weekDinners = weekDays.map((date) => meals.find((m) => m.date === date && m.slot === "dinner" && m.title)).filter(Boolean);
 
   const todaysTasks = tasks
@@ -78,7 +76,6 @@ export default function Today({ goTo }) {
     .sort((a, b) => Number(a.done) - Number(b.done));
   const openTaskCount = todaysTasks.filter((t) => !t.done).length;
   const weekTasks = tasks.filter((t) => t.due >= today && t.due <= weekEnd);
-  const weekOpenTasks = weekTasks.filter((t) => !t.done);
   const weekDoneTasks = weekTasks.filter((t) => t.done);
 
   const activeGroceries = groceries.filter((g) => !g.checked);
@@ -110,7 +107,6 @@ export default function Today({ goTo }) {
     }))
     .sort((a, b) => b.count - a.count)[0];
   const mealCoverage = percent(weekDinners.length, 7);
-  const taskCompletion = percent(weekDoneTasks.length, weekTasks.length);
 
   const nextEvent = todaysEvents.find((e) => new Date(e.end) > new Date());
   const todayBrief = [
@@ -139,20 +135,20 @@ export default function Today({ goTo }) {
       />
 
       <div className="px-5 space-y-6 mt-2">
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <section className="m3-grid grid-cols-2 lg:grid-cols-4">
           <MiniMetric icon={CalendarDays} label="Calendar today" value={todaysEvents.length} note={nextEvent ? `Next: ${formatTime(nextEvent.start)}` : "Beautifully empty"} onClick={() => goTo("calendar")} />
           <MiniMetric icon={ListChecks} label="Open tasks" value={openTaskCount} note={openTaskCount ? "A few tiny missions remain" : "Nothing due today"} tone="rose" onClick={() => goTo("tasks")} />
           <MiniMetric icon={ChefHat} label="Dinners this week" value={`${weekDinners.length}/7`} note={`${mealCoverage}% of dinner drama avoided`} tone="warn" onClick={() => goTo("meals")} />
           <MiniMetric icon={ShoppingCart} label="Grocery list" value={groceryCount} note={groceryCategories[0] ? `${groceryCategories[0][0]} needs a look` : "List is clear"} tone="good" onClick={() => goTo("groceries")} />
         </section>
 
-        <section className="grid lg:grid-cols-[1.15fr_.85fr] gap-4">
+        <section className="m3-grid lg:grid-cols-[1.15fr_.85fr]">
           <Card className="today-command-card p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-accent-strong)]">Today, sorted</p>
                 <h2 className="mt-2 font-[var(--font-display)] text-[28px] leading-[1.02] font-semibold tracking-[-0.045em] text-[var(--color-ink)]">
-                  {nextEvent ? "Your next move is ready." : "A surprisingly calm day."}
+                  {nextEvent ? "Today at a glance" : "Today is clear"}
                 </h2>
               </div>
               <span className="w-12 h-12 rounded-2xl bg-white border border-[var(--color-border)] flex items-center justify-center shrink-0">
@@ -187,7 +183,7 @@ export default function Today({ goTo }) {
             <div className="flex items-center justify-between gap-3 mb-4">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">This week</p>
-                <h2 className="ui-section-title">The weekly pulse</h2>
+                <h2 className="ui-section-title">This week</h2>
               </div>
               <span className="w-10 h-10 rounded-2xl bg-white border border-[var(--color-border)] flex items-center justify-center shrink-0">
                 <Sparkles size={18} color="var(--color-accent)" />
@@ -204,12 +200,12 @@ export default function Today({ goTo }) {
           </Card>
         </section>
 
-        <section className="grid lg:grid-cols-3 gap-4">
+        <section className="m3-grid lg:grid-cols-3">
           <Card className="today-flow-card p-4 lg:col-span-2">
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Today’s flow</p>
-                <h2 className="ui-section-title">Today’s flow</h2>
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Today’s schedule</p>
+                <h2 className="ui-section-title">Today’s schedule</h2>
               </div>
               <button onClick={() => goTo("calendar")} className="text-[13px] font-semibold text-[var(--color-accent)] flex items-center gap-0.5">
                 Full calendar <ChevronRight size={14} />
@@ -244,7 +240,7 @@ export default function Today({ goTo }) {
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Family load</p>
-                <h2 className="ui-section-title">Who’s carrying what</h2>
+                <h2 className="ui-section-title">Family workload</h2>
               </div>
               <Users size={18} color="var(--color-accent)" />
             </div>
@@ -267,12 +263,12 @@ export default function Today({ goTo }) {
           </Card>
         </section>
 
-        <section className="grid lg:grid-cols-2 gap-4">
+        <section className="m3-grid lg:grid-cols-2">
           <Card className="today-meals-card p-4">
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Meals</p>
-                <h2 className="ui-section-title">Dinner game plan</h2>
+                <h2 className="ui-section-title">Meal plan</h2>
               </div>
               <button onClick={() => goTo("meals")} className="text-[13px] font-semibold text-[var(--color-accent)] flex items-center gap-0.5">
                 Meal planner <ChevronRight size={14} />

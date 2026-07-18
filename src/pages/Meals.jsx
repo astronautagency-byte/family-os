@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Bookmark, CandyOff, Check, ChefHat, Clock, Coffee, Dices, FishOff, Leaf, ListChecks, MilkOff, NutOff, Plus, Soup, Sparkles, Sprout, Trash2, Users, WheatOff, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
+import { useAuth } from "../context/AuthContext";
 import { AvatarStack, Card, Modal, PrimaryButton, SecondaryButton, TextField, colorVar } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import MealSuggestions from "../components/MealSuggestions";
@@ -61,6 +62,7 @@ const normaliseSavedRecipe = (recipe = {}) => ({
 
 export default function Meals() {
   const { members, memberById, meals, groceries, addGrocery, setMealForSlot, removeMeal, clearMeals } = useFamily();
+  const { householdProfileExtra } = useAuth();
   const [horizon, setHorizon] = useState(7);
   const [clearing, setClearing] = useState(false);
   const [editing, setEditing] = useState(null); // { date, slot }
@@ -75,10 +77,18 @@ export default function Meals() {
   const [cookMode, setCookMode] = useState(false);
   const [cookStep, setCookStep] = useState(0);
   const [savedRecipes, setSavedRecipes] = useState(() => readStoredJson(SAVED_RECIPES_KEY, []));
-  const [dietaryPreferences, setDietaryPreferences] = useState(() => ({
-    ...DEFAULT_DIETARY_PREFERENCES,
-    ...readStoredJson(DIETARY_PREFERENCES_KEY, DEFAULT_DIETARY_PREFERENCES),
-  }));
+  const [dietaryPreferences, setDietaryPreferences] = useState(() => {
+    const onboardingPreferences = householdProfileExtra ? {
+      restrictions: householdProfileExtra.dietaryRestrictions || [],
+      avoidIngredients: householdProfileExtra.avoidIngredients || "",
+      notes: householdProfileExtra.mealNotes || "",
+    } : {};
+    return {
+      ...DEFAULT_DIETARY_PREFERENCES,
+      ...onboardingPreferences,
+      ...readStoredJson(DIETARY_PREFERENCES_KEY, {}),
+    };
+  });
 
   useEffect(() => {
     if (typeof window !== "undefined") window.localStorage.setItem(SAVED_RECIPES_KEY, JSON.stringify(savedRecipes));
@@ -350,7 +360,7 @@ export default function Meals() {
 
   return (
     <div className="pb-24 reference-meals">
-      <PageHeader eyebrow="Nourish & connect" title="What’s for dinner? Less mystery." illustration="meals" subtitle="Plan the week, peek into the next, and keep hungry people moving." action={meals.length?<button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button>:null} />
+      <PageHeader eyebrow="Nourish & connect" title="Meal planner" illustration="meals" subtitle="Plan meals, save recipes, and start cook mode." action={meals.length?<button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button>:null} />
 
       <div className="meal-range-toggle px-5" aria-label="Meal planning range"><button className={horizon===7?"selected":""} onClick={()=>setHorizon(7)}>1 week</button><button className={horizon===14?"selected":""} onClick={()=>setHorizon(14)}>2 weeks</button></div>
 

@@ -1,5 +1,6 @@
 import { FAMILY_COLORS } from "../data/mockData";
-import { X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CalendarDays, Check, ChevronLeft, ChevronRight, X } from "lucide-react";
 
 export function colorVar(colorId) {
   const found = FAMILY_COLORS.find((c) => c.id === colorId);
@@ -48,7 +49,7 @@ export function Tag({ children, color, tone = "neutral" }) {
   if (color) {
     return (
       <span
-        className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
+        className="m3-chip inline-flex items-center gap-1.5"
         style={{ backgroundColor: `color-mix(in srgb, ${colorVar(color)} 16%, white)`, color: colorVar(color) }}
       >
         <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: colorVar(color) }} />
@@ -63,7 +64,7 @@ export function Tag({ children, color, tone = "neutral" }) {
     good: "bg-[var(--color-good-soft)] text-[var(--color-good)]",
   };
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${tones[tone]}`}>
+    <span className={`m3-chip inline-flex items-center ${tones[tone]}`}>
       {children}
     </span>
   );
@@ -72,7 +73,7 @@ export function Tag({ children, color, tone = "neutral" }) {
 export function Card({ children, className = "", as: As = "div", ...props }) {
   return (
     <As
-      className={`kinship-card bg-[var(--color-surface)] border border-[var(--color-border)] notion-shadow ${className}`}
+      className={`kinship-card m3-card bg-[var(--color-surface)] border border-[var(--color-border)] ${className}`}
       {...props}
     >
       {children}
@@ -98,16 +99,16 @@ export function SectionTitle({ eyebrow, title, action }) {
   );
 }
 
-export function Checkbox({ checked, onChange, color }) {
+export function Checkbox({ checked, onChange, color, label = "Toggle selection" }) {
   return (
     <button
       type="button"
       onClick={onChange}
       aria-pressed={checked}
-      className="relative w-[22px] h-[22px] rounded-full border-[1.5px] flex items-center justify-center shrink-0 transition-colors duration-150"
+      aria-label={label}
+      className="m3-checkbox relative flex items-center justify-center shrink-0"
       style={{
-        borderColor: checked ? (color ? colorVar(color) : "var(--color-accent)") : "var(--color-border-strong)",
-        backgroundColor: checked ? (color ? colorVar(color) : "var(--color-accent)") : "transparent",
+        "--checkbox-color": color ? colorVar(color) : "var(--color-accent)",
       }}
     >
       {checked && (
@@ -125,9 +126,9 @@ export function Checkbox({ checked, onChange, color }) {
 export function Modal({ open, onClose, title, children }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="modal-card relative bg-[var(--color-surface)] w-full sm:max-w-sm sm:rounded-2xl rounded-t-2xl px-7 pt-7 pb-12 sm:p-8 safe-bottom fade-up max-h-[85vh] overflow-y-auto border border-[var(--color-border)]">
+    <div className="m3-dialog-layer fixed inset-0 z-50 flex items-end sm:items-center justify-center" role="presentation">
+      <div className="m3-scrim absolute inset-0" onClick={onClose} />
+      <div className="modal-card m3-dialog relative bg-[var(--color-surface)] w-full sm:max-w-sm px-7 pt-7 pb-12 sm:p-8 safe-bottom fade-up max-h-[85vh] overflow-y-auto" role="dialog" aria-modal="true" aria-label={title || "Dialog"}>
         <button type="button" className="modal-close-button" onClick={onClose} aria-label="Close dialog"><X size={17} /></button>
         <div className="w-10 h-1 bg-[var(--color-border-strong)] rounded-full mx-auto mb-4 sm:hidden" />
         {title && <h3 className="font-[var(--font-display)] text-[19px] font-semibold mb-5 pr-10">{title}</h3>}
@@ -139,20 +140,116 @@ export function Modal({ open, onClose, title, children }) {
 
 export function TextField({ label, ...props }) {
   return (
-    <label className="block mb-3">
-      {label && <span className="block text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-1.5">{label}</span>}
+    <label className="form-field">
+      {label && <span className="form-label">{label}</span>}
       <input
-        className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-sunken)] px-3.5 py-2.5 text-[15px] text-[var(--color-ink)] placeholder:text-[var(--color-ink-faint)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+        className="form-control"
         {...props}
       />
     </label>
   );
 }
 
+const DATE_WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
+const dateIso = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+const parseDate = (value) => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || "");
+  return match ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12) : new Date();
+};
+const sameDay = (left, right) => left.getFullYear() === right.getFullYear() && left.getMonth() === right.getMonth() && left.getDate() === right.getDate();
+
+export function DateField({ label, value, onChange, min, max, disabled = false }) {
+  const rootRef = useRef(null);
+  const selectedDate = useMemo(() => parseDate(value), [value]);
+  const [open, setOpen] = useState(false);
+  const [visibleMonth, setVisibleMonth] = useState(() => new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = (event) => {
+      if (!rootRef.current?.contains(event.target)) setOpen(false);
+    };
+    const escape = (event) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (open) setVisibleMonth(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
+  }, [open, selectedDate]);
+
+  const start = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1);
+  start.setDate(start.getDate() - start.getDay());
+  const days = Array.from({ length: 42 }, (_, index) => {
+    const day = new Date(start);
+    day.setDate(start.getDate() + index);
+    return day;
+  });
+  const minDate = min ? parseDate(min) : null;
+  const maxDate = max ? parseDate(max) : null;
+  const today = new Date();
+
+  const choose = (day) => {
+    onChange(dateIso(day));
+    setOpen(false);
+  };
+
+  return (
+    <div className="form-field date-field" ref={rootRef}>
+      {label && <span className="form-label">{label}</span>}
+      <button type="button" className={`form-control date-trigger ${open ? "is-open" : ""}`} disabled={disabled} onClick={() => setOpen((current) => !current)} aria-expanded={open}>
+        <CalendarDays size={17} />
+        <span>{value ? selectedDate.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" }) : "Choose a date"}</span>
+        <ChevronRight size={15} />
+      </button>
+      {open && (
+        <div className="date-popover" role="dialog" aria-label="Choose a date">
+          <div className="date-popover-head">
+            <button type="button" onClick={() => setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))} aria-label="Previous month"><ChevronLeft size={17} /></button>
+            <strong>{visibleMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" })}</strong>
+            <button type="button" onClick={() => setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))} aria-label="Next month"><ChevronRight size={17} /></button>
+          </div>
+          <div className="date-weekdays">{DATE_WEEKDAYS.map((day, index) => <span key={`${day}-${index}`}>{day}</span>)}</div>
+          <div className="date-grid">
+            {days.map((day) => {
+              const isoValue = dateIso(day);
+              const unavailable = (minDate && day < minDate) || (maxDate && day > maxDate);
+              const selected = value && sameDay(day, selectedDate);
+              return (
+                <button
+                  type="button"
+                  key={isoValue}
+                  disabled={unavailable}
+                  className={`${day.getMonth() === visibleMonth.getMonth() ? "" : "outside"} ${sameDay(day, today) ? "today" : ""} ${selected ? "selected" : ""}`}
+                  onClick={() => choose(day)}
+                  aria-label={day.toLocaleDateString()}
+                  aria-pressed={Boolean(selected)}
+                >
+                  {day.getDate()}{selected && <Check size={11} />}
+                </button>
+              );
+            })}
+          </div>
+          <div className="date-popover-foot">
+            <button type="button" onClick={() => choose(today)}>Today</button>
+            {value && <button type="button" onClick={() => { onChange(""); setOpen(false); }}>Clear</button>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function PrimaryButton({ children, className = "", ...props }) {
   return (
     <button
-      className={`primary-button-row w-full rounded-xl bg-[var(--color-accent)] text-white font-semibold text-[15px] py-3 active:scale-[0.98] transition-transform disabled:opacity-40 ${className}`}
+      className={`primary-button-row m3-button m3-button-filled w-full ${className}`}
       {...props}
     >
       {children}
@@ -163,7 +260,7 @@ export function PrimaryButton({ children, className = "", ...props }) {
 export function SecondaryButton({ children, className = "", ...props }) {
   return (
     <button
-      className={`w-full rounded-xl border border-[var(--color-border-strong)] bg-white text-[var(--color-ink)] font-medium text-[15px] py-3 active:scale-[0.98] transition-transform ${className}`}
+      className={`m3-button m3-button-outlined w-full ${className}`}
       {...props}
     >
       {children}
@@ -173,20 +270,20 @@ export function SecondaryButton({ children, className = "", ...props }) {
 
 export function Stepper({ value, onChange, min = 1, max = 99 }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] px-1.5 py-1.5 w-fit">
+    <div className="m3-stepper">
       <button
         type="button"
         onClick={() => onChange(Math.max(min, value - 1))}
-        className="w-8 h-8 rounded-lg flex items-center justify-center text-[18px] font-medium text-[var(--color-ink)] bg-[var(--color-surface-sunken)] active:scale-95 transition-transform"
+        className="m3-stepper-button"
         aria-label="Decrease quantity"
       >
         −
       </button>
-      <span className="w-6 text-center text-[15px] font-semibold tabular-nums">{value}</span>
+      <span className="m3-stepper-value">{value}</span>
       <button
         type="button"
         onClick={() => onChange(Math.min(max, value + 1))}
-        className="w-8 h-8 rounded-lg flex items-center justify-center text-[18px] font-medium text-[var(--color-ink)] bg-[var(--color-surface-sunken)] active:scale-95 transition-transform"
+        className="m3-stepper-button"
         aria-label="Increase quantity"
       >
         +

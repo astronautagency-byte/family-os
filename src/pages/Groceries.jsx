@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Baby, Bone, Carrot, Clipboard, Coffee, Cookie, Croissant, CupSoda, Download, Drumstick, ExternalLink, FlaskConical, Globe2, GripVertical, HeartPulse, Maximize2, Milk, Package, Pencil, Plus, Sandwich, ScanLine, ScrollText, Share2, ShoppingBag, Snowflake, Soup, SprayCan, Star, Store, Trash2, Truck, Wheat, Wine, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { Card, Checkbox, EmptyState, Modal, PrimaryButton, SecondaryButton, Stepper, TextField } from "../components/ui";
@@ -6,6 +6,7 @@ import PageHeader from "../components/PageHeader";
 import { GROCERY_CATEGORIES } from "../data/mockData";
 
 const emptyDraft = { name: "", category: GROCERY_CATEGORIES[0], quantity: 1, unit: "" };
+const emptyBarcodeDraft = { ...emptyDraft, code: "", brand: "", price: "", imageUrl: "" };
 const STAPLES_KEY = "family-os:grocery-staples:v1";
 const PRODUCT_LOOKUP_ENDPOINT = "https://world.openfoodfacts.org/api/v2/product";
 const DEFAULT_STAPLES = [
@@ -160,9 +161,7 @@ const firstCommaValue = (value = "") => value.split(",").map((part) => part.trim
 function productNameFromApi(product = {}) {
   const productName = (product.product_name_en || product.product_name || product.generic_name_en || product.generic_name || "").trim();
   const brand = firstCommaValue(product.brands || "");
-  if (!productName) return brand;
-  if (!brand) return productName;
-  return productName.toLowerCase().includes(brand.toLowerCase()) ? productName : `${brand} ${productName}`;
+  return productName || brand;
 }
 
 function categoryFromApi(product = {}) {
@@ -197,9 +196,16 @@ export default function Groceries() {
   const [clearing, setClearing] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [barcodeModal, setBarcodeModal] = useState(false);
-  const [barcodeDraft, setBarcodeDraft] = useState({ ...emptyDraft, code: "" });
+  const [barcodeDraft, setBarcodeDraft] = useState(emptyBarcodeDraft);
   const [barcodeStatus, setBarcodeStatus] = useState("");
   const [barcodeLoading, setBarcodeLoading] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannerStarting, setScannerStarting] = useState(false);
+  const [scannerError, setScannerError] = useState("");
+  const [returnToFocus, setReturnToFocus] = useState(false);
+  const scannerVideoRef = useRef(null);
+  const scannerControlsRef = useRef(null);
+  const scannerHandledRef = useRef(false);
   const [deliveryModal, setDeliveryModal] = useState(false);
   const [deliveryStatus, setDeliveryStatus] = useState("");
 
@@ -310,10 +316,30 @@ export default function Groceries() {
     setMasterEditing(null);
   };
 
+  const stopBarcodeScanner = useCallback(() => {
+    scannerControlsRef.current?.stop?.();
+    scannerControlsRef.current = null;
+    const stream = scannerVideoRef.current?.srcObject;
+    stream?.getTracks?.().forEach((track) => track.stop());
+    if (scannerVideoRef.current) scannerVideoRef.current.srcObject = null;
+  }, []);
+
+  useEffect(() => () => stopBarcodeScanner(), [stopBarcodeScanner]);
+
+  const closeBarcodeModal = () => {
+    stopBarcodeScanner();
+    setScannerOpen(false);
+    setBarcodeModal(false);
+    if (returnToFocus) setFocusMode(true);
+    setReturnToFocus(false);
+  };
+
   const resetBarcodeDraft = () => {
-    setBarcodeDraft({ ...emptyDraft, code: "" });
+    setBarcodeDraft(emptyBarcodeDraft);
     setBarcodeStatus("");
     setBarcodeLoading(false);
+    setScannerError("");
+    scannerHandledRef.current = false;
   };
 
   const lookupBarcodeProduct = async (code) => {
@@ -329,7 +355,7 @@ export default function Groceries() {
       let data = null;
       let resolvedCode = cleanCode;
       for (const candidate of barcodeCandidates(cleanCode)) {
-        const url = `${PRODUCT_LOOKUP_ENDPOINT}/${encodeURIComponent(candidate)}.json?fields=code,product_name,product_name_en,generic_name,generic_name_en,brands,categories,categories_tags,quantity,serving_size`;
+        const url = `${PRODUCT_LOOKUP_ENDPOINT}/${encodeURIComponent(candidate)}.json?fields=code,product_name,product_name_en,generic_name,generic_name_en,brands,categories,categories_tags,quantity,serving_size,image_front_small_url,image_front_url`;
         const response = await fetch(url);
         if (!response.ok) continue;
         const result = await response.json();
@@ -354,13 +380,15 @@ export default function Groceries() {
         ...draft,
         code: resolvedCode,
         name: productName || draft.name,
+        brand: firstCommaValue(product.brands || "") || draft.brand,
         category,
         quantity: draft.quantity || 1,
         unit: unit || draft.unit,
+        imageUrl: product.image_front_small_url || product.image_front_url || draft.imageUrl,
       }));
       setBarcodeStatus(productName ? `Found ${productName}. Review the details, then save it to your list.` : "Product found. Review the details, then save it to your list.");
       return product;
-    } catch (error) {
+    } catch {
       setBarcodeDraft((draft) => ({ ...draft, code: cleanCode }));
       setBarcodeStatus("Could not reach the product database. You can still type the item details and save it.");
       return null;
@@ -371,36 +399,80 @@ export default function Groceries() {
 
   const readBarcodeFromImage = async (file) => {
     if (!file) return;
-    if (!("BarcodeDetector" in window)) {
-      setBarcodeStatus("This browser cannot auto-read barcodes yet. Type the barcode below, then tap Look up product.");
-      return;
-    }
-
+    setBarcodeStatus("Reading barcode from photo…");
     try {
-      const detector = new window.BarcodeDetector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"] });
-      const bitmap = await createImageBitmap(file);
-      const results = await detector.detect(bitmap);
-      const code = results?.[0]?.rawValue || "";
+      const { BrowserMultiFormatReader } = await import("@zxing/browser");
+      const reader = new BrowserMultiFormatReader();
+      const objectUrl = URL.createObjectURL(file);
+      let result;
+      try {
+        result = await reader.decodeFromImageUrl(objectUrl);
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
+      const code = result?.getText?.() || "";
       if (!code) {
         setBarcodeStatus("No barcode found. Try a brighter photo, or type the barcode manually.");
         return;
       }
       setBarcodeDraft((draft) => ({ ...draft, code }));
       await lookupBarcodeProduct(code);
-    } catch (error) {
-      setBarcodeStatus("Barcode scanning is not available in this browser yet. You can still enter the code manually.");
+    } catch {
+      setBarcodeStatus("No barcode found. Hold the camera square to the code, or enter the numbers manually.");
     }
   };
 
-  const saveBarcodeFavourite = async () => {
+  const startBarcodeScanner = async () => {
+    setScannerOpen(true);
+    setScannerStarting(true);
+    setScannerError("");
+    scannerHandledRef.current = false;
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    try {
+      const { BrowserMultiFormatReader } = await import("@zxing/browser");
+      const reader = new BrowserMultiFormatReader();
+      const controls = await reader.decodeFromConstraints(
+        { audio: false, video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } } },
+        scannerVideoRef.current,
+        async (result) => {
+          if (!result || scannerHandledRef.current) return;
+          scannerHandledRef.current = true;
+          const code = result.getText();
+          stopBarcodeScanner();
+          setScannerOpen(false);
+          setBarcodeDraft((draft) => ({ ...draft, code }));
+          await lookupBarcodeProduct(code);
+        }
+      );
+      scannerControlsRef.current = controls;
+    } catch (error) {
+      stopBarcodeScanner();
+      const denied = error?.name === "NotAllowedError" || error?.name === "PermissionDeniedError";
+      setScannerError(denied
+        ? "Camera access is off. Allow camera access in Safari settings, then try again."
+        : "The camera could not start. You can scan a saved photo or enter the UPC below.");
+    } finally {
+      setScannerStarting(false);
+    }
+  };
+
+  const barcodeItem = () => ({
+    name: barcodeDraft.name.trim(),
+    category: barcodeDraft.category,
+    quantity: barcodeDraft.quantity || 1,
+    unit: barcodeDraft.unit.trim(),
+    barcode: normalizeBarcode(barcodeDraft.code),
+    brand: barcodeDraft.brand.trim(),
+    price: barcodeDraft.price === "" ? null : Number(barcodeDraft.price),
+    imageUrl: barcodeDraft.imageUrl,
+    addedBy: null,
+  });
+
+  const saveBarcodeFavourite = () => {
     if (!barcodeDraft.name.trim()) return;
     const item = {
       id: `staple_${Date.now()}`,
-      name: barcodeDraft.name.trim(),
-      category: barcodeDraft.category,
-      quantity: barcodeDraft.quantity || 1,
-      unit: barcodeDraft.unit.trim(),
-      barcode: barcodeDraft.code.trim(),
+      ...barcodeItem(),
     };
     setStaples((current) => {
       const normalizedName = item.name.toLowerCase();
@@ -411,8 +483,15 @@ export default function Groceries() {
       });
       return [...withoutDuplicate, item];
     });
-    await addGrocery({ ...item, addedBy: null });
+    setBarcodeStatus(`${item.name} is saved to favourites.`);
+  };
+
+  const addScannedItem = async (openFocus = false) => {
+    if (!barcodeDraft.name.trim()) return;
+    await addGrocery(barcodeItem());
+    setReturnToFocus(false);
     setBarcodeModal(false);
+    if (openFocus || returnToFocus) setFocusMode(true);
   };
 
   const openDelivery = () => {
@@ -486,10 +565,11 @@ export default function Groceries() {
   return (
     <div className="pb-24 reference-groceries">
       <PageHeader
-        title="Groceries, without the ‘did we need eggs?’ text."
+        title="Groceries"
         illustration="groceries"
-        subtitle="One shared list for staples, favourites, and last-minute store thoughts."
+        subtitle="One shared list for staples, favourites, and store runs."
         action={<div className="grocery-mode-actions">
+          <button onClick={() => { resetBarcodeDraft(); setReturnToFocus(false); setBarcodeModal(true); }}><ScanLine size={14} /> Scan product</button>
           {groceries.length > 0 && <button onClick={() => setFocusMode(true)}><Maximize2 size={14} /> Focus shop</button>}
           {checkedCount > 0 && <button onClick={clearCheckedGroceries}>Clear checked</button>}
           {groceries.length > 0 && <button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button>}
@@ -498,25 +578,24 @@ export default function Groceries() {
 
       <div className="px-5 space-y-5 mt-2">
         <Card
-          className="relative overflow-hidden p-4 border-[var(--color-border)] shadow-[0_18px_45px_rgba(111,85,217,0.12)]"
-          style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--color-good-soft) 72%, white 28%) 0%, color-mix(in srgb, var(--color-accent-soft) 62%, white 38%) 52%, color-mix(in srgb, #fff2c9 70%, white 30%) 100%)" }}
+          className="delivery-banner-card relative overflow-hidden p-5 border-white/10 shadow-[0_22px_55px_rgba(18,16,43,0.24)]"
         >
-          <div className="pointer-events-none absolute -right-12 -top-16 h-36 w-36 rounded-full bg-white/55 blur-2xl" />
-          <div className="pointer-events-none absolute -bottom-16 -left-10 h-32 w-32 rounded-full bg-white/45 blur-2xl" />
+          <img src="/marketing/delivery-banner.png" alt="" className="delivery-banner-art" aria-hidden="true" />
+          <div className="delivery-banner-shade" aria-hidden="true" />
           <div className="relative flex items-start gap-3">
-            <span className="w-11 h-11 rounded-2xl bg-white flex items-center justify-center shrink-0 shadow-sm ring-1 ring-white/70">
-              <Truck size={21} color="var(--color-good)" />
+            <span className="w-11 h-11 rounded-2xl bg-white/95 flex items-center justify-center shrink-0 shadow-[0_10px_24px_rgba(0,0,0,0.18)] ring-1 ring-white/20">
+              <Truck size={21} color="var(--color-accent)" />
             </span>
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <p className="font-[var(--font-display)] text-[18px] font-semibold tracking-[-0.025em] text-[var(--color-ink)]">Take your list to checkout</p>
-                  <p className="text-[13px] text-[var(--color-ink-soft)] mt-0.5">Copy, share, or open your grocery app and paste the list in. FamOS keeps the list tidy; your delivery app handles the cart.</p>
+                  <p className="font-[var(--font-display)] text-[19px] font-semibold tracking-[-0.025em] text-white">Take your list to checkout</p>
+                  <p className="text-[13px] text-white/75 mt-0.5">Copy or share your list, then paste it into your grocery delivery app.</p>
                 </div>
                 <button
                   onClick={openDelivery}
                   disabled={!deliveryItems.length}
-                  className="inline-flex items-center gap-2 rounded-full bg-white text-[var(--color-good)] border border-white/80 px-3 py-2 text-[12px] font-semibold shadow-sm disabled:opacity-45"
+                  className="inline-flex items-center gap-2 rounded-full bg-white/95 text-[var(--color-accent)] border border-white/40 px-3 py-2 text-[12px] font-semibold shadow-[0_8px_20px_rgba(0,0,0,0.16)] disabled:opacity-45"
                 >
                   <ShoppingBag size={14} />
                   {deliveryItems.length ? `${deliveryItems.length} item${deliveryItems.length === 1 ? "" : "s"}` : "List empty"}
@@ -527,8 +606,8 @@ export default function Groceries() {
                   <button
                     key={app.id}
                     onClick={() => openGroceryPartner(app.url)}
-                    className="min-h-[44px] rounded-2xl px-2.5 flex items-center justify-center shadow-sm transition-transform hover:-translate-y-0.5 active:scale-[0.98]"
-                    style={{ backgroundColor: app.brandSoft, border: `1px solid ${app.brandBorder}`, boxShadow: `0 10px 22px ${app.brandColor}18` }}
+                    className="min-h-[48px] rounded-2xl bg-white px-3 flex items-center justify-center transition-transform hover:-translate-y-0.5 active:scale-[0.98]"
+                    style={{ border: `1px solid ${app.brandBorder}`, boxShadow: `0 11px 24px ${app.brandColor}1c` }}
                     aria-label={`Open ${app.name}`}
                   >
                     <GroceryDeliveryLogo app={app} />
@@ -536,9 +615,9 @@ export default function Groceries() {
                 ))}
               </div>
               <div className="mt-2 grid grid-cols-3 gap-2">
-                <button onClick={copyDeliveryList} disabled={!deliveryItems.length} className="inline-flex items-center justify-center gap-1.5 rounded-full bg-white/95 px-3 py-2 text-[11.5px] font-semibold text-[var(--color-ink)] border border-white/80 shadow-sm disabled:opacity-45"><Clipboard size={13} /> Copy</button>
-                <button onClick={shareDeliveryList} disabled={!deliveryItems.length} className="inline-flex items-center justify-center gap-1.5 rounded-full bg-white/95 px-3 py-2 text-[11.5px] font-semibold text-[var(--color-ink)] border border-white/80 shadow-sm disabled:opacity-45"><Share2 size={13} /> Share</button>
-                <button onClick={downloadDeliveryList} disabled={!deliveryItems.length} className="inline-flex items-center justify-center gap-1.5 rounded-full bg-white/95 px-3 py-2 text-[11.5px] font-semibold text-[var(--color-ink)] border border-white/80 shadow-sm disabled:opacity-45"><Download size={13} /> Save</button>
+                <button onClick={copyDeliveryList} disabled={!deliveryItems.length} className="inline-flex items-center justify-center gap-1.5 rounded-full bg-white px-3 py-2 text-[11.5px] font-semibold text-[#19172b] border border-black/5 shadow-sm disabled:opacity-45"><Clipboard size={13} /> Copy</button>
+                <button onClick={shareDeliveryList} disabled={!deliveryItems.length} className="inline-flex items-center justify-center gap-1.5 rounded-full bg-white px-3 py-2 text-[11.5px] font-semibold text-[#19172b] border border-black/5 shadow-sm disabled:opacity-45"><Share2 size={13} /> Share</button>
+                <button onClick={downloadDeliveryList} disabled={!deliveryItems.length} className="inline-flex items-center justify-center gap-1.5 rounded-full bg-white px-3 py-2 text-[11.5px] font-semibold text-[#19172b] border border-black/5 shadow-sm disabled:opacity-45"><Download size={13} /> Save</button>
               </div>
             </div>
           </div>
@@ -706,21 +785,30 @@ export default function Groceries() {
         <div className="flex gap-2">{masterEditing !== "new" && <SecondaryButton onClick={() => { setStaples((current) => current.filter((item) => item.id !== masterEditing)); setMasterEditing(null); }}>Remove</SecondaryButton>}<PrimaryButton onClick={saveMasterItem} disabled={!masterDraft.name.trim()}>Save favourite</PrimaryButton></div>
       </Modal>
 
-      <Modal open={barcodeModal} onClose={() => setBarcodeModal(false)} title="Scan and save">
-        <p className="barcode-note">Scan or enter a barcode. FamOS will look up the product, fill in the details, and save it for the next shop.</p>
-        <label className="barcode-actions">
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={(event) => {
-              readBarcodeFromImage(event.target.files?.[0]);
-              event.target.value = "";
-            }}
-          />
-          <ScanLine size={16} />
-          Use camera to scan
-        </label>
+      <Modal open={barcodeModal} onClose={closeBarcodeModal} title="Scan a product">
+        <p className="barcode-note">Point your camera at a UPC or EAN barcode. FamOS will identify the product, then let you review where it goes.</p>
+        {scannerOpen ? (
+          <div className="barcode-camera">
+            <video ref={scannerVideoRef} muted playsInline aria-label="Live barcode camera preview" />
+            <div className="barcode-camera-guide" aria-hidden="true"><span /></div>
+            <div className="barcode-camera-footer">
+              <span>{scannerStarting ? "Starting camera…" : "Hold the barcode inside the frame"}</span>
+              <button onClick={() => { stopBarcodeScanner(); setScannerOpen(false); }}>Cancel</button>
+            </div>
+          </div>
+        ) : (
+          <div className="barcode-actions">
+            <button type="button" onClick={startBarcodeScanner}><ScanLine size={17} /> Scan live</button>
+            <label>
+              <input type="file" accept="image/*" capture="environment" onChange={(event) => {
+                readBarcodeFromImage(event.target.files?.[0]);
+                event.target.value = "";
+              }} />
+              <ScanLine size={17} /> Scan a photo
+            </label>
+          </div>
+        )}
+        {scannerError && <p className="barcode-error">{scannerError}</p>}
         {barcodeStatus && <p className="barcode-result">{barcodeStatus}</p>}
         <div className="barcode-lookup-row">
           <TextField label="Barcode" placeholder="e.g. 012345678905" value={barcodeDraft.code} onChange={(event) => setBarcodeDraft((draft) => ({ ...draft, code: event.target.value }))} inputMode="numeric" />
@@ -728,11 +816,26 @@ export default function Groceries() {
             {barcodeLoading ? "Looking…" : "Look up"}
           </SecondaryButton>
         </div>
-        <TextField label="Product name" placeholder="e.g. Dave's Killer Bread" value={barcodeDraft.name} onChange={(event) => updateBarcodeName(event.target.value)} />
+        <div className="barcode-product-fields">
+          {barcodeDraft.imageUrl && <img src={barcodeDraft.imageUrl} alt="" className="barcode-product-image" />}
+          <div>
+            <TextField label="Product name" placeholder="e.g. Whole grain bread" value={barcodeDraft.name} onChange={(event) => updateBarcodeName(event.target.value)} />
+            <TextField label="Brand" placeholder="e.g. Dave's Killer Bread" value={barcodeDraft.brand} onChange={(event) => setBarcodeDraft((draft) => ({ ...draft, brand: event.target.value }))} />
+          </div>
+        </div>
         <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-2">Category</p>
         <div className="flex flex-wrap gap-2 mb-4">{GROCERY_CATEGORIES.map((category) => <button key={category} onClick={() => setBarcodeDraft((draft) => ({ ...draft, category }))} className="rounded-full px-3 py-1.5 text-[13px] font-medium border" style={{ borderColor: barcodeDraft.category === category ? "var(--color-accent)" : "var(--color-border)", backgroundColor: barcodeDraft.category === category ? "var(--color-accent-soft)" : "transparent" }}>{category}</button>)}</div>
-        <div className="flex items-end gap-3 mb-5"><div><p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-1.5">Default quantity</p><Stepper value={barcodeDraft.quantity} onChange={(quantity) => setBarcodeDraft((draft) => ({ ...draft, quantity }))} /></div><div className="flex-1"><TextField label="Unit" placeholder="loaf, box, bag" value={barcodeDraft.unit} onChange={(event) => setBarcodeDraft((draft) => ({ ...draft, unit: event.target.value }))} /></div></div>
-        <PrimaryButton onClick={saveBarcodeFavourite} disabled={!barcodeDraft.name.trim()}>Save favourite & add</PrimaryButton>
+        <div className="barcode-detail-grid">
+          <div><p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-1.5">Quantity</p><Stepper value={barcodeDraft.quantity} onChange={(quantity) => setBarcodeDraft((draft) => ({ ...draft, quantity }))} /></div>
+          <TextField label="Unit" placeholder="loaf, box, bag" value={barcodeDraft.unit} onChange={(event) => setBarcodeDraft((draft) => ({ ...draft, unit: event.target.value }))} />
+          <TextField label="Price (optional)" type="number" inputMode="decimal" min="0" step="0.01" placeholder="$0.00" value={barcodeDraft.price} onChange={(event) => setBarcodeDraft((draft) => ({ ...draft, price: event.target.value }))} />
+        </div>
+        <p className="barcode-price-note">Prices vary by store and are not encoded in UPC barcodes, so confirm the current shelf price.</p>
+        <div className="barcode-save-actions">
+          <PrimaryButton onClick={() => addScannedItem(false)} disabled={!barcodeDraft.name.trim()}>Add to grocery list</PrimaryButton>
+          <SecondaryButton onClick={saveBarcodeFavourite} disabled={!barcodeDraft.name.trim()}><Star size={15} /> Save favourite</SecondaryButton>
+          <SecondaryButton onClick={() => addScannedItem(true)} disabled={!barcodeDraft.name.trim()}><Maximize2 size={15} /> Add & open Focus Shop</SecondaryButton>
+        </div>
       </Modal>
 
       <Modal open={deliveryModal} onClose={() => setDeliveryModal(false)} title="Export grocery list">
@@ -807,6 +910,7 @@ export default function Groceries() {
                 onClick={() => {
                   resetBarcodeDraft();
                   setFocusMode(false);
+                  setReturnToFocus(true);
                   setBarcodeModal(true);
                 }}
               >

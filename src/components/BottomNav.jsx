@@ -12,7 +12,7 @@ const TABS = [
 
 export default function BottomNav({ active, onChange }) {
   return (
-    <nav className="primary-nav" aria-label="FamOS navigation">
+    <nav className="primary-nav m3-navigation" aria-label="FamOS navigation">
       <div className="nav-brand">
         <img src="/brand/famos-icon-transparent.png" alt="" />
         <div>
@@ -28,11 +28,11 @@ export default function BottomNav({ active, onChange }) {
             <button
               key={tab.id}
               onClick={() => onChange(tab.id)}
-              className={`nav-item ${isActive ? "is-active" : ""}`}
+              className={`nav-item m3-navigation-item ${isActive ? "is-active" : ""}`}
               aria-current={isActive ? "page" : undefined}
             >
               <span className="nav-icon">
-                <Icon size={19} strokeWidth={isActive ? 2.4 : 1.8} color={isActive ? "var(--color-accent)" : "var(--color-ink-faint)"} />
+                <Icon size={20} strokeWidth={isActive ? 2.25 : 1.8} />
               </span>
               <span className="nav-label">
                 {tab.label}

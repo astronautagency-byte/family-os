@@ -1,10 +1,10 @@
 import { useEffect, useRef, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, MapPin, Plus, Trash2 } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
-import { AvatarStack, Modal, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
+import { AvatarStack, DateField, Modal, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import { formatTime, todayISO } from "../lib/dates";
-import { googleMapsApiKey, loadGooglePlaces } from "../lib/googleMapsPlaces";
+import { fetchGooglePlaceSuggestions, googleMapsApiKey, loadGooglePlaces } from "../lib/googleMapsPlaces";
 
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const EVENT_TYPES = {
@@ -27,86 +27,116 @@ const sourceId = (event) => event.source === "google" ? `google:${event.calendar
 
 function LocationAutocompleteField({ value, onChange }) {
   const inputRef = useRef(null);
-  const placesServiceRef = useRef(null);
+  const onChangeRef = useRef(onChange);
+  const googleRef = useRef(null);
+  const placesRef = useRef(null);
   const sessionTokenRef = useRef(null);
-  const detailsServiceRef = useRef(null);
+  const requestIdRef = useRef(0);
   const [mapsReady, setMapsReady] = useState(false);
   const [mapsError, setMapsError] = useState("");
-  const [predictions, setPredictions] = useState([]);
-  const [focused, setFocused] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [activeSuggestion, setActiveSuggestion] = useState(-1);
 
   useEffect(() => {
-    if (!googleMapsApiKey) return undefined;
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  useEffect(() => {
+    if (!googleMapsApiKey) {
+      setMapsError("Google Maps suggestions are not configured yet.");
+      return undefined;
+    }
     let cancelled = false;
 
     loadGooglePlaces()
-      .then((google) => {
+      .then(({ google, places }) => {
         if (cancelled) return;
-        placesServiceRef.current = new google.maps.places.AutocompleteService();
-        sessionTokenRef.current = new google.maps.places.AutocompleteSessionToken();
-        const detailsNode = document.createElement("div");
-        detailsServiceRef.current = new google.maps.places.PlacesService(detailsNode);
+        googleRef.current = google;
+        placesRef.current = places;
+        sessionTokenRef.current = new places.AutocompleteSessionToken();
+        setMapsError("");
         setMapsReady(true);
       })
       .catch(() => setMapsError("Location suggestions are unavailable right now."));
 
     return () => {
       cancelled = true;
+      requestIdRef.current += 1;
     };
   }, []);
 
   useEffect(() => {
-    if (!mapsReady || !placesServiceRef.current || !focused || value.trim().length < 2) {
-      setPredictions([]);
+    const input = value.trim();
+    if (!mapsReady || input.length < 2 || !placesRef.current) {
+      setSuggestions([]);
+      setActiveSuggestion(-1);
       return undefined;
     }
 
-    const timeout = window.setTimeout(() => {
-      placesServiceRef.current.getPlacePredictions(
-        {
-          input: value,
+    const requestId = ++requestIdRef.current;
+    const timer = window.setTimeout(async () => {
+      try {
+        const nextSuggestions = await fetchGooglePlaceSuggestions({
+          google: googleRef.current,
+          places: placesRef.current,
+          input,
           sessionToken: sessionTokenRef.current,
-          types: ["establishment", "geocode"],
-        },
-        (results, status) => {
-          const placesStatus = window.google?.maps?.places?.PlacesServiceStatus;
-          if (status === placesStatus?.OK && Array.isArray(results)) {
-            setPredictions(results.slice(0, 5));
-          } else {
-            setPredictions([]);
-          }
-        }
-      );
-    }, 180);
+        });
+        if (requestId !== requestIdRef.current) return;
+        setSuggestions(nextSuggestions.filter((suggestion) => suggestion.placePrediction).slice(0, 6));
+        setActiveSuggestion(-1);
+        setMapsError("");
+      } catch {
+        if (requestId !== requestIdRef.current) return;
+        setSuggestions([]);
+        setMapsError("Location suggestions are unavailable right now.");
+      }
+    }, 220);
 
-    return () => window.clearTimeout(timeout);
-  }, [focused, mapsReady, value]);
+    return () => window.clearTimeout(timer);
+  }, [mapsReady, value]);
 
-  const selectPrediction = (prediction) => {
-    const fallback = prediction.description || prediction.structured_formatting?.main_text || "";
-    setPredictions([]);
-    setFocused(false);
+  const chooseSuggestion = async (suggestion) => {
+    const prediction = suggestion?.placePrediction;
+    if (!prediction) return;
+    const fallbackLabel = prediction.text?.toString?.() || "";
+    setSuggestions([]);
+    setActiveSuggestion(-1);
 
-    if (!detailsServiceRef.current || !prediction.place_id) {
-      onChange(fallback);
-      return;
+    try {
+      if (typeof prediction.toPlace === "function") {
+        const place = prediction.toPlace();
+        await place.fetchFields({ fields: ["displayName", "formattedAddress"] });
+        onChangeRef.current(place.formattedAddress || place.displayName || fallbackLabel);
+      } else {
+        onChangeRef.current(prediction.legacyPrediction?.description || fallbackLabel);
+      }
+    } catch {
+      if (fallbackLabel) onChangeRef.current(fallbackLabel);
     }
 
-    detailsServiceRef.current.getDetails(
-      {
-        placeId: prediction.place_id,
-        fields: ["formatted_address", "name"],
-        sessionToken: sessionTokenRef.current,
-      },
-      (place, status) => {
-        const placesStatus = window.google?.maps?.places?.PlacesServiceStatus;
-        const label = status === placesStatus?.OK
-          ? [place?.name, place?.formatted_address].filter(Boolean).join(" · ")
-          : fallback;
-        onChange(label || fallback);
-        sessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken();
-      }
-    );
+    const places = placesRef.current;
+    if (places?.AutocompleteSessionToken) {
+      sessionTokenRef.current = new places.AutocompleteSessionToken();
+    }
+    inputRef.current?.blur();
+  };
+
+  const handleKeyDown = (event) => {
+    if (!suggestions.length) return;
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveSuggestion((current) => Math.min(current + 1, suggestions.length - 1));
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveSuggestion((current) => Math.max(current - 1, 0));
+    } else if (event.key === "Enter" && activeSuggestion >= 0) {
+      event.preventDefault();
+      chooseSuggestion(suggestions[activeSuggestion]);
+    } else if (event.key === "Escape") {
+      setSuggestions([]);
+      setActiveSuggestion(-1);
+    }
   };
 
   return (
@@ -119,32 +149,39 @@ function LocationAutocompleteField({ value, onChange }) {
             ref={inputRef}
             value={value}
             onChange={(event) => onChange(event.target.value)}
-            onFocus={() => setFocused(true)}
-            onBlur={() => window.setTimeout(() => setFocused(false), 140)}
+            onKeyDown={handleKeyDown}
             placeholder="Search a place or enter an address"
             autoComplete="off"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={suggestions.length > 0}
           />
         </div>
-        {focused && predictions.length > 0 && (
+        {suggestions.length > 0 && (
           <div className="location-suggestions" role="listbox">
-            {predictions.map((prediction) => (
-              <button
-                key={prediction.place_id}
-                type="button"
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => selectPrediction(prediction)}
-              >
-                <MapPin size={15} />
-                <span>
-                  <strong>{prediction.structured_formatting?.main_text || prediction.description}</strong>
-                  {prediction.structured_formatting?.secondary_text && <small>{prediction.structured_formatting.secondary_text}</small>}
-                </span>
-              </button>
-            ))}
+            {suggestions.map((suggestion, index) => {
+              const prediction = suggestion.placePrediction;
+              const mainText = prediction.mainText?.toString?.() || prediction.text?.toString?.() || "";
+              const secondaryText = prediction.secondaryText?.toString?.() || "";
+              return (
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={index === activeSuggestion}
+                  className={index === activeSuggestion ? "active" : ""}
+                  key={prediction.placeId || `${mainText}-${index}`}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => chooseSuggestion(suggestion)}
+                >
+                  <MapPin size={16} />
+                  <span><strong>{mainText}</strong>{secondaryText && <small>{secondaryText}</small>}</span>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
-      {googleMapsApiKey && mapsReady && <small>Start typing to pick a Google Maps place.</small>}
+      {googleMapsApiKey && mapsReady && !mapsError && <small>Start typing to pick a Google Maps place.</small>}
       {mapsError && <small className="warn">{mapsError}</small>}
     </div>
   );
@@ -197,7 +234,7 @@ export default function CalendarPage() {
     </div>
     <Modal open={adding} onClose={()=>setAdding(false)} title="Add something to the calendar">
       <TextField label="Event" value={draft.title} onChange={e=>setDraft({...draft,title:e.target.value})}/>
-      <div className="calendar-form-row"><TextField label="Date" type="date" value={draft.date} onChange={e=>setDraft({...draft,date:e.target.value})}/><TextField label="Starts" type="time" value={draft.start} onChange={e=>setDraft({...draft,start:e.target.value})}/><TextField label="Ends" type="time" value={draft.end} onChange={e=>setDraft({...draft,end:e.target.value})}/></div>
+      <div className="calendar-form-row"><DateField label="Date" value={draft.date} onChange={date=>setDraft({...draft,date})}/><TextField label="Starts" type="time" value={draft.start} onChange={e=>setDraft({...draft,start:e.target.value})}/><TextField label="Ends" type="time" value={draft.end} onChange={e=>setDraft({...draft,end:e.target.value})}/></div>
       <LocationAutocompleteField value={draft.location} onChange={(location)=>setDraft((current)=>({...current,location}))}/>
       <label className="calendar-select-label"><span>Event type</span><select value={draft.eventType} onChange={e=>setDraft({...draft,eventType:e.target.value})}>{Object.entries(EVENT_TYPES).map(([key,type])=><option key={key} value={key}>{type.label}</option>)}</select></label>
       <label className="calendar-select-label"><span>Add to</span><select value={draft.destination} onChange={e=>setDraft({...draft,destination:e.target.value})}><option value="family">FamOS calendar</option>{googleConnected&&googleCalendars.filter(calendar=>selectedGoogleCalendarIds.includes(calendar.id)&&["owner","writer"].includes(calendar.accessRole)).map(calendar=><option key={calendar.id} value={`google:${calendar.id}`}>{calendar.summary} · Google</option>)}</select></label>

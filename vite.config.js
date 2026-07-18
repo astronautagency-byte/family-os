@@ -16,9 +16,9 @@ export default defineConfig({
       includeAssets: ['icons/icon-192.png', 'icons/icon-512.png'],
       manifest: {
         id: 'https://fam-os.app/',
-        name: 'Fam OS',
-        short_name: 'Fam OS',
-        description: 'A private family command center for shared calendars, meals, groceries, tasks, rewards, finance planning, and Fam AI.',
+        name: 'FamOS - Families Run Better on FamOS',
+        short_name: 'FamOS',
+        description: 'Families run better on FamOS—the smart home hub for organizing your family’s days, tasks, meals, groceries, calendars, and more.',
         theme_color: '#B8D8FF',
         background_color: '#FAF9FF',
         display: 'standalone',
@@ -34,6 +34,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+        globIgnores: ['**/marketing/ads/**'],
         importScripts: ['/notification-sw.js']
       }
     })

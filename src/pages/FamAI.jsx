@@ -281,7 +281,7 @@ export default function FamAI() {
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      content: "Hi, I’m Fam AI. Give me the messy version—I’ll turn it into something your household can actually use.",
+      content: "Hi, I’m Fam AI. Tell me what you need and I’ll suggest the next step.",
     },
   ]);
   const [input, setInput] = useState("");
@@ -641,7 +641,7 @@ export default function FamAI() {
         eyebrow="Your family assistant"
         title="Fam AI"
         illustration="famai"
-        subtitle="Ask for a plan. Review the moves. Keep the final say."
+        subtitle="Get help planning meals, groceries, tasks, and schedules."
       />
       <div className="px-5">
         <div className="fam-ai-use-cases">
@@ -748,7 +748,7 @@ export default function FamAI() {
           </button>
         </form>
         <p className="fam-ai-privacy">
-          Fam AI can suggest the next move, but always asks before changing FamOS.
+          Fam AI suggests actions and asks before changing FamOS.
         </p>
       </div>
     </div>

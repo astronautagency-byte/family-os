@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertCircle, Bell, Bot, CalendarDays, CheckCircle2, ExternalLink, Eye, EyeOff, ImagePlus, Info, Link2, Plus, RefreshCw, RotateCcw, ShieldCheck, Trash2, Upload, Users } from "lucide-react";
+import { AlertCircle, Bell, Bot, CalendarDays, CheckCircle2, ExternalLink, Eye, EyeOff, ImagePlus, Info, Link2, MapPin, Pencil, Plus, RefreshCw, RotateCcw, ShieldCheck, Trash2, Upload, Users, Utensils } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, Card, Modal, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
@@ -8,6 +8,8 @@ import { FAMILY_COLORS } from "../data/mockData";
 import { AVATAR_PRESETS } from "../data/avatarLibrary";
 import { PRICING_PLAN, formatMoney } from "../data/pricingPlan";
 import { supabase } from "../lib/supabase";
+
+const HOUSEHOLD_DIETARY_OPTIONS = ["Vegetarian", "Vegan", "Gluten-free", "Dairy-free", "Nut-free", "Shellfish-free", "Low sugar"];
 
 function initialsFrom(name) {
   return name
@@ -105,7 +107,7 @@ function GoogleCalendarCard() {
             Disconnect
           </SecondaryButton>
           <PrimaryButton onClick={syncGoogleCalendarNow} disabled={isBusy}>
-            {googleStatus === "syncing" ? "Syncing…" : "Sync now"}
+            {googleStatus === "syncing" ? "Syncing…" : googleStatus === "error" ? "Reconnect Google" : "Sync now"}
           </PrimaryButton>
         </div>
       ) : (
@@ -223,7 +225,7 @@ function CalendarFeedsCard() {
 
 export default function Settings() {
   const { members, addMember, updateMember, removeMember, resetToDemoData, notificationPermission, requestNotifications, sendTestNotification } = useFamily();
-  const { configured, user, session, household, invitePartner, refreshAccount, updatePassword, signOut, deleteAccount } = useAuth();
+  const { configured, user, household, householdProfileExtra, memberProfile, updateHouseholdSettings, invitePartner, updatePassword, signOut, deleteAccount } = useAuth();
   const [editingMember, setEditingMember] = useState(null); // member object or "new"
   const [name, setName] = useState("");
   const [role, setRole] = useState("Kid");
@@ -233,42 +235,81 @@ export default function Settings() {
   const [savingMember, setSavingMember] = useState(false);
   const [confirmingReset, setConfirmingReset] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
+  const [invitePhone, setInvitePhone] = useState("");
+  const [inviteSmsConsent, setInviteSmsConsent] = useState(false);
   const [inviteStatus, setInviteStatus] = useState("");
+  const [smsFallbackUrl, setSmsFallbackUrl] = useState("");
+  const [inviting, setInviting] = useState(false);
   const [pendingInvites, setPendingInvites] = useState([]);
   const [inviteActionStatus, setInviteActionStatus] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [passwordStatus, setPasswordStatus] = useState("");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState(null);
+  const [removingMember, setRemovingMember] = useState(false);
+  const [removeMemberError, setRemoveMemberError] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [notificationTestStatus, setNotificationTestStatus] = useState("");
   const [testingNotification, setTestingNotification] = useState(false);
+  const [editingHousehold, setEditingHousehold] = useState(false);
+  const [householdName, setHouseholdName] = useState("");
+  const [householdCity, setHouseholdCity] = useState("");
+  const [householdCountry, setHouseholdCountry] = useState("");
+  const [householdDietary, setHouseholdDietary] = useState([]);
+  const [householdAvoid, setHouseholdAvoid] = useState("");
+  const [householdSaving, setHouseholdSaving] = useState(false);
+  const [householdStatus, setHouseholdStatus] = useState("");
+
+  const openHouseholdEditor = () => {
+    setHouseholdName(household?.name || "");
+    setHouseholdCity(householdProfileExtra?.city || "");
+    setHouseholdCountry(householdProfileExtra?.country || "");
+    setHouseholdDietary(householdProfileExtra?.dietaryRestrictions || []);
+    setHouseholdAvoid(householdProfileExtra?.avoidIngredients || "");
+    setHouseholdStatus("");
+    setEditingHousehold(true);
+  };
+
+  const saveHousehold = async () => {
+    setHouseholdSaving(true);
+    setHouseholdStatus("");
+    try {
+      await updateHouseholdSettings({
+        name: householdName,
+        city: householdCity,
+        country: householdCountry,
+        dietaryRestrictions: householdDietary,
+        avoidIngredients: householdAvoid,
+      });
+      setEditingHousehold(false);
+    } catch (error) {
+      setHouseholdStatus(error.message || "Could not update household details.");
+    } finally {
+      setHouseholdSaving(false);
+    }
+  };
 
   const loadPendingInvites = async () => {
     if (!configured || !household?.id || !supabase) return;
-    const { error: reconcileError } = await supabase.rpc("reconcile_existing_household_invitations", { target_household: household.id });
-    if (reconcileError && reconcileError.code !== "42883" && !/could not find the function|schema cache/i.test(reconcileError.message || "")) {
-      console.warn("Could not reconcile pending invitations.", reconcileError);
+    let { data, error } = await supabase.from("household_invitations").select("id,email,phone,expires_at").eq("household_id", household.id).is("accepted_at", null).gt("expires_at", new Date().toISOString()).order("created_at");
+    if (error && /phone|schema cache|column/i.test(error.message || "")) {
+      ({ data, error } = await supabase.from("household_invitations").select("id,email,expires_at").eq("household_id", household.id).is("accepted_at", null).gt("expires_at", new Date().toISOString()).order("created_at"));
     }
-    const { data } = await supabase.from("household_invitations").select("id,email,expires_at").eq("household_id", household.id).is("accepted_at", null).gt("expires_at", new Date().toISOString()).order("created_at");
+    if (error) {
+      setInviteActionStatus(error.message || "Could not load pending invitations.");
+      return;
+    }
     setPendingInvites(data || []);
   };
 
   const reconcileInvites = async () => {
     if (!configured || !household?.id || !supabase) return;
-    setInviteActionStatus("Checking for signed-up invitees…");
-    const { error } = await supabase.rpc("reconcile_existing_household_invitations", { target_household: household.id });
-    if (error) {
-      setInviteActionStatus("FamOS can’t auto-join invitees until the live Supabase database has the invite reconciliation function. Run supabase/migrations/202607160002_invitation_reconciliation.sql in the Supabase SQL Editor, then click Check again.");
-      console.warn("Could not reconcile invitations.", error);
-      await loadPendingInvites();
-      return;
-    }
-    await refreshAccount(session);
+    setInviteActionStatus("Refreshing invitations…");
     await loadPendingInvites();
-    setInviteActionStatus("Invite list refreshed. Accepted members should now appear above.");
+    setInviteActionStatus("Invitation list refreshed.");
   };
 
   const revokeInvite = async (invite) => {
@@ -280,6 +321,37 @@ export default function Settings() {
     }
     setInviteActionStatus(`Revoked invitation for ${invite.email}.`);
     await loadPendingInvites();
+  };
+
+  const sendHouseholdInvite = async (event) => {
+    event?.preventDefault();
+    if (!inviteEmail.trim() || inviting) return;
+    if (invitePhone.trim() && !inviteSmsConsent) {
+      setInviteStatus("Confirm that this person agreed to receive a one-time invitation by text.");
+      return;
+    }
+    setInviting(true);
+    setInviteStatus("");
+    setSmsFallbackUrl("");
+    try {
+      const result = await invitePartner(inviteEmail, invitePhone);
+      setInviteStatus(result?.message || "Invitation sent.");
+      if (invitePhone.trim() && result?.sms?.requested && !result.sms.sent) {
+        const normalizedPhone = invitePhone.replace(/[^\d+]/g, "");
+        const joinUrl = `${window.location.origin}/signin?invited=1&email=${encodeURIComponent(inviteEmail.trim().toLowerCase())}`;
+        const message = `You’re invited to ${household?.name || "a family home"} on FamOS. Join your family home: ${joinUrl} Reply STOP to opt out.`;
+        const separator = /iPad|iPhone|iPod/.test(navigator.userAgent) ? "&" : "?";
+        setSmsFallbackUrl(`sms:${normalizedPhone}${separator}body=${encodeURIComponent(message)}`);
+      }
+      setInviteEmail("");
+      setInvitePhone("");
+      setInviteSmsConsent(false);
+      await loadPendingInvites();
+    } catch (error) {
+      setInviteStatus(error.message || "Could not send this invitation.");
+    } finally {
+      setInviting(false);
+    }
   };
 
   useEffect(() => { loadPendingInvites(); }, [configured, household?.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -352,6 +424,9 @@ export default function Settings() {
     }
   };
   const includedMembers = PRICING_PLAN.basePlan.membersIncluded;
+  const isMasterOwner = household?.created_by
+    ? household.created_by === user?.id
+    : household?.role === "owner";
   const extraMembers = Math.max(0, members.length - includedMembers);
   const estimatedMonthlyPlan = PRICING_PLAN.basePlan.price.monthly + extraMembers * PRICING_PLAN.basePlan.additionalMemberPrice.monthly;
 
@@ -360,6 +435,31 @@ export default function Settings() {
       <PageHeader eyebrow="Household" title="Settings" illustration="settings" subtitle="Tweak the home base without making it a whole thing." />
 
       <div className="px-5 space-y-6 mt-2">
+        <section>
+          <div className="flex items-end justify-between mb-3">
+            <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)]">Home space</h2>
+          </div>
+          <Card className="settings-household-card">
+            <div className="settings-household-icon">⌂</div>
+            <div className="settings-household-summary">
+              <p>Household name</p>
+              <h3>{household?.name || "Home"}</h3>
+              <span>{isMasterOwner ? "Master owner" : "Household member"} · Your role: {memberProfile?.profileType === "child" ? "Child" : "Parent / guardian"}</span>
+              <div className="settings-household-details">
+                <span><MapPin size={14} /> {[householdProfileExtra?.city, householdProfileExtra?.country].filter(Boolean).join(", ") || "Location not added"}</span>
+                <span><Utensils size={14} /> Household dietary preferences</span>
+              </div>
+              <div className="settings-dietary-pills">
+                {(householdProfileExtra?.dietaryRestrictions || []).length
+                  ? householdProfileExtra.dietaryRestrictions.map((restriction) => <span key={restriction}>{restriction}</span>)
+                  : <em>No dietary restrictions added</em>}
+              </div>
+              {householdProfileExtra?.avoidIngredients && <small>Avoid: {householdProfileExtra.avoidIngredients}</small>}
+            </div>
+            {isMasterOwner && <button className="settings-household-edit" onClick={openHouseholdEditor}><Pencil size={14} /> Edit</button>}
+          </Card>
+        </section>
+
         <section>
           <div className="flex items-end justify-between mb-3">
             <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)]">Family members</h2>
@@ -378,12 +478,13 @@ export default function Settings() {
                     <Avatar member={m} size="lg" />
                     <div className="min-w-0">
                       <p className="font-medium text-[14.5px] text-[var(--color-ink)] truncate">{m.name}</p>
+                      {m.email && <p className="text-[11.5px] text-[var(--color-ink-faint)] truncate">{m.email}</p>}
                       <p className="text-[12.5px] text-[var(--color-ink-soft)]">{m.role}{m.id === user?.id ? " · You" : ""}</p>
                     </div>
                   </button>
                   <button
-                    onClick={() => removeMember(m.id)}
-                    className={`p-2 text-[var(--color-ink-faint)] ${configured ? "hidden" : ""}`}
+                    onClick={() => { setMemberToRemove(m); setRemoveMemberError(""); }}
+                    className={`p-2 text-[var(--color-ink-faint)] ${configured && (!isMasterOwner || m.id === user?.id) ? "hidden" : ""}`}
                     aria-label={`Remove ${m.name}`}
                   >
                     <Trash2 size={16} />
@@ -393,10 +494,10 @@ export default function Settings() {
               {pendingInvites.map((invite) => (
                 <li key={invite.id} className="family-roster-pending">
                   <div className="family-invite-avatar">{invite.email.slice(0, 1).toUpperCase()}</div>
-                  <div className="min-w-0 flex-1"><p>{invite.email}</p><span>Still waiting for them to join</span></div>
+                  <div className="min-w-0 flex-1"><p>{invite.email}</p><span>{invite.phone ? `${invite.phone} · ` : ""}Still waiting for them to join</span></div>
                   <div className="pending-invite-actions">
                     <span className="pending-pill">Pending</span>
-                    <button onClick={reconcileInvites}><RefreshCw size={12} /> Check</button>
+                    <button onClick={reconcileInvites}><RefreshCw size={12} /> Refresh</button>
                     <button className="danger" onClick={() => revokeInvite(invite)}><Trash2 size={12} /> Revoke</button>
                   </div>
                 </li>
@@ -411,9 +512,24 @@ export default function Settings() {
           {inviteActionStatus && <p className="text-[12px] text-[var(--color-ink-soft)] mt-2 px-1">{inviteActionStatus}</p>}
           {configured && (
             <Card className="p-4 mt-3">
-              <TextField type="email" label="Invite a family member" placeholder="family@example.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
-              <PrimaryButton disabled={!inviteEmail.trim()} onClick={async () => { try { const result = await invitePartner(inviteEmail); setInviteStatus(result?.message || "Invite sent. Now we wait politely."); setInviteEmail(""); await refreshAccount(session); await loadPendingInvites(); } catch (e) { setInviteStatus(e.message); } }}>Send invite</PrimaryButton>
+              <form onSubmit={sendHouseholdInvite}>
+                <TextField type="email" label="Invite a family member" placeholder="family@example.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
+                <TextField type="tel" label="Mobile number (optional)" placeholder="+1 416 555 0123" value={invitePhone} onChange={(e) => setInvitePhone(e.target.value)} autoComplete="tel" />
+                {invitePhone.trim() && (
+                  <label className="mb-4 flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-sunken)] p-3 text-[12.5px] leading-relaxed text-[var(--color-ink-soft)]">
+                    <input
+                      type="checkbox"
+                      checked={inviteSmsConsent}
+                      onChange={(event) => setInviteSmsConsent(event.target.checked)}
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-accent)]"
+                    />
+                    <span>I confirm this person agreed to receive a one-time FamOS invitation by text. Standard message rates may apply.</span>
+                  </label>
+                )}
+                <PrimaryButton type="submit" disabled={inviting || !inviteEmail.trim() || (Boolean(invitePhone.trim()) && !inviteSmsConsent)}>{inviting ? "Sending invitation…" : "Send invite"}</PrimaryButton>
+              </form>
               {inviteStatus && <p className="text-[12px] text-[var(--color-ink-soft)] mt-2">{inviteStatus}</p>}
+              {smsFallbackUrl && <a className="m3-button m3-button-outlined w-full mt-2" href={smsFallbackUrl}>Send with Messages instead</a>}
             </Card>
           )}
         </section>
@@ -467,11 +583,11 @@ export default function Settings() {
         <section>
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">Notifications</h2>
           <Card className="p-4">
-            <div className="flex items-start gap-3 mb-4"><div className="w-10 h-10 rounded-xl bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0"><Bell size={18} color="var(--color-accent)" /></div><div><p className="font-medium text-[14.5px]">Task nudges</p><p className="text-[12.5px] text-[var(--color-ink-soft)] mt-0.5">Get browser notifications while FamOS is open. True iPhone push needs FamOS installed to the Home Screen plus the next server push phase.</p></div></div>
+            <div className="flex items-start gap-3 mb-4"><div className="w-10 h-10 rounded-xl bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0"><Bell size={18} color="var(--color-accent)" /></div><div><p className="font-medium text-[14.5px]">Household notifications</p><p className="text-[12.5px] text-[var(--color-ink-soft)] mt-0.5">Get notified about assigned tasks and meals, chat messages, groceries, and family calendar updates on every enabled device.</p></div></div>
             <PrimaryButton onClick={requestNotifications} disabled={notificationPermission === "granted" || notificationPermission === "unsupported"}>{notificationPermission === "granted" ? "Browser notifications allowed" : notificationPermission === "denied" ? "Blocked in browser settings" : notificationPermission === "unsupported" ? "Not supported on this device" : "Enable browser notifications"}</PrimaryButton>
             {notificationPermission === "granted" && <SecondaryButton className="mt-2" onClick={testNotifications} disabled={testingNotification}>{testingNotification ? "Sending test…" : "Send a test notification"}</SecondaryButton>}
             {notificationTestStatus && <div className="notification-test-status"><CheckCircle2 size={14} /><p>{notificationTestStatus}</p></div>}
-            <div className="notification-help">On iPhone, web notifications behave best after FamOS is installed to the Home Screen. Safari is fussy; we don’t make the rules.</div>
+            <div className="notification-help">On iPhone and iPad, install FamOS to the Home Screen first, open the installed app, then enable notifications. Apple only permits background Web Push for Home Screen web apps.</div>
             {notificationPermission === "denied" && <p className="text-[11.5px] text-[var(--color-warn)] mt-2">Allow notifications for this site in your browser or device settings, then reload FamOS.</p>}
           </Card>
         </section>
@@ -507,7 +623,7 @@ export default function Settings() {
           <Card className="p-4 border-[var(--color-warn)]/30">
             <div className="flex items-start gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-[var(--color-warn-soft)] flex items-center justify-center shrink-0"><AlertCircle size={18} color="var(--color-warn)" /></div>
-              <div><p className="font-medium text-[14.5px]">Delete my account</p><p className="text-[12.5px] text-[var(--color-ink-soft)] mt-0.5">Permanently remove your login and the household data you created. This cannot be undone.</p></div>
+              <div><p className="font-medium text-[14.5px]">{isMasterOwner ? "Delete household and my account" : "Leave household and delete my account"}</p><p className="text-[12.5px] text-[var(--color-ink-soft)] mt-0.5">{isMasterOwner ? "Only the master owner can permanently delete this home and all of its shared data." : "Remove your membership and login. You cannot delete the shared household."}</p></div>
             </div>
             <button onClick={() => { setDeleteConfirmation(""); setDeleteError(""); setConfirmingDelete(true); }} className="w-full rounded-xl border border-[var(--color-warn)] text-[var(--color-warn)] font-semibold text-[14px] py-3 active:scale-[0.98] transition-transform">Delete account</button>
           </Card>
@@ -606,10 +722,11 @@ export default function Settings() {
         </div>
 
         <div className="flex gap-2">
-          {editingMember && editingMember !== "new" && (
+          {editingMember && editingMember !== "new" && !configured && (
             <SecondaryButton
               onClick={() => {
-                removeMember(editingMember.id);
+                setMemberToRemove(editingMember);
+                setRemoveMemberError("");
                 setEditingMember(null);
               }}
             >
@@ -618,6 +735,36 @@ export default function Settings() {
           )}
           <PrimaryButton onClick={save} disabled={!name.trim() || savingMember}>
             {savingMember ? "Saving…" : "Save"}
+          </PrimaryButton>
+        </div>
+      </Modal>
+
+      <Modal open={!!memberToRemove} onClose={() => { if (!removingMember) setMemberToRemove(null); }} title={`Remove ${memberToRemove?.name || "family member"}?`}>
+        <p className="text-[14px] text-[var(--color-ink-soft)] mb-2">
+          They will immediately lose access to {household?.name || "this household"} and its calendar, tasks, meals, groceries and chat.
+        </p>
+        <p className="text-[12px] text-[var(--color-ink-faint)] mb-5">
+          Their FamOS login will not be deleted. You can invite them back later.
+        </p>
+        {removeMemberError && <p className="text-[12.5px] text-[var(--color-warn)] mb-3">{removeMemberError}</p>}
+        <div className="flex gap-2">
+          <SecondaryButton disabled={removingMember} onClick={() => setMemberToRemove(null)}>Cancel</SecondaryButton>
+          <PrimaryButton
+            disabled={removingMember}
+            onClick={async () => {
+              setRemovingMember(true);
+              setRemoveMemberError("");
+              try {
+                await removeMember(memberToRemove.id);
+                setMemberToRemove(null);
+              } catch (error) {
+                setRemoveMemberError(error.message || "Could not remove this family member.");
+              } finally {
+                setRemovingMember(false);
+              }
+            }}
+          >
+            {removingMember ? "Removing…" : "Remove member"}
           </PrimaryButton>
         </div>
       </Modal>
@@ -641,9 +788,36 @@ export default function Settings() {
         </div>
       </Modal>
 
-      <Modal open={confirmingDelete} onClose={() => { if (!deleting) setConfirmingDelete(false); }} title="Permanently delete account?">
+      <Modal open={editingHousehold} onClose={() => setEditingHousehold(false)} title="Edit household">
+        <TextField label="Household name" value={householdName} onChange={(event) => setHouseholdName(event.target.value)} placeholder="e.g. The Miller Family" />
+        <div className="settings-location-fields">
+          <TextField label="City" value={householdCity} onChange={(event) => setHouseholdCity(event.target.value)} placeholder="e.g. Toronto" autoComplete="address-level2" />
+          <TextField label="Country" value={householdCountry} onChange={(event) => setHouseholdCountry(event.target.value)} placeholder="e.g. Canada" autoComplete="country-name" />
+        </div>
+        <p className="settings-field-label">Household dietary preferences</p>
+        <div className="settings-dietary-picker">
+          {HOUSEHOLD_DIETARY_OPTIONS.map((restriction) => (
+            <button
+              type="button"
+              key={restriction}
+              className={householdDietary.includes(restriction) ? "selected" : ""}
+              onClick={() => setHouseholdDietary((current) => current.includes(restriction) ? current.filter((item) => item !== restriction) : [...current, restriction])}
+            >
+              {restriction}
+            </button>
+          ))}
+        </div>
+        <TextField label="Ingredients to avoid" value={householdAvoid} onChange={(event) => setHouseholdAvoid(event.target.value)} placeholder="e.g. peanuts, cilantro" />
+        {householdStatus && <p className="settings-save-status">{householdStatus}</p>}
+        <div className="flex gap-2">
+          <SecondaryButton onClick={() => setEditingHousehold(false)}>Cancel</SecondaryButton>
+          <PrimaryButton onClick={saveHousehold} disabled={householdSaving || !householdName.trim()}>{householdSaving ? "Saving…" : "Save household"}</PrimaryButton>
+        </div>
+      </Modal>
+
+      <Modal open={confirmingDelete} onClose={() => { if (!deleting) setConfirmingDelete(false); }} title={isMasterOwner ? "Permanently delete this household?" : "Leave this household?"}>
         <div className="w-11 h-11 rounded-xl bg-[var(--color-warn-soft)] flex items-center justify-center mb-4"><Trash2 size={19} color="var(--color-warn)" /></div>
-        <p className="text-[13.5px] text-[var(--color-ink-soft)] leading-relaxed mb-4">Your login and personal household records will be permanently deleted. If you are the only member, the entire household—including tasks, expenses, meals, groceries, calendar events, and chat—will be erased.</p>
+        <p className="text-[13.5px] text-[var(--color-ink-soft)] leading-relaxed mb-4">{isMasterOwner ? "As the master owner, this permanently deletes the entire household—including tasks, expenses, meals, groceries, calendar events, chat, and memberships. Other members keep their personal FamOS logins." : "Your login and membership will be removed. The household and its shared data remain under the master owner."}</p>
         <TextField label="Type DELETE to confirm" value={deleteConfirmation} onChange={(event) => setDeleteConfirmation(event.target.value)} autoComplete="off" />
         {deleteError && <p className="text-[12.5px] text-[var(--color-warn)] mb-3">{deleteError}</p>}
         <div className="flex gap-2">

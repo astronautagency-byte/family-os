@@ -21,14 +21,16 @@ import { AuthLoading, HouseholdOnboarding, ResetPassword, SignIn } from "./pages
 
 gsap.registerPlugin(useGSAP);
 const VALID_TABS = ["today","calendar","meals","tasks","groceries","chat","famai","settings"];
-const PUBLIC_PATHS = ["privacy", "terms", "pricing", "signin", "signup"];
-const VALID_ROUTES = [...VALID_TABS, "landing", ...PUBLIC_PATHS];
-const pathRoute = () => window.location.pathname.replace(/^\/+|\/+$/g, "");
+const PUBLIC_ROUTES = ["privacy", "terms", "pricing", "signin", "signup"];
+const ROUTE_ALIASES = { "sign-in": "signin", "lsign-in": "signin", "sign-up": "signup" };
+const VALID_ROUTES = [...VALID_TABS, "landing", ...PUBLIC_ROUTES];
+const normalizeRoute = (route = "") => ROUTE_ALIASES[route] || route;
+const pathRoute = () => normalizeRoute(window.location.pathname.replace(/^\/+|\/+$/g, ""));
 const routeFromLocation = () => {
-  const hashRoute = window.location.hash.slice(1);
+  const hashRoute = normalizeRoute(window.location.hash.slice(1));
   if (VALID_ROUTES.includes(hashRoute)) return hashRoute;
   const route = pathRoute();
-  return PUBLIC_PATHS.includes(route) ? route : "";
+  return PUBLIC_ROUTES.includes(route) ? route : "";
 };
 const tabFromLocation = () => VALID_TABS.includes(routeFromLocation()) ? routeFromLocation() : "today";
 
@@ -64,17 +66,18 @@ export default function App() {
   }, [darkMode]);
 
   useGSAP(() => {
+    if (!shellRef.current) return undefined;
     const media = gsap.matchMedia();
     media.add("(prefers-reduced-motion: no-preference)", () => {
-      gsap.fromTo(
-        [".page-header", ".family-hero", ".app-content .kinship-card", ".app-content section"],
-        { autoAlpha: 0, y: 10 },
-        { autoAlpha: 1, y: 0, duration: 0.32, ease: "power2.out", stagger: 0.035, clearProps: "opacity,visibility,transform" },
-      );
-      gsap.fromTo(".nav-item.is-active .nav-icon", { scale: 0.72, y: 3 }, { scale: 1, y: 0, duration: 0.38, ease: "back.out(2)", clearProps: "transform" });
-      gsap.fromTo(".reference-fab", { scale: 0.6, rotation: -18 }, { scale: 1, rotation: 0, duration: 0.42, delay: 0.08, ease: "back.out(1.8)", clearProps: "transform" });
-      gsap.fromTo(".family-hero img", { x: 8 }, { x: 0, duration: 0.6, ease: "power2.out", clearProps: "transform" });
-      gsap.fromTo(".page-spot", { scale: 0.82, rotation: -4 }, { scale: 1, rotation: 0, duration: 0.48, delay: 0.06, ease: "back.out(1.7)", clearProps: "transform" });
+      const animate = (selector, from, to) => {
+        const targets = shellRef.current.querySelectorAll(selector);
+        if (targets.length) gsap.fromTo(targets, from, to);
+      };
+      animate(".page-header, .family-hero, .app-content .kinship-card, .app-content section", { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.32, ease: "power2.out", stagger: 0.035, clearProps: "opacity,visibility,transform" });
+      animate(".nav-item.is-active .nav-icon", { scale: 0.72, y: 3 }, { scale: 1, y: 0, duration: 0.38, ease: "back.out(2)", clearProps: "transform" });
+      animate(".reference-fab", { scale: 0.6, rotation: -18 }, { scale: 1, rotation: 0, duration: 0.42, delay: 0.08, ease: "back.out(1.8)", clearProps: "transform" });
+      animate(".family-hero img", { x: 8 }, { x: 0, duration: 0.6, ease: "power2.out", clearProps: "transform" });
+      animate(".page-spot", { scale: 0.82, rotation: -4 }, { scale: 1, rotation: 0, duration: 0.48, delay: 0.06, ease: "back.out(1.7)", clearProps: "transform" });
     });
     return () => media.revert();
   }, { scope: shellRef, dependencies: [tab], revertOnUpdate: true });

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Camera, Pencil, Plus, ReceiptText, Sparkles, Trash2, TrendingDown, Upload, WalletCards } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import PageHeader from "../components/PageHeader";
-import { Card, EmptyState, Modal, PrimaryButton, TextField } from "../components/ui";
+import { Card, DateField, EmptyState, Modal, PrimaryButton, TextField } from "../components/ui";
 import { todayISO } from "../lib/dates";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 
@@ -348,7 +348,7 @@ function ExpenseFields({ draft, setDraft }) {
           </button>
         ))}
       </div>
-      <TextField label="Date" type="date" value={draft.spentOn} onChange={(event) => setDraft((current) => ({ ...current, spentOn: event.target.value }))} />
+      <DateField label="Date" value={draft.spentOn} onChange={(spentOn) => setDraft((current) => ({ ...current, spentOn }))} />
     </>
   );
 }

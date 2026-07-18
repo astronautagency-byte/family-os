@@ -4,10 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
     <meta name="theme-color" content="#B8D8FF" />
-    <meta name="description" content="FamOS is a private family coordination app for shared calendars, Google Calendar sync, meals, recipes, groceries, tasks, family chat, and Fam AI." />
+    <meta name="description" content="Families run better on FamOS—the smart home hub for organizing your family’s days, tasks, meals, groceries, calendars, and more. Plans visible. Days smoother. Families stronger." />
     <meta name="robots" content="index, follow, max-image-preview:large" />
-    <meta name="application-name" content="FamOS" />
-    <meta name="apple-mobile-web-app-title" content="FamOS" />
+    <meta name="application-name" content="FamOS - Families Run Better on FamOS" />
+    <meta name="apple-mobile-web-app-title" content="FamOS - Families Run Better on FamOS" />
     <link rel="canonical" href="https://fam-os.app/" />
 
     <!-- iOS PWA support -->
@@ -21,23 +21,63 @@
     <meta property="og:locale" content="en_US" />
     <meta property="og:site_name" content="FamOS" />
     <meta property="og:url" content="https://fam-os.app/" />
-    <meta property="og:title" content="FamOS — Private family coordination app" />
-    <meta property="og:description" content="FamOS helps households coordinate shared calendars, Google Calendar sync, meals, recipes, groceries, tasks, family chat, and AI-assisted organization." />
-    <meta property="og:image" content="https://fam-os.app/marketing/family-planning-hero.png" />
-    <meta property="og:image:secure_url" content="https://fam-os.app/marketing/family-planning-hero.png" />
-    <meta property="og:image:type" content="image/png" />
-    <meta property="og:image:width" content="1280" />
-    <meta property="og:image:height" content="853" />
-    <meta property="og:image:alt" content="A family using FamOS with calendar, tasks, groceries, budget, and Fam AI cards around them." />
+    <meta property="og:title" content="Families Run Better on FamOS" />
+    <meta property="og:description" content="The smart home hub for organizing your family’s days, tasks, meals, groceries, calendars, and more. Plans visible. Days smoother. Families stronger." />
+    <meta property="og:image" content="https://fam-os.app/marketing/famos-thumbnail.jpeg" />
+    <meta property="og:image:secure_url" content="https://fam-os.app/marketing/famos-thumbnail.jpeg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1536" />
+    <meta property="og:image:height" content="1024" />
+    <meta property="og:image:alt" content="FamOS — Families Run Better on FamOS. One smart home hub to organize your family’s days, tasks, meals, and more." />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="FamOS — Private family coordination app" />
-    <meta name="twitter:description" content="FamOS is a private family coordination app for shared calendars, Google Calendar sync, meals, recipes, groceries, tasks, family chat, and Fam AI." />
-    <meta name="twitter:image" content="https://fam-os.app/marketing/family-planning-hero.png" />
-    <meta name="twitter:image:alt" content="A family using FamOS with calendar, tasks, groceries, budget, and Fam AI cards around them." />
+    <meta name="twitter:title" content="Families Run Better on FamOS" />
+    <meta name="twitter:description" content="The smart home hub for organizing your family’s days, tasks, meals, groceries, calendars, and more." />
+    <meta name="twitter:image" content="https://fam-os.app/marketing/famos-thumbnail.jpeg" />
+    <meta name="twitter:image:alt" content="FamOS — Families Run Better on FamOS. One smart home hub to organize your family’s days, tasks, meals, and more." />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@600;700;800&display=swap" rel="stylesheet" />
+    <style>
+      html, body {
+        width: 100%;
+        min-width: 0;
+        margin: 0;
+        overflow-x: hidden;
+      }
+      #root, #root * {
+        box-sizing: border-box;
+      }
+      #root {
+        width: 100%;
+        min-width: 0;
+      }
+      #root > main {
+        width: 100%;
+        min-width: 0;
+      }
+      #root h1,
+      #root h2,
+      #root p,
+      #root a {
+        overflow-wrap: anywhere;
+      }
+      @media (max-width: 600px) {
+        #root > main {
+          padding: 28px 18px 48px !important;
+        }
+        #root > main > header {
+          margin-bottom: 38px !important;
+        }
+        #root h1 {
+          font-size: clamp(38px, 13vw, 56px) !important;
+          letter-spacing: -0.045em !important;
+        }
+        #root > main > p {
+          font-size: 17px !important;
+        }
+      }
+    </style>
 
     <script type="application/ld+json">
       {
@@ -45,10 +85,10 @@
         "@type": "SoftwareApplication",
         "name": "FamOS",
         "url": "https://fam-os.app/",
-        "image": "https://fam-os.app/marketing/family-planning-hero.png",
+        "image": "https://fam-os.app/marketing/famos-thumbnail.jpeg",
         "applicationCategory": "LifestyleApplication",
         "operatingSystem": "Web, iOS, Android",
-        "description": "FamOS is a private household app for shared calendars, Google Calendar sync, meals, saved recipes, groceries, tasks, family chat, and AI-assisted family coordination.",
+        "description": "Families run better on FamOS—the smart home hub for organizing your family’s days, tasks, meals, groceries, calendars, and more.",
         "offers": {
           "@type": "Offer",
           "price": "6.99",
@@ -62,7 +102,7 @@
       }
     </script>
 
-    <title>FamOS — Private family coordination app</title>
+    <title>FamOS - Families Run Better on FamOS</title>
   </head>
   <body>
     <div id="root">
@@ -73,24 +113,24 @@
           <strong style="font-size: 28px; letter-spacing: -0.06em; line-height: 1;">Fam<span style="color: #7952e8;">OS</span></strong>
         </a>
         <nav style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-          <a href="/#signin" style="display: inline-flex; min-height: 44px; align-items: center; justify-content: center; padding: 0 18px; border: 1px solid #ddd8ff; border-radius: 999px; color: #17172f; font-weight: 700; text-decoration: none;">Sign in</a>
-          <a href="/#signup" style="display: inline-flex; min-height: 44px; align-items: center; justify-content: center; padding: 0 20px; border-radius: 999px; background: #6d5ce7; color: white; font-weight: 800; text-decoration: none;">Get started</a>
+          <a href="/sign-in" style="display: inline-flex; min-height: 44px; align-items: center; justify-content: center; padding: 0 18px; border: 1px solid #ddd8ff; border-radius: 999px; color: #17172f; font-weight: 700; text-decoration: none;">Sign in</a>
+          <a href="/sign-up" style="display: inline-flex; min-height: 44px; align-items: center; justify-content: center; padding: 0 20px; border-radius: 999px; background: #6d5ce7; color: white; font-weight: 800; text-decoration: none;">Get started</a>
         </nav>
       </header>
 
       <p style="margin: 0 0 14px; color: #6d5ce7; font-size: 13px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;">Meet FamOS</p>
       <h1 style="max-width: 720px; margin: 0 0 18px; font-size: clamp(40px, 8vw, 72px); line-height: 0.98; letter-spacing: -0.06em;">Families run better on FamOS.</h1>
       <p style="max-width: 760px; margin: 0; color: #555264; font-size: 20px; line-height: 1.55;">
-        FamOS is a private family coordination app for shared calendars, Google Calendar sync, meal planning, saved recipes, grocery lists, tasks, family chat, household planning, and AI-assisted organization.
+        FamOS keeps calendars, meals, groceries, tasks, chat, recipes, and Fam AI in sync for your household.
       </p>
 
       <div style="margin: 30px 0 40px; padding: 18px 20px; border: 1px solid #ddd8ff; border-radius: 22px; background: #faf8ff; color: #514f62; font-size: 15px; line-height: 1.55;">
-        Seeing this simplified page on a tablet? The full FamOS app may still be loading, or your browser may need a Safari/iPadOS update. Use the buttons below to sign in or create your family space, and we’ll take it from there.
+        Sign in or create your family space to start coordinating calendars, meals, groceries, tasks, and family chat in one private place.
       </div>
 
       <p style="margin: 0 0 40px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
-        <a href="/#signin" style="display: inline-flex; min-height: 46px; align-items: center; justify-content: center; padding: 0 22px; border: 1px solid #ddd8ff; border-radius: 999px; color: #17172f; font-weight: 800; text-decoration: none;">Sign in</a>
-        <a href="/#signup" style="display: inline-flex; min-height: 46px; align-items: center; justify-content: center; padding: 0 24px; border-radius: 999px; background: #6d5ce7; color: white; font-weight: 850; text-decoration: none;">Start free trial</a>
+        <a href="/sign-in" style="display: inline-flex; min-height: 46px; align-items: center; justify-content: center; padding: 0 22px; border: 1px solid #ddd8ff; border-radius: 999px; color: #17172f; font-weight: 800; text-decoration: none;">Sign in</a>
+        <a href="/sign-up" style="display: inline-flex; min-height: 46px; align-items: center; justify-content: center; padding: 0 24px; border-radius: 999px; background: #6d5ce7; color: white; font-weight: 850; text-decoration: none;">Start free trial</a>
       </p>
 
       <section style="display: grid; gap: 26px; margin-top: 34px;">
@@ -109,8 +149,8 @@
       </section>
 
       <p style="margin-top: 34px; display: flex; gap: 14px; flex-wrap: wrap; align-items: center;">
-        <a href="/#signin" style="color: #6d5ce7; font-weight: 800;">Sign in</a>
-        <a href="/#signup" style="color: #6d5ce7; font-weight: 800;">Get started</a>
+        <a href="/sign-in" style="color: #6d5ce7; font-weight: 800;">Sign in</a>
+        <a href="/sign-up" style="color: #6d5ce7; font-weight: 800;">Get started</a>
         <a href="/privacy" style="color: #6d5ce7; font-weight: 700;">Privacy Policy</a>
         <a href="/terms" style="color: #6d5ce7; font-weight: 700;">Terms of Service</a>
       </p>
