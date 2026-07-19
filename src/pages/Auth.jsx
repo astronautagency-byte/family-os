@@ -48,7 +48,7 @@ export function AuthLoading() {
 }
 
 export function SignIn({ initialCreating = false }) {
-  const { signIn, signUp, requestPasswordReset, requestInvitePasswordCode, error } = useAuth();
+  const { signIn, signUp, requestPasswordReset, requestInvitePasswordCode, completeInvitePasswordSetup, error } = useAuth();
   const inviteParams = useMemo(() => new URLSearchParams(window.location.search), []);
   const openedInvitation = inviteParams.get("invited") === "1";
   const [email, setEmail] = useState(() => inviteParams.get("email") || "");
@@ -60,7 +60,7 @@ export function SignIn({ initialCreating = false }) {
   const [localError, setLocalError] = useState("");
   const [notice, setNotice] = useState(() => openedInvitation ? "Already registered? Sign in normally. New invited members can create a password below." : "");
   const [forgot, setForgot] = useState(false);
-  const [needsPasswordSetup, setNeedsPasswordSetup] = useState(false);
+  const [needsPasswordSetup, setNeedsPasswordSetup] = useState(openedInvitation);
 
   const submit = async (event) => {
     event.preventDefault();
@@ -93,6 +93,7 @@ export function SignIn({ initialCreating = false }) {
       <InvitedPasswordSetup
         initialEmail={email}
         requestCode={requestInvitePasswordCode}
+        completeSetup={completeInvitePasswordSetup}
         onBack={() => { setNeedsPasswordSetup(false); setLocalError(""); setPassword(""); }}
       />
     );
@@ -137,23 +138,39 @@ export function SignIn({ initialCreating = false }) {
   );
 }
 
-function InvitedPasswordSetup({ initialEmail, requestCode, onBack }) {
+function InvitedPasswordSetup({ initialEmail, requestCode, completeSetup, onBack }) {
   const [email, setEmail] = useState(initialEmail || "");
-  const [linkSent, setLinkSent] = useState(false);
+  const [codeSent, setCodeSent] = useState(false);
+  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const sendLink = async (event) => {
-    event?.preventDefault?.();
-    if (!email.trim()) return;
+  const sendCode = async () => {
+    if (!email.trim() || password.length < 6 || password !== confirm) return;
     setBusy(true);
     setError("");
     try {
       await requestCode(email);
-      setLinkSent(true);
+      setCodeSent(true);
     } catch (err) {
-      setError(err.message || "Could not send the secure setup link.");
+      setError(err.message || "Could not send the verification code.");
     } finally {
+      setBusy(false);
+    }
+  };
+
+  const createPassword = async (event) => {
+    event.preventDefault();
+    if (!code.trim() || password.length < 6 || password !== confirm) return;
+    setBusy(true);
+    setError("");
+    try {
+      await completeSetup(email, code, password);
+    } catch (err) {
+      setError(err.message || "That code could not be verified.");
       setBusy(false);
     }
   };
@@ -162,25 +179,31 @@ function InvitedPasswordSetup({ initialEmail, requestCode, onBack }) {
     <Shell>
       <h1 className="minimal-auth-title">Create your password</h1>
       <p className="recovery-intro">
-        {linkSent
-          ? `Open the secure link sent to ${email} to create your password and join your family.`
-          : "Enter the email that received your FamOS invitation."}
+        {codeSent
+          ? `Enter the verification code sent to ${email}, then join your family.`
+          : "Choose your password here. We’ll email a one-time code to verify the invited address—no reset link."}
       </p>
       <Card className="minimal-auth-card">
-        {!linkSent ? (
-          <form onSubmit={sendLink}>
-            <TextField type="email" label="Invited email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required />
-            {error && <p className="text-[12.5px] text-[var(--color-warn)] mb-3">{error}</p>}
-            <PrimaryButton type="submit" disabled={busy || !email.trim()}>{busy ? "Sending…" : "Send secure setup link"}</PrimaryButton>
-            <button type="button" className="recovery-back" onClick={onBack}>Back to sign in</button>
-          </form>
-        ) : (
-          <>
-            <div className="recovery-sent"><Mail size={18} /><strong>Setup link sent</strong><span>Open the email on this device to continue securely.</span></div>
-            <button type="button" className="minimal-google" disabled={busy} onClick={sendLink}>{busy ? "Sending…" : "Resend setup link"}</button>
-            <button type="button" className="recovery-back" onClick={onBack}>Back to sign in</button>
-          </>
-        )}
+        <form onSubmit={createPassword}>
+          <TextField type="email" label="Invited email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required disabled={codeSent} />
+          <TextField type={showPassword ? "text" : "password"} label="Create password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" minLength={6} required />
+          <TextField type={showPassword ? "text" : "password"} label="Confirm password" value={confirm} onChange={(event) => setConfirm(event.target.value)} autoComplete="new-password" minLength={6} required />
+          <div className="password-actions">
+            <button type="button" onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff size={16} /> : <Eye size={16} />} {showPassword ? "Hide passwords" : "Show passwords"}</button>
+          </div>
+          {confirm && password !== confirm && <p className="text-[12.5px] text-[var(--color-warn)] mb-3">Those passwords do not match yet.</p>}
+          {codeSent && <TextField label="6-digit verification code" value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" required />}
+          {error && <p className="text-[12.5px] text-[var(--color-warn)] mb-3">{error}</p>}
+          {codeSent ? (
+            <>
+              <PrimaryButton type="submit" disabled={busy || code.length !== 6 || password.length < 6 || password !== confirm}>{busy ? "Creating password…" : "Create password & join"}</PrimaryButton>
+              <button type="button" className="minimal-google" disabled={busy} onClick={sendCode}>{busy ? "Sending…" : "Send a new code"}</button>
+            </>
+          ) : (
+            <PrimaryButton type="button" onClick={sendCode} disabled={busy || !email.trim() || password.length < 6 || password !== confirm}>{busy ? "Sending code…" : "Email my verification code"}</PrimaryButton>
+          )}
+          <button type="button" className="recovery-back" onClick={onBack}>Back to sign in</button>
+        </form>
       </Card>
     </Shell>
   );

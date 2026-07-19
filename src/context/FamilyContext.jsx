@@ -271,9 +271,9 @@ export function FamilyProvider({ children }) {
     price: row.price == null ? null : Number(row.price),
     imageUrl: row.image_url || "",
   });
-  const mapEvent = (row) => ({ id: row.id, title: row.title, start: row.starts_at, end: row.ends_at, location: row.location, source: row.source === "familyos" ? "local" : row.source, memberIds: (row.event_participants || []).map((p) => p.user_id) });
+  const mapEvent = (row) => ({ id: row.id, title: row.title, start: row.starts_at, end: row.ends_at, location: row.location, source: row.source === "familyos" ? "local" : row.source, externalId: row.external_id || null, calendarId: row.external_calendar_id || null, memberIds: (row.event_participants || []).map((p) => p.user_id) });
   const mapMeal = (row) => ({ id: row.id, date: row.meal_date, slot: row.slot, title: row.title, notes: row.notes, cookIds: row.cook_ids || [] });
-  const mapMessage = (row) => ({ id: row.id, senderId: row.sender_id, recipientId: row.recipient_id || null, text: row.body, sentAt: row.created_at });
+  const mapMessage = (row) => ({ id: row.id, senderId: row.sender_id, recipientId: row.recipient_id || null, text: row.body, sentAt: row.created_at, source: row.source || "famos", sourceSender: row.source_sender || "" });
   const mapExpense = (row) => ({
     id: row.id,
     description: row.description,
@@ -496,6 +496,41 @@ export function FamilyProvider({ children }) {
       sendHouseholdPush({ title: `${memberById[user.id]?.name || "A family member"} sent a message`, body: message.text, tag: `message-${result.data.id}`, url: "/#chat" }, message.recipientId ? [message.recipientId] : []);
     } else setMessages((prev) => [...prev, { id: makeId("msg"), sentAt: new Date().toISOString(), ...message }]);
   };
+  const importMessages = async (items, recipientId = null) => {
+    const safeItems = items
+      .filter((item) => item?.text?.trim())
+      .slice(0, 500)
+      .map((item) => ({
+        text: item.text.trim().slice(0, 4000),
+        sourceSender: (item.sender || "WhatsApp").trim().slice(0, 120),
+        sentAt: item.sentAt || new Date().toISOString(),
+      }));
+    if (!safeItems.length) return 0;
+    if (remote) {
+      const rows = safeItems.map((item) => ({
+        household_id: household.id,
+        sender_id: user.id,
+        recipient_id: recipientId,
+        body: item.text,
+        source: "whatsapp",
+        source_sender: item.sourceSender,
+        created_at: item.sentAt,
+      }));
+      let result = await supabase.from("messages").insert(rows).select();
+      if (result.error && /source|source_sender|schema cache|column/i.test(result.error.message || "")) {
+        result = await supabase.from("messages").insert(rows.map((row) => {
+          const { source: _source, source_sender: sourceSender, ...compatible } = row;
+          return { ...compatible, body: `[WhatsApp · ${sourceSender}] ${row.body}` };
+        })).select();
+      }
+      if (result.error) throw result.error;
+      setMessages((prev) => [...prev, ...result.data.map(mapMessage)]);
+      return result.data.length;
+    }
+    const imported = safeItems.map((item) => ({ id: makeId("msg"), senderId: user?.id || members[0]?.id, recipientId, text: item.text, sentAt: item.sentAt, source: "whatsapp", sourceSender: item.sourceSender }));
+    setMessages((prev) => [...prev, ...imported]);
+    return imported.length;
+  };
 
   // ---- Finance ----
   const addExpense = async (expense) => {
@@ -553,6 +588,7 @@ export function FamilyProvider({ children }) {
   const [googleEvents, setGoogleEvents] = useState([]);
   const [googleCalendars, setGoogleCalendars] = useState([]);
   const [selectedGoogleCalendarIds, setSelectedGoogleCalendarIds] = useState(savedGoogle?.selectedCalendarIds ?? []);
+  const [sharedGoogleCalendarIds, setSharedGoogleCalendarIds] = useState(savedGoogle?.sharedCalendarIds ?? []);
   const [googleStatus, setGoogleStatus] = useState("idle"); // idle | connecting | syncing | error
   const [googleError, setGoogleError] = useState(null);
   const [googleLastSynced, setGoogleLastSynced] = useState(null);
@@ -560,13 +596,42 @@ export function FamilyProvider({ children }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem(GOOGLE_STORAGE_KEY, JSON.stringify({ clientId: googleClientId, connected: googleConnected, selectedCalendarIds: selectedGoogleCalendarIds }));
+      localStorage.setItem(GOOGLE_STORAGE_KEY, JSON.stringify({ clientId: googleClientId, connected: googleConnected, selectedCalendarIds: selectedGoogleCalendarIds, sharedCalendarIds: sharedGoogleCalendarIds }));
     } catch (e) {
       console.warn("Could not save Google Calendar settings.", e);
     }
-  }, [googleClientId, googleConnected, selectedGoogleCalendarIds]);
+  }, [googleClientId, googleConnected, selectedGoogleCalendarIds, sharedGoogleCalendarIds]);
 
   const setGoogleClientId = (id) => setGoogleClientIdState(id);
+  const syncSharedGoogleEvents = async (items, sharedIds, availableCalendars = googleCalendars) => {
+    if (!remote) return;
+    const activeIds = new Set(sharedIds);
+    const calendarsToRefresh = availableCalendars.filter((calendar) => activeIds.has(calendar.id));
+    for (const calendar of calendarsToRefresh) {
+      const calendarEvents = items.filter((event) => event.calendarId === calendar.id);
+      await supabase.from("events").delete().eq("household_id", household.id).eq("source", "google").eq("external_calendar_id", calendar.id).eq("created_by", user.id);
+      if (!calendarEvents.length) continue;
+      const rows = calendarEvents.map((event) => {
+        const start = new Date(event.start);
+        const rawEnd = new Date(event.end);
+        const end = rawEnd > start ? rawEnd : new Date(start.getTime() + 60 * 60 * 1000);
+        return {
+          household_id: household.id,
+          title: event.title,
+          starts_at: start.toISOString(),
+          ends_at: end.toISOString(),
+          location: event.location || "",
+          source: "google",
+          external_id: event.id,
+          external_calendar_id: event.calendarId,
+          created_by: user.id,
+        };
+      });
+      const { error } = await supabase.from("events").upsert(rows, { onConflict: "household_id,source,external_id" });
+      if (error) throw error;
+    }
+    await loadRemoteData();
+  };
 
   const syncGoogleEvents = async (accessToken, selectedIdsOverride) => {
     setGoogleStatus("syncing");
@@ -574,12 +639,21 @@ export function FamilyProvider({ children }) {
     try {
       const calendars = await fetchGoogleCalendars(accessToken);
       setGoogleCalendars(calendars);
+      let sharedIds = sharedGoogleCalendarIds;
+      if (remote) {
+        const { data: preferences } = await supabase.from("calendar_sharing_preferences").select("external_calendar_id,shared_with_household").eq("user_id", user.id).eq("provider", "google");
+        if (preferences?.length) {
+          sharedIds = preferences.filter((preference) => preference.shared_with_household).map((preference) => preference.external_calendar_id);
+          setSharedGoogleCalendarIds(sharedIds);
+        }
+      }
       const requestedIds = selectedIdsOverride ?? selectedGoogleCalendarIds;
       const initialIds = calendars.filter(calendar=>calendar.selected||calendar.primary).map(calendar=>calendar.id);
       const activeIds = requestedIds.length ? requestedIds : initialIds;
       if (!requestedIds.length) setSelectedGoogleCalendarIds(activeIds);
       const items = await fetchGoogleCalendarEvents(accessToken, calendars.filter(calendar=>activeIds.includes(calendar.id)));
       setGoogleEvents(items);
+      await syncSharedGoogleEvents(items, sharedIds, calendars);
       setGoogleLastSynced(new Date().toISOString());
       setGoogleStatus("idle");
     } catch (e) {
@@ -665,9 +739,56 @@ export function FamilyProvider({ children }) {
   };
 
   const toggleGoogleCalendar = async (calendarId) => {
-    const next = selectedGoogleCalendarIds.includes(calendarId) ? selectedGoogleCalendarIds.filter(id=>id!==calendarId) : [...selectedGoogleCalendarIds,calendarId];
+    const isConnected = !selectedGoogleCalendarIds.includes(calendarId);
+    const next = isConnected ? [...selectedGoogleCalendarIds, calendarId] : selectedGoogleCalendarIds.filter(id=>id!==calendarId);
     setSelectedGoogleCalendarIds(next);
+    if (remote) {
+      const calendar = googleCalendars.find((item) => item.id === calendarId);
+      const { error } = await supabase.from("calendar_sharing_preferences").upsert({
+        user_id: user.id,
+        household_id: household.id,
+        provider: "google",
+        external_calendar_id: calendarId,
+        calendar_name: calendar?.summary || "Google Calendar",
+        is_connected: isConnected,
+        shared_with_household: isConnected && sharedGoogleCalendarIds.includes(calendarId),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id,provider,external_calendar_id" });
+      if (error) throw error;
+      if (!isConnected && sharedGoogleCalendarIds.includes(calendarId)) {
+        setSharedGoogleCalendarIds((current) => current.filter((id) => id !== calendarId));
+        await supabase.from("events").delete().eq("household_id", household.id).eq("source", "google").eq("external_calendar_id", calendarId).eq("created_by", user.id);
+      }
+    }
     if (googleAccessToken) await syncGoogleEvents(googleAccessToken, next);
+  };
+  const toggleGoogleCalendarSharing = async (calendarId) => {
+    if (!selectedGoogleCalendarIds.includes(calendarId)) return;
+    const shouldShare = !sharedGoogleCalendarIds.includes(calendarId);
+    const next = shouldShare ? [...sharedGoogleCalendarIds, calendarId] : sharedGoogleCalendarIds.filter((id) => id !== calendarId);
+    setSharedGoogleCalendarIds(next);
+    if (remote) {
+      const calendar = googleCalendars.find((item) => item.id === calendarId);
+      const { error } = await supabase.from("calendar_sharing_preferences").upsert({
+        user_id: user.id,
+        household_id: household.id,
+        provider: "google",
+        external_calendar_id: calendarId,
+        calendar_name: calendar?.summary || "Google Calendar",
+        is_connected: selectedGoogleCalendarIds.includes(calendarId),
+        shared_with_household: shouldShare,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id,provider,external_calendar_id" });
+      if (error) throw error;
+      if (!shouldShare) {
+        await supabase.from("events").delete().eq("household_id", household.id).eq("source", "google").eq("external_calendar_id", calendarId).eq("created_by", user.id);
+        await loadRemoteData();
+      }
+    }
+    if (shouldShare && googleAccessToken) {
+      const matching = googleEvents.filter((event) => event.calendarId === calendarId);
+      await syncSharedGoogleEvents(matching, [calendarId], googleCalendars);
+    }
   };
 
   const disconnectGoogleCalendar = () => {
@@ -676,6 +797,7 @@ export function FamilyProvider({ children }) {
     setGoogleConnected(false);
     setGoogleEvents([]);
     setGoogleCalendars([]);
+    setSharedGoogleCalendarIds([]);
     setGoogleLastSynced(null);
     setGoogleStatus("idle");
     setGoogleError(null);
@@ -781,16 +903,16 @@ export function FamilyProvider({ children }) {
     meals, setMealForSlot, removeMeal, clearMeals,
     groceries, addGrocery, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries, clearGroceries,
     tasks, addTask, toggleTask, updateTask, removeTask, clearTasks,
-    messages, sendMessage,
+    messages, sendMessage, importMessages,
     expenses, weeklyBudget, monthlyBudget, financePeriod, addExpense, removeExpense, setFinanceBudget, setFinancePeriod,
     resetToDemoData,
     dataLoading, dataError, refreshData: loadRemoteData,
     notificationPermission, requestNotifications, sendTestNotification,
     // Google Calendar
     googleClientId, setGoogleClientId,
-    googleConnected, googleEvents, googleCalendars, selectedGoogleCalendarIds, googleStatus, googleError, googleLastSynced,
+    googleConnected, googleEvents, googleCalendars, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleStatus, googleError, googleLastSynced,
     googleUsesAccount: configured,
-    connectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, addGoogleCalendarEvent, toggleGoogleCalendar,
+    connectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, addGoogleCalendarEvent, toggleGoogleCalendar, toggleGoogleCalendarSharing,
     // Other calendar providers via published iCal feeds
     calendarFeeds, feedEvents, calendarFeedStatus, calendarFeedError,
     addCalendarFeed, importCalendarFile, syncCalendarFeed, removeCalendarFeed,

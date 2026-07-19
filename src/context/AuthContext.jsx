@@ -420,7 +420,7 @@ export function AuthProvider({ children }) {
     });
     if (codeError) {
       const detail = await getFunctionErrorMessage(codeError);
-      throw new Error(detail || "FamOS could not send the invitation link right now. Please try again shortly.");
+      throw new Error(detail || "FamOS could not send the verification code right now. Please try again shortly.");
     }
   };
 
@@ -433,7 +433,10 @@ export function AuthProvider({ children }) {
     });
     if (verifyError) throw verifyError;
     if (!data.session) throw new Error("That verification code could not start a secure session.");
-    const { error: passwordError } = await supabase.auth.updateUser({ password });
+    const { error: passwordError } = await supabase.auth.updateUser({
+      password,
+      data: { ...data.user?.user_metadata, invited_to_famos: false },
+    });
     if (passwordError) throw passwordError;
     setPasswordRecovery(false);
     await refreshAccount(data.session);

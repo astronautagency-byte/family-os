@@ -11,6 +11,17 @@ const respond = (body: Record<string, unknown>, status = 200) => new Response(JS
   headers: { ...corsHeaders, "Content-Type": "application/json" },
 });
 
+async function findAuthUserByEmail(admin: ReturnType<typeof createClient>, email: string) {
+  for (let page = 1; page <= 10; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw error;
+    const user = data.users.find((item) => item.email?.toLowerCase() === email);
+    if (user) return user;
+    if (data.users.length < 1000) break;
+  }
+  return null;
+}
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
@@ -42,21 +53,21 @@ Deno.serve(async (request) => {
     // does not disclose whether arbitrary email addresses have FamOS accounts.
     if (!invitation) return respond({ ready: true, invited: false });
 
-    const { data: profile, error: profileError } = await admin
-      .from("profiles")
-      .select("id")
-      .ilike("email", normalizedEmail)
-      .maybeSingle();
-    if (profileError) throw profileError;
+    const existingUser = await findAuthUserByEmail(admin, normalizedEmail);
+    if (existingUser) {
+      const { count, error: membershipError } = await admin
+        .from("household_members")
+        .select("user_id", { count: "exact", head: true })
+        .eq("user_id", existingUser.id);
+      if (membershipError) throw membershipError;
 
-    // A profile means this email already completed FamOS registration. A stale
-    // or duplicate pending invitation must never turn an existing member back
-    // into a first-time password-setup flow.
-    if (profile) {
-      return respond({ ready: true, invited: false, existingAccount: true });
-    }
-
-    if (!profile) {
+      // Auth creation also creates a profile, so the profile table cannot tell
+      // whether an invited member has actually chosen a password. The explicit
+      // metadata flag remains true only during first-time invite setup.
+      if ((count || 0) > 0 || existingUser.user_metadata?.invited_to_famos !== true) {
+        return respond({ ready: true, invited: false, existingAccount: true });
+      }
+    } else {
       const { error: createError } = await admin.auth.admin.createUser({
         email: normalizedEmail,
         email_confirm: true,

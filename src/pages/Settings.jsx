@@ -52,9 +52,9 @@ function resizeAvatarImage(file) {
 function GoogleCalendarCard() {
   const {
     googleClientId, setGoogleClientId,
-    googleConnected, googleStatus, googleError, googleLastSynced, googleEvents, googleCalendars, selectedGoogleCalendarIds,
+    googleConnected, googleStatus, googleError, googleLastSynced, googleEvents, googleCalendars, selectedGoogleCalendarIds, sharedGoogleCalendarIds,
     googleUsesAccount,
-    connectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, toggleGoogleCalendar,
+    connectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, toggleGoogleCalendar, toggleGoogleCalendarSharing,
   } = useFamily();
   const [showSetup, setShowSetup] = useState(!googleClientId);
 
@@ -86,7 +86,40 @@ function GoogleCalendarCard() {
         </div>
       )}
 
-      {googleConnected && googleCalendars.length > 0 && <div className="google-calendar-picker"><div><strong>Calendars to sync</strong><span>{selectedGoogleCalendarIds.length} of {googleCalendars.length} selected</span></div><ul>{googleCalendars.map(calendar=><li key={calendar.id}><button onClick={()=>toggleGoogleCalendar(calendar.id)} disabled={isBusy} aria-pressed={selectedGoogleCalendarIds.includes(calendar.id)}><i style={{backgroundColor:calendar.backgroundColor}}/><span><b>{calendar.summary}</b><small>{calendar.primary?"Primary calendar":calendar.accessRole==="reader"?"Read only":"Can add events"}</small></span><em>{selectedGoogleCalendarIds.includes(calendar.id)&&<CheckCircle2/>}</em></button></li>)}</ul></div>}
+      {googleConnected && googleCalendars.length > 0 && (
+        <div className="google-calendar-picker">
+          <div><strong>Your Google calendars</strong><span>{selectedGoogleCalendarIds.length} connected</span></div>
+          <p className="google-calendar-help">Connect as many calendars as you need, then choose which ones the household can see.</p>
+          <ul>
+            {googleCalendars.map((calendar) => {
+              const connected = selectedGoogleCalendarIds.includes(calendar.id);
+              const shared = sharedGoogleCalendarIds.includes(calendar.id);
+              return (
+                <li key={calendar.id} className={connected ? "is-connected" : ""}>
+                  <button className="google-calendar-main" onClick={() => toggleGoogleCalendar(calendar.id)} disabled={isBusy} aria-pressed={connected}>
+                    <i style={{ backgroundColor: calendar.backgroundColor }} />
+                    <span>
+                      <b>{calendar.summary}</b>
+                      <small>{calendar.primary ? "Primary calendar" : calendar.accessRole === "reader" ? "Read only" : "Can add events"}</small>
+                    </span>
+                    <em>{connected ? <CheckCircle2 /> : "Connect"}</em>
+                  </button>
+                  <button
+                    className={`google-calendar-visibility ${shared ? "is-shared" : ""}`}
+                    onClick={() => toggleGoogleCalendarSharing(calendar.id)}
+                    disabled={isBusy || !connected}
+                    aria-pressed={shared}
+                    title={connected ? "Change household visibility" : "Connect this calendar first"}
+                  >
+                    {shared ? <Users size={15} /> : <EyeOff size={15} />}
+                    <span>{shared ? "Shared with household" : "Private to you"}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
       {!googleUsesAccount && (showSetup || !googleClientId) && !googleConnected && (
         <div className="mb-3">
           <TextField

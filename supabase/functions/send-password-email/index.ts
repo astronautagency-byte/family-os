@@ -12,14 +12,29 @@ const respond = (body: Record<string, unknown>, status = 200) => new Response(JS
   headers: { ...corsHeaders, "Content-Type": "application/json" },
 });
 
-function emailContent(actionLink: string, purpose: string) {
+async function findAuthUserByEmail(admin: ReturnType<typeof createClient>, email: string) {
+  for (let page = 1; page <= 10; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw error;
+    const user = data.users.find((item) => item.email?.toLowerCase() === email);
+    if (user) return user;
+    if (data.users.length < 1000) break;
+  }
+  return null;
+}
+
+function emailContent(actionValue: string, purpose: string) {
   const invited = purpose === "invitation";
-  const title = invited ? "Create your FamOS password" : "Reset your FamOS password";
+  const title = invited ? "Your FamOS verification code" : "Reset your FamOS password";
   const intro = invited
-    ? "Your family is waiting for you in FamOS. Use the secure button below to create your password and join the shared home."
+    ? "Your family is waiting for you in FamOS. Enter this one-time code on the password screen to verify your email and join the shared home."
     : "We received a request to reset your FamOS password. Use the secure button below to choose a new one.";
-  const button = invited ? "Create my password" : "Reset my password";
-  const text = `${title}\n\n${intro}\n\n${button}: ${actionLink}\n\nThis secure link expires and can only be used once. If you did not request this email, you can safely ignore it.\n\nFamOS — Families run better on FamOS.`;
+  const action = invited
+    ? `<div style="margin:8px auto 0;padding:18px 24px;border-radius:16px;background:#f1edff;color:#4e3bc2;font-size:34px;font-weight:800;letter-spacing:.22em;text-align:center">${actionValue}</div>`
+    : `<a href="${actionValue}" style="display:inline-block;background:#6550dc;color:#fff;text-decoration:none;font-weight:700;font-size:16px;padding:15px 28px;border-radius:999px">Reset my password</a>`;
+  const text = invited
+    ? `${title}\n\n${intro}\n\nVerification code: ${actionValue}\n\nThis code expires and can only be used once. If you did not request it, you can safely ignore this email.\n\nFamOS — Families run better on FamOS.`
+    : `${title}\n\n${intro}\n\nReset my password: ${actionValue}\n\nThis secure link expires and can only be used once. If you did not request it, you can safely ignore this email.\n\nFamOS — Families run better on FamOS.`;
   const html = `<!doctype html>
 <html><body style="margin:0;background:#f7f3ff;font-family:Arial,sans-serif;color:#17152d">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f3ff;padding:32px 16px">
@@ -31,8 +46,8 @@ function emailContent(actionLink: string, purpose: string) {
           <p style="margin:0;color:#625e72;font-size:16px;line-height:1.6">${intro}</p>
         </td></tr>
         <tr><td style="padding:10px 34px 30px;text-align:center">
-          <a href="${actionLink}" style="display:inline-block;background:#6550dc;color:#fff;text-decoration:none;font-weight:700;font-size:16px;padding:15px 28px;border-radius:999px">${button}</a>
-          <p style="margin:22px 0 0;color:#8a8698;font-size:12px;line-height:1.5">This secure link expires and can only be used once. If you did not request it, you can safely ignore this email.</p>
+          ${action}
+          <p style="margin:22px 0 0;color:#8a8698;font-size:12px;line-height:1.5">This ${invited ? "code" : "secure link"} expires and can only be used once. If you did not request it, you can safely ignore this email.</p>
         </td></tr>
         <tr><td style="background:#201d38;padding:20px 34px;color:#c8c3d8;font-size:12px;line-height:1.6;text-align:center">
           FamOS · Families run better on FamOS<br>
@@ -68,19 +83,39 @@ Deno.serve(async (request) => {
       ? requestedOrigin
       : "https://fam-os.app";
     const admin = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
+    if (purpose === "invitation") {
+      const { data: activeInvitation, error: invitationError } = await admin
+        .from("household_invitations")
+        .select("id")
+        .ilike("email", normalizedEmail)
+        .is("accepted_at", null)
+        .gt("expires_at", new Date().toISOString())
+        .limit(1)
+        .maybeSingle();
+      if (invitationError || !activeInvitation) {
+        console.warn(JSON.stringify({ event: "invite_code_skipped", reason: invitationError?.message || "no_active_invitation" }));
+        return respond({ sent: true });
+      }
+      const authUser = await findAuthUserByEmail(admin, normalizedEmail);
+      if (!authUser || authUser.user_metadata?.invited_to_famos !== true) {
+        console.warn(JSON.stringify({ event: "invite_code_skipped", reason: "not_pending_invited_auth_user" }));
+        return respond({ sent: true });
+      }
+    }
     const { data, error } = await admin.auth.admin.generateLink({
-      type: "recovery",
+      type: purpose === "invitation" ? "magiclink" : "recovery",
       email: normalizedEmail,
       options: { redirectTo: safeOrigin },
     });
 
     // Keep the response generic so this endpoint cannot enumerate accounts.
-    if (error || !data?.properties?.action_link) {
-      console.warn(JSON.stringify({ event: "password_email_skipped", purpose, reason: error?.message || "no_action_link" }));
+    const actionValue = purpose === "invitation" ? data?.properties?.email_otp : data?.properties?.action_link;
+    if (error || !actionValue) {
+      console.warn(JSON.stringify({ event: "password_email_skipped", purpose, reason: error?.message || "no_auth_action" }));
       return respond({ sent: true });
     }
 
-    const content = emailContent(data.properties.action_link, purpose);
+    const content = emailContent(actionValue, purpose);
     const ses = new SESv2Client({
       region,
       credentials: { accessKeyId, secretAccessKey },
