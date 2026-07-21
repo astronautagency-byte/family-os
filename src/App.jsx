@@ -101,14 +101,19 @@ export default function App() {
   // Supabase auto-refreshes in the background, but a backgrounded tab or a
   // rotated refresh token can let a session lapse; refreshing on
   // focus/visibility/interval closes that gap.
+  //
+  // NOTE: depend on the boolean `hasSession`, NOT the `session` object, and do
+  // NOT refresh on mount. refreshSession() emits TOKEN_REFRESHED → a new session
+  // object; depending on `session` (or refreshing immediately) would re-run this
+  // effect and loop forever, flashing the loader on every login.
+  const hasSession = !!session;
   useEffect(() => {
-    if (!configured || !session || !supabase) return undefined;
+    if (!configured || !hasSession || !supabase) return undefined;
     const refreshActiveSession = () => {
       if (document.visibilityState === "visible") {
         supabase.auth.refreshSession().catch(() => {});
       }
     };
-    refreshActiveSession();
     const timer = window.setInterval(refreshActiveSession, 30 * 60 * 1000);
     window.addEventListener("focus", refreshActiveSession);
     document.addEventListener("visibilitychange", refreshActiveSession);
@@ -117,7 +122,7 @@ export default function App() {
       window.removeEventListener("focus", refreshActiveSession);
       document.removeEventListener("visibilitychange", refreshActiveSession);
     };
-  }, [configured, session]);
+  }, [configured, hasSession]);
   useEffect(() => {
     if (!configured || !session || !household?.id || publicRoute === "admin") return;
     let active = true;

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { invokeEdgeFunction, isSupabaseConfigured, supabase } from "../lib/supabase";
 
 const AuthContext = createContext(null);
@@ -144,6 +144,10 @@ export function AuthProvider({ children }) {
   const [memberProfile, setMemberProfile] = useState(null);
   const [invitation, setInvitation] = useState(null);
   const [loading, setLoading] = useState(isSupabaseConfigured);
+  // The full-screen loader should only show on the FIRST account load. Later
+  // refreshes (token refresh, window focus) run silently so the app doesn't
+  // flash the loading screen repeatedly.
+  const hasLoadedOnce = useRef(false);
   const [error, setError] = useState(null);
   const [passwordRecovery, setPasswordRecovery] = useState(() => {
     const authHash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
@@ -162,11 +166,12 @@ export function AuthProvider({ children }) {
       setMemberProfile(null);
       setInvitation(null);
       setLoading(false);
+      hasLoadedOnce.current = true;
       setOnboardingRequired(false);
       return;
     }
 
-    setLoading(true);
+    if (!hasLoadedOnce.current) setLoading(true);
     setError(null);
     try {
       // A household creator is the permanent master owner. Repairing this
@@ -311,6 +316,7 @@ export function AuthProvider({ children }) {
       setError(e.message || "Could not load your account.");
     } finally {
       setLoading(false);
+      hasLoadedOnce.current = true;
     }
   }, []);
 
@@ -341,6 +347,7 @@ export function AuthProvider({ children }) {
       // must NOT sign the user out — Supabase will retry the refresh, and the
       // user should be able to return anytime without logging in again.
       if (event === "SIGNED_OUT") {
+        hasLoadedOnce.current = false;
         setSession(null);
         localStorage.removeItem("family-os:google-provider-token");
         setGoogleProviderToken(null);
