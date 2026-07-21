@@ -35,25 +35,15 @@ Deno.serve(async (request) => {
     const location = cleanText(body.location, 120);
     const category = cleanText(body.category, 40) || "family events";
     const when = cleanText(body.when, 40) || "this weekend";
-    if (location.length < 2) return json({ error: "Add a home address in Settings to discover events nearby." }, 400);
-
-    const query = `${category} in ${location} ${when}`;
-    const endpoint = new URL("https://api.openwebninja.com/realtime-events-data/search-events");
-    endpoint.searchParams.set("query", query);
-
-    const response = await fetch(endpoint, { headers: { "x-api-key": apiKey } });
-    const payload = await response.json().catch(() => null);
-    if (!response.ok) {
-      const message = payload?.message || payload?.error || `Event provider returned HTTP ${response.status}.`;
-      return json({ error: String(message) }, response.status);
-    }
-
-    const rawEvents = Array.isArray(payload) ? payload
-      : Array.isArray(payload?.data) ? payload.data
-      : Array.isArray(payload?.events) ? payload.events
-      : Array.isArray(payload?.data?.events) ? payload.data.events
+    // Accept a list of cities to widen the search radius. Falls back to the
+    // single `location` string for backwards compatibility with older clients.
+    const rawCities = Array.isArray(body.cities)
+      ? body.cities.map((value: unknown) => cleanText(value, 120)).filter((value: string) => value.length >= 2)
       : [];
-    const events = rawEvents.slice(0, 24).map((event: Record<string, unknown>) => {
+    const cities = Array.from(new Set(rawCities.length ? rawCities : (location.length >= 2 ? [location] : []))).slice(0, 6);
+    if (!cities.length) return json({ error: "Add a home address in Settings to discover events nearby." }, 400);
+
+    const mapEvent = (event: Record<string, unknown>) => {
       const venue = event.venue && typeof event.venue === "object" ? event.venue as Record<string, unknown> : {};
       const ticketLinks = Array.isArray(event.ticket_links) ? event.ticket_links : [];
       const infoLinks = Array.isArray(event.info_links) ? event.info_links : [];
@@ -78,9 +68,42 @@ Deno.serve(async (request) => {
         },
         tags: Array.isArray(event.tags) ? event.tags.filter((tag: unknown) => typeof tag === "string").slice(0, 5) : [],
       };
-    }).filter((event: { name: string }) => event.name);
+    };
 
-    return json({ events, query, provider: "OpenWeb Ninja" });
+    const fetchCity = async (city: string) => {
+      const endpoint = new URL("https://api.openwebninja.com/realtime-events-data/search-events");
+      endpoint.searchParams.set("query", `${category} in ${city} ${when}`);
+      const response = await fetch(endpoint, { headers: { "x-api-key": apiKey } });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        const message = payload?.message || payload?.error || `Event provider returned HTTP ${response.status}.`;
+        throw new Error(String(message));
+      }
+      return Array.isArray(payload) ? payload
+        : Array.isArray(payload?.data) ? payload.data
+        : Array.isArray(payload?.events) ? payload.events
+        : Array.isArray(payload?.data?.events) ? payload.data.events
+        : [];
+    };
+
+    const settled = await Promise.allSettled(cities.map(fetchCity));
+    const rawEvents = settled.flatMap((result) => result.status === "fulfilled" ? result.value : []);
+    if (!rawEvents.length) {
+      const firstError = settled.find((result) => result.status === "rejected") as PromiseRejectedResult | undefined;
+      if (firstError) return json({ error: firstError.reason instanceof Error ? firstError.reason.message : "Event provider error." }, 502);
+    }
+
+    // Merge results across cities and drop duplicates by event id (or name+time).
+    const seen = new Set<string>();
+    const events = rawEvents.map(mapEvent).filter((event: { id: string; name: string; startTime: string }) => {
+      if (!event.name) return false;
+      const key = event.id || `${event.name}|${event.startTime}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).slice(0, 24);
+
+    return json({ events, cities, provider: "OpenWeb Ninja" });
   } catch (error) {
     console.error("search-local-events failed", error);
     return json({ error: error instanceof Error ? error.message : "Could not load local events." }, 500);

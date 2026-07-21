@@ -40,13 +40,21 @@ const tabFromLocation = () => VALID_TABS.includes(routeFromLocation()) ? routeFr
 export default function App() {
   const [tab, setTabState] = useState(() => {
     const requestedTab = tabFromLocation();
-    return localStorage.getItem("familyos:tablet-mode") === "true" && ["settings", "famai"].includes(requestedTab)
-      ? "today"
-      : requestedTab;
+    const tabletActive = localStorage.getItem("familyos:tablet-mode") === "true"
+      && typeof window !== "undefined"
+      && window.matchMedia("(min-width: 700px) and (max-width: 1100px)").matches;
+    return tabletActive && ["settings", "famai"].includes(requestedTab) ? "today" : requestedTab;
   });
   const [route, setRoute] = useState(routeFromLocation);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("familyos:theme") === "dark");
   const [tabletMode, setTabletMode] = useState(() => localStorage.getItem("familyos:tablet-mode") === "true");
+  // Tablet mode is a shared-display layout meant only for tablet-sized screens.
+  // We track whether the viewport is actually a tablet so the mode never applies
+  // on phones or desktops even if the stored preference is on.
+  const [isTabletViewport, setIsTabletViewport] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(min-width: 700px) and (max-width: 1100px)").matches
+  );
+  const effectiveTabletMode = tabletMode && isTabletViewport;
   const [runtimeConfig, setRuntimeConfig] = useState({ status: "active", features: {} });
   const setTab = (next) => { setTabState(next); window.history.replaceState(null, "", `#${next}`); };
   const shellRef = useRef(null);
@@ -63,6 +71,12 @@ export default function App() {
     return () => window.clearInterval(timer);
   }, []);
   useEffect(() => {
+    const mq = window.matchMedia("(min-width: 700px) and (max-width: 1100px)");
+    const onChange = (event) => setIsTabletViewport(event.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  useEffect(() => {
     const onLocationChange = () => { setRoute(routeFromLocation()); setTabState(tabFromLocation()); };
     window.addEventListener("hashchange", onLocationChange);
     window.addEventListener("popstate", onLocationChange);
@@ -76,29 +90,34 @@ export default function App() {
   }, [darkMode]);
   useEffect(() => {
     localStorage.setItem("familyos:tablet-mode", String(tabletMode));
-    document.documentElement.dataset.tabletMode = tabletMode ? "true" : "false";
-    if (tabletMode && ["settings", "famai"].includes(tab)) setTab("today");
+    document.documentElement.dataset.tabletMode = effectiveTabletMode ? "true" : "false";
+    if (effectiveTabletMode && ["settings", "famai"].includes(tab)) setTab("today");
     return () => {
       delete document.documentElement.dataset.tabletMode;
     };
-  }, [tabletMode, tab]);
+  }, [tabletMode, effectiveTabletMode, tab]);
+  // Keep every signed-in session alive proactively (not just tablet mode) so a
+  // user can close the app and come back anytime without logging in again.
+  // Supabase auto-refreshes in the background, but a backgrounded tab or a
+  // rotated refresh token can let a session lapse; refreshing on
+  // focus/visibility/interval closes that gap.
   useEffect(() => {
-    if (!tabletMode || !configured || !session || !supabase) return undefined;
-    const refreshTabletSession = () => {
+    if (!configured || !session || !supabase) return undefined;
+    const refreshActiveSession = () => {
       if (document.visibilityState === "visible") {
         supabase.auth.refreshSession().catch(() => {});
       }
     };
-    refreshTabletSession();
-    const timer = window.setInterval(refreshTabletSession, 30 * 60 * 1000);
-    window.addEventListener("focus", refreshTabletSession);
-    document.addEventListener("visibilitychange", refreshTabletSession);
+    refreshActiveSession();
+    const timer = window.setInterval(refreshActiveSession, 30 * 60 * 1000);
+    window.addEventListener("focus", refreshActiveSession);
+    document.addEventListener("visibilitychange", refreshActiveSession);
     return () => {
       window.clearInterval(timer);
-      window.removeEventListener("focus", refreshTabletSession);
-      document.removeEventListener("visibilitychange", refreshTabletSession);
+      window.removeEventListener("focus", refreshActiveSession);
+      document.removeEventListener("visibilitychange", refreshActiveSession);
     };
-  }, [tabletMode, configured, session]);
+  }, [configured, session]);
   useEffect(() => {
     if (!configured || !session || !household?.id || publicRoute === "admin") return;
     let active = true;
@@ -148,16 +167,17 @@ export default function App() {
   );
 
   return (
-    <FamilyProvider tabletMode={tabletMode}>
-      <div className={`app-shell ${darkMode ? "theme-dark" : ""} ${tabletMode ? "tablet-mode" : ""}`} ref={shellRef}>
-        <BottomNav active={tab} onChange={setTab} features={runtimeConfig.features} tabletMode={tabletMode} />
+    <FamilyProvider tabletMode={effectiveTabletMode}>
+      <div className={`app-shell ${darkMode ? "theme-dark" : ""} ${effectiveTabletMode ? "tablet-mode" : ""}`} ref={shellRef}>
+        <BottomNav active={tab} onChange={setTab} features={runtimeConfig.features} tabletMode={effectiveTabletMode} />
         <main className="app-content">
           <AppTopBar
             onOpenSettings={() => setTab("settings")}
             onNavigate={setTab}
             darkMode={darkMode}
             onToggleDarkMode={() => setDarkMode((value) => !value)}
-            tabletMode={tabletMode}
+            tabletMode={effectiveTabletMode}
+            tabletModeAvailable={isTabletViewport}
             onToggleTabletMode={() => setTabletMode((value) => !value)}
           />
           {tab === "today" && <Today goTo={setTab} />}

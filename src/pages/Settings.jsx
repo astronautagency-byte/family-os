@@ -141,8 +141,8 @@ function GoogleCalendarCard() {
           <SecondaryButton onClick={disconnectGoogleCalendar} disabled={isBusy}>
             Disconnect
           </SecondaryButton>
-          <PrimaryButton onClick={syncGoogleCalendarNow} disabled={isBusy}>
-            {googleStatus === "syncing" ? "Syncing…" : googleStatus === "error" ? "Reconnect Google" : "Sync now"}
+          <PrimaryButton onClick={(googleStatus === "error" || googleStatus === "expired") ? connectGoogleCalendar : syncGoogleCalendarNow} disabled={isBusy}>
+            {googleStatus === "syncing" ? "Syncing…" : (googleStatus === "error" || googleStatus === "expired") ? "Reconnect Google" : "Sync now"}
           </PrimaryButton>
         </div>
       ) : (
@@ -260,7 +260,7 @@ function CalendarFeedsCard() {
 
 export default function Settings() {
   const { members, addMember, updateMember, removeMember, resetToDemoData, notificationPermission, requestNotifications, sendTestNotification } = useFamily();
-  const { configured, user, household, householdProfileExtra, memberProfile, updateHouseholdSettings, invitePartner, updatePassword, signOut, deleteAccount } = useAuth();
+  const { configured, user, household, householdProfileExtra, memberProfile, updateHouseholdSettings, updateHouseholdProfile, invitePartner, updatePassword, signOut, deleteAccount } = useAuth();
   const [editingMember, setEditingMember] = useState(null); // member object or "new"
   const [name, setName] = useState("");
   const [role, setRole] = useState("Kid");
@@ -331,8 +331,7 @@ export default function Settings() {
     setHouseholdSaving(true);
     setHouseholdStatus("");
     try {
-      await updateHouseholdSettings({
-        name: householdName,
+      const payload = {
         city: householdCity,
         region: householdRegion,
         postalCode: householdPostalCode,
@@ -342,7 +341,9 @@ export default function Settings() {
         longitude: householdLongitude,
         dietaryRestrictions: householdDietary,
         avoidIngredients: householdAvoid,
-      });
+      };
+      if (isMasterOwner) await updateHouseholdSettings({ name: householdName, ...payload });
+      else await updateHouseholdProfile(payload);
       setEditingHousehold(false);
     } catch (error) {
       setHouseholdStatus(error.message || "Could not update household details.");
@@ -510,6 +511,9 @@ export default function Settings() {
   const isMasterOwner = household?.created_by
     ? household.created_by === user?.id
     : household?.role === "owner";
+  // Owner manages the household name + everything; any parent/guardian can add
+  // the shared home location & dietary preferences (children cannot).
+  const canEditHome = isMasterOwner || memberProfile?.profileType !== "child";
   const extraMembers = Math.max(0, members.length - includedMembers);
   const estimatedMonthlyPlan = PRICING_PLAN.basePlan.price.monthly + extraMembers * PRICING_PLAN.basePlan.additionalMemberPrice.monthly;
 
@@ -539,7 +543,7 @@ export default function Settings() {
               </div>
               {householdProfileExtra?.avoidIngredients && <small>Avoid: {householdProfileExtra.avoidIngredients}</small>}
             </div>
-            {isMasterOwner && <button className="settings-household-edit" onClick={openHouseholdEditor}><Pencil size={14} /> Edit</button>}
+            {canEditHome && <button className="settings-household-edit" onClick={openHouseholdEditor}><Pencil size={14} /> Edit</button>}
           </Card>
         </section>
 
@@ -885,8 +889,10 @@ export default function Settings() {
         </div>
       </Modal>
 
-      <Modal open={editingHousehold} onClose={() => setEditingHousehold(false)} title="Edit household">
-        <TextField label="Household name" value={householdName} onChange={(event) => setHouseholdName(event.target.value)} placeholder="e.g. The Miller Family" />
+      <Modal open={editingHousehold} onClose={() => setEditingHousehold(false)} title={isMasterOwner ? "Edit household" : "Home location & preferences"}>
+        {isMasterOwner
+          ? <TextField label="Household name" value={householdName} onChange={(event) => setHouseholdName(event.target.value)} placeholder="e.g. The Miller Family" />
+          : <p className="settings-household-note">Adding the shared home address and dietary preferences for <strong>{household?.name}</strong>. Only the master owner can rename the household.</p>}
         <AddressAutocomplete
           value={householdAddress}
           onChange={(place) => {

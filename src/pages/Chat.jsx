@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, FileUp, LockKeyhole, MessageCircle, Send, UsersRound } from "lucide-react";
+import { LockKeyhole, MessageCircle, Megaphone, Send, Trash2, UsersRound } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
-import { Avatar, colorVar, Modal, PrimaryButton, SecondaryButton } from "../components/ui";
+import { Avatar, colorVar, Modal, SecondaryButton } from "../components/ui";
 import PageHeader from "../components/PageHeader";
-import { parseWhatsAppExport } from "../lib/whatsappImport";
 
 function timeLabel(value) {
   return new Date(value).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
@@ -12,15 +11,14 @@ function timeLabel(value) {
 
 export default function Chat() {
   const { user } = useAuth();
-  const { members, memberById, messages, sendMessage, importMessages, dataError, tabletMode } = useFamily();
+  const { members, memberById, messages, sendMessage, clearFamilyChat, clearMyDirectMessages, markChatRead, broadcastMessage, dataError, tabletMode } = useFamily();
   const [text, setText] = useState("");
   const [sendError, setSendError] = useState("");
   const [sending, setSending] = useState(false);
-  const [importOpen, setImportOpen] = useState(false);
-  const [importPreview, setImportPreview] = useState([]);
-  const [importConsent, setImportConsent] = useState(false);
-  const [importError, setImportError] = useState("");
-  const [importing, setImporting] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(null); // "family" | "dms"
+  const [clearing, setClearing] = useState(false);
+  const [clearError, setClearError] = useState("");
   const currentUserId = user?.id || members[0]?.id;
   const chatMembers = members.filter((member) => member.id !== currentUserId);
   const [activeThread, setActiveThread] = useState("household");
@@ -47,6 +45,12 @@ export default function Chat() {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [threadMessages.length, activeThread]);
 
+  // Viewing the chat clears the unread badges (nav + top bar). Re-runs as new
+  // messages arrive while the page is open so they never count as unread.
+  useEffect(() => {
+    markChatRead?.();
+  }, [messages, markChatRead]);
+
   const submit = async (event) => {
     event.preventDefault();
     if (!text.trim() || !currentUserId || sending) return;
@@ -56,36 +60,30 @@ export default function Chat() {
     finally { setSending(false); }
   };
 
-  const chooseExport = async (event) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-    try {
-      const parsed = parseWhatsAppExport(await file.text());
-      if (!parsed.length) throw new Error("No WhatsApp messages were found in this export.");
-      setImportPreview(parsed);
-      setImportConsent(false);
-      setImportError("");
-      setImportOpen(true);
-    } catch (error) {
-      setImportError(error.message || "This WhatsApp export could not be read.");
-      setImportOpen(true);
-    }
+  const [broadcasting, setBroadcasting] = useState(false);
+  const broadcast = async () => {
+    if (!text.trim() || !currentUserId || broadcasting) return;
+    setBroadcasting(true); setSendError("");
+    try { await broadcastMessage(text.trim()); setText(""); }
+    catch (e) { setSendError(e.message || "Broadcast could not be sent."); }
+    finally { setBroadcasting(false); }
   };
 
-  const confirmImport = async () => {
-    if (!importConsent || !importPreview.length || importing) return;
-    setImporting(true);
-    setImportError("");
+  const familyCount = messages.filter((message) => !message.recipientId).length;
+  const myDmCount = messages.filter((message) => message.recipientId && (message.senderId === currentUserId || message.recipientId === currentUserId)).length;
+
+  const runClear = async () => {
+    if (!confirmClear || clearing) return;
+    setClearing(true); setClearError("");
     try {
-      await importMessages(importPreview, activeThread === "household" ? null : activeThread);
-      setImportOpen(false);
-      setImportPreview([]);
-      setImportConsent(false);
+      if (confirmClear === "family") await clearFamilyChat();
+      else await clearMyDirectMessages(currentUserId);
+      setConfirmClear(null);
+      setManageOpen(false);
     } catch (error) {
-      setImportError(error.message || "The conversation could not be imported.");
+      setClearError(error.message || "Those messages could not be cleared.");
     } finally {
-      setImporting(false);
+      setClearing(false);
     }
   };
 
@@ -106,10 +104,11 @@ export default function Chat() {
           <LockKeyhole size={12} color="var(--color-ink-faint)" className="shrink-0" />
           <p className="text-[11.5px] text-[var(--color-ink-faint)] truncate">{tabletMode ? "Shared household messages only" : activeThread === "household" ? "The all-hands household thread" : activeMember ? `Private chat with ${activeMember.name}` : "Add another family member to start chatting"} · synced live</p>
         </div>
-        <label className="whatsapp-import-trigger">
-          <FileUp size={14} /> Import WhatsApp
-          <input type="file" accept=".txt,text/plain" onChange={chooseExport} />
-        </label>
+        <div className="chat-header-actions">
+          <button type="button" className="chat-clear-trigger" onClick={() => { setClearError(""); setConfirmClear(null); setManageOpen(true); }} aria-label="Clear messages">
+            <Trash2 size={14} /> Clear
+          </button>
+        </div>
       </div>
 
       <div className="px-5 py-3 flex-1 overflow-y-auto space-y-3">
@@ -154,6 +153,18 @@ export default function Chat() {
           disabled={activeThread !== "household" && !activeMember}
           className="min-w-0 flex-1 rounded-full bg-[var(--color-surface-sunken)] px-4 py-2.5 text-[14px] outline-none placeholder:text-[var(--color-ink-faint)]"
         />
+        {activeThread === "household" && (
+          <button
+            type="button"
+            onClick={broadcast}
+            disabled={!text.trim() || broadcasting || sending}
+            className="chat-broadcast-button"
+            title="Broadcast to everyone's home screen"
+            aria-label="Broadcast to home screen"
+          >
+            <Megaphone size={17} />
+          </button>
+        )}
         <button
           type="submit"
           disabled={!text.trim() || (activeThread !== "household" && !activeMember) || sending}
@@ -165,31 +176,34 @@ export default function Chat() {
         </button>
       </form>
 
-      <Modal open={importOpen} onClose={() => !importing && setImportOpen(false)} title="Import a WhatsApp conversation">
-        <div className="whatsapp-import-panel">
-          <div className="whatsapp-import-note">
-            <MessageCircle size={20} />
-            <p><strong>Bring a conversation into FamOS</strong><span>In WhatsApp, export the chat without media, then select its .txt file here. This creates a read-only snapshot; future WhatsApp messages are not synced automatically.</span></p>
+      <Modal open={manageOpen} onClose={() => !clearing && setManageOpen(false)} title={confirmClear ? "Are you sure?" : "Clear messages"}>
+        {!confirmClear ? (
+          <div className="chat-clear-panel">
+            <p className="chat-clear-intro">Clearing messages is permanent and cannot be undone.</p>
+            <button type="button" className="chat-clear-option" onClick={() => { setClearError(""); setConfirmClear("family"); }}>
+              <span><UsersRound size={18} /></span>
+              <div><strong>Clear family chat</strong><small>Delete the shared household thread for everyone{familyCount ? ` · ${familyCount} message${familyCount === 1 ? "" : "s"}` : ""}.</small></div>
+            </button>
+            {!tabletMode && (
+              <button type="button" className="chat-clear-option" onClick={() => { setClearError(""); setConfirmClear("dms"); }}>
+                <span><LockKeyhole size={18} /></span>
+                <div><strong>Clear my direct messages</strong><small>Delete only your 1:1 conversations{myDmCount ? ` · ${myDmCount} message${myDmCount === 1 ? "" : "s"}` : ""}.</small></div>
+              </button>
+            )}
+            {clearError && <p className="chat-clear-error">{clearError}</p>}
           </div>
-          {importPreview.length > 0 && (
-            <>
-              <div className="whatsapp-import-summary">
-                <strong>{importPreview.length} messages ready</strong>
-                <span>{[...new Set(importPreview.map((message) => message.sender))].slice(0, 5).join(", ")}</span>
-              </div>
-              <label className="whatsapp-consent">
-                <input type="checkbox" checked={importConsent} onChange={(event) => setImportConsent(event.target.checked)} />
-                <span className={importConsent ? "is-checked" : ""}>{importConsent && <Check size={14} />}</span>
-                <p>I have permission to share this conversation with {activeMember ? activeMember.name : "this household"}.</p>
-              </label>
-            </>
-          )}
-          {importError && <p className="whatsapp-import-error">{importError}</p>}
-          <div className="flex gap-2">
-            <SecondaryButton onClick={() => setImportOpen(false)} disabled={importing}>Cancel</SecondaryButton>
-            <PrimaryButton onClick={confirmImport} disabled={!importConsent || !importPreview.length || importing}>{importing ? "Importing…" : "Import conversation"}</PrimaryButton>
+        ) : (
+          <div className="chat-clear-panel">
+            <p className="reset-confirm-copy">{confirmClear === "family"
+              ? "This permanently deletes the shared family chat for every member of your household."
+              : "This permanently deletes all of your direct-message conversations. Other members keep their own."}</p>
+            {clearError && <p className="chat-clear-error">{clearError}</p>}
+            <div className="reset-confirm-actions">
+              <SecondaryButton onClick={() => setConfirmClear(null)} disabled={clearing}>Back</SecondaryButton>
+              <button className="event-danger-button" onClick={runClear} disabled={clearing}><Trash2 size={16} /> {clearing ? "Clearing…" : confirmClear === "family" ? "Delete family chat" : "Delete my DMs"}</button>
+            </div>
           </div>
-        </div>
+        )}
       </Modal>
     </div>
   );

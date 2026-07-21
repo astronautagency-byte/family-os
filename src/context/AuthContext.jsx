@@ -203,7 +203,7 @@ export function AuthProvider({ children }) {
       let localMemberProfile = null;
 
       if (membership?.household_id) {
-        const { data, error: householdError } = await supabase.from("households").select("id, name").eq("id", membership.household_id).maybeSingle();
+        const { data, error: householdError } = await supabase.from("households").select("id, name, created_by").eq("id", membership.household_id).maybeSingle();
         if (householdError && householdError.code !== "PGRST116") console.warn("Could not load household details; using membership fallback.", householdError);
         householdData = data || { id: membership.household_id, name: "Home" };
 
@@ -316,25 +316,49 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (!supabase) return undefined;
+    // Capture the long-lived Google refresh token the one time Supabase exposes
+    // it (right after OAuth consent) and hand it to the google-calendar-token
+    // edge function for durable storage. Best-effort: silently a no-op until the
+    // backend function is deployed.
+    const captureGoogleRefreshToken = (activeSession) => {
+      const refreshToken = activeSession?.provider_refresh_token;
+      if (!refreshToken) return;
+      invokeEdgeFunction("google-calendar-token", { action: "store", refresh_token: refreshToken, scope: "" }).catch(() => {});
+    };
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       if (data.session?.provider_token) {
         localStorage.setItem("family-os:google-provider-token", data.session.provider_token);
         setGoogleProviderToken(data.session.provider_token);
       }
+      captureGoogleRefreshToken(data.session);
       refreshAccount(data.session);
     });
     const { data: listener } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (event === "PASSWORD_RECOVERY") setPasswordRecovery(true);
+      // Only an explicit sign-out should clear the session. A transient null on
+      // any other event (e.g. a background token refresh that briefly fails)
+      // must NOT sign the user out — Supabase will retry the refresh, and the
+      // user should be able to return anytime without logging in again.
+      if (event === "SIGNED_OUT") {
+        setSession(null);
+        localStorage.removeItem("family-os:google-provider-token");
+        setGoogleProviderToken(null);
+        setTimeout(() => refreshAccount(null), 0);
+        return;
+      }
+      if (!nextSession) {
+        // INITIAL_SESSION with no user is the genuine "not signed in" case and is
+        // already handled by getSession() above; ignore spurious nulls otherwise.
+        if (event === "INITIAL_SESSION") setTimeout(() => refreshAccount(null), 0);
+        return;
+      }
       setSession(nextSession);
-      if (nextSession?.provider_token) {
+      if (nextSession.provider_token) {
         localStorage.setItem("family-os:google-provider-token", nextSession.provider_token);
         setGoogleProviderToken(nextSession.provider_token);
       }
-      if (!nextSession) {
-        localStorage.removeItem("family-os:google-provider-token");
-        setGoogleProviderToken(null);
-      }
+      captureGoogleRefreshToken(nextSession);
       setTimeout(() => refreshAccount(nextSession), 0);
     });
     return () => listener.subscription.unsubscribe();
@@ -653,6 +677,41 @@ export function AuthProvider({ children }) {
     }));
   }, [household?.id, household?.role, session?.user?.id]);
 
+  // Shared home location & dietary preferences are usable by any household
+  // member (the owner-only path also renames the household). This lets a
+  // parent/guardian who isn't the master owner still add the home address.
+  const updateHouseholdProfile = useCallback(async (input = {}) => {
+    if (!household?.id || !session?.user?.id) return;
+    const profilePatch = {
+      household_id: household.id,
+      dietary_restrictions: input.dietaryRestrictions || [],
+      avoid_ingredients: input.avoidIngredients?.trim() || "",
+      city: input.city?.trim() || "",
+      region: input.region?.trim() || "",
+      postal_code: input.postalCode?.trim() || "",
+      country: input.country?.trim() || "",
+      address: input.address?.trim() || "",
+      latitude: input.latitude ?? null,
+      longitude: input.longitude ?? null,
+    };
+    const { error: profileError } = await supabase.from("household_profiles").upsert(profilePatch, { onConflict: "household_id" });
+    if (profileError) throw profileError;
+    setHouseholdProfile((current) => ({ ...(current || {}), ...profilePatch }));
+    setHouseholdProfileExtra((current) => ({
+      ...(current || {}),
+      dietaryRestrictions: profilePatch.dietary_restrictions,
+      avoidIngredients: profilePatch.avoid_ingredients,
+      city: profilePatch.city,
+      region: profilePatch.region,
+      postalCode: profilePatch.postal_code,
+      country: profilePatch.country,
+      address: profilePatch.address,
+      latitude: profilePatch.latitude,
+      longitude: profilePatch.longitude,
+      updatedAt: new Date().toISOString(),
+    }));
+  }, [household?.id, session?.user?.id]);
+
   const saveMemberProfile = useCallback(async (profileInput = {}) => {
     if (!household?.id || !session?.user?.id) return;
     const completedAt = new Date().toISOString();
@@ -813,6 +872,7 @@ export function AuthProvider({ children }) {
     createHousehold,
     saveHouseholdProfile,
     updateHouseholdSettings,
+    updateHouseholdProfile,
     saveMemberProfile,
     acceptInvitation,
     invitePartner,

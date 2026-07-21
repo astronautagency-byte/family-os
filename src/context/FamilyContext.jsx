@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   initialFamilyMembers,
   initialEvents,
@@ -10,7 +10,7 @@ import {
 import { createGoogleCalendarEvent, fetchGoogleCalendarEvents, fetchGoogleCalendars, requestGoogleAccessToken, revokeGoogleAccessToken } from "../lib/googleCalendar";
 import { fetchIcalFeed, parseIcalEvents } from "../lib/icalCalendar";
 import { useAuth } from "./AuthContext";
-import { supabase } from "../lib/supabase";
+import { invokeEdgeFunction, supabase } from "../lib/supabase";
 
 const STORAGE_KEY = "family-os:v1";
 const GOOGLE_STORAGE_KEY = "family-os:google:v1";
@@ -273,7 +273,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
   });
   const mapEvent = (row) => ({ id: row.id, title: row.title, start: row.starts_at, end: row.ends_at, location: row.location, source: row.source === "familyos" ? "local" : row.source, externalId: row.external_id || null, calendarId: row.external_calendar_id || null, memberIds: (row.event_participants || []).map((p) => p.user_id) });
   const mapMeal = (row) => ({ id: row.id, date: row.meal_date, slot: row.slot, title: row.title, notes: row.notes, cookIds: row.cook_ids || [] });
-  const mapMessage = (row) => ({ id: row.id, senderId: row.sender_id, recipientId: row.recipient_id || null, text: row.body, sentAt: row.created_at, source: row.source || "famos", sourceSender: row.source_sender || "" });
+  const mapMessage = (row) => ({ id: row.id, senderId: row.sender_id, recipientId: row.recipient_id || null, text: row.body, sentAt: row.created_at, source: row.source || "famos", sourceSender: row.source_sender || "", broadcast: row.broadcast === true });
   const mapExpense = (row) => ({
     id: row.id,
     description: row.description,
@@ -531,6 +531,99 @@ export function FamilyProvider({ children, tabletMode = false }) {
     setMessages((prev) => [...prev, ...imported]);
     return imported.length;
   };
+  // Permanently remove the shared household thread for everyone in the home.
+  const clearFamilyChat = async () => {
+    if (remote) {
+      const expected = messages.filter((message) => !message.recipientId).length;
+      // .select() returns the rows actually deleted so we can tell a real clear
+      // from an RLS-blocked no-op (which returns 0 rows without an error).
+      const { data, error } = await supabase.from("messages").delete().eq("household_id", household.id).is("recipient_id", null).select("id");
+      if (error) { setDataError(error.message); throw error; }
+      if (expected > 0 && (!data || data.length === 0)) {
+        throw new Error("Messages could not be cleared right now. Please try again in a moment.");
+      }
+      const deleted = new Set((data || []).map((row) => row.id));
+      setMessages((prev) => prev.filter((message) => message.recipientId || !deleted.has(message.id)));
+      return;
+    }
+    setMessages((prev) => prev.filter((message) => message.recipientId));
+  };
+  // Permanently remove only the current user's direct-message threads.
+  const clearMyDirectMessages = async (userId = user?.id) => {
+    if (!userId) return;
+    if (remote) {
+      const expected = messages.filter((message) => message.recipientId && (message.senderId === userId || message.recipientId === userId)).length;
+      const { data, error } = await supabase.from("messages").delete().eq("household_id", household.id).not("recipient_id", "is", null).or(`sender_id.eq.${userId},recipient_id.eq.${userId}`).select("id");
+      if (error) { setDataError(error.message); throw error; }
+      if (expected > 0 && (!data || data.length === 0)) {
+        throw new Error("Messages could not be cleared right now. Please try again in a moment.");
+      }
+      const deleted = new Set((data || []).map((row) => row.id));
+      setMessages((prev) => prev.filter((message) => !deleted.has(message.id)));
+      return;
+    }
+    setMessages((prev) => prev.filter((message) => !message.recipientId || (message.senderId !== userId && message.recipientId !== userId)));
+  };
+
+  // ---- Chat unread tracking (per-device via a last-read timestamp) ----
+  const currentUserId = user?.id || members[0]?.id;
+  const chatReadKey = `familyos:chat-last-read:${user?.id || "local"}`;
+  const [chatLastRead, setChatLastRead] = useState(0);
+  useEffect(() => {
+    setChatLastRead(Number(localStorage.getItem(chatReadKey)) || 0);
+  }, [chatReadKey]);
+  const markChatRead = () => {
+    const now = Date.now();
+    setChatLastRead(now);
+    try { localStorage.setItem(chatReadKey, String(now)); } catch { /* storage unavailable */ }
+  };
+  // Unread = messages newer than last-read, not sent by me, in a thread I can see
+  // (the household thread or a DM addressed to me). Computed from the full list.
+  const unreadMessageCount = useMemo(() => messages.filter((message) => {
+    if (!message || message.senderId === currentUserId) return false;
+    if (message.recipientId && message.recipientId !== currentUserId) return false;
+    return new Date(message.sentAt).getTime() > chatLastRead;
+  }).length, [messages, chatLastRead, currentUserId]);
+
+  // ---- Broadcasts (household messages pinned to everyone's home screen) ----
+  const broadcasts = useMemo(
+    () => messages.filter((message) => message.broadcast).sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt)),
+    [messages]
+  );
+  const broadcastMessage = async (text) => {
+    const body = (text || "").trim();
+    if (!body) return;
+    if (remote) {
+      const row = { household_id: household.id, sender_id: user.id, recipient_id: null, body, broadcast: true };
+      let result = await supabase.from("messages").insert(row).select().single();
+      if (result.error && /broadcast|schema cache|column/i.test(result.error.message || "")) {
+        const { broadcast: _broadcast, ...compatibleRow } = row;
+        result = await supabase.from("messages").insert(compatibleRow).select().single();
+      }
+      if (result.error) throw result.error;
+      setMessages((prev) => [...prev, mapMessage(result.data)]);
+      sendHouseholdPush({ title: `${memberById[user.id]?.name || "A family member"} broadcast a message`, body, tag: `broadcast-${result.data.id}`, url: "/#today" }, []);
+    } else {
+      setMessages((prev) => [...prev, { id: makeId("msg"), senderId: currentUserId, recipientId: null, text: body, sentAt: new Date().toISOString(), broadcast: true }]);
+    }
+  };
+  const clearBroadcast = async (id) => {
+    if (remote) {
+      const { data, error } = await supabase.from("messages").update({ broadcast: false }).eq("id", id).eq("household_id", household.id).select("id");
+      if (error) {
+        // Broadcast column not deployed yet — clear locally only.
+        if (/broadcast|schema cache|column/i.test(error.message || "")) {
+          setMessages((prev) => prev.map((message) => message.id === id ? { ...message, broadcast: false } : message));
+          return;
+        }
+        setDataError(error.message); throw error;
+      }
+      if (!data || data.length === 0) {
+        throw new Error("Broadcast could not be cleared right now. Please try again in a moment.");
+      }
+    }
+    setMessages((prev) => prev.map((message) => message.id === id ? { ...message, broadcast: false } : message));
+  };
 
   // ---- Finance ----
   const addExpense = async (expense) => {
@@ -657,10 +750,21 @@ export function FamilyProvider({ children, tabletMode = false }) {
       setGoogleLastSynced(new Date().toISOString());
       setGoogleStatus("idle");
     } catch (e) {
-      setGoogleStatus("error");
-      setGoogleError(e.message || "Could not sync Google Calendar.");
+      // A 401/invalid-token means the Google access token has expired (Supabase
+      // does not refresh provider tokens). Flag this distinctly so the UI offers
+      // a real "Reconnect" instead of a generic error that just retries the dead
+      // token and appears permanently disconnected.
+      const message = e?.message || "";
+      const expired = /\b401\b|invalid[_ ]?(?:token|credential|grant)|unauthenticated|login required|invalid authentication/i.test(message);
+      setGoogleStatus(expired ? "expired" : "error");
+      setGoogleError(expired
+        ? "Google access expired. Reconnect to keep your calendar syncing."
+        : (message || "Could not sync Google Calendar."));
     }
   };
+
+  const googleStatusRef = useRef(googleStatus);
+  useEffect(() => { googleStatusRef.current = googleStatus; }, [googleStatus]);
 
   useEffect(() => {
     if (!googleProviderToken) return;
@@ -668,6 +772,24 @@ export function FamilyProvider({ children, tabletMode = false }) {
     setGoogleConnected(true);
     syncGoogleEvents(googleProviderToken);
   }, [googleProviderToken]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-sync when the app regains focus so an expired token surfaces promptly as
+  // a reconnect prompt rather than silently stale data. Skips while already
+  // syncing or expired to avoid hammering a known-dead token.
+  useEffect(() => {
+    if (!remote || !googleConnected || !googleProviderToken) return undefined;
+    const resync = () => {
+      if (document.visibilityState !== "visible") return;
+      if (["syncing", "expired"].includes(googleStatusRef.current)) return;
+      syncGoogleEvents(googleProviderToken);
+    };
+    window.addEventListener("focus", resync);
+    document.addEventListener("visibilitychange", resync);
+    return () => {
+      window.removeEventListener("focus", resync);
+      document.removeEventListener("visibilitychange", resync);
+    };
+  }, [remote, googleConnected, googleProviderToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const connectGoogleCalendar = async () => {
     if (configured) {
@@ -694,8 +816,27 @@ export function FamilyProvider({ children, tabletMode = false }) {
     }
   };
 
+  // Mint a fresh Google access token from the durable backend (survives the
+  // ~1h provider-token expiry). Returns null when the backend isn't deployed
+  // or the stored refresh token needs re-consent, so callers can fall back.
+  const getFreshGoogleToken = async () => {
+    if (!remote) return null;
+    try {
+      const result = await invokeEdgeFunction("google-calendar-token", { action: "token" });
+      return result?.access_token || null;
+    } catch {
+      return null;
+    }
+  };
+
   const syncGoogleCalendarNow = async () => {
     if (!googleConnected) return;
+    const freshToken = await getFreshGoogleToken();
+    if (freshToken) {
+      setGoogleAccessTokenState(freshToken);
+      await syncGoogleEvents(freshToken);
+      return;
+    }
     try {
       const token = googleAccessToken || (await requestGoogleAccessToken(googleClientId, { silent: true })).accessToken;
       setGoogleAccessTokenState(token);
@@ -913,7 +1054,8 @@ export function FamilyProvider({ children, tabletMode = false }) {
     meals, setMealForSlot, removeMeal, clearMeals,
     groceries, addGrocery, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries, clearGroceries,
     tasks: visibleTasks, addTask, toggleTask, updateTask, removeTask, clearTasks,
-    messages: visibleMessages, sendMessage, importMessages,
+    messages: visibleMessages, sendMessage, importMessages, clearFamilyChat, clearMyDirectMessages,
+    unreadMessageCount, markChatRead, broadcasts, broadcastMessage, clearBroadcast,
     expenses, weeklyBudget, monthlyBudget, financePeriod, addExpense, removeExpense, setFinanceBudget, setFinancePeriod,
     resetToDemoData,
     dataLoading, dataError, refreshData: loadRemoteData,

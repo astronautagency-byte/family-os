@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, ChefHat, ChevronRight, CloudRain, Clock3, Home, ListChecks, MapPin, ShoppingCart, Sparkles, Sun, Users } from "lucide-react";
+import { CalendarDays, ChefHat, ChevronRight, CloudRain, Clock3, Home, ListChecks, MapPin, Megaphone, ShoppingCart, Sparkles, Sun, Users, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, AvatarStack, Card, Checkbox, EmptyState, Tag, colorVar } from "../components/ui";
@@ -50,7 +50,7 @@ function ProgressLine({ label, value, total, color = "var(--color-accent)" }) {
 }
 
 export default function Today({ goTo }) {
-  const { members, memberById, events, googleEvents, feedEvents, meals, tasks, groceries, toggleTask, tabletMode } = useFamily();
+  const { members, memberById, events, googleEvents, feedEvents, meals, tasks, groceries, toggleTask, tabletMode, broadcasts, clearBroadcast } = useFamily();
   const { profile, user, householdProfileExtra } = useAuth();
   const [weather, setWeather] = useState(null);
   const [weatherError, setWeatherError] = useState("");
@@ -172,6 +172,23 @@ export default function Today({ goTo }) {
       />
 
       <div className="px-5 space-y-6 mt-2">
+        {broadcasts.length > 0 && (
+          <section className="broadcast-banner-list" aria-label="Family broadcasts">
+            {broadcasts.map((item) => {
+              const sender = memberById[item.senderId];
+              return (
+                <div className="broadcast-banner" key={item.id}>
+                  <span className="broadcast-banner-icon"><Megaphone size={18} /></span>
+                  <div className="broadcast-banner-body">
+                    <div className="broadcast-banner-meta"><strong>{sender?.name || "Family"}</strong><span>Broadcast · {formatTime(item.sentAt)}</span></div>
+                    <p>{item.text}</p>
+                  </div>
+                  <button className="broadcast-banner-clear" onClick={() => clearBroadcast(item.id)} aria-label="Clear broadcast"><X size={16} /></button>
+                </div>
+              );
+            })}
+          </section>
+        )}
         <Card className="weather-now-card p-4">
           <div className="weather-now-main">
             <span>{weatherRisk ? <CloudRain size={22} /> : <Sun size={22} />}</span>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo, useState } from "react";
-import { CalendarPlus, ChevronLeft, ChevronRight, ExternalLink, LoaderCircle, MapPin, Plus, Search, Sparkles, Ticket, Trash2 } from "lucide-react";
+import { CalendarPlus, ChevronLeft, ChevronRight, ExternalLink, LoaderCircle, MapPin, Plus, Search, Sparkles, Ticket, Trash2, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { AvatarStack, DateField, Modal, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
@@ -209,6 +209,8 @@ export default function CalendarPage() {
   const [discoveredEvents,setDiscoveredEvents]=useState([]);
   const [discoverCategory,setDiscoverCategory]=useState("family events");
   const [discoverWhen,setDiscoverWhen]=useState("this weekend");
+  const [discoverCities,setDiscoverCities]=useState([]);
+  const [cityDraft,setCityDraft]=useState("");
   const [draft,setDraft]=useState({title:"",date:selectedDate,start:"18:00",end:"19:00",location:"",memberIds:[],eventType:"family",destination:"family"});
   const allEvents=useMemo(()=>[
     ...events,
@@ -229,13 +231,28 @@ export default function CalendarPage() {
   const mapsUrl=(location)=>`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
   const openAdd=()=>{setDraft({title:"",date:selectedDate,start:"18:00",end:"19:00",location:"",memberIds:members.map(m=>m.id),eventType:"family",destination:"family"});setSaveError("");setAdding(true);};
   const discoverLocation=householdProfileExtra?.city || householdProfileExtra?.address || "";
+  const searchCities=discoverCities.length?discoverCities:(discoverLocation?[discoverLocation]:[]);
+  const addCity=(name)=>{
+    const city=(name??cityDraft).trim();
+    if(!city)return;
+    setDiscoverCities((current)=>{
+      const base=current.length?current:(discoverLocation?[discoverLocation]:[]);
+      return base.some((c)=>c.toLowerCase()===city.toLowerCase())?base:[...base,city];
+    });
+    setCityDraft("");
+  };
+  const removeCity=(city)=>setDiscoverCities((current)=>{
+    const base=current.length?current:(discoverLocation?[discoverLocation]:[]);
+    return base.filter((c)=>c!==city);
+  });
   const searchLocalEvents=async()=>{
-    if(!discoverLocation){setDiscoverError("Add your home address in Settings to discover nearby events.");return;}
+    const cities=discoverCities.length?discoverCities:(discoverLocation?[discoverLocation]:[]);
+    if(!cities.length){setDiscoverError("Add your home address in Settings, or add a city below, to discover nearby events.");return;}
     setDiscoverBusy(true);setDiscoverError("");
     try{
-      const result=await invokeEdgeFunction("search-local-events",{location:discoverLocation,category:discoverCategory,when:discoverWhen});
+      const result=await invokeEdgeFunction("search-local-events",{location:cities[0],cities,category:discoverCategory,when:discoverWhen});
       setDiscoveredEvents(Array.isArray(result?.events)?result.events:[]);
-      if(!result?.events?.length)setDiscoverError("No matching events were found. Try a broader category or date.");
+      if(!result?.events?.length)setDiscoverError("No matching events were found. Try a broader category, another city, or a different date.");
     }catch(error){setDiscoveredEvents([]);setDiscoverError(error.message||"Could not load local events.");}
     finally{setDiscoverBusy(false);}
   };
@@ -262,7 +279,7 @@ export default function CalendarPage() {
   return <div className="pb-28 reference-calendar">
     <PageHeader title="Everyone’s where, when." illustration="calendar" subtitle={`${dayEvents.length} thing${dayEvents.length===1?"":"s"} on deck for this day.`} action={events.length?<button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button>:null} />
     <div className="px-5">
-      <div className="calendar-tools-row"><div className="calendar-source-filters" aria-label="Calendars">{sources.map(source=><button key={source.id} className={sourceFilter===source.id?"selected":""} onClick={()=>setSourceFilter(source.id)}>{source.color&&<i style={{backgroundColor:source.color}}/>}{source.label}</button>)}</div><button className="discover-events-button" onClick={()=>{setDiscovering(true);if(!discoveredEvents.length)window.setTimeout(searchLocalEvents,0);}}><Sparkles/> Discover nearby</button></div>
+      <div className="calendar-tools-row"><div className="calendar-source-filters" aria-label="Calendars">{sources.map(source=><button key={source.id} className={sourceFilter===source.id?"selected":""} onClick={()=>setSourceFilter(source.id)}>{source.color&&<i style={{backgroundColor:source.color}}/>}{source.label}</button>)}</div><button className="discover-events-button" onClick={()=>{setDiscovering(true);setDiscoverCities((current)=>current.length?current:(discoverLocation?[discoverLocation]:[]));if(!discoveredEvents.length)window.setTimeout(searchLocalEvents,0);}}><Sparkles/> Discover nearby</button></div>
       <div className="month-toolbar"><div><h2>{monthLabel}</h2><p>{visibleEvents.filter(e=>e.start.slice(0,7)===iso(month).slice(0,7)).length} events this month</p></div><div><button onClick={()=>setMonth(new Date(month.getFullYear(),month.getMonth()-1,1))}><ChevronLeft/></button><button onClick={()=>setMonth(new Date(month.getFullYear(),month.getMonth()+1,1))}><ChevronRight/></button></div></div>
       <div className="month-calendar">
         <div className="weekday-row">{["SUN","MON","TUE","WED","THU","FRI","SAT"].map(d=><span key={d}>{d}</span>)}</div>
@@ -284,7 +301,16 @@ export default function CalendarPage() {
       <PrimaryButton onClick={save} disabled={saving}>{saving?"Adding…":"Add it"}</PrimaryButton>
     </Modal>
     <Modal open={discovering} onClose={()=>setDiscovering(false)} title="Find something fun nearby">
-      <div className="event-discovery-intro"><span><Sparkles/></span><div><strong>{discoverLocation ? `Around ${discoverLocation}` : "Add your home area"}</strong><p>Fresh local events and experiences for your family, powered by OpenWeb Ninja.</p></div></div>
+      <div className="event-discovery-intro"><span><Sparkles/></span><div><strong>{searchCities.length ? `Searching ${searchCities.length} area${searchCities.length===1?"":"s"}` : "Add your home area"}</strong><p>Fresh local events and experiences for your family, powered by OpenWeb Ninja.</p></div></div>
+      <div className="event-city-picker">
+        <span>Search areas</span>
+        <div className="event-city-chips">
+          {searchCities.map((city)=><button type="button" className="event-city-chip" key={city} onClick={()=>removeCity(city)} aria-label={`Remove ${city}`}>{city}<X/></button>)}
+          <input value={cityDraft} onChange={(event)=>setCityDraft(event.target.value)} onKeyDown={(event)=>{if(event.key==="Enter"){event.preventDefault();addCity();}}} placeholder="Add a city or town" aria-label="Add a city to search" />
+          <button type="button" className="event-city-add" onClick={()=>addCity()} disabled={!cityDraft.trim()}><Plus/> Add</button>
+        </div>
+        <small>Add nearby cities to widen the search radius. Results merge across every area.</small>
+      </div>
       <div className="event-discovery-controls">
         <label><span>What sounds good?</span><select value={discoverCategory} onChange={event=>setDiscoverCategory(event.target.value)}><option>family events</option><option>kids activities</option><option>festivals</option><option>sports events</option><option>concerts</option><option>workshops</option><option>outdoor activities</option><option>museums and exhibits</option></select></label>
         <label><span>When?</span><select value={discoverWhen} onChange={event=>setDiscoverWhen(event.target.value)}><option>today</option><option>tomorrow</option><option>this weekend</option><option>next weekend</option><option>this month</option></select></label>
@@ -292,7 +318,7 @@ export default function CalendarPage() {
       </div>
       {discoverBusy&&<div className="event-discovery-loading"><LoaderCircle/> Finding ideas near your family…</div>}
       {discoverError&&<div className="event-discovery-error">{discoverError}{!discoverLocation&&<button onClick={()=>{setDiscovering(false);window.location.hash="settings";}}>Open Settings</button>}</div>}
-      {!discoverBusy&&discoveredEvents.length>0&&<div className="discovered-event-list">{discoveredEvents.map(event=><article key={event.id}>{event.thumbnail&&<img src={event.thumbnail} alt="" loading="lazy" referrerPolicy="no-referrer"/>}<div className="discovered-event-copy"><div><span>{event.startTime?new Date(event.startTime.replace(" ","T")).toLocaleDateString("en-CA",{weekday:"short",month:"short",day:"numeric"}):"Date varies"}</span>{event.ticketSource&&<small><Ticket/> {event.ticketSource}</small>}</div><h3>{event.name}</h3><p>{event.description||"Open the event page for details."}</p><b><MapPin/>{event.virtual?"Online event":event.venue?.name||event.venue?.city||discoverLocation}</b><footer><button onClick={()=>addDiscoveredEvent(event)}><CalendarPlus/> Add to calendar</button>{event.link&&<a href={event.link} target="_blank" rel="noreferrer">View details <ExternalLink/></a>}</footer></div></article>)}</div>}
+      {!discoverBusy&&discoveredEvents.length>0&&<div className="discovered-event-list">{discoveredEvents.map(event=><article key={event.id}><div className="discovered-event-thumb">{event.thumbnail?<img src={event.thumbnail} alt="" loading="lazy" referrerPolicy="no-referrer"/>:<Ticket aria-hidden="true"/>}</div><div className="discovered-event-copy"><div><span>{event.startTime?new Date(event.startTime.replace(" ","T")).toLocaleDateString("en-CA",{weekday:"short",month:"short",day:"numeric"}):"Date varies"}</span>{event.ticketSource&&<small><Ticket/> {event.ticketSource}</small>}</div><h3>{event.name}</h3><p>{event.description||"Open the event page for details."}</p><b><MapPin/>{event.virtual?"Online event":event.venue?.name||event.venue?.city||searchCities[0]||discoverLocation}</b><footer><button onClick={()=>addDiscoveredEvent(event)}><CalendarPlus/> Add to calendar</button>{event.link&&<a href={event.link} target="_blank" rel="noreferrer">View details <ExternalLink/></a>}</footer></div></article>)}</div>}
       <small className="event-discovery-source">Event details come from public web sources and may change. Confirm times, availability, suitability, and prices with the event provider before making plans.</small>
     </Modal>
     <Modal open={!!selectedEvent} onClose={()=>setSelectedEvent(null)} title={selectedEvent?.title || "Event details"}>
