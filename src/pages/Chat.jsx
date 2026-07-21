@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { LockKeyhole, MessageCircle, Megaphone, Send, Trash2, UsersRound } from "lucide-react";
+import { LockKeyhole, MessageCircle, Send, Trash2, UsersRound } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, colorVar, Modal, SecondaryButton } from "../components/ui";
@@ -11,7 +11,7 @@ function timeLabel(value) {
 
 export default function Chat() {
   const { user } = useAuth();
-  const { members, memberById, messages, sendMessage, clearFamilyChat, clearMyDirectMessages, markChatRead, broadcastMessage, dataError, tabletMode } = useFamily();
+  const { members, memberById, messages, sendMessage, clearFamilyChat, clearMyDirectMessages, markChatRead, dataError, tabletMode } = useFamily();
   const [text, setText] = useState("");
   const [sendError, setSendError] = useState("");
   const [sending, setSending] = useState(false);
@@ -58,15 +58,6 @@ export default function Chat() {
     try { await sendMessage({ text: text.trim(), recipientId: activeThread === "household" ? null : activeThread, senderId: currentUserId }); setText(""); }
     catch (e) { setSendError(e.message || "Message could not be sent."); }
     finally { setSending(false); }
-  };
-
-  const [broadcasting, setBroadcasting] = useState(false);
-  const broadcast = async () => {
-    if (!text.trim() || !currentUserId || broadcasting) return;
-    setBroadcasting(true); setSendError("");
-    try { await broadcastMessage(text.trim()); setText(""); }
-    catch (e) { setSendError(e.message || "Broadcast could not be sent."); }
-    finally { setBroadcasting(false); }
   };
 
   const familyCount = messages.filter((message) => !message.recipientId).length;
@@ -153,18 +144,6 @@ export default function Chat() {
           disabled={activeThread !== "household" && !activeMember}
           className="min-w-0 flex-1 rounded-full bg-[var(--color-surface-sunken)] px-4 py-2.5 text-[14px] outline-none placeholder:text-[var(--color-ink-faint)]"
         />
-        {activeThread === "household" && (
-          <button
-            type="button"
-            onClick={broadcast}
-            disabled={!text.trim() || broadcasting || sending}
-            className="chat-broadcast-button"
-            title="Broadcast to everyone's home screen"
-            aria-label="Broadcast to home screen"
-          >
-            <Megaphone size={17} />
-          </button>
-        )}
         <button
           type="submit"
           disabled={!text.trim() || (activeThread !== "household" && !activeMember) || sending}

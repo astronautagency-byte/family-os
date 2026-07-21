@@ -50,10 +50,21 @@ function ProgressLine({ label, value, total, color = "var(--color-accent)" }) {
 }
 
 export default function Today({ goTo }) {
-  const { members, memberById, events, googleEvents, feedEvents, meals, tasks, groceries, toggleTask, tabletMode, broadcasts, clearBroadcast } = useFamily();
+  const { members, memberById, events, googleEvents, feedEvents, meals, tasks, groceries, toggleTask, tabletMode, broadcasts, broadcastMessage, clearBroadcast } = useFamily();
   const { profile, user, householdProfileExtra } = useAuth();
   const [weather, setWeather] = useState(null);
   const [weatherError, setWeatherError] = useState("");
+  const [broadcastText, setBroadcastText] = useState("");
+  const [broadcasting, setBroadcasting] = useState(false);
+  const [broadcastError, setBroadcastError] = useState("");
+  const postBroadcast = async (event) => {
+    event.preventDefault();
+    if (!broadcastText.trim() || broadcasting) return;
+    setBroadcasting(true); setBroadcastError("");
+    try { await broadcastMessage(broadcastText.trim()); setBroadcastText(""); }
+    catch (error) { setBroadcastError(error.message || "Could not broadcast right now."); }
+    finally { setBroadcasting(false); }
+  };
   const today = todayISO();
   const weekDays = Array.from({ length: 7 }, (_, index) => addDays(today, index));
   const weekEnd = weekDays[weekDays.length - 1];
@@ -172,23 +183,36 @@ export default function Today({ goTo }) {
       />
 
       <div className="px-5 space-y-6 mt-2">
-        {broadcasts.length > 0 && (
-          <section className="broadcast-banner-list" aria-label="Family broadcasts">
-            {broadcasts.map((item) => {
-              const sender = memberById[item.senderId];
-              return (
-                <div className="broadcast-banner" key={item.id}>
-                  <span className="broadcast-banner-icon"><Megaphone size={18} /></span>
-                  <div className="broadcast-banner-body">
-                    <div className="broadcast-banner-meta"><strong>{sender?.name || "Family"}</strong><span>Broadcast · {formatTime(item.sentAt)}</span></div>
-                    <p>{item.text}</p>
+        <section className="broadcast-home" aria-label="Family broadcast">
+          <form className="broadcast-compose" onSubmit={postBroadcast}>
+            <span className="broadcast-compose-icon"><Megaphone size={18} /></span>
+            <input
+              value={broadcastText}
+              onChange={(event) => setBroadcastText(event.target.value)}
+              placeholder="Broadcast a note to everyone’s home screen…"
+              aria-label="Broadcast a message to the family"
+            />
+            <button type="submit" disabled={!broadcastText.trim() || broadcasting}>{broadcasting ? "Sending…" : "Broadcast"}</button>
+          </form>
+          {broadcastError && <p className="broadcast-compose-error">{broadcastError}</p>}
+          {broadcasts.length > 0 && (
+            <div className="broadcast-banner-list">
+              {broadcasts.map((item) => {
+                const sender = memberById[item.senderId];
+                return (
+                  <div className="broadcast-banner" key={item.id}>
+                    <span className="broadcast-banner-icon"><Megaphone size={18} /></span>
+                    <div className="broadcast-banner-body">
+                      <div className="broadcast-banner-meta"><strong>{sender?.name || "Family"}</strong><span>Broadcast · {formatTime(item.sentAt)}</span></div>
+                      <p>{item.text}</p>
+                    </div>
+                    <button className="broadcast-banner-clear" onClick={() => clearBroadcast(item.id)} aria-label="Clear broadcast"><X size={16} /></button>
                   </div>
-                  <button className="broadcast-banner-clear" onClick={() => clearBroadcast(item.id)} aria-label="Clear broadcast"><X size={16} /></button>
-                </div>
-              );
-            })}
-          </section>
-        )}
+                );
+              })}
+            </div>
+          )}
+        </section>
         <Card className="weather-now-card p-4">
           <div className="weather-now-main">
             <span>{weatherRisk ? <CloudRain size={22} /> : <Sun size={22} />}</span>
