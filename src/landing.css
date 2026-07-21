@@ -15,7 +15,7 @@
 @media(max-width:600px){.landing-comparison{padding:72px 14px}.comparison-shell{border-radius:22px}.comparison-head,.comparison-row{grid-template-columns:150px 220px 180px 180px;min-width:730px}.comparison-head>*,.comparison-row>*{padding:15px 14px}.comparison-highlights{gap:11px}.comparison-highlights article{padding:20px}.comparison-note{text-align:left;padding:0 5px}}
 
 /* Refined landing artwork and more open display typography */
-.stage-panel h3,.product-stage h3{letter-spacing:-.025em;line-height:1.05}.stage-panel{grid-template-columns:.78fr 1.22fr;transition:background-color .25s ease}.stage-panel.stage-expecting{background:#ffe1eb}.stage-panel.stage-newborn{background:#dff5e9}.stage-panel.stage-school{background:#fff0a8}.stage-panel.stage-teen{background:#dfeeff}.stage-panel.stage-extended{background:#eee8ff}.stage-panel>img{justify-self:end;margin:0;object-fit:contain;object-position:center}.stage-panel>img.stage-family-art{width:118%;height:390px;max-width:590px;mix-blend-mode:normal;filter:drop-shadow(0 14px 25px rgba(44,38,70,.1))}.stage-tabs button.expecting{background:#fff1f5;border-color:#f4c9d7;color:#a64965}.stage-tabs button.newborn{background:#eefaf4;border-color:#c6e8d7;color:#31735e}.stage-tabs button.school{background:#fff8d8;border-color:#ecdc92;color:#87650c}.stage-tabs button.teen{background:#eef6ff;border-color:#c7ddf2;color:#366d9f}.stage-tabs button.extended{background:#f5f1ff;border-color:#d9cff7;color:#6549bd}.stage-tabs button.expecting.active{background:#d95d82;border-color:#d95d82}.stage-tabs button.newborn.active{background:#3d8a70;border-color:#3d8a70}.stage-tabs button.school.active{background:#b98510;border-color:#b98510}.stage-tabs button.teen.active{background:#417dad;border-color:#417dad}.stage-tabs button.extended.active{background:#7255d9;border-color:#7255d9}.stage-tabs button.active{color:#fff}
+.stage-panel h3,.product-stage h3{letter-spacing:-.025em;line-height:1.05}.stage-panel{grid-template-columns:.78fr 1.22fr;transition:background-color .25s ease}.stage-panel.stage-expecting{background:#ffe1eb}.stage-panel.stage-newborn{background:#dff5e9}.stage-panel.stage-school{background:#fff0a8}.stage-panel.stage-teen{background:#dfeeff}.stage-panel.stage-extended{background:#eee8ff}.stage-panel>img{justify-self:end;margin:0;object-fit:contain;object-position:center}.stage-panel>img.stage-family-art{width:118%;height:390px;max-width:590px;mix-blend-mode:normal;filter:drop-shadow(0 14px 25px rgba(44,38,70,.1))}.stage-tabs button.expecting{background:#fff1f5;border-color:#f4c9d7;color:#a64965}.stage-tabs button.newborn{background:#eefaf4;border-color:#c6e8d7;color:#31735e}.stage-tabs button.school{background:#fff8d8;border-color:#ecdc92;color:#87650c}.stage-tabs button.teen{background:#eef6ff;border-color:#c7ddf2;color:#366d9f}.stage-tabs button.extended{background:#f5f1ff;border-color:#d9cff7;color:#6549bd}.stage-tabs button.expecting.active{background:#b34d6b;border-color:#b34d6b}.stage-tabs button.newborn.active{background:#367b64;border-color:#367b64}.stage-tabs button.school.active{background:#90680c;border-color:#90680c}.stage-tabs button.teen.active{background:#3c74a0;border-color:#3c74a0}.stage-tabs button.extended.active{background:#7255d9;border-color:#7255d9}.stage-tabs button.active{color:#fff}
 .hero-squiggle{position:absolute;z-index:3;fill:none;stroke:#7952e8;stroke-width:5;stroke-linecap:round;pointer-events:none;filter:drop-shadow(0 6px 10px rgba(65,42,138,.12))}.hero-squiggle-one{left:-45px;top:58px;width:145px;transform:rotate(-12deg)}.hero-squiggle-two{right:-35px;bottom:44px;width:110px;stroke:#f45d9a;transform:rotate(15deg)}.hero-spark{position:absolute;z-index:3;color:#ffb11b;font-size:30px;line-height:1;pointer-events:none}.hero-spark-one{left:6%;bottom:12%}.hero-spark-two{right:5%;top:28%;color:#7952e8;font-size:20px}
 .landing-ai-art{display:grid;place-items:center;height:500px;padding:88px 54px 64px;overflow:hidden;background:linear-gradient(145deg,#f45d9a 0%,#ed72ac 100%)}.landing-ai-art img{position:relative;inset:auto;width:88%;height:auto;max-width:440px;max-height:305px;object-fit:contain;object-position:center;filter:drop-shadow(0 16px 24px rgba(35,20,68,.12))}.ai-squiggle{position:absolute;right:18px;top:96px;width:98px;fill:none;stroke:#fff0a8;stroke-width:5;stroke-linecap:round}.ai-bubble{max-width:190px}.ai-bubble.one{left:22px;top:22px}.ai-bubble.two{right:22px;bottom:22px}
 @media(max-width:600px){.stage-panel>img.stage-family-art{width:100%;height:260px}.hero-squiggle-one{left:-18px;top:44px;width:95px}.hero-squiggle-two{right:-16px;bottom:28px;width:78px}.hero-spark-one{bottom:9%}.landing-ai-art{height:390px;padding:78px 26px 60px}.landing-ai-art img{width:90%;max-height:235px}.ai-squiggle{right:10px;top:88px;width:72px}.ai-bubble{max-width:158px;font-size:10px}.ai-bubble.one{left:14px;top:16px}.ai-bubble.two{right:14px;bottom:16px}}
@@ -38,10 +38,9 @@
 .landing-feature-top img,.stage-panel>img.stage-family-art,.landing-ai-art img{mix-blend-mode:normal!important;filter:drop-shadow(0 14px 25px rgba(44,38,70,.08))!important}
 .landing-feature-top img{width:82%;height:100%;object-fit:contain;object-position:right center}
 .stage-panel{grid-template-columns:.88fr 1.12fr}.stage-panel>img.stage-family-art{width:108%;height:380px;max-width:560px}
-.landing-ai-art{background:#ffddea}.landing-ai-art img{width:94%;max-width:520px;max-height:360px}
 .landing-hero h1{font-size:clamp(44px,5vw,68px);line-height:.98;letter-spacing:-.022em;max-width:500px}
 .landing-hero-copy>p:not(.landing-kicker){max-width:500px;font-size:17px;line-height:1.5}
-@media(max-width:900px){.landing-hero h1{max-width:none;margin-left:auto;margin-right:auto}.stage-panel>img.stage-family-art{width:100%;height:320px}.landing-ai-art img{max-height:310px}}
+@media(max-width:900px){.landing-hero h1{max-width:none;margin-left:auto;margin-right:auto}.stage-panel>img.stage-family-art{width:100%;height:320px}}
 @media(max-width:600px){.landing-hero h1{font-size:44px}.landing-hero-copy>p:not(.landing-kicker){font-size:15px}.stage-panel>img.stage-family-art{height:240px}.landing-feature-top img{width:86%}}
 
 /* Pricing balance: plan calculator first, add-ons directly below, summary as checkout rail. */
@@ -57,9 +56,7 @@
 @media(max-width:850px){.community-facts{grid-template-columns:repeat(2,1fr)!important}.community-facts article:last-child{grid-column:1/-1}}
 @media(max-width:520px){.community-facts{grid-template-columns:1fr!important}.community-facts article:last-child{grid-column:auto}.community-facts b{font-size:17px!important}}
 
-/* Match Fam AI illustration to the Everything in rhythm editorial artwork. */
-.landing-ai-art{background:#fff1f6!important;overflow:visible!important}.landing-ai-art img[src$="famai-editorial.png"]{width:min(78%,430px)!important;height:auto!important;max-height:420px!important;object-fit:contain!important;object-position:center!important;mix-blend-mode:normal!important;filter:drop-shadow(0 18px 28px rgba(35,20,68,.1))!important}
-@media(max-width:600px){.landing-ai-art img[src$="famai-editorial.png"]{width:min(88%,360px)!important;max-height:320px!important}}
+/* Fam AI illustration styling consolidated into the .landing-ai-art showcase block. */
 
 /* Small brand wink in the intro section. */
 .landing-intro blockquote{display:inline-block;margin:-18px auto 34px;padding:12px 18px;border:1px solid #ded5ff;border-radius:999px;background:#fff;color:#17171f;font:750 18px/1.15 var(--font-display);letter-spacing:-.01em;box-shadow:0 12px 24px rgba(53,39,112,.06)}
@@ -139,51 +136,89 @@
 .landing-ai li svg{
   color:#fff0a8!important;
 }
+/* ── Fam AI showcase card — single source of truth (supersedes earlier fragments) ── */
 .landing-ai-art{
+  position:relative;
+  overflow:hidden;
   min-height:560px!important;
-  padding:72px 44px 54px!important;
-  border:1px solid rgba(255,255,255,.26);
-  background:linear-gradient(150deg,#fff8fb 0%,#fff1f7 46%,#f3efff 100%)!important;
-  box-shadow:0 28px 72px rgba(0,0,0,.25);
+  padding:56px 44px!important;
+  border:1px solid rgba(255,255,255,.55);
+  border-radius:32px;
+  background:linear-gradient(158deg,#fff9fc 0%,#fdeef6 46%,#f1ecff 100%)!important;
+  box-shadow:0 30px 80px rgba(8,4,28,.42),inset 0 1px 0 rgba(255,255,255,.8);
+}
+.landing-ai-art::before{
+  content:"";
+  position:absolute;
+  left:50%;top:52%;
+  width:74%;
+  aspect-ratio:1;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(121,82,232,.24),transparent 66%);
+  filter:blur(4px);
+  pointer-events:none;
 }
 .landing-ai-art img[src$="famai-editorial.png"]{
-  width:min(104%,590px)!important;
-  max-width:590px!important;
-  max-height:470px!important;
-  filter:drop-shadow(0 24px 36px rgba(35,20,68,.14))!important;
+  position:relative;
+  z-index:1;
+  width:100%;
+  max-width:440px;
+  height:auto;
+  max-height:410px;
+  margin-inline:auto;
+  object-fit:contain;
+  object-position:center;
+  filter:drop-shadow(0 26px 40px rgba(35,20,68,.22))!important;
+}
+.landing-ai-art .ai-squiggle{
+  position:absolute;
+  z-index:1;
+  right:26px;top:40px;
+  width:86px;
+  fill:none;
+  stroke:#c9b6ff;
+  stroke-width:5;
+  stroke-linecap:round;
+  opacity:.85;
 }
 .landing-ai-art .ai-bubble{
-  background:#fff!important;
-  color:#17172f!important;
-  border:1px solid rgba(23,23,47,.08);
-  box-shadow:0 14px 34px rgba(28,22,54,.18);
+  position:absolute;
+  z-index:2;
+  max-width:min(58%,206px);
+  margin:0;
+  padding:12px 15px;
+  border-radius:16px;
+  background:rgba(255,255,255,.94)!important;
+  color:#211a3d!important;
+  border:1px solid rgba(23,23,47,.06);
+  box-shadow:0 16px 38px rgba(28,22,54,.22);
+  backdrop-filter:blur(8px);
+  font-size:12px;
+  font-weight:750;
+  line-height:1.35;
 }
-.landing-ai-art .ai-bubble.two{
-  color:#5741c9!important;
-}
+.landing-ai-art .ai-bubble.one{left:20px;top:20px;border-bottom-left-radius:4px}
+.landing-ai-art .ai-bubble.two{right:20px;bottom:20px;color:#5741c9!important;border-bottom-right-radius:4px}
 @media(max-width:900px){
   .landing-feature-grid{gap:18px}
   .landing-feature{min-height:430px!important}
   .landing-feature-top{height:270px!important}
   .landing-feature-top img{height:262px!important}
-  .landing-ai-art{min-height:500px!important}
 }
 @media(max-width:600px){
   .landing-feature{min-height:390px!important;padding:22px!important}
   .landing-feature-top{height:235px!important;margin:-2px -6px 10px}
   .landing-feature-top img{height:226px!important;max-width:310px!important}
   .landing-feature h3{font-size:23px!important}
-  .landing-ai-art{min-height:430px!important;padding:74px 18px 58px!important}
-  .landing-ai-art img[src$="famai-editorial.png"]{width:100%!important;max-height:320px!important}
 }
 
 /* Uncrop and soften illustration surfaces. */
 .landing-feature{overflow:visible;background-color:#fbf8ff!important}.landing-feature.yellow{background:#fff9dd!important}.landing-feature.pink{background:#fff1f6!important}.landing-feature.mint{background:#eefaf5!important}.landing-feature.blue{background:#edf6ff!important}.landing-feature.peach{background:#fff1e6!important}.landing-feature.lilac{background:#f5f1ff!important}
 .landing-feature-top{height:255px;overflow:visible;align-items:center}.landing-feature-top img{width:92%!important;height:245px!important;object-fit:contain!important;object-position:center!important;filter:drop-shadow(0 16px 26px rgba(44,38,70,.08))!important}.landing-feature:hover .landing-feature-top img{transform:scale(1.025) rotate(.5deg)}
 .stage-panel{overflow:visible;background:#fbf8ff!important}.stage-panel.stage-expecting{background:#fff3f7!important}.stage-panel.stage-newborn{background:#f1fbf6!important}.stage-panel.stage-school{background:#fff9dc!important}.stage-panel.stage-teen{background:#edf6ff!important}.stage-panel.stage-extended{background:#f5f1ff!important}.stage-panel>img.stage-family-art{width:118%!important;height:430px!important;max-width:650px!important;object-fit:contain!important;object-position:center!important}
-.landing-ai-art{overflow:visible;background:#fff1f6!important;min-height:530px}.landing-ai-art img{width:108%!important;max-width:620px!important;max-height:430px!important;object-fit:contain!important;object-position:center!important;mix-blend-mode:normal!important;filter:drop-shadow(0 18px 28px rgba(35,20,68,.12))!important}
-@media(max-width:900px){.landing-feature-top{height:235px}.landing-feature-top img{height:225px!important}.stage-panel>img.stage-family-art{width:105%!important;height:360px!important}.landing-ai-art{min-height:470px}.landing-ai-art img{width:100%!important;max-height:360px!important}}
-@media(max-width:600px){.landing-feature-top{height:220px}.landing-feature-top img{height:212px!important}.stage-panel>img.stage-family-art{height:290px!important}.landing-ai-art{min-height:410px}.landing-ai-art img{max-height:300px!important}}
+@media(max-width:900px){.landing-feature-top{height:235px}.landing-feature-top img{height:225px!important}.stage-panel>img.stage-family-art{width:105%!important;height:360px!important}}
+@media(max-width:600px){.landing-feature-top{height:220px}.landing-feature-top img{height:212px!important}.stage-panel>img.stage-family-art{height:290px!important}}
 
 /* Keep hero CTAs compact and readable. */
 .landing-hero-ctas>button:first-child{min-width:210px;white-space:nowrap}.landing-hero-ctas>button:last-child{white-space:nowrap}
@@ -578,7 +613,6 @@
   .stage-panel > div > span { font-size: 14px; line-height: 1.5; }
 
   .landing-ai { padding: var(--landing-phone-section) var(--landing-phone-gutter); gap: 32px; }
-  .landing-ai-art { height: auto; aspect-ratio: 4 / 3; border-radius: 26px; }
   .landing-community {
     margin: 56px 12px;
     padding: 50px 18px 24px;
@@ -608,4 +642,102 @@
 .landing-page select,
 .landing-page textarea{
   font-family:var(--font-display);
+}
+
+/* Fam AI showcase — responsive refinements for the consolidated card. */
+@media(max-width:900px){
+  .landing-ai-art{min-height:470px!important;padding:48px 30px!important}
+  .landing-ai-art img[src$="famai-editorial.png"]{max-width:400px;max-height:360px}
+}
+@media(max-width:600px){
+  .landing-ai-art{min-height:auto!important;aspect-ratio:auto!important;padding:44px 20px 40px!important;border-radius:26px}
+  .landing-ai-art img[src$="famai-editorial.png"]{max-width:300px;max-height:min(64vw,300px)}
+  .landing-ai-art .ai-bubble{max-width:min(62%,166px);font-size:10.5px;padding:9px 11px}
+  .landing-ai-art .ai-bubble.one{left:12px;top:12px}
+  .landing-ai-art .ai-bubble.two{right:12px;bottom:12px}
+  .landing-ai-art .ai-squiggle{right:16px;top:26px;width:64px}
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Interactive-state contrast + accessibility fixes
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* The final-section CTA is a white pill with dark text on a purple section.
+   The shared :hover turned it the SAME purple (dark-on-purple ≈ 3.6:1 and it
+   dissolved into the background). Invert to a dark pill on hover instead:
+   white-on-ink ≈ 17.8:1 and clearly still a button. */
+.landing-page .landing-final button:hover{background:#17171f;color:#fff;transform:translateY(-2px)}
+
+/* Keyboard focus: buttons inherit a global focus-visible ring, but landing
+   links (<a>) had none. Give every landing interactive element a visible,
+   high-contrast focus indicator. */
+.landing-page a:focus-visible,
+.landing-page button:focus-visible{
+  outline:3px solid #7952e8;
+  outline-offset:3px;
+  border-radius:8px;
+}
+/* On the dark sections a purple ring is low-contrast — use a light ring. */
+.landing-ai a:focus-visible,
+.landing-ai button:focus-visible,
+.landing-community a:focus-visible,
+.landing-community button:focus-visible,
+.landing-final a:focus-visible,
+.landing-final button:focus-visible{
+  outline-color:#fff;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Additional CTAs (CRO)
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* Inline CTA inside the dark Fam AI section. */
+.landing-ai-cta{
+  display:inline-flex;align-items:center;gap:9px;
+  margin-top:28px;padding:14px 24px;border-radius:999px;
+  background:#fff;color:#17172f;font-weight:800;font-size:14px;
+  box-shadow:0 16px 34px rgba(0,0,0,.30);
+  transition:transform .22s cubic-bezier(.22,1,.36,1),background .22s ease;
+}
+.landing-ai-cta svg{width:17px}
+.landing-ai-cta:hover{background:#efe9ff;transform:translateY(-2px)}
+
+/* Conversion nudge below the comparison table. */
+.comparison-cta{display:flex;flex-direction:column;align-items:center;gap:10px;margin:36px auto 0;text-align:center}
+.comparison-cta button{
+  display:inline-flex;align-items:center;gap:9px;
+  padding:15px 26px;border-radius:999px;
+  background:#7952e8;color:#fff;font-weight:800;font-size:15px;
+  box-shadow:0 18px 36px rgba(121,82,232,.30);
+  transition:transform .22s cubic-bezier(.22,1,.36,1),background .22s ease;
+}
+.comparison-cta button svg{width:17px}
+.comparison-cta button:hover{background:#6a44d4;transform:translateY(-2px)}
+.comparison-cta small{color:#6d6874;font-size:12px;display:inline-flex;align-items:center;gap:6px}
+.comparison-cta small svg{width:14px;color:#32a77b}
+
+/* Persistent mobile CTA bar — shows once the hero scrolls away (CRO). */
+.landing-sticky-cta{
+  position:fixed;left:0;right:0;bottom:0;z-index:60;
+  display:none;align-items:center;gap:12px;
+  padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));
+  background:rgba(255,255,255,.94);
+  backdrop-filter:blur(14px);
+  border-top:1px solid rgba(23,23,47,.08);
+  box-shadow:0 -10px 34px rgba(20,12,48,.14);
+}
+.landing-sticky-cta>div{flex:1;min-width:0}
+.landing-sticky-cta strong{display:block;font-size:13px;color:#17172f;line-height:1.2}
+.landing-sticky-cta small{display:block;font-size:11px;color:#6d6874;margin-top:1px}
+.landing-sticky-cta button{
+  flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;
+  padding:13px 20px;border-radius:999px;
+  background:#7952e8;color:#fff;font-weight:800;font-size:14px;white-space:nowrap;
+  box-shadow:0 10px 22px rgba(121,82,232,.28);
+}
+.landing-sticky-cta button:hover{background:#6a44d4}
+.landing-sticky-cta button svg{width:15px}
+@media(max-width:700px){
+  .landing-sticky-cta{display:flex}
+  .landing-footer{padding-bottom:104px}
 }

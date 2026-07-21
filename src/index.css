@@ -2002,3 +2002,224 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
     color:var(--color-accent-strong)!important;
   }
 }
+
+/* Tablet mode: a persistent, household-only wall display. */
+.topbar-avatar.is-household {
+  background:var(--color-accent-soft);
+  color:var(--color-accent-strong);
+}
+.topbar-avatar.is-household svg {
+  width:18px;
+  height:18px;
+}
+.topbar-wordmark em {
+  display:inline-flex;
+  align-items:center;
+  min-height:24px;
+  max-width:26ch;
+  margin-left:6px;
+  padding:4px 9px;
+  overflow:hidden;
+  border-radius:999px;
+  background:var(--color-accent-soft);
+  color:var(--color-accent-strong);
+  font-size:10px;
+  font-style:normal;
+  font-weight:750;
+  line-height:1;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.topbar-actions .tablet-mode-button.is-active {
+  background:var(--color-accent);
+  color:#fff;
+  box-shadow:0 5px 16px color-mix(in srgb,var(--color-accent) 25%,transparent);
+}
+.topbar-actions .tablet-mode-button.is-active:hover {
+  background:var(--color-accent-strong);
+  color:#fff;
+}
+.tablet-mode .install-prompt {
+  display:none;
+}
+
+@media (min-width:700px) {
+  .tablet-mode.app-shell {
+    grid-template-columns:clamp(210px,19vw,290px) minmax(0,1fr);
+    gap:18px;
+    padding:18px;
+  }
+  .tablet-mode .primary-nav {
+    top:18px;
+    width:clamp(210px,19vw,290px);
+    height:calc(100dvh - 36px);
+    padding:18px;
+  }
+  .tablet-mode .nav-brand img {
+    width:48px;
+    height:48px;
+  }
+  .tablet-mode .nav-brand strong {
+    font-size:20px;
+  }
+  .tablet-mode .nav-brand span,
+  .tablet-mode .nav-foot {
+    font-size:12px;
+  }
+  .tablet-mode .nav-items {
+    gap:8px;
+  }
+  .tablet-mode .nav-item {
+    min-height:62px;
+    padding:10px 13px;
+    border-radius:18px;
+  }
+  .tablet-mode .nav-icon,
+  .tablet-mode .m3-navigation-item .nav-icon {
+    width:42px;
+    height:42px;
+    border-radius:14px;
+  }
+  .tablet-mode .nav-icon svg {
+    width:25px;
+    height:25px;
+  }
+  .tablet-mode .nav-label,
+  .tablet-mode .m3-navigation-item .nav-label {
+    font-size:16px;
+  }
+  .tablet-mode .app-content {
+    min-height:calc(100dvh - 36px);
+    border-radius:30px;
+  }
+  .tablet-mode .app-topbar {
+    height:88px;
+    grid-template-columns:52px 1fr auto;
+    padding-inline:30px;
+  }
+  .tablet-mode .topbar-avatar {
+    width:44px;
+    height:44px;
+  }
+  .tablet-mode .topbar-avatar.is-household svg {
+    width:24px;
+    height:24px;
+  }
+  .tablet-mode .topbar-wordmark img {
+    width:34px;
+    height:34px;
+  }
+  .tablet-mode .topbar-wordmark strong {
+    font-size:18px;
+  }
+  .tablet-mode .topbar-wordmark em {
+    min-height:30px;
+    padding-inline:12px;
+    font-size:12px;
+  }
+  .tablet-mode .topbar-actions {
+    gap:7px;
+  }
+  .tablet-mode .topbar-actions .m3-icon-button {
+    width:52px;
+    height:52px;
+    min-width:52px;
+  }
+  .tablet-mode .topbar-actions .m3-icon-button svg {
+    width:25px;
+    height:25px;
+  }
+  .tablet-mode .page-header,
+  .tablet-mode .m3-page-header {
+    padding-top:30px;
+    padding-bottom:24px;
+  }
+  .tablet-mode .page-eyebrow {
+    font-size:13px;
+  }
+  .tablet-mode .page-title {
+    font-size:clamp(38px,4vw,58px);
+  }
+  .tablet-mode .page-subtitle {
+    max-width:54ch;
+    font-size:18px;
+    line-height:1.5;
+  }
+  .tablet-mode .page-header-aside {
+    min-width:190px;
+  }
+  .tablet-mode .page-spot-frame,
+  .tablet-mode .page-spot {
+    width:180px!important;
+    height:150px!important;
+  }
+  .tablet-mode .kinship-card,
+  .tablet-mode .month-calendar,
+  .tablet-mode .task-board-group {
+    border-radius:24px!important;
+  }
+  .tablet-mode .kinship-card {
+    padding:clamp(20px,2vw,30px);
+  }
+  .tablet-mode .ui-section-title,
+  .tablet-mode .kinship-card h2,
+  .tablet-mode .kinship-card h3,
+  .tablet-mode .agenda-heading h3 {
+    font-size:clamp(20px,2vw,28px);
+  }
+  .tablet-mode .kinship-card :where(p,small,span),
+  .tablet-mode .agenda-row,
+  .tablet-mode .calendar-source-filters button,
+  .tablet-mode .task-board-group :where(p,span),
+  .tablet-mode .whatsapp-import-trigger {
+    font-size:max(14px,1em);
+    line-height:1.5;
+  }
+  .tablet-mode .app-content :where(input,select,textarea) {
+    min-height:54px;
+    font-size:17px;
+  }
+  .tablet-mode .app-content :where(.primary-button,.secondary-button,.m3-button) {
+    min-height:54px;
+    font-size:16px;
+  }
+  .tablet-mode .reference-dashboard .today-metric-card {
+    min-height:190px;
+  }
+  .tablet-mode .reference-dashboard .today-metric-card p.mt-4 {
+    font-size:38px;
+  }
+  .tablet-mode .notification-feed {
+    top:78px;
+    right:24px;
+    width:min(460px,calc(100vw - 48px));
+  }
+  .tablet-mode .notification-row {
+    min-height:78px;
+    padding:18px;
+  }
+  .tablet-mode .notification-row strong {
+    font-size:16px;
+  }
+  .tablet-mode .notification-row small {
+    font-size:13px;
+  }
+}
+
+@media (max-width:699px) {
+  .tablet-mode .topbar-wordmark em {
+    display:none;
+  }
+  .tablet-mode .app-topbar {
+    height:72px;
+    padding-inline:12px;
+  }
+  .tablet-mode .topbar-actions {
+    gap:1px;
+  }
+  .tablet-mode .topbar-actions .m3-icon-button {
+    width:42px;
+    height:42px;
+    min-width:42px;
+  }
+}

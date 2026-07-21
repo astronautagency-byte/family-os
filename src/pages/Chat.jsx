@@ -12,7 +12,7 @@ function timeLabel(value) {
 
 export default function Chat() {
   const { user } = useAuth();
-  const { members, memberById, messages, sendMessage, importMessages, dataError } = useFamily();
+  const { members, memberById, messages, sendMessage, importMessages, dataError, tabletMode } = useFamily();
   const [text, setText] = useState("");
   const [sendError, setSendError] = useState("");
   const [sending, setSending] = useState(false);
@@ -27,10 +27,14 @@ export default function Chat() {
   const endRef = useRef(null);
 
   useEffect(() => {
+    if (tabletMode && activeThread !== "household") {
+      setActiveThread("household");
+      return;
+    }
     if (activeThread !== "household" && !chatMembers.some((member) => member.id === activeThread)) {
       setActiveThread("household");
     }
-  }, [members, activeThread]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [members, activeThread, tabletMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const activeMember = activeThread === "household" ? null : memberById[activeThread];
   const threadMessages = messages.filter((message) => {
@@ -91,7 +95,7 @@ export default function Chat() {
 
       <div className="px-5 mt-1 mb-2 flex gap-2 overflow-x-auto pb-1">
         <button onClick={() => { setActiveThread("household"); setSendError(""); }} className="shrink-0 flex items-center gap-2 rounded-full border pl-2 pr-3 py-1.5 transition-colors" style={{ borderColor: activeThread === "household" ? "var(--color-accent)" : "var(--color-border)", backgroundColor: activeThread === "household" ? "var(--color-accent-soft)" : "var(--color-surface)", color: activeThread === "household" ? "var(--color-accent-strong)" : "var(--color-ink-soft)" }}><span className="w-7 h-7 rounded-full bg-[var(--pastel-mint)] grid place-items-center"><UsersRound size={14} /></span><span className="text-[12.5px] font-semibold">Everyone</span></button>
-        {chatMembers.map((member) => {
+        {!tabletMode&&chatMembers.map((member) => {
           const active = member.id === activeThread;
           return <button key={member.id} onClick={() => { setActiveThread(member.id); setSendError(""); }} className="shrink-0 flex items-center gap-2 rounded-full border pl-1.5 pr-3 py-1.5 transition-colors" style={{ borderColor: active ? "var(--color-accent)" : "var(--color-border)", backgroundColor: active ? "var(--color-accent-soft)" : "var(--color-surface)", color: active ? "var(--color-accent-strong)" : "var(--color-ink-soft)" }}><Avatar member={member} size="sm" /><span className="text-[12.5px] font-semibold">{member.name}</span></button>;
         })}
@@ -100,7 +104,7 @@ export default function Chat() {
       <div className="px-5 mb-2 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
           <LockKeyhole size={12} color="var(--color-ink-faint)" className="shrink-0" />
-          <p className="text-[11.5px] text-[var(--color-ink-faint)] truncate">{activeThread === "household" ? "The all-hands household thread" : activeMember ? `Private chat with ${activeMember.name}` : "Add another family member to start chatting"} · synced live</p>
+          <p className="text-[11.5px] text-[var(--color-ink-faint)] truncate">{tabletMode ? "Shared household messages only" : activeThread === "household" ? "The all-hands household thread" : activeMember ? `Private chat with ${activeMember.name}` : "Add another family member to start chatting"} · synced live</p>
         </div>
         <label className="whatsapp-import-trigger">
           <FileUp size={14} /> Import WhatsApp

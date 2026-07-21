@@ -12,8 +12,11 @@ const TABS = [
 
 const FEATURE_KEYS = { calendar: "calendar", meals: "meals", tasks: "tasks", groceries: "groceries", chat: "chat", famai: "fam_ai" };
 
-export default function BottomNav({ active, onChange, features = {} }) {
-  const visibleTabs = TABS.filter((tab) => tab.id === "today" || features[FEATURE_KEYS[tab.id]] !== false);
+export default function BottomNav({ active, onChange, features = {}, tabletMode = false }) {
+  const visibleTabs = TABS.filter((tab) => {
+    if (tabletMode && tab.id === "famai") return false;
+    return tab.id === "today" || features[FEATURE_KEYS[tab.id]] !== false;
+  });
   return (
     <nav className="primary-nav m3-navigation" aria-label="FamOS navigation">
       <div className="nav-brand">
@@ -44,7 +47,7 @@ export default function BottomNav({ active, onChange, features = {} }) {
           );
         })}
       </div>
-      <p className="nav-foot">Families run better on FamOS.</p>
+      <p className="nav-foot">{tabletMode ? "Shared family display · Tablet mode" : "Families run better on FamOS."}</p>
     </nav>
   );
 }

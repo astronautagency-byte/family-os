@@ -50,7 +50,7 @@ function ProgressLine({ label, value, total, color = "var(--color-accent)" }) {
 }
 
 export default function Today({ goTo }) {
-  const { members, memberById, events, googleEvents, feedEvents, meals, tasks, groceries, toggleTask } = useFamily();
+  const { members, memberById, events, googleEvents, feedEvents, meals, tasks, groceries, toggleTask, tabletMode } = useFamily();
   const { profile, user, householdProfileExtra } = useAuth();
   const [weather, setWeather] = useState(null);
   const [weatherError, setWeatherError] = useState("");
@@ -166,7 +166,7 @@ export default function Today({ goTo }) {
     <div className="pb-24 reference-dashboard">
       <PageHeader
         eyebrow={fullDateLabel(today)}
-        title={`${greetingLabel}${greetingName ? `, ${greetingName}` : ""}`}
+        title={tabletMode ? `${greetingLabel}, family` : `${greetingLabel}${greetingName ? `, ${greetingName}` : ""}`}
         subtitle={dailyEncouragement(today)}
         illustration="home"
       />

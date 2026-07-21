@@ -102,7 +102,7 @@ function showLocalNotification(title, options) {
 
 const FamilyContext = createContext(null);
 
-export function FamilyProvider({ children }) {
+export function FamilyProvider({ children, tabletMode = false }) {
   const { configured, household, user, googleProviderToken, signInWithGoogle } = useAuth();
   const remote = Boolean(configured && household?.id && user?.id && supabase);
   const saved = loadState();
@@ -897,24 +897,34 @@ export function FamilyProvider({ children }) {
     };
   }, [calendarFeedConnectionKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const visibleTasks = useMemo(
+    () => tabletMode ? tasks.filter((task) => task.taskType !== "personal") : tasks,
+    [tabletMode, tasks],
+  );
+  const visibleMessages = useMemo(
+    () => tabletMode ? messages.filter((message) => !message.recipientId) : messages,
+    [tabletMode, messages],
+  );
+
   const value = {
+    tabletMode,
     members, memberById, addMember, updateMember, removeMember,
     events, addEvent, updateEvent, removeEvent, clearEvents,
     meals, setMealForSlot, removeMeal, clearMeals,
     groceries, addGrocery, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries, clearGroceries,
-    tasks, addTask, toggleTask, updateTask, removeTask, clearTasks,
-    messages, sendMessage, importMessages,
+    tasks: visibleTasks, addTask, toggleTask, updateTask, removeTask, clearTasks,
+    messages: visibleMessages, sendMessage, importMessages,
     expenses, weeklyBudget, monthlyBudget, financePeriod, addExpense, removeExpense, setFinanceBudget, setFinancePeriod,
     resetToDemoData,
     dataLoading, dataError, refreshData: loadRemoteData,
     notificationPermission, requestNotifications, sendTestNotification,
     // Google Calendar
     googleClientId, setGoogleClientId,
-    googleConnected, googleEvents, googleCalendars, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleStatus, googleError, googleLastSynced,
+    googleConnected, googleEvents: tabletMode ? [] : googleEvents, googleCalendars: tabletMode ? [] : googleCalendars, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleStatus, googleError, googleLastSynced,
     googleUsesAccount: configured,
     connectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, addGoogleCalendarEvent, toggleGoogleCalendar, toggleGoogleCalendarSharing,
     // Other calendar providers via published iCal feeds
-    calendarFeeds, feedEvents, calendarFeedStatus, calendarFeedError,
+    calendarFeeds: tabletMode ? [] : calendarFeeds, feedEvents: tabletMode ? [] : feedEvents, calendarFeedStatus, calendarFeedError,
     addCalendarFeed, importCalendarFile, syncCalendarFeed, removeCalendarFeed,
   };
 

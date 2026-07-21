@@ -38,9 +38,15 @@ const routeFromLocation = () => {
 const tabFromLocation = () => VALID_TABS.includes(routeFromLocation()) ? routeFromLocation() : "today";
 
 export default function App() {
-  const [tab, setTabState] = useState(tabFromLocation);
+  const [tab, setTabState] = useState(() => {
+    const requestedTab = tabFromLocation();
+    return localStorage.getItem("familyos:tablet-mode") === "true" && ["settings", "famai"].includes(requestedTab)
+      ? "today"
+      : requestedTab;
+  });
   const [route, setRoute] = useState(routeFromLocation);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("familyos:theme") === "dark");
+  const [tabletMode, setTabletMode] = useState(() => localStorage.getItem("familyos:tablet-mode") === "true");
   const [runtimeConfig, setRuntimeConfig] = useState({ status: "active", features: {} });
   const setTab = (next) => { setTabState(next); window.history.replaceState(null, "", `#${next}`); };
   const shellRef = useRef(null);
@@ -68,6 +74,31 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("familyos:theme", darkMode ? "dark" : "light");
   }, [darkMode]);
+  useEffect(() => {
+    localStorage.setItem("familyos:tablet-mode", String(tabletMode));
+    document.documentElement.dataset.tabletMode = tabletMode ? "true" : "false";
+    if (tabletMode && ["settings", "famai"].includes(tab)) setTab("today");
+    return () => {
+      delete document.documentElement.dataset.tabletMode;
+    };
+  }, [tabletMode, tab]);
+  useEffect(() => {
+    if (!tabletMode || !configured || !session || !supabase) return undefined;
+    const refreshTabletSession = () => {
+      if (document.visibilityState === "visible") {
+        supabase.auth.refreshSession().catch(() => {});
+      }
+    };
+    refreshTabletSession();
+    const timer = window.setInterval(refreshTabletSession, 30 * 60 * 1000);
+    window.addEventListener("focus", refreshTabletSession);
+    document.addEventListener("visibilitychange", refreshTabletSession);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshTabletSession);
+      document.removeEventListener("visibilitychange", refreshTabletSession);
+    };
+  }, [tabletMode, configured, session]);
   useEffect(() => {
     if (!configured || !session || !household?.id || publicRoute === "admin") return;
     let active = true;
@@ -117,11 +148,18 @@ export default function App() {
   );
 
   return (
-    <FamilyProvider>
-      <div className={`app-shell ${darkMode ? "theme-dark" : ""}`} ref={shellRef}>
-        <BottomNav active={tab} onChange={setTab} features={runtimeConfig.features} />
+    <FamilyProvider tabletMode={tabletMode}>
+      <div className={`app-shell ${darkMode ? "theme-dark" : ""} ${tabletMode ? "tablet-mode" : ""}`} ref={shellRef}>
+        <BottomNav active={tab} onChange={setTab} features={runtimeConfig.features} tabletMode={tabletMode} />
         <main className="app-content">
-          <AppTopBar onOpenSettings={() => setTab("settings")} onNavigate={setTab} darkMode={darkMode} onToggleDarkMode={() => setDarkMode((value) => !value)} />
+          <AppTopBar
+            onOpenSettings={() => setTab("settings")}
+            onNavigate={setTab}
+            darkMode={darkMode}
+            onToggleDarkMode={() => setDarkMode((value) => !value)}
+            tabletMode={tabletMode}
+            onToggleTabletMode={() => setTabletMode((value) => !value)}
+          />
           {tab === "today" && <Today goTo={setTab} />}
           {tab === "calendar" && <CalendarPage goTo={setTab} />}
           {tab === "meals" && <Meals />}
