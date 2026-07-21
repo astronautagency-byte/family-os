@@ -2263,3 +2263,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 
 .settings-household-note{color:var(--color-ink-soft);font-size:13px;line-height:1.5;margin-bottom:6px}
 .settings-household-note strong{color:var(--color-ink)}
+
+/* Lazy-route loading fallback */
+.app-page-fallback{min-height:60vh;display:grid;place-items:center;color:var(--color-accent)}
+.app-page-fallback-spin{animation:spin 1s linear infinite}

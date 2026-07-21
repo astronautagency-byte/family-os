@@ -1,28 +1,34 @@
-import { useEffect, useRef, useState } from "react";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
-import { ShieldCheck } from "lucide-react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { LoaderCircle, ShieldCheck } from "lucide-react";
 import { FamilyProvider } from "./context/FamilyContext";
 import BottomNav from "./components/BottomNav";
 import AppTopBar from "./components/AppTopBar";
 import InstallPrompt from "./components/InstallPrompt";
-import Today from "./pages/Today";
-import CalendarPage from "./pages/Calendar";
-import Meals from "./pages/Meals";
-import Groceries from "./pages/Groceries";
-import Tasks from "./pages/Tasks";
-import Settings from "./pages/Settings";
-import Chat from "./pages/Chat";
-import FamAI from "./pages/FamAI";
-import Landing from "./pages/Landing";
-import Privacy from "./pages/Privacy";
-import Terms from "./pages/Terms";
-import Admin from "./pages/Admin";
 import { useAuth } from "./context/AuthContext";
 import { AuthLoading, HouseholdOnboarding, ResetPassword, SignIn } from "./pages/Auth";
 import { supabase } from "./lib/supabase";
 
-gsap.registerPlugin(useGSAP);
+// Route/page-level code splitting: each page is its own chunk, so the initial
+// bundle isn't the whole app. Signed-out visitors load only Landing; signed-in
+// users load Today first and other tabs on demand.
+const Today = lazy(() => import("./pages/Today"));
+const CalendarPage = lazy(() => import("./pages/Calendar"));
+const Meals = lazy(() => import("./pages/Meals"));
+const Groceries = lazy(() => import("./pages/Groceries"));
+const Tasks = lazy(() => import("./pages/Tasks"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Chat = lazy(() => import("./pages/Chat"));
+const FamAI = lazy(() => import("./pages/FamAI"));
+const Landing = lazy(() => import("./pages/Landing"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Terms = lazy(() => import("./pages/Terms"));
+const Admin = lazy(() => import("./pages/Admin"));
+
+const PageFallback = () => (
+  <div className="app-page-fallback" role="status" aria-label="Loading">
+    <LoaderCircle size={26} className="app-page-fallback-spin" />
+  </div>
+);
 const VALID_TABS = ["today","calendar","meals","tasks","groceries","chat","famai","settings"];
 const PUBLIC_ROUTES = ["privacy", "terms", "pricing", "signin", "signup"];
 const ROUTE_ALIASES = { "sign-in": "signin", "lsign-in": "signin", "sign-up": "signup" };
@@ -135,32 +141,39 @@ export default function App() {
     return () => { active = false; };
   }, [configured, session, household?.id, publicRoute, tab]);
 
-  useGSAP(() => {
+  // Page-entrance animation. GSAP is loaded lazily (dynamic import) so it stays
+  // out of the initial bundle; the animation kicks in once the chunk resolves.
+  useEffect(() => {
     if (!shellRef.current) return undefined;
-    const media = gsap.matchMedia();
-    media.add("(prefers-reduced-motion: no-preference)", () => {
-      const animate = (selector, from, to) => {
-        const targets = shellRef.current.querySelectorAll(selector);
-        if (targets.length) gsap.fromTo(targets, from, to);
-      };
-      animate(".page-header, .family-hero, .app-content .kinship-card, .app-content section", { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.32, ease: "power2.out", stagger: 0.035, clearProps: "opacity,visibility,transform" });
-      animate(".nav-item.is-active .nav-icon", { scale: 0.72, y: 3 }, { scale: 1, y: 0, duration: 0.38, ease: "back.out(2)", clearProps: "transform" });
-      animate(".reference-fab", { scale: 0.6, rotation: -18 }, { scale: 1, rotation: 0, duration: 0.42, delay: 0.08, ease: "back.out(1.8)", clearProps: "transform" });
-      animate(".family-hero img", { x: 8 }, { x: 0, duration: 0.6, ease: "power2.out", clearProps: "transform" });
-      animate(".page-spot", { scale: 0.82, rotation: -4 }, { scale: 1, rotation: 0, duration: 0.48, delay: 0.06, ease: "back.out(1.7)", clearProps: "transform" });
-    });
-    return () => media.revert();
-  }, { scope: shellRef, dependencies: [tab], revertOnUpdate: true });
+    let media;
+    let cancelled = false;
+    import("gsap").then(({ default: gsap }) => {
+      if (cancelled || !shellRef.current) return;
+      media = gsap.matchMedia();
+      media.add("(prefers-reduced-motion: no-preference)", () => {
+        const animate = (selector, from, to) => {
+          const targets = shellRef.current.querySelectorAll(selector);
+          if (targets.length) gsap.fromTo(targets, from, to);
+        };
+        animate(".page-header, .family-hero, .app-content .kinship-card, .app-content section", { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.32, ease: "power2.out", stagger: 0.035, clearProps: "opacity,visibility,transform" });
+        animate(".nav-item.is-active .nav-icon", { scale: 0.72, y: 3 }, { scale: 1, y: 0, duration: 0.38, ease: "back.out(2)", clearProps: "transform" });
+        animate(".reference-fab", { scale: 0.6, rotation: -18 }, { scale: 1, rotation: 0, duration: 0.42, delay: 0.08, ease: "back.out(1.8)", clearProps: "transform" });
+        animate(".family-hero img", { x: 8 }, { x: 0, duration: 0.6, ease: "power2.out", clearProps: "transform" });
+        animate(".page-spot", { scale: 0.82, rotation: -4 }, { scale: 1, rotation: 0, duration: 0.48, delay: 0.06, ease: "back.out(1.7)", clearProps: "transform" });
+      });
+    }).catch(() => {});
+    return () => { cancelled = true; media?.revert?.(); };
+  }, [tab]);
 
   if (configured && loading) return <AuthLoading />;
   if (configured && passwordRecovery) return <ResetPassword />;
-  if (publicRoute === "admin") return <Admin />;
-  if (publicRoute === "landing" || publicRoute === "pricing") return <Landing signedIn={!!session} />;
-  if (publicRoute === "privacy") return <Privacy signedIn={!!session} />;
-  if (publicRoute === "terms") return <Terms signedIn={!!session} />;
+  if (publicRoute === "admin") return <Suspense fallback={<PageFallback />}><Admin /></Suspense>;
+  if (publicRoute === "landing" || publicRoute === "pricing") return <Suspense fallback={<PageFallback />}><Landing signedIn={!!session} /></Suspense>;
+  if (publicRoute === "privacy") return <Suspense fallback={<PageFallback />}><Privacy signedIn={!!session} /></Suspense>;
+  if (publicRoute === "terms") return <Suspense fallback={<PageFallback />}><Terms signedIn={!!session} /></Suspense>;
   if (configured && !session && publicRoute === "signin") return <SignIn key="signin" initialCreating={false} />;
   if (configured && !session && publicRoute === "signup") return <SignIn key="signup" initialCreating />;
-  if (configured && !session) return <Landing />;
+  if (configured && !session) return <Suspense fallback={<PageFallback />}><Landing /></Suspense>;
   if (configured && (!household || onboardingRequired)) return <HouseholdOnboarding />;
   if (["suspended", "disabled"].includes(runtimeConfig.status)) return (
     <main className="admin-denied">
@@ -185,14 +198,16 @@ export default function App() {
             tabletModeAvailable={isTabletViewport}
             onToggleTabletMode={() => setTabletMode((value) => !value)}
           />
-          {tab === "today" && <Today goTo={setTab} />}
-          {tab === "calendar" && <CalendarPage goTo={setTab} />}
-          {tab === "meals" && <Meals />}
-          {tab === "groceries" && <Groceries />}
-          {tab === "tasks" && <Tasks />}
-          {tab === "chat" && <Chat />}
-          {tab === "famai" && <FamAI />}
-          {tab === "settings" && <Settings />}
+          <Suspense fallback={<PageFallback />}>
+            {tab === "today" && <Today goTo={setTab} />}
+            {tab === "calendar" && <CalendarPage goTo={setTab} />}
+            {tab === "meals" && <Meals />}
+            {tab === "groceries" && <Groceries />}
+            {tab === "tasks" && <Tasks />}
+            {tab === "chat" && <Chat />}
+            {tab === "famai" && <FamAI />}
+            {tab === "settings" && <Settings />}
+          </Suspense>
         </main>
         <InstallPrompt />
       </div>
