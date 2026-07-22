@@ -1,5 +1,7 @@
 import { useEffect, useRef, useMemo, useState } from "react";
 import { CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, ExternalLink, EyeOff, LoaderCircle, MapPin, Plus, RefreshCw, Search, Settings2, Sparkles, Ticket, Trash2, TriangleAlert, Users, X } from "lucide-react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { AvatarStack, DateField, Modal, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
@@ -297,6 +299,45 @@ export default function CalendarPage() {
 
   const refreshAll = async () => { await refreshData(); if (googleConnected) await syncGoogleCalendarNow(); };
 
+  const daystripRef = useRef(null);
+  const agendaRef = useRef(null);
+  const heroNumRef = useRef(null);
+
+  // Stagger day strip items in on mount
+  useGSAP(() => {
+    gsap.fromTo(".calendar-daystrip-item",
+      { y: -12, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.4, stagger: 0.04, ease: "back.out(1.2)" }
+    );
+  }, { scope: daystripRef });
+
+  // Animate event cards sliding in when agenda changes
+  useGSAP(() => {
+    if (dayEvents.length === 0) return;
+    gsap.fromTo(".calendar-event",
+      { y: 16, opacity: 0, scale: 0.97 },
+      { y: 0, opacity: 1, scale: 1, duration: 0.35, stagger: 0.05, ease: "power2.out" }
+    );
+  }, { dependencies: [selectedDate, sourceFilter], scope: agendaRef });
+
+  // Cross-fade the day number when the selected date changes
+  useEffect(() => {
+    if (!heroNumRef.current) return;
+    gsap.fromTo(heroNumRef.current,
+      { y: -6, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.25, ease: "power1.out" }
+    );
+  }, [selectedDate]);
+
+  // Animate month grid cells when toggled open
+  useGSAP(() => {
+    if (!showMonth) return;
+    gsap.fromTo(".calendar-month-grid button",
+      { scale: 0.8, opacity: 0 },
+      { scale: 1, opacity: 1, duration: 0.25, stagger: 0.01, ease: "back.out(1.3)" }
+    );
+  }, { dependencies: [showMonth], scope: daystripRef });
+
   const dayEventCount = visibleEvents.filter(e => e.start.slice(0, 10) === selectedDate).length;
 
   return (
@@ -306,28 +347,25 @@ export default function CalendarPage() {
         <div className="calendar-hero">
           <div className="calendar-hero-date">
             <span className="calendar-hero-dayname">{dayName}</span>
-            <span className="calendar-hero-daynum">{dayNum}</span>
-            <span className="calendar-hero-month">{monthDayLabel}</span>
+            <span className="calendar-hero-daynum" ref={heroNumRef}>{dayNum}</span>
+            <span className="calendar-hero-month">{monthDayLabel} · {dayEventCount} event{dayEventCount === 1 ? "" : "s"}</span>
           </div>
-          <div className="calendar-hero-meta">
-            <div className="calendar-hero-count">{dayEventCount} event{dayEventCount === 1 ? "" : "s"}</div>
-            <div className="calendar-hero-actions">
-              <button className="calendar-hero-action" onClick={() => setCalendarManagerOpen(true)} aria-label="Manage calendars">
-                <Settings2 size={17} />
-              </button>
-              <button className="calendar-hero-action" onClick={() => { setDiscovering(true); setDiscoverCities((current) => current.length ? current : (discoverLocation ? [discoverLocation] : [])); if (!discoveredEvents.length) { const cities = discoverLocation ? [discoverLocation] : []; window.setTimeout(() => runSearch(cities), 0); } }} aria-label="Discover local events">
-                <Sparkles size={17} />
-              </button>
-              <button className="calendar-hero-action calendar-hero-action-primary" onClick={openAdd} aria-label="Add event">
-                <Plus size={20} />
-              </button>
-            </div>
+          <div className="calendar-hero-actions">
+            <button className="calendar-hero-action calendar-hero-action-settings" onClick={() => { setDiscovering(true); setDiscoverCities((current) => current.length ? current : (discoverLocation ? [discoverLocation] : [])); if (!discoveredEvents.length) { const cities = discoverLocation ? [discoverLocation] : []; window.setTimeout(() => runSearch(cities), 0); } }} aria-label="Discover local events">
+              <Sparkles size={16} />
+            </button>
+            <button className="calendar-hero-action" onClick={() => setCalendarManagerOpen(true)} aria-label="Manage calendars">
+              <Settings2 size={17} />
+            </button>
+            <button className="calendar-hero-action calendar-hero-action-primary" onClick={openAdd} aria-label="Add event">
+              <Plus size={20} />
+            </button>
           </div>
         </div>
 
         <div className="px-5">
           {/* ── Day strip ── */}
-          <div className="calendar-daystrip">
+          <div className="calendar-daystrip" ref={daystripRef}>
             {dayStrip.map((d) => {
               const key = iso(d);
               const isToday = key === todayStr;
@@ -390,53 +428,34 @@ export default function CalendarPage() {
                   })}
                 </div>
               </div>
-
-              {/* ── Source filters ── */}
-              <div className="calendar-filters">
-                <div className="calendar-filter-tabs" aria-label="Calendars">
-                  {sources.map(source => (
-                    <button
-                      key={source.id}
-                      className={`calendar-filter-tab ${sourceFilter === source.id ? "selected" : ""}`}
-                      onClick={() => setSourceFilter(source.id)}
-                    >
-                      {source.color && <i style={{ backgroundColor: source.color }} />}
-                      {source.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </>
           )}
 
-          {/* ── View control row (always visible) ── */}
-          <div className="calendar-controls">
-            <div className="calendar-controls-left">
-              <button
-                className={`calendar-control-btn ${showMonth ? "" : "active"}`}
-                onClick={() => setShowMonth(false)}
-              >
-                Agenda
-              </button>
-              <button
-                className={`calendar-control-btn ${showMonth ? "active" : ""}`}
-                onClick={() => setShowMonth(true)}
-              >
-                Month
-              </button>
+          {/* ── Source filter pills ── */}
+          {sources.length > 1 && (
+            <div className="calendar-sources">
+              <div className="calendar-sources-tabs" aria-label="Filter calendars">
+                {sources.slice(0, 6).map(source => (
+                  <button
+                    key={source.id}
+                    className={`calendar-sources-tab ${sourceFilter === source.id ? "selected" : ""}`}
+                    onClick={() => setSourceFilter(source.id)}
+                  >
+                    {source.color && <i style={{ backgroundColor: source.color }} />}
+                    {source.label}
+                  </button>
+                ))}
+                {sources.length > 6 && (
+                  <button className="calendar-sources-more" onClick={() => setCalendarManagerOpen(true)}>
+                    +{sources.length - 6}
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="calendar-controls-right">
-              {sources.length > 1 && (
-                <button className="calendar-control-filter" onClick={() => setShowMonth(true)}>
-                  <Settings2 size={14} />
-                  <span>{sources.find(s => s.id === sourceFilter)?.label || "All"}</span>
-                </button>
-              )}
-            </div>
-          </div>
+          )}
 
           {/* ── Day agenda ── */}
-          <div className="calendar-agenda-section">
+          <div className="calendar-agenda-section" ref={agendaRef}>
             <div className="calendar-agenda-label">{selectedLabel}</div>
             {dayEvents.length === 0 ? (
               <div className="calendar-empty">
