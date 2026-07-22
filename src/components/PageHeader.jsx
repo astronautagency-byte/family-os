@@ -1,6 +1,6 @@
 import PageSpotIllustration from "./PageSpotIllustration";
 
-export default function PageHeader({ eyebrow, title, titleIcon, subtitle, action, illustration }) {
+export default function PageHeader({ eyebrow, title, titleIcon, subtitle, action, illustration, liveHealth }) {
   return (
     <header className="page-header m3-page-header safe-top">
       <div className="page-header-content">
@@ -13,6 +13,7 @@ export default function PageHeader({ eyebrow, title, titleIcon, subtitle, action
             {title}
           </h1>
           {subtitle && <p className="page-subtitle">{subtitle}</p>}
+          {liveHealth && <div className="page-header-live">{liveHealth}</div>}
         </div>
         {(illustration||action)&&<div className="page-header-aside">{illustration&&<PageSpotIllustration variant={illustration}/>} {action}</div>}
       </div>
