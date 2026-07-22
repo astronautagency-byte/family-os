@@ -189,7 +189,6 @@ Deno.serve(async (request) => {
     if (!authorization) throw new Error("You must be signed in to invite family members.");
 
     const url = Deno.env.get("SUPABASE_URL")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const resendKey = Deno.env.get("RESEND_API_KEY");
     const fromEmail = Deno.env.get("FAMOS_FROM_EMAIL") || "FamOS <invites@fam-os.app>";
@@ -284,18 +283,22 @@ Deno.serve(async (request) => {
     }));
     const sms = { requested: Boolean(normalizedPhone), sent: false, message: "" };
     partialSms = sms;
+    // Generate a secure action link using Supabase's internal invite/magiclink
+    // flow so the recipient receives a clickable link (not a one-time code or
+    // a generic password-reset prompt). This is the same `generateLink` API the
+    // branded email path uses — for the Supabase fallback, we rely on Supabase
+    // sending its own email template with that link embedded.
     const sendSupabaseEmail = async () => {
-      if (existingAuthUser) {
-        const deliveryClient = createClient(url, anonKey, { auth: { autoRefreshToken: false, persistSession: false } });
-        const { error } = await deliveryClient.auth.signInWithOtp({
-          email: normalizedEmail,
-          options: { shouldCreateUser: false, emailRedirectTo: callbackUrl },
-        });
-        if (error) throw error;
-      } else {
-        const { error } = await admin.auth.admin.inviteUserByEmail(normalizedEmail, { redirectTo: callbackUrl });
-        if (error) throw error;
-      }
+      const linkType = existingAuthUser ? "magiclink" : "invite";
+      const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+        type: linkType,
+        email: normalizedEmail,
+        options: { redirectTo: callbackUrl },
+      });
+      if (linkError || !linkData?.properties?.action_link) throw linkError || new Error("Could not create a secure invitation link.");
+      // generateLink sends Supabase's own template email with the action_link
+      // embedded. The action_link is a one-time use URL the recipient clicks to
+      // set their password for new accounts or sign in for existing accounts.
     };
     if (normalizedPhone) {
       stage = "sending the invitation SMS";
