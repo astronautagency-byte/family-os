@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { LockKeyhole, MessageCircle, Send, Trash2, UsersRound } from "lucide-react";
+import { Check, Clock3, LockKeyhole, MessageCircle, Plus, Send, ShoppingCart, Trash2, UsersRound, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, colorVar, Modal, SecondaryButton } from "../components/ui";
 import PageHeader from "../components/PageHeader";
+import { detectIntent, intentKey } from "../lib/chatIntents";
 
 
 
@@ -11,9 +12,88 @@ function timeLabel(value) {
   return new Date(value).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 
+// Persisted per-user dismissal store — keeps the chat calm across reloads.
+const DISMISS_KEY = "familyos:chat-dismissed-intents";
+function loadDismissed(userId) {
+  try {
+    const raw = localStorage.getItem(`${DISMISS_KEY}:${userId || "anon"}`);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch { return {}; }
+}
+function saveDismissed(userId, map) {
+  try { localStorage.setItem(`${DISMISS_KEY}:${userId || "anon"}`, JSON.stringify(map)); } catch {}
+}
+
+function intentIcon(intent) {
+  if (intent.kind === "grocery") return ShoppingCart;
+  if (intent.kind === "task") return Check;
+  if (intent.kind === "meal") return Clock3;
+  if (intent.kind === "event") return Clock3;
+  return Plus;
+}
+
+function intentLabel(intent) {
+  if (intent.kind === "grocery") {
+    const count = (intent.items || []).length;
+    return count === 1
+      ? `Add ${intent.items[0]} to groceries`
+      : `Add ${count} items to groceries`;
+  }
+  if (intent.kind === "task") {
+    return intent.due ? `Add task for ${formatDue(intent.due)}` : "Add to tasks";
+  }
+  if (intent.kind === "meal") {
+    return `Add to ${intent.slot}${intent.when ? ` (${intent.when})` : ""}`;
+  }
+  if (intent.kind === "event") {
+    return "Add to calendar";
+  }
+  return "Add to list";
+}
+
+function formatDue(iso) {
+  try {
+    const date = new Date(iso);
+    const now = new Date();
+    const sameDay = date.toDateString() === now.toDateString();
+    if (sameDay) return `today ${date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`;
+    const tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1);
+    if (date.toDateString() === tomorrow.toDateString()) return `tomorrow ${date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`;
+    return date.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  } catch { return ""; }
+}
+
+function IntentChip({ intent, onAccept, onDismiss, status }) {
+  const Icon = intentIcon(intent);
+  return (
+    <div className={`chat-intent-chip chat-intent-chip-${intent.kind}${status === "added" ? " added" : ""}`}>
+      <span className="chat-intent-icon"><Icon size={12} /></span>
+      <span className="chat-intent-copy">{intentLabel(intent)}{status !== "added" && <small>{intentDetail(intent)}</small>}</span>
+      {status !== "added" ? (
+        <>
+          <button type="button" className="chat-intent-add" onClick={onAccept}>Add</button>
+          <button type="button" className="chat-intent-dismiss" onClick={onDismiss} aria-label="Dismiss suggestion"><X size={12} /></button>
+        </>
+      ) : (
+        <span className="chat-intent-added">Added</span>
+      )}
+    </div>
+  );
+}
+
+function intentDetail(intent) {
+  if (intent.kind === "grocery") return (intent.items || []).join(", ");
+  if (intent.kind === "task") return intent.title;
+  if (intent.kind === "meal") return intent.title;
+  if (intent.kind === "event") return intent.title;
+  return "";
+}
+
 export default function Chat() {
   const { user } = useAuth();
-  const { members, memberById, messages, sendMessage, clearFamilyChat, clearMyDirectMessages, markChatRead, dataError, tabletMode } = useFamily();
+  const { members, memberById, messages, sendMessage, clearFamilyChat, clearMyDirectMessages, markChatRead, dataError, tabletMode, addGrocery, addTask, setMealForSlot, addEvent } = useFamily();
   const [text, setText] = useState("");
   const [sendError, setSendError] = useState("");
   const [sending, setSending] = useState(false);
@@ -21,10 +101,16 @@ export default function Chat() {
   const [confirmClear, setConfirmClear] = useState(null); // "family" | "dms"
   const [clearing, setClearing] = useState(false);
   const [clearError, setClearError] = useState("");
+  const [dismissedMap, setDismissedMap] = useState({});
+  const [addedMap, setAddedMap] = useState({});
   const currentUserId = user?.id || members[0]?.id;
   const chatMembers = members.filter((member) => member.id !== currentUserId);
   const [activeThread, setActiveThread] = useState("household");
   const endRef = useRef(null);
+
+  useEffect(() => {
+    setDismissedMap(loadDismissed(currentUserId));
+  }, [currentUserId]);
 
   useEffect(() => {
     if (tabletMode && activeThread !== "household") {
@@ -81,8 +167,43 @@ export default function Chat() {
     } catch (error) {
       setClearError(error.message || "Those messages could not be cleared.");
     } finally {
-      setClearing(false);
+      setClearing(false); }
+  };
+
+  const acceptIntent = async (messageId, intent) => {
+    try {
+      if (intent.kind === "grocery") {
+        for (const name of intent.items || []) {
+          await addGrocery({ name });
+        }
+      } else if (intent.kind === "task") {
+        await addTask({ title: intent.title, due: intent.due || null });
+      } else if (intent.kind === "meal") {
+        const today = new Date().toISOString().slice(0, 10);
+        const date = (intent.date || today).slice(0, 10);
+        await setMealForSlot(date, intent.slot, { title: intent.title });
+      } else if (intent.kind === "event") {
+        // Default the start to today 18:00 if no timing was extracted; calendar page lets users adjust.
+        const startSource = intent.date ? new Date(intent.date) : new Date();
+        if (!intent.date) startSource.setHours(18, 0, 0, 0);
+        const start = startSource.toISOString();
+        const end = new Date(startSource.getTime() + 60 * 60 * 1000).toISOString();
+        await addEvent({ title: intent.title, start, end });
+      }
+      setAddedMap((prev) => ({ ...prev, [`${messageId}:${intentKey(messageId, intent)}`]: true }));
+    } catch (err) {
+      setSendError(err?.message || "Couldn't add this to your list.");
     }
+  };
+
+  const dismissIntent = (messageId, intent) => {
+    const key = intentKey(messageId, intent);
+    if (!key) return;
+    setDismissedMap((prev) => {
+      const next = { ...prev, [messageId]: { ...(prev[messageId] || {}), [key]: true } };
+      saveDismissed(currentUserId, next);
+      return next;
+    });
   };
 
   return (
@@ -113,6 +234,11 @@ export default function Chat() {
         {threadMessages.map((message) => {
           const sender = memberById[message.senderId];
           const mine = message.senderId === currentUserId;
+          const intent = detectIntent(message.text);
+          const intentKeyValue = intent ? intentKey(message.id, intent) : null;
+          const dismissed = intent && intentKeyValue && dismissedMap[message.id]?.[intentKeyValue];
+          const added = intent && intentKeyValue && addedMap[`${message.id}:${intentKeyValue}`];
+          const showChip = intent && !dismissed && message.source !== "whatsapp";
           return (
             <div key={message.id} className={`flex items-end gap-2 ${mine ? "justify-end" : "justify-start"}`}>
               {!mine && sender && <Avatar member={sender} size="sm" />}
@@ -132,11 +258,19 @@ export default function Chat() {
                 <span className="text-[10px] text-[var(--color-ink-faint)] mt-1 px-1">
                   {sender?.name} · {timeLabel(message.sentAt)}
                 </span>
+                {showChip && (
+                  <IntentChip
+                    intent={intent}
+                    status={added ? "added" : "ready"}
+                    onAccept={() => acceptIntent(message.id, intent)}
+                    onDismiss={() => dismissIntent(message.id, intent)}
+                  />
+                )}
               </div>
             </div>
           );
         })}
-        {threadMessages.length === 0 && <div className="h-full min-h-40 flex flex-col items-center justify-center text-center px-8">{activeMember ? <Avatar member={activeMember} size="lg" /> : <span className="w-14 h-14 rounded-full bg-[var(--pastel-mint)] grid place-items-center text-[var(--color-ink)]"><UsersRound size={24} /></span>}<p className="text-[14px] font-medium mt-3">{activeMember ? `Say hi to ${activeMember.name}` : "Start the household chat"}</p><p className="text-[12px] text-[var(--color-ink-faint)] mt-1">Messages stay inside your shared home space.</p></div>}
+        {threadMessages.length === 0 && <div className="h-full min-h-40 flex flex-col items-center justify-center text-center px-8">{activeMember ? <Avatar member={activeMember} size="lg" /> : <span className="w-14 h-14 rounded-full bg-[var(--pastel-mint)] grid place-items-center text-[var(--color-ink)"><UsersRound size={24} /></span>}<p className="text-[14px] font-medium mt-3">{activeMember ? `Say hi to ${activeMember.name}` : "Start the household chat"}</p><p className="text-[12px] text-[var(--color-ink-faint)] mt-1">Messages stay inside your shared home space.</p></div>}
         <div ref={endRef} />
       </div>
 

@@ -1027,6 +1027,29 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .chat-clear-option>span{flex-shrink:0;width:38px;height:38px;display:grid;place-items:center;border-radius:var(--radius-xs);background:var(--color-surface-sunken);color:var(--color-ink)}
 .chat-clear-option strong{display:block;font-size:13.5px}
 .chat-clear-option small{display:block;margin-top:2px;color:var(--color-ink-soft);font-size:11.5px;line-height:1.45}
+/* Chat intent suggestion chips — gentle nudge to add a message's contents
+   to the right list. Sized to feel like a footnote, not a second
+   message, so the scrolling thread stays calm. */
+.chat-intent-chip{margin-top:6px;display:inline-flex;align-items:center;gap:8px;padding:6px 6px 6px 10px;border:1px solid color-mix(in srgb,var(--color-accent) 22%,var(--color-border));border-radius:var(--radius-pill);background:color-mix(in srgb,var(--color-accent) 8%,var(--color-surface));font-size:11.5px;color:var(--color-ink-soft);max-width:100%;transition:background var(--motion-fast) ease,border-color var(--motion-fast) ease}
+.chat-intent-chip:hover{background:color-mix(in srgb,var(--color-accent) 14%,var(--color-surface));border-color:color-mix(in srgb,var(--color-accent) 38%,var(--color-border))}
+.chat-intent-chip.added{background:color-mix(in srgb,#1d8a5d 10%,var(--color-surface));border-color:color-mix(in srgb,#1d8a5d 30%,transparent)}
+.chat-intent-icon{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--color-accent-soft);color:var(--color-accent-strong);flex-shrink:0}
+.chat-intent-chip-grocery .chat-intent-icon{background:color-mix(in srgb,#1d8a5d 18%,var(--color-surface));color:#1d8a5d}
+.chat-intent-chip-task .chat-intent-icon{background:color-mix(in srgb,#7952e8 18%,var(--color-surface));color:#7952e8}
+.chat-intent-chip-meal .chat-intent-icon{background:color-mix(in srgb,#f45d9a 16%,var(--color-surface));color:#c4386a}
+.chat-intent-chip-event .chat-intent-icon{background:color-mix(in srgb,#f18472 18%,var(--color-surface));color:#c25a3f}
+.chat-intent-copy{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1;font-size:11.5px;font-weight:650;color:var(--color-ink);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-intent-copy small{font-size:10px;font-weight:500;color:var(--color-ink-faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-intent-add{padding:4px 10px;border-radius:var(--radius-pill);background:var(--color-accent);color:#fff;font-size:11px;font-weight:700;cursor:pointer;transition:background var(--motion-fast) ease,transform var(--motion-fast) ease}
+.chat-intent-add:hover{background:var(--color-accent-strong)}
+.chat-intent-add:active{transform:scale(.95)}
+.chat-intent-chip-grocery .chat-intent-add{background:#1d8a5d}
+.chat-intent-chip-grocery .chat-intent-add:hover{background:#16734b}
+.chat-intent-chip-meal .chat-intent-add{background:#c4386a}
+.chat-intent-chip-meal .chat-intent-add:hover{background:#a12959}
+.chat-intent-dismiss{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;border:0;background:transparent;color:var(--color-ink-faint);cursor:pointer;transition:background var(--motion-fast) ease,color var(--motion-fast) ease}
+.chat-intent-dismiss:hover{background:var(--color-surface-sunken);color:var(--color-ink-soft)}
+.chat-intent-added{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:var(--radius-pill);background:color-mix(in srgb,#1d8a5d 16%,transparent);color:#16734b;font-size:11px;font-weight:700}
 .chat-clear-error{color:var(--color-warn);font-size:12px}
 
 /* Larger transparent app illustrations. */
