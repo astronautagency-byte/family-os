@@ -155,11 +155,15 @@ function PricingSection({ signedIn }) {
         </article>
         <div className="pricing-addons">
           <p>Add-ons</p>
-          {pricingAddOns.map(({ id, label, copy, price, icon: Icon }) => <button className={addOns[id] ? "selected" : ""} onClick={() => setAddOns((current) => ({ ...current, [id]: !current[id] }))} key={id}>
+          {pricingAddOns.map(({ id, label, copy, price, icon: Icon }) => {
+          const active = addOns[id];
+          return <button className={active ? "selected" : ""} onClick={() => setAddOns((current) => ({ ...current, [id]: !current[id] }))} key={id} aria-pressed={active}>
+            {active && <span className="addon-selected-badge" aria-hidden="true"><Check size={14}/></span>}
             <span><Icon/></span>
             <strong>{label}<small>{copy}</small></strong>
             <em>{billing === "annual" ? `${formatMoney(annualizeMonthly(price))}/yr` : `${formatMoney(price)}/mo`}</em>
-          </button>)}
+          </button>;
+        })}
         </div>
       </div>
       <aside className="pricing-side">
