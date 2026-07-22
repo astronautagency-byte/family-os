@@ -496,25 +496,19 @@ export function AuthProvider({ children }) {
     await refreshAccount(data.session);
   };
 
-  const signInWithGoogle = async () => {
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError) throw sessionError;
-    if (!sessionData.session?.user?.id) {
-      throw new Error("Sign in to FamOS before connecting Google Calendar.");
+  // Runs the Supabase linkIdentity OAuth dance. Used by signInWithGoogle when
+  // there is no google identity yet, and by forceReconnectGoogle when the user
+  // asks us to wipe & redo the connection deliberately.
+  async function performGoogleOAuthLink({ force = false } = {}) {
+    if (force) {
+      const { data: identitiesData, error: identitiesError } = await supabase.auth.getUserIdentities();
+      if (identitiesError) throw identitiesError;
+      const existing = identitiesData?.identities?.find((identity) => identity.provider === "google");
+      if (existing) {
+        const { error: unlinkError } = await supabase.auth.unlinkIdentity(existing);
+        if (unlinkError) throw new Error(`Could not reset the Google connection: ${unlinkError.message}`);
+      }
     }
-
-    // Google is a calendar connection here, not a second FamOS login. Provider
-    // access tokens expire and Supabase intentionally does not refresh them, so
-    // an existing Google identity is unlinked before reconnecting. The user's
-    // email/password identity and household membership remain untouched.
-    const { data: identitiesData, error: identitiesError } = await supabase.auth.getUserIdentities();
-    if (identitiesError) throw identitiesError;
-    const existingGoogleIdentity = identitiesData?.identities?.find((identity) => identity.provider === "google");
-    if (existingGoogleIdentity) {
-      const { error: unlinkError } = await supabase.auth.unlinkIdentity(existingGoogleIdentity);
-      if (unlinkError) throw new Error(`Could not refresh the Google connection: ${unlinkError.message}`);
-    }
-
     const { data: oauthData, error: oauthError } = await supabase.auth.linkIdentity({
       provider: "google",
       options: {
@@ -538,6 +532,46 @@ export function AuthProvider({ children }) {
       throw new Error("Google did not return a connection page. Check the Google provider and redirect URL in Supabase Auth.");
     }
     window.location.assign(oauthData.url);
+  }
+
+  // Connect Google Calendar. Once a Google identity is linked, this is a
+  // NO-OP beyond a quick health check against the durable refresh-token table
+  // — the OAuth consent screen no longer pops up each time the access token
+  // expires. To wipe the identity and re-consent, call `forceReconnectGoogle`
+  // explicitly from Settings (when the user taps "Reconnect").
+  const signInWithGoogle = async () => {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) throw sessionError;
+    if (!sessionData.session?.user?.id) {
+      throw new Error("Sign in to FamOS before connecting Google Calendar.");
+    }
+
+    const { data: identitiesData, error: identitiesError } = await supabase.auth.getUserIdentities();
+    if (identitiesError) throw identitiesError;
+    const existing = identitiesData?.identities?.find((identity) => identity.provider === "google");
+    if (existing) {
+      // Identity already linked. Confirm the durable refresh token is still
+      // valid in the google-calendar-token edge function. If so, the user is
+      // connected — no OAuth round-trip required.
+      try {
+        const status = await invokeEdgeFunction("google-calendar-token", { action: "status" });
+        if (status?.connected) {
+          return { reused: true, identity: existing };
+        }
+      } catch {
+        // Edge function unreachable / not deployed yet. Fall through to the
+        // OAuth flow so the user can re-capture a refresh token.
+      }
+    }
+
+    await performGoogleOAuthLink();
+  };
+
+  // Hard reconnect — destroys the linked Google identity, then re-runs the
+  // OAuth consent flow. Used only when the durable refresh token is gone
+  // (Google returned invalid_grant) and the user explicitly opts in.
+  const forceReconnectGoogle = async () => {
+    await performGoogleOAuthLink({ force: true });
   };
 
   const signOut = () => supabase?.auth.signOut();
@@ -920,6 +954,7 @@ export function AuthProvider({ children }) {
     requestInvitePasswordCode,
     completeInvitePasswordSetup,
     signInWithGoogle,
+    forceReconnectGoogle,
     googleProviderToken,
     signOut,
     deleteAccount,
