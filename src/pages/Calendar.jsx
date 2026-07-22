@@ -687,6 +687,36 @@ export default function CalendarPage() {
               {discoverError}
               {!discoverLocation && <button onClick={() => { setDiscovering(false); window.location.hash = "settings"; }}>Open Settings</button>}
               <button className="event-discovery-retry" onClick={searchLocalEvents}>{discoverBusy ? "Retrying…" : "Try again"}</button>
+              {/* Nearby-cities fallback — surfaces when the edge function
+                  returned empty AND has a country-specific major-city list
+                  to suggest. Tapping a pill adds that city to discoverCities
+                  and reruns the search so a small-town user (e.g. Newmarket)
+                  can see real events from Toronto / Markham / etc. */}
+              {Array.isArray(resultDiagnostics?.availableNearby) && resultDiagnostics.availableNearby.length > 0 && (
+                <div className="event-discovery-nearby">
+                  <span>Try a nearby major area</span>
+                  <div className="event-discovery-nearby-pills">
+                    {resultDiagnostics.availableNearby.map((nearby) => (
+                      <button
+                        type="button"
+                        key={nearby}
+                        className="event-discovery-nearby-pill"
+                        // Compute nextCities locally so we hand a stable value
+                        // straight to runSearch — don't rely on the React
+                        // setter callback alone, since the call site reads
+                        // `discoverCities` synchronously before the state
+                        // is committed.
+                        onClick={() => {
+                          const base = discoverCities.length ? discoverCities : (discoverLocation ? [discoverLocation] : []);
+                          const nextCities = base.includes(nearby) ? base : [...base, nearby];
+                          setDiscoverCities(nextCities);
+                          runSearch(nextCities);
+                        }}
+                      >+ {nearby}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {!discoverBusy && discoveredEvents.length > 0 && (
@@ -711,6 +741,7 @@ export default function CalendarPage() {
                       <div>
                         <span>{event.dateLabel || (event.startTime ? new Date(event.startTime.replace(" ", "T")).toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" }) : "Date varies")}</span>
                         {event.ticketSource && <small><Ticket aria-hidden="true" /> {event.ticketSource}</small>}
+                        {event.origin === "nearby" && <small className="discovered-event-from"><MapPin aria-hidden="true" /> {event.fromCity} (nearby)</small>}
                       </div>
                       <h3>{event.name}</h3>
                       <p>{event.description || "Open the event page for details."}</p>
@@ -723,6 +754,17 @@ export default function CalendarPage() {
                   </article>
                 ))}
               </div>
+              {resultDiagnostics?.expanded && (
+                <div className="event-discovery-source-breakdown">
+                  <strong>Showing events from nearby areas:</strong>
+                  {Array.isArray(resultDiagnostics.perCityCounts) && resultDiagnostics.perCityCounts.map((entry, index) => (
+                    <span key={`${entry.city}-${entry.origin}`}>
+                      {index > 0 && " · "}
+                      {entry.count} from {entry.city}{entry.origin === "nearby" ? "" : ""}
+                    </span>
+                  ))}
+                </div>
+              )}
             </>
           )}
           <small className="event-discovery-source">Event details come from public web sources and may change. Confirm times, availability, suitability, and prices with the event provider before making plans.</small>
