@@ -912,9 +912,12 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .meal-cook-hint{display:flex;align-items:center;gap:4px;margin-top:3px;color:var(--color-accent);font-size:10.5px;font-weight:850;letter-spacing:.01em}
 
 /* Grocery-status badge on planned meal cards */
-.meal-grocery-badge{display:inline-flex;align-items:center;gap:3px;margin-top:4px;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:800;line-height:1.2;white-space:nowrap}
-.meal-grocery-badge.needs{background:var(--color-warn-soft);color:var(--color-warn)}
+.meal-grocery-badge{display:inline-flex;align-items:center;gap:3px;margin-top:4px;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:800;line-height:1.2;white-space:nowrap;transition:background .18s ease,color .18s ease,transform .12s ease}
+.meal-grocery-badge:active{transform:scale(.9)}
+.meal-grocery-badge.needs{background:var(--color-warn-soft);color:var(--color-warn);cursor:pointer}
+.meal-grocery-badge.needs:hover{background:var(--color-warn-soft);filter:brightness(.94)}
 .meal-grocery-badge.covered{background:color-mix(in srgb,var(--color-good) 14%,transparent);color:var(--color-good)}
+.meal-grocery-badge.added{background:var(--color-good);color:#fff;cursor:default}
 .cook-focus-screen{position:fixed;inset:0;z-index:90;overflow:auto;background:linear-gradient(180deg,#fff 0%,#fbf9ff 100%);color:var(--color-ink);animation:modalIn var(--motion-normal) ease both}
 .cook-focus-shell{width:min(980px,100%);margin:0 auto;padding:18px 20px max(28px,calc(env(safe-area-inset-bottom) + 24px))}
 .cook-focus-topbar{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-18px -20px 18px;padding:16px 20px;background:rgba(255,255,255,.86);border-bottom:1px solid var(--color-border);backdrop-filter:blur(18px)}

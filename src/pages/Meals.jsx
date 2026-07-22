@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, BarChart3, Bookmark, CalendarPlus, CandyOff, Check, ChefHat, Clock, Coffee, Dices, FishOff, Leaf, ListChecks, MilkOff, NutOff, ShoppingCart, Soup, Sparkles, Sprout, Trash2, Users, WheatOff, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
@@ -119,6 +119,11 @@ export default function Meals() {
   // Cached ingredient names per meal ID — populated once a recipe has been
   // looked up, persists across sessions so the grocery badge works immediately.
   const [mealIngredientsCache, setMealIngredientsCache] = useState(() => loadIngredientCache());
+  // Track which meal badges have been tapped for "Added!" feedback (ephemeral, not persisted).
+  const badgeAddedRef = useRef(new Set());
+  const badgeTimerRef = useRef(null);
+  const [, forceUpdate] = useState(0);
+  useEffect(() => () => { if (badgeTimerRef.current) window.clearTimeout(badgeTimerRef.current); }, []);
   const [savedRecipes, setSavedRecipes] = useState(() => readStoredJson(SAVED_RECIPES_KEY, []));
   const [planningRecipe, setPlanningRecipe] = useState(null);
   const [dietaryPreferences, setDietaryPreferences] = useState(() => {
@@ -480,10 +485,41 @@ export default function Meals() {
                             const badge = meal?.id && mealMissingCount[meal.id];
                             if (!badge) return null;
                             const allCovered = badge.missing === 0;
+                            const justAdded = badgeAddedRef.current.has(meal.id);
+                            const interactive = !allCovered && !justAdded;
+                            const handleBadgeClick = (e) => {
+                              e.stopPropagation();
+                              if (!meal.id || badgeAddedRef.current.has(meal.id)) return;
+                              const names = mealIngredientsCache[meal.id];
+                              if (!Array.isArray(names)) return;
+                              const missingNames = names.filter(
+                                (name) => !groceries.some((grocery) => grocery.name.toLowerCase() === name)
+                              );
+                              if (!missingNames.length) return;
+                              for (const name of missingNames) {
+                                addGrocery({ name, quantity: 1, unit: "" });
+                              }
+                              badgeAddedRef.current.add(meal.id);
+                              forceUpdate((n) => n + 1);
+                              if (badgeTimerRef.current) window.clearTimeout(badgeTimerRef.current);
+                              badgeTimerRef.current = window.setTimeout(() => {
+                                badgeAddedRef.current.delete(meal.id);
+                                forceUpdate((n) => n + 1);
+                                badgeTimerRef.current = null;
+                              }, 2000);
+                            };
                             return (
-                              <span className={`meal-grocery-badge ${allCovered ? "covered" : "needs"}`}>
+                              <span
+                                className={`meal-grocery-badge ${justAdded ? "added" : allCovered ? "covered" : "needs"}`}
+                                onClick={interactive ? handleBadgeClick : undefined}
+                                role={interactive ? "button" : undefined}
+                                tabIndex={interactive ? 0 : undefined}
+                                onKeyDown={interactive ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleBadgeClick(e); } } : undefined}
+                                aria-label={justAdded ? "Ingredients added" : allCovered ? "All groceries covered" : `Add ${badge.missing} missing ingredients to list`}
+                                title={justAdded ? "Added!" : allCovered ? "All items already on grocery list" : `Tap to add ${badge.missing} missing ingredients`}
+                              >
                                 <ShoppingCart size={10} />
-                                {allCovered ? "✓" : badge.missing}
+                                {justAdded ? "✓ Added" : allCovered ? "✓" : badge.missing}
                               </span>
                             );
                           })()}
