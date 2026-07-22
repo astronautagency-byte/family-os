@@ -203,6 +203,10 @@ export default function CalendarPage() {
   const [discoverError, setDiscoverError] = useState("");
   const [discoveredEvents, setDiscoveredEvents] = useState([]);
   const [coverageLocalOnly, setCoverageLocalOnly] = useState(false);
+  // Per-city surgical toggles — when nearby-cities expansion fired, the
+  // user can disable a single contributing city without hiding all nearby.
+  // Reset alongside coverageLocalOnly on every discoveredEvents change.
+  const [excludedNearbyCities, setExcludedNearbyCities] = useState(() => new Set());
   const [discoverWhen, setDiscoverWhen] = useState("this weekend");
   const [discoverCities, setDiscoverCities] = useState([]);
   const [cityDraft, setCityDraft] = useState("");
@@ -478,6 +482,15 @@ export default function CalendarPage() {
 
   const searchLocalEvents = async () => { const cities = discoverCities.length ? discoverCities : (discoverLocation ? [discoverLocation] : []); await runSearch(cities); };
   const retryFailedCities = async () => { const failures = Array.isArray(resultDiagnostics?.failedCities) ? resultDiagnostics.failedCities.map((entry) => entry.city).filter(Boolean) : []; if (!failures.length) return; await refreshFromNetwork(failures); };
+  const toggleNearbyCity = (city) => {
+    setExcludedNearbyCities((prev) => {
+      const next = new Set(prev);
+      if (next.has(city)) next.delete(city);
+      else next.add(city);
+      return next;
+    });
+  };
+  const resetNearbyExclusions = () => setExcludedNearbyCities(() => new Set());
 
   const addDiscoveredEvent = (event) => {
     const start = new Date((event.startTime || "").replace(" ", "T"));
@@ -554,21 +567,32 @@ export default function CalendarPage() {
   // retryFailedCities, cache-hit re-open) in one place.
   useEffect(() => {
     setCoverageLocalOnly(false);
+    setExcludedNearbyCities(() => new Set());
   }, [discoveredEvents]);
 
   const dayEventCount = visibleEvents.filter(e => e.start.slice(0, 10) === selectedDate).length;
 
   // Coverage transparency: when nearby-cities expansion fired, show a
   // strip under the event list letting the user see what's from their
-  // areas vs nearby, and toggle off the nearby slice if they want only
-  // local events. Per the user's exact spec: "Showing N from {city}
-  // + M from nearby (A, B)" with a [Hide nearby events] toggle.
+  // areas vs nearby, with two layers of control — a global toggle
+  // ([Hide nearby events]) AND per-city chips that surgically disable
+  // individual contributing cities without affecting the rest.
   const userAreaEvents = discoveredEvents.filter((event) => event.origin !== "nearby");
-  const nearbyEventsArr = discoveredEvents.filter((event) => event.origin === "nearby");
-  const displayedEvents = coverageLocalOnly ? userAreaEvents : discoveredEvents;
-  const nearbyCities = Array.isArray(resultDiagnostics?.perCityCounts)
-    ? resultDiagnostics.perCityCounts.filter((entry) => entry.origin === "nearby").map((entry) => entry.city)
+  const totalNearbyEvents = discoveredEvents.filter((event) => event.origin === "nearby");
+  // The search-local-events edge function's mapEvent hard-sets `fromCity:
+  // city` on every event, so it is the single source of truth for the
+  // originating search city. No fallback needed — mixing fromCity/venue.city
+  // would let one chip click exclude some events but not others.
+  const displayedNearbyEvents = totalNearbyEvents.filter((event) => !excludedNearbyCities.has(event.fromCity));
+  const displayedEvents = coverageLocalOnly
+    ? userAreaEvents
+    : excludedNearbyCities.size === 0
+      ? discoveredEvents
+      : [...userAreaEvents, ...displayedNearbyEvents];
+  const nearbyCityCounts = Array.isArray(resultDiagnostics?.perCityCounts)
+    ? resultDiagnostics.perCityCounts.filter((entry) => entry.origin === "nearby").map((entry) => ({ city: entry.city, count: entry.count }))
     : [];
+  const nearbyCities = nearbyCityCounts.map((entry) => entry.city);
   const userCityLabel = searchCities.length === 1
     ? searchCities[0]
     : searchCities.length > 1
@@ -577,13 +601,17 @@ export default function CalendarPage() {
   const nearbyLabel = nearbyCities.length <= 3
     ? nearbyCities.join(", ")
     : `${nearbyCities.slice(0, 2).join(", ")} +${nearbyCities.length - 2} more`;
+  const hiddenNearbyCount = totalNearbyEvents.length - displayedNearbyEvents.length;
+  // Headline stays meaningful even when some chips are excluded, so the
+  // user can see the "actually visible" total alongside the chip-level
+  // toggles underneath.
   const coverageSummary = coverageLocalOnly
-    ? nearbyEventsArr.length === 0
-      ? `Showing ${userAreaEvents.length} from ${userCityLabel}.`
-      : `Showing ${userAreaEvents.length} from ${userCityLabel}. ${nearbyEventsArr.length} nearby events hidden.`
-    : userAreaEvents.length === 0
-      ? `Showing 0 from ${userCityLabel} + ${nearbyEventsArr.length} from nearby (${nearbyLabel}).`
-      : `Showing ${userAreaEvents.length} from ${userCityLabel} + ${nearbyEventsArr.length} from nearby (${nearbyLabel}).`;
+    ? `Showing ${userAreaEvents.length} from ${userCityLabel}. ${totalNearbyEvents.length} nearby events hidden.`
+    : userAreaEvents.length === 0 && hiddenNearbyCount === totalNearbyEvents.length && totalNearbyEvents.length > 0
+      ? `Showing 0 from ${userCityLabel}. ${totalNearbyEvents.length} nearby events hidden.`
+      : hiddenNearbyCount > 0
+        ? `Showing ${userAreaEvents.length} from ${userCityLabel} + ${displayedNearbyEvents.length} from nearby (${nearbyLabel}). ${hiddenNearbyCount} hidden by your city selection.`
+        : `Showing ${userAreaEvents.length} from ${userCityLabel} + ${displayedNearbyEvents.length} from nearby (${nearbyLabel}).`;
   const coverageToggleDisabled = !coverageLocalOnly && userAreaEvents.length === 0;
 
   return (
@@ -977,27 +1005,67 @@ export default function CalendarPage() {
                 ))}
               </div>
               {resultDiagnostics?.expanded && (
-                <div className="event-coverage-strip" role="status" aria-live="polite">
-                  <span aria-hidden="true"><TriangleAlert size={15} /></span>
-                  <div>
-                    <strong>Coverage</strong>
-                    <small>{coverageSummary}</small>
+                <>
+                  <div className="event-coverage-strip" role="status" aria-live="polite">
+                    <span aria-hidden="true"><TriangleAlert size={15} /></span>
+                    <div>
+                      <strong>Coverage</strong>
+                      <small>{coverageSummary}</small>
+                    </div>
+                    <button
+                      type="button"
+                      className="event-coverage-toggle"
+                      onClick={() => {
+                        // Toggling the global filter is a "clean break" —
+                        // reset the per-city chips too, otherwise the
+                        // "Show all (incl. nearby)" label would lie when
+                        // chip exclusions are still active.
+                        setCoverageLocalOnly((value) => !value);
+                        setExcludedNearbyCities(() => new Set());
+                      }}
+                      disabled={coverageToggleDisabled}
+                      aria-pressed={coverageLocalOnly}
+                      title={coverageLocalOnly
+                        ? "Show all events including nearby ones — also clears any per-city exclusions"
+                        : "Show only events from your home areas — also clears any per-city exclusions"}
+                    >
+                      {coverageLocalOnly
+                        ? <><Eye size={13} /> Show all (incl. nearby)</>
+                        : <><EyeOff size={13} /> Hide nearby events</>}
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    className="event-coverage-toggle"
-                    onClick={() => setCoverageLocalOnly((value) => !value)}
-                    disabled={coverageToggleDisabled}
-                    aria-pressed={coverageLocalOnly}
-                    title={coverageLocalOnly
-                      ? "Show all events including nearby ones"
-                      : "Show only events from your home areas"}
-                  >
-                    {coverageLocalOnly
-                      ? <><Eye size={13} /> Show all (incl. nearby)</>
-                      : <><EyeOff size={13} /> Hide nearby events</>}
-                  </button>
-                </div>
+                  {!coverageLocalOnly && nearbyCityCounts.length > 0 && (
+                    <div className="event-coverage-city-chips" role="group" aria-label="Toggle each nearby city">
+                      {nearbyCityCounts.map((entry) => {
+                        const excluded = excludedNearbyCities.has(entry.city);
+                        return (
+                          <button
+                            key={entry.city}
+                            type="button"
+                            className={`coverage-city-chip ${excluded ? "excluded" : ""}`}
+                            onClick={() => toggleNearbyCity(entry.city)}
+                            aria-pressed={!excluded}
+                            title={excluded
+                              ? `Show ${entry.count} events from ${entry.city}`
+                              : `Hide ${entry.count} events from ${entry.city}`}
+                          >
+                            <span className="coverage-city-name">{entry.city}</span>
+                            <span className="coverage-city-count">{entry.count}</span>
+                          </button>
+                        );
+                      })}
+                      {excludedNearbyCities.size > 0 && excludedNearbyCities.size < nearbyCityCounts.length && (
+                        <button
+                          type="button"
+                          className="coverage-city-chip coverage-city-chip-action"
+                          onClick={resetNearbyExclusions}
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}
