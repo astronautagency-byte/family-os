@@ -1,7 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { PublishCommand, SNSClient } from "npm:@aws-sdk/client-sns@3";
-import { GetAccountCommand, SendEmailCommand, SESv2Client } from "npm:@aws-sdk/client-sesv2@3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -46,22 +45,10 @@ const escapeHtml = (value = "") => value
   .replaceAll('"', "&quot;")
   .replaceAll("'", "&#039;");
 
-// SES in sandbox mode (or with a non-production-access account) can still hand
-// us back `MessageRejected` with reason "Email address is not verified" for
-// recipients it has not been told about. We treat that as a permanent
-// `sandbox_blocked` outcome rather than bumping the fallback chain, which
-// would otherwise hammer Supabase's per-account 60-second OTP cooldown on
-// every resend. The regex MUST stay in sync with tests/invitation-status.test.js.
-function isSandboxRecipientError(message = "") {
-  if (!message) return false;
-  return /Email address is not verified|MailFromDomainNotVerified|MailFromDomainNotVerifiedException/i.test(message);
-}
-
 // Supabase's signInWithOtp / inviteUserByEmail respond with a `429`-style
 // message that includes the remaining cooldown (e.g. "you can only request
 // this after 59 seconds"). Returns the seconds parsed, or `null` if the
-// message doesn't look like a rate-limit response. The regex MUST stay in sync
-// with tests/invitation-status.test.js.
+// message doesn't look like a rate-limit response.
 function parseRateLimitSeconds(message = "") {
   if (!message) return null;
   const match = /after\s+(\d+)\s+second/i.exec(message);
@@ -70,9 +57,7 @@ function parseRateLimitSeconds(message = "") {
   return Number.isFinite(seconds) && seconds >= 0 && seconds <= 600 ? seconds : null;
 }
 
-// Sleep helpers can't be exposed cleanly inside Supabase's edge runtime
-// without risking a shutdown, so we cap the wait to 70 seconds.
-async function retryAfterRateLimit(fn, maxWaitSeconds = 60) {
+async function retryAfterRateLimit(fn: () => Promise<void>, maxWaitSeconds = 60) {
   try {
     await fn();
   } catch (error) {
@@ -80,14 +65,11 @@ async function retryAfterRateLimit(fn, maxWaitSeconds = 60) {
     const wait = parseRateLimitSeconds(detail);
     if (wait === null || wait > maxWaitSeconds) throw error;
     await new Promise((resolve) => setTimeout(resolve, (wait + 1) * 1000));
-    await fn(); // single retry; if this throws, the caller decides what to do.
+    await fn();
   }
 }
 
 async function findAuthUserByEmail(admin: ReturnType<typeof createClient>, email: string) {
-  // `profiles` can briefly lag behind Auth (or contain a legacy/orphaned row),
-  // so it is not a reliable way to decide between an invite and a magic link.
-  // The Admin API is the source of truth for whether this email can receive OTP.
   for (let page = 1; page <= 10; page += 1) {
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
     if (error) throw error;
@@ -113,15 +95,7 @@ function invitationEmail({
   const safeInviter = escapeHtml(inviterName);
   const logoUrl = "https://fam-os.app/brand/famos-icon-transparent.png";
   const preheader = `${safeInviter} invited you to join ${safeHome} on FamOS.`;
-  const text = `${inviterName} invited you to join ${householdName} on FamOS.
-
-Share calendars, tasks, meals, grocery lists and family chat in one private home.
-
-Join your home: ${actionLink}
-
-This secure invitation expires in 7 days. If you were not expecting it, you can ignore this email.
-
-FamOS — Families Run Better on FamOS`;
+  const text = `${inviterName} invited you to join ${householdName} on FamOS.\n\nShare calendars, tasks, meals, grocery lists and family chat in one private home.\n\nJoin your home: ${actionLink}\n\nThis secure invitation expires in 7 days. If you were not expecting it, you can ignore this email.\n\nFamOS — Families Run Better on FamOS`;
 
   const html = `<!doctype html>
 <html lang="en">
@@ -140,7 +114,7 @@ FamOS — Families Run Better on FamOS`;
           </tr>
           <tr>
             <td style="padding:34px 32px 12px;text-align:center">
-              <h1 style="margin:0;font-size:30px;line-height:1.15;letter-spacing:-.03em;color:#19172b">You’re invited home</h1>
+              <h1 style="margin:0;font-size:30px;line-height:1.15;letter-spacing:-.03em;color:#19172b">You\u2019re invited home</h1>
               <p style="margin:16px auto 0;max-width:430px;font-size:16px;line-height:1.6;color:#5d5970">
                 <strong style="color:#19172b">${safeInviter}</strong> invited you to join
                 <strong style="color:#19172b">${safeHome}</strong> on FamOS.
@@ -165,8 +139,8 @@ FamOS — Families Run Better on FamOS`;
           <tr>
             <td style="padding:20px 32px;border-top:1px solid #eee9fa;text-align:center;font-size:12px;line-height:1.5;color:#918ca4">
               This invitation was sent because a FamOS member entered this email address. Only accept if you recognize the inviter. FamOS will never ask for your password by email.<br>
-              <a href="https://fam-os.app/privacy" style="color:#6457d9">Privacy</a> · <a href="https://fam-os.app/terms" style="color:#6457d9">Terms</a> · <a href="mailto:support@fam-os.app" style="color:#6457d9">Support</a><br>
-              © 2026 FamOS. All rights reserved.
+              <a href="https://fam-os.app/privacy" style="color:#6457d9">Privacy</a> \u00b7 <a href="https://fam-os.app/terms" style="color:#6457d9">Terms</a> \u00b7 <a href="mailto:support@fam-os.app" style="color:#6457d9">Support</a><br>
+              \u00a9 2026 FamOS. All rights reserved.
             </td>
           </tr>
         </table>
@@ -192,26 +166,6 @@ Deno.serve(async (request) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const resendKey = Deno.env.get("RESEND_API_KEY");
     const fromEmail = Deno.env.get("FAMOS_FROM_EMAIL") || "FamOS <invites@fam-os.app>";
-    const awsAccessKeyId = Deno.env.get("AWS_ACCESS_KEY_ID");
-    const awsSecretAccessKey = Deno.env.get("AWS_SECRET_ACCESS_KEY");
-    const awsRegion = Deno.env.get("AWS_REGION") || "ca-central-1";
-    const hasAwsMessaging = Boolean(awsAccessKeyId && awsSecretAccessKey);
-    let awsEmailEnabled = false;
-    if (hasAwsMessaging) {
-      try {
-        const account = await new SESv2Client({
-          region: awsRegion,
-          credentials: { accessKeyId: awsAccessKeyId!, secretAccessKey: awsSecretAccessKey! },
-        }).send(new GetAccountCommand({}));
-        awsEmailEnabled = Boolean(account.ProductionAccessEnabled && account.SendingEnabled);
-      } catch (error) {
-        console.warn(JSON.stringify({
-          event: "family_invitation_ses_status_unavailable",
-          requestId,
-          message: error?.message || String(error),
-        }));
-      }
-    }
 
     const admin = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
     const accessToken = authorization.replace(/^Bearer\s+/i, "").trim();
@@ -276,18 +230,12 @@ Deno.serve(async (request) => {
       event: "family_invitation_started",
       requestId,
       existingAccount: Boolean(existingAuthUser),
-      emailProvider: resendKey ? "resend" : hasAwsMessaging ? "aws_ses" : "supabase_smtp",
-      awsEmailStatusConfirmed: awsEmailEnabled,
+      emailProvider: resendKey ? "resend" : "supabase_smtp",
       smsRequested: Boolean(normalizedPhone),
-      awsRegion,
     }));
     const sms = { requested: Boolean(normalizedPhone), sent: false, message: "" };
     partialSms = sms;
-    // Generate a secure action link using Supabase's internal invite/magiclink
-    // flow so the recipient receives a clickable link (not a one-time code or
-    // a generic password-reset prompt). This is the same `generateLink` API the
-    // branded email path uses — for the Supabase fallback, we rely on Supabase
-    // sending its own email template with that link embedded.
+
     const sendSupabaseEmail = async () => {
       const linkType = existingAuthUser ? "magiclink" : "invite";
       const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
@@ -296,12 +244,13 @@ Deno.serve(async (request) => {
         options: { redirectTo: callbackUrl },
       });
       if (linkError || !linkData?.properties?.action_link) throw linkError || new Error("Could not create a secure invitation link.");
-      // generateLink sends Supabase's own template email with the action_link
-      // embedded. The action_link is a one-time use URL the recipient clicks to
-      // set their password for new accounts or sign in for existing accounts.
     };
+
     if (normalizedPhone) {
       stage = "sending the invitation SMS";
+      const awsAccessKeyId = Deno.env.get("AWS_ACCESS_KEY_ID");
+      const awsSecretAccessKey = Deno.env.get("AWS_SECRET_ACCESS_KEY");
+      const awsRegion = Deno.env.get("AWS_REGION") || "ca-central-1";
       const textbeltKey = Deno.env.get("TEXTBELT_API_KEY");
       if (!awsAccessKeyId || !awsSecretAccessKey) {
         if (!textbeltKey) {
@@ -362,76 +311,25 @@ Deno.serve(async (request) => {
       }
     }
 
-    // Keep invitations functional while the custom sender is being configured.
-    // Supabase sends either an invite for a new Auth account or a sign-in OTP
-    // for an existing account. Once RESEND_API_KEY is present, the branded
-    // FamOS template below becomes the delivery path automatically.
-    //
-    // Skip SES entirely when the AWS account is sandboxed (ProductionAccess off
-    // OR sending disabled) — every recipient will be rejected with
-    // "Email address is not verified". Routing those attempts through
-    // Supabase SMTP avoids AWS errors and keeps the household queues working
-    // while production access is being approved.
-    if (!resendKey && (!hasAwsMessaging || !awsEmailEnabled)) {
-      stage = "sending the Supabase invitation email";
-      try {
-        await retryAfterRateLimit(sendSupabaseEmail);
-        console.log(JSON.stringify({ event: "family_invitation_email", requestId, provider: "supabase_smtp", sent: true, emailStatus: "delivered" }));
-        return json({
-          sent: true,
-          existingAccount: Boolean(existingAuthUser),
-          pending: true,
-          provider: "supabase",
-          emailStatus: "delivered",
-          emailErrorKind: null,
-          sms,
-        });
-      } catch (supabaseError) {
-        const detail = errorMessage(supabaseError);
-        const rateLimited = parseRateLimitSeconds(detail) !== null;
-        console.warn(JSON.stringify({
-          event: "family_invitation_email_blocked",
-          requestId,
-          provider: "supabase",
-          emailStatus: rateLimited ? "rate_limited" : "no_email_provider",
-          emailErrorKind: rateLimited ? "rate-limited" : "unknown",
-          message: detail,
-        }));
-        if (invitationSaved) {
-          return json({
-            sent: false,
-            pending: true,
-            emailError: detail,
-            emailErrorKind: rateLimited ? "rate-limited" : "unknown",
-            emailStatus: rateLimited ? "rate_limited" : "no_email_provider",
-            provider: "supabase",
-            existingAccount: Boolean(existingAuthUser),
-            sms,
-            requestId,
-          });
-        }
-        throw supabaseError;
-      }
-    }
-
-    const linkType = existingAuthUser ? "magiclink" : "invite";
-    stage = "creating the secure invitation link";
-    const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
-      type: linkType,
-      email: normalizedEmail,
-      options: { redirectTo: callbackUrl },
-    });
-    if (linkError || !linkData?.properties?.action_link) throw linkError || new Error("Could not create a secure invitation link.");
-
-    const content = invitationEmail({
-      actionLink: linkData.properties.action_link,
-      appOrigin,
-      householdName,
-      inviterName,
-    });
-    let emailId = "";
-    let provider = "aws_ses";
+    // Email delivery — try Resend first, fall back to Supabase SMTP.
+    // AWS SES has been removed in favour of Resend's simpler verified-domains
+    // model that doesn't require production-access approval per recipient.
     if (resendKey) {
+      stage = "creating the secure invitation link";
+      const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+        type: existingAuthUser ? "magiclink" : "invite",
+        email: normalizedEmail,
+        options: { redirectTo: callbackUrl },
+      });
+      if (linkError || !linkData?.properties?.action_link) throw linkError || new Error("Could not create a secure invitation link.");
+
+      const content = invitationEmail({
+        actionLink: linkData.properties.action_link,
+        appOrigin,
+        householdName,
+        inviterName,
+      });
+
       stage = "sending the Resend invitation email";
       const emailResponse = await fetch("https://api.resend.com/emails", {
         method: "POST",
@@ -447,108 +345,61 @@ Deno.serve(async (request) => {
       });
       const emailResult = await emailResponse.json();
       if (!emailResponse.ok) throw new Error(emailResult?.message || "The invitation was saved, but the branded email could not be sent.");
-      emailId = emailResult.id;
-      provider = "resend";
-    } else {
-      stage = "sending the Amazon SES invitation email";
-      const ses = new SESv2Client({
-        region: awsRegion,
-        credentials: { accessKeyId: awsAccessKeyId!, secretAccessKey: awsSecretAccessKey! },
+
+      console.log(JSON.stringify({ event: "family_invitation_email", requestId, provider: "resend", sent: true }));
+      return json({
+        sent: true,
+        existingAccount: Boolean(existingAuthUser),
+        pending: true,
+        emailId: emailResult.id,
+        provider: "resend",
+        emailStatus: "delivered",
+        emailErrorKind: null,
+        sms,
+        requestId,
       });
-      try {
-        const emailResult = await ses.send(new SendEmailCommand({
-          FromEmailAddress: fromEmail,
-          Destination: { ToAddresses: [normalizedEmail] },
-          Content: {
-            Simple: {
-              Subject: { Data: `${inviterName} invited you to ${householdName} on FamOS`, Charset: "UTF-8" },
-              Body: {
-                Html: { Data: content.html, Charset: "UTF-8" },
-                Text: { Data: content.text, Charset: "UTF-8" },
-              },
-            },
-          },
-        }));
-        emailId = emailResult.MessageId || "";
-        if (!emailId) throw new Error("Amazon SES did not return a message ID.");
-      } catch (sesError) {
-        const sesMessage = errorMessage(sesError);
-        if (isSandboxRecipientError(sesMessage)) {
-          console.warn(JSON.stringify({
-            event: "family_invitation_email_blocked",
-            requestId,
-            provider: "aws_ses",
-            emailStatus: "sandbox_blocked",
-            emailErrorKind: "sandbox-recipient-unverified",
-            message: sesMessage,
-          }));
-          return json({
-            sent: Boolean(sms?.sent),
-            pending: true,
-            emailError: sesMessage,
-            emailErrorKind: "sandbox-recipient-unverified",
-            emailStatus: "sandbox_blocked",
-            provider: "aws_ses",
-            existingAccount: Boolean(existingAuthUser),
-            sms,
-            requestId,
-          });
-        }
-        console.warn(JSON.stringify({ event: "family_invitation_ses_fallback", requestId, message: sesMessage }));
-        try {
-          await retryAfterRateLimit(sendSupabaseEmail);
-        } catch (fallbackError) {
-          const fallbackDetail = errorMessage(fallbackError);
-          const rateLimited = parseRateLimitSeconds(fallbackDetail) !== null;
-          console.warn(JSON.stringify({
-            event: "family_invitation_email_blocked",
-            requestId,
-            provider: "supabase_fallback",
-            emailStatus: rateLimited ? "rate_limited" : "no_email_provider",
-            emailErrorKind: rateLimited ? "rate-limited" : "unknown",
-            message: fallbackDetail,
-          }));
-          if (invitationSaved) {
-            return json({
-              sent: Boolean(sms?.sent),
-              pending: true,
-              emailError: fallbackDetail,
-              emailErrorKind: rateLimited ? "rate-limited" : "unknown",
-              emailStatus: rateLimited ? "rate_limited" : "no_email_provider",
-              provider: "supabase_fallback",
-              existingAccount: Boolean(existingAuthUser),
-              sms,
-              requestId,
-            });
-          }
-          throw new Error(`Amazon SES: ${sesMessage}. Supabase email fallback: ${fallbackDetail}`);
-        }
+    }
+
+    // No Resend — fall back to Supabase Auth's built-in SMTP.
+    stage = "sending the Supabase invitation email";
+    try {
+      await retryAfterRateLimit(sendSupabaseEmail);
+      console.log(JSON.stringify({ event: "family_invitation_email", requestId, provider: "supabase_smtp", sent: true, emailStatus: "delivered" }));
+      return json({
+        sent: true,
+        existingAccount: Boolean(existingAuthUser),
+        pending: true,
+        provider: "supabase",
+        emailStatus: "delivered",
+        emailErrorKind: null,
+        sms,
+      });
+    } catch (supabaseError) {
+      const detail = errorMessage(supabaseError);
+      const rateLimited = parseRateLimitSeconds(detail) !== null;
+      console.warn(JSON.stringify({
+        event: "family_invitation_email_blocked",
+        requestId,
+        provider: "supabase",
+        emailStatus: rateLimited ? "rate_limited" : "no_email_provider",
+        emailErrorKind: rateLimited ? "rate-limited" : "unknown",
+        message: detail,
+      }));
+      if (invitationSaved) {
         return json({
-          sent: true,
-          existingAccount: Boolean(existingAuthUser),
+          sent: false,
           pending: true,
-          provider: "supabase_fallback",
-          emailStatus: "supabase_fallback_delivered",
-          emailErrorKind: null,
-          providerWarning: sesMessage,
+          emailError: detail,
+          emailErrorKind: rateLimited ? "rate-limited" : "unknown",
+          emailStatus: rateLimited ? "rate_limited" : "no_email_provider",
+          provider: "supabase",
+          existingAccount: Boolean(existingAuthUser),
           sms,
           requestId,
         });
       }
+      throw supabaseError;
     }
-    console.log(JSON.stringify({ event: "family_invitation_email", requestId, provider, sent: true }));
-
-    return json({
-      sent: true,
-      existingAccount: Boolean(existingAuthUser),
-      pending: true,
-      emailId,
-      provider,
-      emailStatus: "delivered",
-      emailErrorKind: null,
-      sms,
-      requestId,
-    });
   } catch (error) {
     const detail = errorMessage(error);
     const message = `Invitation failed during ${stage}: ${detail}`;

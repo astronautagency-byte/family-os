@@ -329,7 +329,6 @@ function DeliveryTestCard() {
   };
 
   const channelLabel = {
-    aws_ses: "Amazon SES",
     resend: "Resend",
     supabase_smtp: "Supabase SMTP",
     aws_sns: "Amazon SNS",
@@ -353,10 +352,6 @@ function DeliveryTestCard() {
     if (!status || status === "sent" || status === "skipped") return null;
     const safeRegion = region || "ca-central-1";
     switch (channel) {
-      case "aws_ses":
-        if (status === "blocked") return { url: `https://console.aws.amazon.com/ses/home?region=${safeRegion}#/verified-identities`, label: "Verify recipient in SES" };
-        if (status === "paused") return { url: `https://console.aws.amazon.com/ses/home?region=${safeRegion}#/account`, label: "Re-enable SES sending" };
-        return { url: `https://console.aws.amazon.com/ses/home?region=${safeRegion}`, label: "Open SES console" };
       case "aws_sns":
         return { url: `https://console.aws.amazon.com/pinpoint/home?region=${safeRegion}#/end-user-messaging/sms`, label: "Verify SMS in End User Messaging" };
       case "resend":

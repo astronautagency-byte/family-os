@@ -1,20 +1,18 @@
-// Self-test for every delivery channel wired into FamOS: AWS SES, Resend,
+// Self-test for every delivery channel wired into FamOS: Resend,
 // Supabase SMTP, AWS SNS, and Textbelt. One tap in Settings → Integrations
 // fires a real attempt through each provider the household has configured
-// and returns a structured pass / fail back to the client. Cuts the
-// "is email working?" support loop from "read function logs" to a one-tap
-// in-app diagnostic.
+// and returns a structured pass / fail back to the client.
+//
+// AWS SES has been removed in favour of Resend's simpler verified-domains
+// model that doesn't require production-access approval per recipient.
 //
 // Concurrency / abuse: clients throttle to one test per 60 seconds; the
 // edge function itself does NOT throttle because master-owners legitimately
-// need to retest after rotating a key. Every channel attempt logs
-// `event: "delivery_test_run"` with the per-channel status so the backend
-// can audit rate.
+// need to retest after rotating a key.
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { PublishCommand, SNSClient } from "npm:@aws-sdk/client-sns@3";
-import { GetAccountCommand, SendEmailCommand, SESv2Client } from "npm:@aws-sdk/client-sesv2@3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,10 +26,6 @@ const json = (body: Record<string, unknown>, status = 200) =>
   });
 
 const TEST_SUBJECT_PREFIX = "[FamOS test]";
-// In-memory rate limit. Supabase edge runtimes reset the module on a cold
-// start, so this is best-effort only; the client-side cooldown in Settings is
-// the primary gate. This server-side map catches the case where a user
-// hammers the function from a script or a second tab.
 const SERVER_TEST_COOLDOWN_MS = 60_000;
 const lastTestByUser = new Map<string, number>();
 
@@ -91,9 +85,7 @@ Deno.serve(async (request) => {
     if (userError || !user) throw new Error("Your session has expired. Sign in again.");
     if (!user.email) throw new Error("Your account needs a primary email to run delivery tests.");
 
-    // Server-side 60s throttle by user.id. Best-effort (in-memory; resets on
-    // cold start) but catches click-spammers and script callers that bypass
-    // the Settings card's client cooldown.
+    // Server-side 60s throttle
     const nowMs = Date.now();
     const lastMs = lastTestByUser.get(user.id) ?? 0;
     if (nowMs - lastMs < SERVER_TEST_COOLDOWN_MS) {
@@ -107,114 +99,7 @@ Deno.serve(async (request) => {
 
     const results: ChannelResult[] = [];
 
-    // ── 1. AWS SES ────────────────────────────────────────────────────────
-    if (hasAws) {
-      const startedAt = Date.now();
-      try {
-        const probe = await new SESv2Client({
-          region: awsRegion,
-          credentials: { accessKeyId: awsAccessKeyId!, secretAccessKey: awsSecretAccessKey! },
-        }).send(new GetAccountCommand({}));
-        const productionOn = Boolean(probe.ProductionAccessEnabled);
-        const sendingOn = Boolean(probe.SendingEnabled);
-        if (!productionOn) {
-          results.push({
-            channel: "aws_ses",
-            provider: "aws_ses",
-            kind: "email",
-            status: "blocked",
-            error:
-              "AWS SES is still in sandbox mode in this region. Submit an AWS Support case to lift production access, or switch the household to Resend.",
-            latency_ms: Date.now() - startedAt,
-            region: awsRegion,
-          });
-        } else if (!sendingOn) {
-          results.push({
-            channel: "aws_ses",
-            provider: "aws_ses",
-            kind: "email",
-            status: "paused",
-            error: "AWS SES sending is paused. Re-enable it from the AWS SES console in this region.",
-            latency_ms: Date.now() - startedAt,
-            region: awsRegion,
-          });
-        } else {
-          // Production-access ON — fire a real send to the master owner
-          try {
-            const ses = new SESv2Client({
-              region: awsRegion,
-              credentials: { accessKeyId: awsAccessKeyId!, secretAccessKey: awsSecretAccessKey! },
-            });
-            const result = await ses.send(
-              new SendEmailCommand({
-                FromEmailAddress: fromEmail,
-                Destination: { ToAddresses: [user.email] },
-                Content: {
-                  Simple: {
-                    Subject: { Data: `${TEST_SUBJECT_PREFIX} Amazon SES · ignore`, Charset: "UTF-8" },
-                    Body: {
-                      Text: {
-                        Data: `This is a FamOS delivery-channel self-test through Amazon SES (${awsRegion}). If you got this, SES is healthy and ready for invites.`,
-                        Charset: "UTF-8",
-                      },
-                    },
-                  },
-                },
-              }),
-            );
-            results.push({
-              channel: "aws_ses",
-              provider: "aws_ses",
-              kind: "email",
-              status: result.MessageId ? "sent" : "failed",
-              latency_ms: Date.now() - startedAt,
-              message: result.MessageId,
-              region: awsRegion,
-            });
-          } catch (sesError) {
-            const msg = errorMessage(sesError);
-            const sandbox = /Email address is not verified|MailFromDomainNotVerified/i.test(msg);
-            results.push({
-              channel: "aws_ses",
-              provider: "aws_ses",
-              kind: "email",
-              status: sandbox ? "blocked" : "failed",
-              error: sandbox
-                ? `AWS SES rejected your account email as unverified. Verify ${user.email} in the SES console or wait for production access.`
-                : msg,
-              latency_ms: Date.now() - startedAt,
-              region: awsRegion,
-            });
-          }
-        }
-      } catch (probeError) {
-        const msg = errorMessage(probeError);
-        // Probe failures with "MessageRejected" still tell us the region is reachable
-        // but the IAM key lacks ses:GetAccount. Treat as "unreachable" so the master
-        // owner knows to rotate keys.
-        results.push({
-          channel: "aws_ses",
-          provider: "aws_ses",
-          kind: "email",
-          status: /AccessDenied|not authorized|accessdenied/i.test(msg) ? "unreachable" : "failed",
-          error: /AccessDenied|not authorized|accessdenied/i.test(msg)
-            ? "The FamOS AWS key is missing ses:GetAccountAndSendEmail permission."
-            : msg,
-          latency_ms: Date.now() - startedAt,
-          region: awsRegion,
-        });
-      }
-    } else {
-      results.push({
-        channel: "aws_ses",
-        provider: "aws_ses",
-        kind: "email",
-        status: "not_configured",
-        error: "AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY missing in Supabase secrets.",
-      });
-    }
-
-    // ── 2. Resend ─────────────────────────────────────────────────────────
+    // ── 1. Resend ─────────────────────────────────────────────────────────
     if (resendKey) {
       const startedAt = Date.now();
       try {
@@ -270,16 +155,11 @@ Deno.serve(async (request) => {
         provider: "resend",
         kind: "email",
         status: "not_configured",
-        error: "RESEND_API_KEY missing in Supabase secrets. Add one to route email through Resend regardless of SES sandbox status.",
+        error: "RESEND_API_KEY missing in Supabase secrets.",
       });
     }
 
-    // ── 3. Supabase SMTP (probe-only — never fire a magic-link from a test!) ──
-    // We intentionally avoid admin.auth.admin.generateLink here: it queues a
-    // real magic-link email and burns Supabase's per-account ~60s invite
-    // cooldown. listUsers({ page: 1, perPage: 1 }) touches the same admin path
-    // without firing any email, so a "sent" result here means the Supabase
-    // project + admin API are reachable — the channel that delivers invites.
+    // ── 2. Supabase SMTP (probe-only — never fire a magic-link from a test!) ──
     {
       const startedAt = Date.now();
       try {
@@ -301,7 +181,7 @@ Deno.serve(async (request) => {
             kind: "email",
             status: "sent",
             latency_ms,
-            message: "admin API reachable · send a real invite to confirm Supabase SMTP actually delivers",
+            message: "admin API reachable",
           });
         }
       } catch (supabaseError) {
@@ -316,7 +196,7 @@ Deno.serve(async (request) => {
       }
     }
 
-    // ── 4. SMS via AWS SNS or Textbelt (only if phone was provided) ──────
+    // ── 3. SMS via AWS SNS or Textbelt ─────────────────────────────────────
     if (testPhone) {
       if (!/^\+?\d{10,15}$/.test(testPhone)) {
         results.push({

@@ -99,6 +99,7 @@ Companion changes (apply in this order if you are reproducing from scratch):
    ```bash
    supabase secrets set RESEND_API_KEY=re_... FAMOS_FROM_EMAIL="FamOS <invites@fam-os.app>"
    ```
+
    To send optional transactional SMS invitations through Amazon SNS, add an IAM access key with `sns:Publish` permission:
    ```bash
    supabase secrets set \
@@ -106,7 +107,7 @@ Companion changes (apply in this order if you are reproducing from scratch):
      AWS_SECRET_ACCESS_KEY=... \
      AWS_REGION=ca-central-1
    ```
-   `AWS_SNS_SENDER_ID=FamOS` is optional and only applies in countries that support sender IDs.
+   `AWS_SNS_SENDER_ID=FamOS` is optional. These AWS credentials are only used for SMS delivery, not email — email is handled exclusively by Resend.
 
    Before sending, activate **AWS End User Messaging SMS** in the same `AWS_REGION`, verify at least one sandbox destination, and send a console test. New accounts are sandboxed and can only message verified destinations until AWS approves SMS Production Access.
 
@@ -123,14 +124,14 @@ Companion changes (apply in this order if you are reproducing from scratch):
      ]
    }
    ```
-   The administrator configuring or inspecting the AWS SMS account also needs read access to AWS End User Messaging SMS, including `sms-voice:DescribeAccountAttributes`. Do not add administrator permissions to the key stored in Supabase.
-5. Deploy the family invitation email function and the password/invite-OTP email function:
+5. Deploy the email and SMS delivery functions:
    ```bash
    supabase functions deploy send-family-invitation
    supabase functions deploy send-password-email
+   supabase functions deploy test-delivery
    supabase functions deploy prepare-invited-account
    ```
-   Supabase automatically provides `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`. Both functions generate Supabase-secured links and use Resend for branded email delivery. `send-password-email` handles password resets and invitation OTP codes; `send-family-invitation` handles the full HTML invitation email for new members.
+   Supabase automatically provides `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`. All email delivery goes through Resend (no AWS SES dependency). `send-password-email` handles password resets and invitation OTP codes; `send-family-invitation` handles the full HTML invitation email for new members; `test-delivery` lets you verify every channel from Settings → Integrations.
 6. Configure Supabase Auth URL settings and make sure `https://fam-os.app/`, `http://localhost:5173`, and `http://127.0.0.1:5173` are allowed redirect URLs.
 7. Start the app and sign in. New owners name their family, then can invite members immediately or skip and add them later from Settings. New invitees create a password from the secure link; existing users sign in and confirm the waiting household.
 
