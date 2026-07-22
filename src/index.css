@@ -1688,6 +1688,22 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .m3-dialog-layer .modal-card{max-height:min(90dvh,calc(100dvh - env(safe-area-inset-top)))!important;overscroll-behavior:contain}
 .m3-dialog-layer .modal-close-button{top:8px!important;z-index:1002}
 
+/* ── Page loading skeleton (replaces centered spinner in Suspense fallback) ── */
+.app-page-skeleton{padding:0 20px;animation:skeletonFadeIn 400ms ease}
+@keyframes skeletonFadeIn{from{opacity:0}to{opacity:1}}
+.skeleton-header{padding:22px 0 18px;border-bottom:1px solid var(--color-border)}
+.skeleton-eyebrow{width:64px;height:12px;border-radius:6px;margin-bottom:10px}
+.skeleton-title{width:min(220px,55%);height:26px;border-radius:8px;margin-bottom:8px}
+.skeleton-subtitle{width:min(180px,45%);height:14px;border-radius:7px}
+.skeleton-cards{display:grid;gap:12px;padding:22px 0 80px}
+.skeleton-card{width:100%;height:82px;border-radius:var(--radius-card)}
+.skeleton-card--tall{height:144px}
+.skeleton-card--short{height:64px}
+.shimmer{position:relative;overflow:hidden;background:color-mix(in srgb,var(--color-ink-faint) 8%,var(--color-surface-sunken));border:none}
+.shimmer::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,color-mix(in srgb,var(--color-ink-faint) 4%,var(--color-surface)) 50%,transparent 100%);animation:shimmerSlide 1.4s ease-in-out infinite}
+@keyframes shimmerSlide{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+@media(prefers-reduced-motion:reduce){.shimmer::after{animation:none;background:transparent}}
+
 /* ── Calendar manager (inline modal for Calendar page) ── */
 .calendar-manager{display:grid;gap:18px}
 .calendar-manager-empty{text-align:center;padding:24px 12px 8px;display:grid;gap:12px;justify-items:center}

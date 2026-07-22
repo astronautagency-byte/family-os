@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { LoaderCircle, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { FamilyProvider } from "./context/FamilyContext";
 import BottomNav from "./components/BottomNav";
 import AppTopBar from "./components/AppTopBar";
@@ -25,8 +25,19 @@ const Terms = lazy(() => import("./pages/Terms"));
 const Admin = lazy(() => import("./pages/Admin"));
 
 const PageFallback = () => (
-  <div className="app-page-fallback" role="status" aria-label="Loading">
-    <LoaderCircle size={26} className="app-page-fallback-spin" />
+  <div className="app-page-skeleton" role="status" aria-label="Loading page">
+    <div className="skeleton-header">
+      <div className="skeleton-eyebrow shimmer" />
+      <div className="skeleton-title shimmer" />
+      <div className="skeleton-subtitle shimmer" />
+    </div>
+    <div className="skeleton-cards">
+      <div className="skeleton-card shimmer" />
+      <div className="skeleton-card skeleton-card--tall shimmer" />
+      <div className="skeleton-card shimmer" />
+      <div className="skeleton-card skeleton-card--short shimmer" />
+      <div className="skeleton-card shimmer" />
+    </div>
   </div>
 );
 const VALID_TABS = ["today","calendar","meals","tasks","groceries","chat","famai","settings"];
