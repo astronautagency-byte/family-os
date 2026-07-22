@@ -318,6 +318,10 @@ export default function FamAI() {
       content: "Hi, I’m Fam AI. Tell me what you need and I’ll suggest the next step.",
     },
   ]);
+  const [busy, setBusy] = useState(false);
+  const [input, setInput] = useState("");
+  const [pending, setPending] = useState([]);
+  const [error, setError] = useState("");
   const chatRef = useRef(null);
 
   // Auto-scroll chat to bottom when new messages arrive
@@ -326,10 +330,6 @@ export default function FamAI() {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
     }
   }, [messages, busy]);
-  const [input, setInput] = useState("");
-  const [pending, setPending] = useState([]);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
 
   const memberId = (name) =>
     members.find((member) =>
