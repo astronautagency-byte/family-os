@@ -576,28 +576,25 @@ export function FamilyProvider({ children, tabletMode = false }) {
 
   // ---- Chat unread tracking (per-device via a last-read timestamp) ----
   const currentUserId = user?.id || members[0]?.id;
-  // The key is scoped to the current user so different people on the same
-  // device don't share one timestamp (which would suppress the initial badge
-  // for the second person). Crucially this key is read ONCE via a synchronous
-  // useState initializer — NOT via a useEffect that depends on user?.id — so
-  // the race condition where the key changes mid-load is eliminated.
   const CHAT_READ_BASE = "familyos:chat-last-read";
-  const [chatLastRead, setChatLastRead] = useState(() => {
-    try {
-      // user is stable on first render if session is persisted; if null,
-      // fall back to the shared key (safe, same-device scenario).
-      const key = user?.id ? `${CHAT_READ_BASE}:${user.id}` : CHAT_READ_BASE;
-      return Number(localStorage.getItem(key)) || 0;
-    } catch { return 0; }
-  });
-  // Mount-time sync: re-reads the stored value so StrictMode double-mount
-  // doesn't leave a stale initial render. No dependencies, runs once.
+  // Start at 0 on every page load so existing household messages are unread
+  // until the user explicitly opens the Chat page. The persisted timestamp is
+  // only written by markChatRead() — never read on mount — so a page refresh
+  // correctly treats all existing messages as unread.
+  const [chatLastRead, setChatLastRead] = useState(0);
+  // On mount, load the persisted read mark so messages sent after the user
+  // last opened Chat still appear as unread. Delayed by a tick so synchronous
+  // state initializers (including remote data load) settle first.
   useEffect(() => {
-    try {
-      const key = user?.id ? `${CHAT_READ_BASE}:${user.id}` : CHAT_READ_BASE;
-      setChatLastRead(Number(localStorage.getItem(key)) || 0);
-    } catch {}
-  }, []);
+    const handle = setTimeout(() => {
+      try {
+        const key = user?.id ? `${CHAT_READ_BASE}:${user.id}` : CHAT_READ_BASE;
+        const stored = Number(localStorage.getItem(key)) || 0;
+        if (stored > 0) setChatLastRead(stored);
+      } catch {}
+    }, 0);
+    return () => clearTimeout(handle);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const markChatRead = () => {
     const now = Date.now();
     setChatLastRead(now);
