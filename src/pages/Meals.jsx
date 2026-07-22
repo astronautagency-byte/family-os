@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Bookmark, CalendarPlus, CandyOff, Check, ChefHat, Clock, Coffee, Dices, FishOff, Leaf, ListChecks, MilkOff, NutOff, Soup, Sparkles, Sprout, Trash2, Users, WheatOff, X } from "lucide-react";
+import { ArrowLeft, Bookmark, CalendarPlus, CandyOff, Check, ChefHat, Clock, Coffee, Dices, FishOff, Leaf, ListChecks, MilkOff, NutOff, ShoppingCart, Soup, Sparkles, Sprout, Trash2, Users, WheatOff, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { AvatarStack, Card, Modal, PrimaryButton, SecondaryButton, TextField, colorVar } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import { MEAL_SLOTS } from "../data/mockData";
-import { CUISINES, groceryItemsForMealTitle, normaliseDietaryPreferences, recipeDetailForTitle, recipeSearchProfileForMeal, recipesByCuisine } from "../data/recipeBox";
+import { recipeSearchProfileForMeal } from "../data/recipeBox";
 import { addDays, formatDayLabel, todayISO } from "../lib/dates";
 import { supabase } from "../lib/supabase";
 
@@ -53,11 +53,37 @@ const normaliseSavedRecipe = (recipe = {}) => ({
   servings: recipe.servings || 4,
   ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : [],
   instructions: Array.isArray(recipe.instructions) ? recipe.instructions : [],
-  image: recipe.image || "",
+  source: recipe.source || "api-ninjas",
   sourceUrl: recipe.sourceUrl || "",
   savedAt: recipe.savedAt || new Date().toISOString(),
 });
 
+// Pull a single recipe out of a recipe-search response — strict API Ninjas
+// shape (returns `{recipes: [...]}`; older clients/tests may wrap that in
+// `{data: {recipes}}`).
+const recipeFromSearch = (data) => {
+  if (!data) return null;
+  const root = data?.data && typeof data.data === "object" ? data.data : data;
+  const list = Array.isArray(root?.recipes) ? root.recipes : [];
+  return list[0] || null;
+};
+
+// Skinny recipe used while we wait for API Ninjas. Cook Mode renders the
+// title alone so the family still gets a holdable target even when the
+// instructions blob hasn't arrived yet.
+const placeholderRecipe = (title, slot) => ({
+  title: title || "Untitled recipe",
+  cuisine: "Waiting for API Ninjas",
+  readyInMinutes: 35,
+  servings: 4,
+  ingredients: [],
+  instructions: [],
+  source: "api-ninjas",
+  sourceUrl: "https://api-ninjas.com/api/recipe",
+  slot,
+});
+
+const titleFromMeal = (meal) => String(meal?.title || "").trim();
 
 export default function Meals() {
   const { members, memberById, meals, groceries, addGrocery, setMealForSlot, removeMeal, clearMeals } = useFamily();
@@ -67,13 +93,13 @@ export default function Meals() {
   const [editing, setEditing] = useState(null); // { date, slot }
   const [draft, setDraft] = useState({ title: "", notes: "", cookIds: [] });
   const [showSavedRecipes, setShowSavedRecipes] = useState(false);
-  const [ingredientsAdded, setIngredientsAdded] = useState(false);
   const [cookMeal, setCookMeal] = useState(null);
   const [cookRecipe, setCookRecipe] = useState(null);
   const [cookLoading, setCookLoading] = useState(false);
   const [cookError, setCookError] = useState("");
   const [cookMode, setCookMode] = useState(false);
   const [cookStep, setCookStep] = useState(0);
+  const [cookIngredientsAdded, setCookIngredientsAdded] = useState(false);
   const [savedRecipes, setSavedRecipes] = useState(() => readStoredJson(SAVED_RECIPES_KEY, []));
   const [planningRecipe, setPlanningRecipe] = useState(null);
   const [dietaryPreferences, setDietaryPreferences] = useState(() => {
@@ -105,7 +131,6 @@ export default function Meals() {
     const existing = mealFor(date, slot);
     setDraft({ title: existing?.title ?? "", notes: existing?.notes ?? "", cookIds: existing?.cookIds ?? [] });
     setShowSavedRecipes(false);
-    setIngredientsAdded(false);
     setEditing({ date, slot, mealId: existing?.id || null });
   };
 
@@ -113,13 +138,26 @@ export default function Meals() {
     setDraft((d) => ({ ...d, cookIds: d.cookIds.includes(id) ? d.cookIds.filter((x) => x !== id) : [...d.cookIds, id] }));
 
   const rouletteForSlot = async (date, slot) => {
-    const diet = normaliseDietaryPreferences(dietaryPreferences);
-    const choices = CUISINES.flatMap((cuisine) => recipesByCuisine(cuisine, slot, diet));
-    const choice = choices[Math.floor(Math.random() * choices.length)];
-    if (!choice) return;
+    const choices = ["Italian", "Mexican", "Indian", "Japanese", "Chinese", "Thai", "Mediterranean", "American Comfort"];
+    const cuisine = choices[Math.floor(Math.random() * choices.length)];
+    const ingredientsPool = ["chicken", "rice", "pasta", "tofu", "salmon", "beef", "eggs", "lentils"];
+    const ingredients = ingredientsPool[Math.floor(Math.random() * ingredientsPool.length)];
+    const profile = recipeSearchProfileForMeal("", slot, { ...dietaryPreferences, cuisine });
+    const bodyPayload = { ...profile, cuisine, ingredients };
+    const { data, error } = await supabase.functions.invoke("recipe-search", { body: bodyPayload }).catch(() => ({ data: null, error: new Error("offline") }));
+    const recipeErr = data?.error || error?.message;
+    const recipe = !recipeErr ? recipeFromSearch(data) : null;
+    if (!recipe?.title) {
+      await setMealForSlot(date, slot, {
+        title: `${cuisine} ${slot} pick`,
+        notes: recipeErr ? "Add a title above and tap Cook to look up steps." : "Add a title above and tap Cook.",
+        cookIds: [],
+      });
+      return;
+    }
     await setMealForSlot(date, slot, {
-      title: choice.title,
-      notes: `${SLOT_META[slot].label} roulette · ${choice.cuisine}`,
+      title: recipe.title,
+      notes: `${SLOT_META[slot].label} roulette · ${recipe.cuisine || cuisine}`,
       cookIds: [],
     });
   };
@@ -140,199 +178,64 @@ export default function Meals() {
     setEditing(null);
   };
 
-  const recipe = recipeDetailForTitle(draft.title);
-  const missingIngredients = groceryItemsForMealTitle(draft.title).filter((item) => !groceries.some((grocery) => !grocery.checked && grocery.name.toLowerCase() === item.name.toLowerCase()));
-  const addIngredients = async () => {
-    for (const item of missingIngredients) await addGrocery(item);
-    setIngredientsAdded(true);
+  const missingIngredients = (cookRecipe?.ingredients || []).filter((ingredient) => {
+    if (typeof ingredient === "string") return !groceries.some((grocery) => !grocery.checked && grocery.name.toLowerCase() === ingredient.trim().toLowerCase());
+    if (ingredient && typeof ingredient === "object" && ingredient.name) return !groceries.some((grocery) => !grocery.checked && grocery.name.toLowerCase() === ingredient.name.toLowerCase());
+    return false;
+  });
+
+  const addCookIngredients = async () => {
+    for (const raw of cookRecipe?.ingredients || []) {
+      const name = typeof raw === "string" ? raw.trim() : raw?.name;
+      if (!name) continue;
+      await addGrocery({ name, quantity: 1, unit: "" });
+    }
+    setCookIngredientsAdded(true);
   };
 
-  const normalizeRecipePayload = (payload, fallbackTitle) => {
-    const fallback = recipeDetailForTitle(fallbackTitle) || {
-      title: fallbackTitle,
-      cuisine: "Family favourite",
-      readyInMinutes: 35,
-      servings: 4,
-      ingredients: groceryItemsForMealTitle(fallbackTitle).map((item) => item.name),
-      instructions: [
-        "Gather the ingredients and prep your cooking area.",
-        "Cook the main ingredients until warmed through and seasoned.",
-        "Taste, adjust seasoning, and serve family-style.",
-      ],
-    };
-
-    const asArray = (value) => (Array.isArray(value) ? value : value ? [value] : []);
-    const unwrapDataObject = (value) => {
-      let current = value;
-      const seen = new Set();
-      while (current && typeof current === "object" && !Array.isArray(current) && current.data && !seen.has(current)) {
-        seen.add(current);
-        current = current.data;
-      }
-      return current;
-    };
-    const listCandidates = (value) => {
-      const source = unwrapDataObject(value);
-      if (Array.isArray(source)) return source;
-      if (!source || typeof source !== "object") return [];
-      return [
-        source.recipe,
-        source.result,
-        source.item,
-        ...(Array.isArray(source.recipes) ? source.recipes : []),
-        ...(Array.isArray(source.results) ? source.results : []),
-        ...(Array.isArray(source.items) ? source.items : []),
-        ...(Array.isArray(source.meals) ? source.meals : []),
-      ].filter(Boolean);
-    };
-    const recipePayload =
-      unwrapDataObject(payload?.recipe) ||
-      unwrapDataObject(payload?.data?.recipe) ||
-      unwrapDataObject(payload?.result) ||
-      listCandidates(payload)[0] ||
-      listCandidates(payload?.search)[0] ||
-      unwrapDataObject(payload) ||
-      {};
-    const recipe = Array.isArray(recipePayload) ? recipePayload[0] || {} : recipePayload;
-
-    const textFromIngredient = (item) => {
-      if (typeof item === "string") return item;
-      if (!item || typeof item !== "object") return "";
-      const nested = item.ingredient || item.food || item.product;
-      const amount = [item.amount, item.quantity, item.qty].filter(Boolean).join(" ");
-      const unit = item.unit || item.measure || item.measurement || "";
-      const name =
-        item.name ||
-        item.originalName ||
-        item.displayName ||
-        item.display_name ||
-        item.title ||
-        item.value ||
-        item.label ||
-        (typeof nested === "string" ? nested : nested?.name || nested?.title || "");
-      return item.original || item.originalString || item.original_string || item.text || item.display || item.display_text || item.description || [amount, unit, name].filter(Boolean).join(" ").trim();
-    };
-
-    const rawIngredientGroups = [
-      ...(Array.isArray(recipe.ingredientGroups) ? recipe.ingredientGroups : []),
-      ...(Array.isArray(recipe.ingredient_groups) ? recipe.ingredient_groups : []),
-      ...(Array.isArray(recipe.sections) ? recipe.sections.filter((section) => section?.ingredients) : []),
-    ];
-    const groupedIngredients = rawIngredientGroups.flatMap((group) => group.ingredients || group.items || []);
-    const rawIngredients =
-      recipe.ingredients ||
-      recipe.extendedIngredients ||
-      recipe.extended_ingredients ||
-      recipe.ingredientLines ||
-      recipe.ingredient_lines ||
-      recipe.usedIngredients ||
-      recipe.used_ingredients ||
-      recipe.missedIngredients ||
-      recipe.missed_ingredients ||
-      groupedIngredients ||
-      fallback.ingredients;
-    const ingredients = Array.isArray(rawIngredients)
-      ? rawIngredients.flatMap((item) => (item?.ingredients || item?.items ? asArray(item.ingredients || item.items).map(textFromIngredient) : textFromIngredient(item))).filter(Boolean)
-      : String(rawIngredients || "")
-        .split(/\n|•|;/)
-        .map((item) => item.trim())
-        .filter(Boolean);
-
-    const textFromStep = (step) => {
-      if (typeof step === "string") return step;
-      if (!step || typeof step !== "object") return "";
-      return step.step || step.name || step.text || step.description || step.instruction || step.instructions || step.direction || "";
-    };
-    const analyzedSteps = recipe.analyzedInstructions?.flatMap((section) => section.steps || []).map(textFromStep);
-    const groupedSteps = [
-      ...(Array.isArray(recipe.instructionGroups) ? recipe.instructionGroups : []),
-      ...(Array.isArray(recipe.instruction_groups) ? recipe.instruction_groups : []),
-      ...(Array.isArray(recipe.sections) ? recipe.sections.filter((section) => section?.steps || section?.instructions || section?.directions) : []),
-    ].flatMap((group) => group.steps || group.instructions || group.directions || []);
-    const rawSteps = analyzedSteps?.length
-      ? analyzedSteps
-      : groupedSteps.length
-        ? groupedSteps
-        : recipe.instructions || recipe.instruction || recipe.steps || recipe.method || recipe.directions || recipe.direction || recipe.preparation_steps || recipe.preparationSteps || fallback.instructions;
-    const instructions = Array.isArray(rawSteps)
-      ? rawSteps.flatMap((step) => (step?.steps || step?.instructions || step?.directions ? asArray(step.steps || step.instructions || step.directions).map(textFromStep) : textFromStep(step))).filter(Boolean)
-      : String(rawSteps || "")
-        .replace(/<[^>]*>/g, "")
-        .split(/\n|(?:\d+\.\s)|(?:Step\s+\d+:?\s)/i)
-        .map((step) => step.trim())
-        .filter(Boolean);
-
-    const imageSource = recipe.image || recipe.imageUrl || recipe.image_url || recipe.photo || recipe.photoUrl || recipe.photo_url || recipe.thumbnail || recipe.thumbnailUrl || recipe.thumbnail_url || recipe.picture || recipe.cover || recipe.media?.image || recipe.media?.image_url || recipe.images?.[0] || "";
-    const image = typeof imageSource === "string" ? imageSource : imageSource?.url || imageSource?.src || "";
-    const prepTime = Number(recipe.prepTime || recipe.prep_time || 0);
-    const cookTime = Number(recipe.cookTime || recipe.cook_time || 0);
-    const sourceUrl = recipe.sourceUrl || recipe.source_url || recipe.url || recipe.originalUrl || recipe.original_url || recipe.website || recipe.canonical_url || "";
-    const title = recipe.title || recipe.name || recipe.recipeName || recipe.recipe_name || recipe.label || fallback.title;
-    const apiReturnedSomething = Object.keys(recipe || {}).length > 0;
-    const instructionText = instructions.join(" ").toLowerCase();
-    const looksGeneric = /prep (the )?ingredients/.test(instructionText) && /season to taste|serve family-style/.test(instructionText);
-    const hasUsefulIngredients = ingredients.length >= Math.min(3, fallback.ingredients?.length || 3);
-    const hasUsefulInstructions = !looksGeneric && (instructions.length >= 4 || instructionText.length > 180 || Boolean(sourceUrl));
-    const finalIngredients = hasUsefulIngredients ? ingredients : fallback.ingredients;
-    const finalInstructions = hasUsefulInstructions ? instructions : fallback.instructions;
-    const apiEnhanced = apiReturnedSomething && (hasUsefulInstructions || Boolean(image) || Boolean(sourceUrl));
-
-    return {
-      ...fallback,
-      id: recipe.id || recipe.recipeId || fallback.id || fallbackTitle,
-      title,
-      cuisine: recipe.cuisine || recipe.cuisines?.[0] || recipe.dish_type || recipe.dishType || fallback.cuisine || "Family favourite",
-      readyInMinutes: Number(recipe.readyInMinutes || recipe.ready_in_minutes || recipe.totalTime || recipe.total_time || recipe.totalTimeMinutes || recipe.total_time_minutes || recipe.time || recipe.duration || prepTime + cookTime || fallback.readyInMinutes || 35),
-      servings: recipe.servings || recipe.yield || recipe.serves || fallback.servings || 4,
-      sourceUrl,
-      image,
-      ingredients: finalIngredients,
-      instructions: finalInstructions,
-      apiEnhanced,
-    };
-  };
-
+  // Strict sourcing: Cook Mode opens immediately on the placeholder (title
+  // only) so the user sees the cook screen at once. The recipe-search edge
+  // function fills in real ingredients + instructions in the background.
   const openCookRecipe = async (meal) => {
-    if (!meal?.title) return;
-    const fallback = normalizeRecipePayload(null, meal.title);
+    if (!titleFromMeal(meal)) return;
     setCookMeal(meal);
-    setCookRecipe(fallback);
+    setCookRecipe(placeholderRecipe(meal.title, meal.slot));
     setCookMode(false);
     setCookStep(0);
+    setCookIngredientsAdded(false);
     setCookError("");
-    setCookLoading(Boolean(supabase));
+    setCookLoading(true);
 
     if (!supabase) {
-      setCookError("fallback");
+      setCookError("offline");
+      setCookLoading(false);
       return;
     }
 
     try {
-      const recipeSearchProfile = recipeSearchProfileForMeal(meal, meal.slot, dietaryPreferences);
-      const { data, error } = await supabase.functions.invoke("recipe-search", {
-        body: recipeSearchProfile,
-      });
-
-      if (error || data?.error) {
-        console.warn("Recipe enrichment failed", data?.error || error?.message);
-        setCookError("fallback");
-        setCookLoading(false);
+      const profile = recipeSearchProfileForMeal(meal, meal.slot, dietaryPreferences);
+      const { data, error } = await supabase.functions.invoke("recipe-search", { body: profile });
+      const recipeErr = data?.error || error?.message;
+      if (recipeErr) {
+        setCookError(recipeErr);
         return;
       }
-
-      const enhancedRecipe = normalizeRecipePayload(data, meal.title);
-      setCookRecipe(enhancedRecipe);
-      if (!enhancedRecipe.apiEnhanced) console.warn("Recipe enrichment returned a sparse payload", data);
+      const recipe = recipeFromSearch(data);
+      if (!recipe) {
+        setCookError("API Ninjas returned no recipe for this meal.");
+        return;
+      }
+      setCookRecipe({ ...placeholderRecipe(meal.title, meal.slot), ...recipe });
     } catch (error) {
-      console.warn("Recipe enrichment failed", error);
-      setCookError("fallback");
+      setCookError(error?.message || "Recipe lookup failed.");
+    } finally {
+      setCookLoading(false);
     }
-    setCookLoading(false);
   };
 
   const cookSteps = cookRecipe?.instructions?.length
     ? cookRecipe.instructions
-    : ["Prep your station, then cook this meal until warmed through and ready to serve."];
+    : [];
   const currentCookStep = Math.min(cookStep, Math.max(cookSteps.length - 1, 0));
   const cookProgress = cookSteps.length ? ((currentCookStep + 1) / cookSteps.length) * 100 : 0;
 
@@ -378,6 +281,7 @@ export default function Meals() {
     setCookStep(0);
     setCookError("");
     setCookLoading(false);
+    setCookIngredientsAdded(true);
   };
 
   const addSavedRecipeToPlan = async (date, slot) => {
@@ -471,9 +375,8 @@ export default function Meals() {
                   const meal = mealFor(date, slot);
                   const Icon = SLOT_META[slot].icon;
                   const cooks = (meal?.cookIds ?? []).map((id) => memberById[id]).filter(Boolean);
-                  const isDinner = slot === "dinner";
                   return (
-                    <div className={`meal-slot-row ${isDinner ? "is-dinner" : ""}`} key={slot}>
+                    <div className={`meal-slot-row ${slot === "dinner" ? "is-dinner" : ""}`} key={slot}>
                       <button
                         onClick={() => meal?.title ? openCookRecipe(meal) : openEditor(date, slot)}
                         className="meal-slot-button flex items-center gap-3 text-left transition-colors"
@@ -514,10 +417,10 @@ export default function Meals() {
 
       <Modal open={!!editing} onClose={() => setEditing(null)} title={editing ? `${SLOT_META[editing.slot].label} · ${formatDayLabel(editing.date)}` : ""}>
         <TextField
-          label="What’s the plan?"
+          label="What's the plan?"
           placeholder="e.g. Sheet-pan chicken fajitas"
           value={draft.title}
-          onChange={(e) => { setDraft((d) => ({ ...d, title: e.target.value })); setIngredientsAdded(false); }}
+          onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
           autoFocus
         />
         <TextField
@@ -533,34 +436,8 @@ export default function Meals() {
         </div>
         {showSavedRecipes && (
           <div className="saved-recipe-picker">
-            <div><strong>Saved recipes</strong><span>{savedRecipes.length ? "Choose one for this meal." : "Save recipes from Cook Mode and they’ll appear here."}</span></div>
+            <div><strong>Saved recipes</strong><span>{savedRecipes.length ? "Choose one for this meal." : "Save recipes from Cook Mode and they'll appear here."}</span></div>
             {savedRecipes.length > 0 && <ul>{savedRecipes.map((saved) => <li key={saved.id}><button onClick={() => chooseSavedRecipe(saved)}><span>{saved.title}</span><small>{saved.cuisine} · {saved.readyInMinutes} min</small></button></li>)}</ul>}
-          </div>
-        )}
-
-        {recipe && (
-          <div className="recipe-detail-card">
-            <div className="recipe-detail-head">
-              <div>
-                <p>Recipe</p>
-                <h4>{recipe.title}</h4>
-                <span>{recipe.cuisine} · {recipe.readyInMinutes} min · Serves {recipe.servings}</span>
-              </div>
-              <ChefHat size={22} />
-            </div>
-            <div className="recipe-detail-grid">
-              <div>
-                <strong>Ingredients</strong>
-                <ul>{recipe.ingredients.slice(0, 8).map((item) => <li key={item}>{item}</li>)}</ul>
-              </div>
-              <div>
-                <strong>Steps</strong>
-                <ol>{recipe.instructions.map((step) => <li key={step}>{step}</li>)}</ol>
-              </div>
-            </div>
-            <button className="recipe-grocery-button" disabled={missingIngredients.length === 0 || ingredientsAdded} onClick={addIngredients}>
-              {ingredientsAdded ? "Ingredients added" : missingIngredients.length ? `Add ${missingIngredients.length} ingredients to groceries` : "Ingredients already on list"}
-            </button>
           </div>
         )}
 
@@ -629,7 +506,7 @@ export default function Meals() {
             <div className="cook-focus-topbar">
               <button onClick={() => setCookMeal(null)}><ArrowLeft size={18} /> Back to meals</button>
               <div className="cook-focus-topbar-actions">
-                <button className={`recipe-save-button ${cookRecipeSaved ? "saved" : ""}`} onClick={() => saveRecipeToLibrary(cookRecipe)}><Bookmark size={16} /> {cookRecipeSaved ? "Saved" : "Save recipe"}</button>
+                <button className={`recipe-save-button ${cookRecipeSaved ? "saved" : ""}`} onClick={() => saveRecipeToLibrary(cookRecipe)} disabled={!cookRecipe.instructions.length} title={cookRecipe.instructions.length ? "Save recipe to your library" : "API Ninjas has not loaded the recipe yet"}><Bookmark size={16} /> {cookRecipeSaved ? "Saved" : "Save recipe"}</button>
                 <button onClick={() => { setCookMeal(null); openEditor(cookMeal.date, cookMeal.slot); }}>Edit meal</button>
               </div>
             </div>
@@ -638,43 +515,62 @@ export default function Meals() {
               <div className="cook-focus-copy">
                 <p className="eyebrow">{cookMode ? "COOK MODE" : "READY TO COOK"}</p>
                 <h2>{cookRecipe.title}</h2>
-                <p>{cookMeal.notes || "Ingredients are assumed to be ready. FamOS will walk you through the recipe one step at a time."}</p>
+                <p>{cookMeal.notes || "Ingredients come from API Ninjas. FamOS will walk you through the recipe step by step."}</p>
                 <div className="cook-meta-row">
                   <span><Clock size={15} /> {cookRecipe.readyInMinutes || 35} min</span>
                   <span><Users size={15} /> Serves {cookRecipe.servings || 4}</span>
                   <span><ChefHat size={15} /> {cookRecipe.cuisine || "Family favourite"}</span>
                 </div>
               </div>
-              {cookRecipe.image && (
-                <div className="cook-photo-card">
-                  <img src={cookRecipe.image} alt={cookRecipe.title} />
-                </div>
-              )}
             </section>
 
-            {cookLoading && <div className="cook-status"><Sparkles size={16} /> Finding the best recipe details…</div>}
-            {cookError && <div className="cook-status subtle"><Sparkles size={16} /> Using the saved FamOS recipe for now. You can still cook step by step.</div>}
+            {cookLoading && <div className="cook-status"><Sparkles size={16} /> Asking API Ninjas for the recipe…</div>}
+            {cookError && <div className="cook-status subtle"><Sparkles size={16} /> {cookError.includes("429") ? "API Ninjas rate limit reached. Try again in a few minutes." : cookError.includes("not configured") ? "Recipe search is not configured yet. Set RECIPE_API_NINJAS_KEY in Supabase Edge Function Secrets." : cookError.includes("no recipe") || cookError.includes("Rate") ? "API Ninjas has no match for this meal yet. Try a different title in Cook Mode, or skip Cook Mode and just use the planner." : `API Ninjas couldn't load this recipe (${cookError}).`}</div>}
 
             {!cookMode ? (
               <div className="cook-focus-layout">
                 <Card className="cook-panel">
-                  <div className="cook-panel-head"><ListChecks size={18} /><h3>Ingredients ready</h3></div>
-                  <p className="cook-panel-note">A quick reference only — this flow assumes these are already in your kitchen.</p>
+                  <div className="cook-panel-head"><ListChecks size={18} /><h3>Ingredients</h3></div>
+                  <p className="cook-panel-note">{cookRecipe.ingredients.length ? "Tap below to push missing ingredients to your weekly grocery list." : "API Ninjas has not returned ingredients for this meal yet."}</p>
                   <ul className="cook-plain-list">
-                    {cookRecipe.ingredients.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
+                    {cookRecipe.ingredients.length ? (
+                      cookRecipe.ingredients.map((item, index) => (
+                        <li key={`${item}-${index}`}>{typeof item === "string" ? item : item?.name}</li>
+                      ))
+                    ) : (
+                      <li className="cook-empty-line">No ingredients yet — wait for the lookup to finish.</li>
+                    )}
                   </ul>
+                  <button
+                    className="recipe-grocery-button"
+                    disabled={missingIngredients.length === 0 || cookIngredientsAdded}
+                    onClick={addCookIngredients}
+                    title={missingIngredients.length ? `Add ${missingIngredients.length} ingredients to groceries` : "All ingredients already on list"}
+                  >
+                    <ShoppingCart size={15} />
+                    {cookIngredientsAdded
+                      ? "Ingredients added"
+                      : missingIngredients.length
+                        ? `Add ${missingIngredients.length} ingredients to groceries`
+                        : cookRecipe.ingredients.length
+                          ? "Ingredients already on list"
+                          : "No ingredients to add yet"}
+                  </button>
                 </Card>
                 <Card className="cook-panel">
-                  <div className="cook-panel-head"><ChefHat size={18} /><h3>What happens next</h3></div>
-                  <p className="cook-panel-note">Start cook mode for a larger, hands-friendly step-by-step guide.</p>
-                  <ol className="cook-plain-list ordered">
-                    {cookRecipe.instructions.map((step, index) => <li key={`${step}-${index}`}>{step}</li>)}
-                  </ol>
-                  {cookRecipe.sourceUrl && <a className="cook-source-link" href={cookRecipe.sourceUrl} target="_blank" rel="noreferrer">Open original recipe</a>}
+                  <div className="cook-panel-head"><ChefHat size={18} /><h3>Steps ahead</h3></div>
+                  <p className="cook-panel-note">{cookRecipe.instructions.length ? "Step-by-step cooking instructions from API Ninjas. Use Cook Mode for hands-friendly navigation." : "Step-by-step cooking instructions load from API Ninjas when the recipe is found."}</p>
+                  {cookRecipe.instructions.length ? (
+                    <ol className="cook-plain-list ordered">
+                      {cookRecipe.instructions.map((step, index) => <li key={`${step}-${index}`}>{step}</li>)}
+                    </ol>
+                  ) : (
+                    <p className="cook-empty-line">No steps loaded from API Ninjas yet.</p>
+                  )}
                 </Card>
-                <button className="cook-primary-action" onClick={() => { setCookMode(true); setCookStep(0); }}>
+                <button className="cook-primary-action" disabled={!cookRecipe.instructions.length} onClick={() => { setCookMode(true); setCookStep(0); }}>
                   <ChefHat size={21} />
-                  <span><strong>Start Cook Mode</strong><small>Hands-friendly, one step at a time</small></span>
+                  <span><strong>{cookRecipe.instructions.length ? "Start Cook Mode" : "Awaiting instructions"}</strong><small>{cookRecipe.instructions.length ? "Hands-friendly, one step at a time" : "API Ninjas is still loading this recipe"}</small></span>
                 </button>
               </div>
             ) : (
@@ -707,7 +603,7 @@ export default function Meals() {
                 <Card className="cook-quiet-reference">
                   <div className="cook-panel-head"><ListChecks size={18} /><h3>Ingredients nearby</h3></div>
                   <div className="cook-ingredient-chips">
-                    {cookRecipe.ingredients.slice(0, 10).map((item, index) => <span key={`${item}-${index}`}>{item}</span>)}
+                    {cookRecipe.ingredients.slice(0, 10).map((item, index) => <span key={`${typeof item === "string" ? item : item?.name}-${index}`}>{typeof item === "string" ? item : item?.name}</span>)}
                   </div>
                 </Card>
               </div>

@@ -13,9 +13,8 @@ import PageHeader from "../components/PageHeader";
 import { Avatar, Card, PrimaryButton, SecondaryButton } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
-import { groceryItemsForMealPlan, suggestMealsFromGroceries } from "../data/recipeBox";
 import { addDays, formatDayLabel, todayISO } from "../lib/dates";
-import { supabase } from "../lib/supabase";
+import { invokeEdgeFunction, supabase } from "../lib/supabase";
 
 const actionMeta = {
   add_task: { label: "Create task", Icon: CheckSquare },
@@ -225,24 +224,61 @@ function calendarTaskSuggestions(events = [], tasks = [], members = []) {
   return uniqueActions(actions).slice(0, 8);
 }
 
-function mealActionsFromGroceries(groceryList = []) {
-  return suggestMealsFromGroceries(groceryList, 5).slice(0, 4).map((recipe, index) => ({
-    id: `meal-${recipe.id}-${index}`,
-    type: "plan_meal",
-    args: {
-      date: addDays(todayISO(), index),
-      slot: "dinner",
-      title: recipe.title,
-      notes: `Suggested from groceries · ${recipe.tags.slice(0, 4).join(", ")}`,
-      cook_names: [],
-    },
-  }));
+// Pulls every unchecked grocery name and asks API Ninjas (via the
+// `recipe-search` edge function) for recipes that match them. Returns
+// already-shaped `plan_meal` actions the Fam AI review panel can show.
+async function mealActionsFromGroceries(groceryList = []) {
+  const ingredients = groceryList
+    .filter((item) => !item.checked && item.name)
+    .map((item) => item.name)
+    .filter(Boolean)
+    .slice(0, 8)
+    .join(", ");
+  if (!ingredients.trim()) return [];
+  try {
+    const data = await invokeEdgeFunction("recipe-search", { ingredients, mealType: "dinner" });
+    const recipes = Array.isArray(data?.recipes) ? data.recipes : [];
+    return recipes.slice(0, 4).map((recipe, index) => ({
+      id: `meal-${index}-${recipe.title}`,
+      type: "plan_meal",
+      args: {
+        date: addDays(todayISO(), index),
+        slot: "dinner",
+        title: recipe.title,
+        notes: `Suggested from groceries · ${recipe.cuisine || "Family favourite"}`,
+        cook_names: [],
+      },
+    }));
+  } catch {
+    return [];
+  }
 }
 
-function groceryActionsFromMeals(mealList = [], groceryList = []) {
-  return groceryItemsForMealPlan(mealList.filter((meal) => meal.date >= todayISO()), groceryList)
-    .slice(0, 12)
-    .map((item, index) => ({ id: `grocery-${index}`, type: "add_grocery", args: item }));
+// FamAI used to infer missing grocery items from a small static recipe box.
+// That source is gone (every recipe now comes from API Ninjas) so this bridge
+// degrades to a no-op. Families add groceries inside Cook Mode, where we
+// have the live ingredients straight from API Ninjas.
+function groceryActionsFromMeals() {
+  return [];
+}
+
+// Returns recipe *titles* suggested by API Ninjas based on the current
+// unchecked grocery list. Used to enrich the prompt context sent to the
+// fam-ai edge function so it can speak to the current kitchen.
+async function apiNinjasMealTitlesFromGroceries(groceryList = []) {
+  const ingredients = groceryList
+    .filter((item) => !item.checked && item.name)
+    .map((item) => item.name)
+    .filter(Boolean)
+    .slice(0, 8)
+    .join(", ");
+  if (!ingredients.trim()) return [];
+  try {
+    const data = await invokeEdgeFunction("recipe-search", { ingredients, mealType: "dinner" });
+    return Array.isArray(data?.recipes) ? data.recipes : [];
+  } catch {
+    return [];
+  }
 }
 
 async function getFunctionError(invokeError) {
@@ -296,7 +332,7 @@ export default function FamAI() {
     members[0]?.id ||
     null;
 
-  const buildDaisyChainFollowUp = (approvedActions) => {
+  const buildDaisyChainFollowUp = async (approvedActions) => {
     const allEvents = [...(events || []), ...(googleEvents || []), ...(feedEvents || [])];
     const addedGroceries = approvedActions
       .filter((action) => action.type === "add_grocery")
@@ -333,7 +369,7 @@ export default function FamAI() {
       .filter((event) => event.title && event.start);
 
     if (addedGroceries.length) {
-      const nextMeals = mealActionsFromGroceries([...groceries, ...addedGroceries]);
+      const nextMeals = await mealActionsFromGroceries([...groceries, ...addedGroceries]);
       if (nextMeals.length) {
         return {
           message: "Since we touched the grocery list, I also found dinners you can make from those items. Want me to add these to the meal planner?",
@@ -462,8 +498,8 @@ export default function FamAI() {
       }
 
       if (wantsGroceryList(text) && projectedMeals.some((meal) => meal.title)) {
-        const missingActions = groceryActionsFromMeals(projectedMeals, projectedGroceries);
-        const mealIdeas = suggestMealsFromGroceries(projectedGroceries, 3).map((recipe) => recipe.title);
+        const missingActions = groceryActionsFromMeals();
+        const mealIdeas = (await apiNinjasMealTitlesFromGroceries(projectedGroceries)).slice(0, 3).map((recipe) => recipe.title);
         setMessages((current) => [...current, {
           role: "assistant",
           content: missingActions.length
@@ -475,7 +511,7 @@ export default function FamAI() {
       }
 
       if (wantsMealIdeas(text) && projectedGroceries.some((item) => !item.checked)) {
-        const mealActions = mealActionsFromGroceries(projectedGroceries);
+        const mealActions = await mealActionsFromGroceries(projectedGroceries);
         if (mealActions.length) {
           setMessages((current) => [...current, {
             role: "assistant",
@@ -527,11 +563,15 @@ export default function FamAI() {
               .map((item) => ({ date: item.date, slot: item.slot, title: item.title, notes: item.notes })),
             mealGroceryBridge: {
               pendingActions: pending.map((action) => ({ type: action.type, args: action.args })),
-              missingGroceriesForMeals: groceryItemsForMealPlan(projectedMeals.filter((item) => item.date >= todayISO()), projectedGroceries).slice(0, 20),
-              mealIdeasFromGroceries: suggestMealsFromGroceries(projectedGroceries, 8).map((recipe) => ({
+              // Static recipeBox used to fill these in. With strict API Ninjas
+              // sourcing, missing groceries are only inferred inside Cook Mode
+              // (where we have the live ingredients); here we surface a clean
+              // empty list plus the API-Ninjas meal titles.
+              missingGroceriesForMeals: [],
+              mealIdeasFromGroceries: (await apiNinjasMealTitlesFromGroceries(projectedGroceries)).slice(0, 8).map((recipe) => ({
                 title: recipe.title,
-                cuisine: recipe.cuisine,
-                ingredients: recipe.tags,
+                cuisine: recipe.cuisine || "Family favourite",
+                ingredients: recipe.ingredients,
               })),
             },
             finance: {
@@ -619,7 +659,7 @@ export default function FamAI() {
         }
       }
 
-      const followUp = buildDaisyChainFollowUp(approvedActions);
+      const followUp = await buildDaisyChainFollowUp(approvedActions);
       setMessages((current) => [
         ...current,
         {
