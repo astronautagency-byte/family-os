@@ -23,12 +23,20 @@ const normalizeForKey = (value) => String(value ?? "").trim().toLowerCase();
  * Sorting the cities is the only non-obvious step — it means
  * ["Toronto", "Newmarket"] and ["Newmarket", "Toronto"] hit the same entry,
  * since the edge function dedupes the same way.
+ *
+ * `mutedNearbyCities` is folded into the key too so a different muted
+ * selection hits a different cache entry. Without this, an old cached
+ * response that included Toronto would still surface after the user muted
+ * Toronto.
  */
-export function eventCacheKey({ category, when, country, cities }) {
+export function eventCacheKey({ category, when, country, cities, mutedNearbyCities }) {
   const sortedCities = Array.from(new Set((Array.isArray(cities) ? cities : [])
     .map((city) => normalizeForKey(city))
     .filter(Boolean))).sort();
-  return `${STORAGE_PREFIX}${normalizeForKey(country)}:${normalizeForKey(when)}:${normalizeForKey(category)}:${sortedCities.join("|")}`;
+  const sortedMuted = Array.from(new Set((Array.isArray(mutedNearbyCities) ? mutedNearbyCities : [])
+    .map((city) => normalizeForKey(city))
+    .filter(Boolean))).sort();
+  return `${STORAGE_PREFIX}${normalizeForKey(country)}:${normalizeForKey(when)}:${normalizeForKey(category)}:${sortedCities.join("|")}#m:${sortedMuted.join("|")}`;
 }
 
 /**

@@ -120,6 +120,21 @@ Deno.serve(async (request) => {
       ? body.cities.map((value: unknown) => normalizeCity(cleanText(value, 120)))
       : [];
     const cities = Array.from(new Set(rawCities.length ? rawCities : (location.length >= 2 ? [normalizeCity(location)] : []))).slice(0, 6);
+    // Client's per-city muted set — user chip clicks that should NOT trigger
+    // a SerpApi fetch. Normalise the same way as user cities so case /
+    // whitespace variants match. Capped at 20 so a malicious client can't
+    // bloat the filter chain.
+    const mutedSet = new Set(Array.isArray(body.mutedNearbyCities)
+      ? body.mutedNearbyCities
+        .map((value: unknown) => normalizeCity(cleanText(value, 120)))
+        .filter(Boolean)
+      : []
+    );
+    const isMuted = (city: string) => {
+      const norm = city.toLowerCase();
+      for (const muted of mutedSet) if (muted.toLowerCase() === norm) return true;
+      return false;
+    };
     if (!cities.length) return json({ error: "Add a home address in Settings to discover events nearby." }, 400);
 
     const mapEvent = (event: Record<string, unknown>, city: string, origin: "user" | "nearby") => {
@@ -216,6 +231,16 @@ Deno.serve(async (request) => {
       userMapped.push(...mapped);
       userErrors.push(...errors);
     }
+    // Cheap telemetry so we can measure the savings: do a single log line
+    // when the client sent a muted set, even if it had no impact on this
+    // particular request (cities might already be filtered by user list).
+    if (mutedSet.size > 0) {
+      console.log(JSON.stringify({
+        event: "family_local_events_muted_received",
+        requestId,
+        mutedCities: Array.from(mutedSet),
+      }));
+    }
 
     // ── Phase 2 (conditional): auto-expand to nearby major areas when the
     //    user's own cities returned only a sparse result set. Threshold of
@@ -225,7 +250,16 @@ Deno.serve(async (request) => {
     //    results when the user already had good coverage.
     const totalUserEvents = userMapped.reduce((sum, m) => sum + m.events.length, 0);
     const nearbyForCountry = NEARBY_CITIES[country] || [];
-    const availableNearby = nearbyForCountry.filter((nearby) => !cities.some((c) => c.toLowerCase() === nearby.toLowerCase())).slice(0, 8);
+    // Two filters applied: (a) the contributing city isn't already in the
+    // user's own cities list (no point fetching the same metro twice),
+    // (b) the city isn't muted by the user via a chip — skipping
+    // seasrches the user has already dismissed saves SerpApi quota and
+    // keeps the "Try nearby major area" pill from suggesting cities the
+    // user has already rejected.
+    const availableNearby = nearbyForCountry
+      .filter((nearby) => !cities.some((c) => c.toLowerCase() === nearby.toLowerCase()))
+      .filter((nearby) => !isMuted(nearby))
+      .slice(0, 8);
     const userCleanZeroCount = userMapped.filter((m) => m.events.length === 0).length;
     const nearbyCandidates = (totalUserEvents < 4
       && userCleanZeroCount > 0

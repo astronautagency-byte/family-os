@@ -726,6 +726,14 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .coverage-city-chip:active{transform:translateY(0) scale(.96)}
 .coverage-city-chip.excluded{border-color:var(--color-border);background:var(--color-surface);color:var(--color-ink-faint);text-decoration:line-through;text-decoration-thickness:1px}
 .coverage-city-chip.excluded:hover{border-color:var(--color-warn);color:var(--color-warn);background:var(--color-warn-soft);text-decoration:none;transform:translateY(-1px)}
+
+/* Muted-but-not-currently-contributing cities — show as ghost pills that
+   the user can tap to unmute (re-include in future auto-expands). */
+.event-muted-ghost-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;padding:0 4px;align-items:center}
+.event-muted-ghost-label{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--color-ink-faint);margin-right:2px}
+.coverage-city-chip-ghost{border-style:dashed;border-color:var(--color-border);background:transparent;color:var(--color-ink-faint);font-style:italic}
+.coverage-city-chip-ghost:hover{border-style:solid;border-color:var(--color-accent);color:var(--color-accent-strong);font-style:normal}
+.coverage-city-chip-ghost .coverage-city-count{background:transparent;color:inherit}
 .coverage-city-name{font-weight:600}
 .coverage-city-count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 6px;border-radius:9px;background:color-mix(in srgb,var(--color-accent) 18%,transparent);color:var(--color-accent-strong);font-size:10.5px;font-weight:700}
 .coverage-city-chip.excluded .coverage-city-count{background:color-mix(in srgb,var(--color-ink-faint) 22%,transparent);color:var(--color-ink-faint);text-decoration:none}

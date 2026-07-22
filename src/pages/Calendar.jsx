@@ -205,8 +205,24 @@ export default function CalendarPage() {
   const [coverageLocalOnly, setCoverageLocalOnly] = useState(false);
   // Per-city surgical toggles — when nearby-cities expansion fired, the
   // user can disable a single contributing city without hiding all nearby.
-  // Reset alongside coverageLocalOnly on every discoveredEvents change.
-  const [excludedNearbyCities, setExcludedNearbyCities] = useState(() => new Set());
+  // Persistent across searches and sessions: lazy-init reads the saved
+  // muted set from localStorage, and a separate effect below mirrors
+  // changes back. This way a user who muted Toronto once won't see
+  // future <4-event auto-expands re-pull Toronto for them — the chip
+  // is no longer just a visual filter; it's a real exclude signal sent
+  // to the edge function via `mutedNearbyCities`.
+  const [excludedNearbyCities, setExcludedNearbyCities] = useState(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const raw = window.localStorage.getItem("famos_muted_nearby_cities_v1");
+      if (!raw) return new Set();
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return new Set();
+      return new Set(parsed.filter((city) => typeof city === "string" && city.length > 0));
+    } catch {
+      return new Set();
+    }
+  });
   const [discoverWhen, setDiscoverWhen] = useState("this weekend");
   const [discoverCities, setDiscoverCities] = useState([]);
   const [cityDraft, setCityDraft] = useState("");
@@ -441,6 +457,7 @@ export default function CalendarPage() {
       when: discoverWhen,
       country: String(householdProfileExtra?.country || "ca").toLowerCase().slice(0, 2),
       cities: citiesForRequest,
+      mutedNearbyCities: Array.from(excludedNearbyCities),
     });
     clearEventCache(key);
     setCacheMeta(null);
@@ -451,13 +468,13 @@ export default function CalendarPage() {
     setDiscoverBusy(true); setDiscoverError("");
     const country = String(householdProfileExtra?.country || "ca").toLowerCase().slice(0, 2);
     try {
-      const result = await invokeEdgeFunction("search-local-events", { location: citiesForRequest[0], cities: citiesForRequest, category: CATEGORY_FOR_DISCOVERY, when: discoverWhen, country });
+      const result = await invokeEdgeFunction("search-local-events", { location: citiesForRequest[0], cities: citiesForRequest, category: CATEGORY_FOR_DISCOVERY, when: discoverWhen, country, mutedNearbyCities: Array.from(excludedNearbyCities) });
       setDiscoveredEvents(Array.isArray(result?.events) ? result.events : []);
       setResultDiagnostics(result?.diagnostics || null);
       // Persist successful responses (incl. empty-but-no-error) for the 4h TTL
       // window. upstream_error is intentionally skipped so transient failures
       // don't poison the next modal open.
-      const key = eventCacheKey({ category: CATEGORY_FOR_DISCOVERY, when: discoverWhen, country, cities: citiesForRequest });
+      const key = eventCacheKey({ category: CATEGORY_FOR_DISCOVERY, when: discoverWhen, country, cities: citiesForRequest, mutedNearbyCities: Array.from(excludedNearbyCities) });
       const writeAt = Date.now();
       writeEventCache(key, result, writeAt);
       if (result?.providerStatus !== "upstream_error") {
@@ -560,15 +577,28 @@ export default function CalendarPage() {
     );
   }, { dependencies: [month] });
 
-  // Coverage strip relies on the local-only toggle to filter the rendered
-  // list. Reset it whenever the result set changes so the user always
-  // sees the full mix first, then opts into the local-only slice via the
-  // strip's button — covers every caller (runSearch, refreshFromNetwork,
-  // retryFailedCities, cache-hit re-open) in one place.
+  // Coverage strip's global ("Hide nearby events") toggle resets the
+  // rendered list on every result-set swap so the user always sees the
+  // full mix first, then opts into a slice via the button.
+  //
+  // Note: `excludedNearbyCities` is intentionally NOT reset here — it
+  // persists across searches (and across sessions via localStorage) so
+  // the user's muted cities are honoured on every auto-expand. Toggle
+  // button still does a clean-break reset of the chip set.
   useEffect(() => {
     setCoverageLocalOnly(false);
-    setExcludedNearbyCities(() => new Set());
   }, [discoveredEvents]);
+
+  // Mirror the muted set back to localStorage on every change. Fail
+  // soft on quota errors / private-mode blocks — the in-memory set
+  // still works for this session, and the next write attempt may
+  // succeed after the user clears space.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem("famos_muted_nearby_cities_v1", JSON.stringify(Array.from(excludedNearbyCities)));
+    } catch { /* private mode / quota */ }
+  }, [excludedNearbyCities]);
 
   const dayEventCount = visibleEvents.filter(e => e.start.slice(0, 10) === selectedDate).length;
 
@@ -634,7 +664,7 @@ export default function CalendarPage() {
               // value we're about to apply so the cache lookup matches the eventual state.
               setDiscoverCities(initialCities);
               const countryKey = String(householdProfileExtra?.country || "ca").toLowerCase().slice(0, 2);
-              const key = eventCacheKey({ category: CATEGORY_FOR_DISCOVERY, when: discoverWhen, country: countryKey, cities: initialCities });
+              const key = eventCacheKey({ category: CATEGORY_FOR_DISCOVERY, when: discoverWhen, country: countryKey, cities: initialCities, mutedNearbyCities: Array.from(excludedNearbyCities) });
               const entry = readEventCache(key);
               if (entry) {
                 setCacheMeta(entry);
@@ -1016,18 +1046,20 @@ export default function CalendarPage() {
                       type="button"
                       className="event-coverage-toggle"
                       onClick={() => {
-                        // Toggling the global filter is a "clean break" —
-                        // reset the per-city chips too, otherwise the
-                        // "Show all (incl. nearby)" label would lie when
-                        // chip exclusions are still active.
+                        // Global filter only — does NOT touch the per-city
+                        // mute set, which is now persistent. The in-row
+                        // Reset button is the single explicit way to clear
+                        // the muted set, so the "mute once, mute forever"
+                        // promise isn't silently broken by a single toggle
+                        // tap. Chip filter still applies within whichever
+                        // global filter the user picked.
                         setCoverageLocalOnly((value) => !value);
-                        setExcludedNearbyCities(() => new Set());
                       }}
                       disabled={coverageToggleDisabled}
                       aria-pressed={coverageLocalOnly}
                       title={coverageLocalOnly
-                        ? "Show all events including nearby ones — also clears any per-city exclusions"
-                        : "Show only events from your home areas — also clears any per-city exclusions"}
+                        ? "Show all events including nearby ones"
+                        : "Show only events from your home areas"}
                     >
                       {coverageLocalOnly
                         ? <><Eye size={13} /> Show all (incl. nearby)</>
@@ -1065,6 +1097,35 @@ export default function CalendarPage() {
                       )}
                     </div>
                   )}
+                  {!coverageLocalOnly && (() => {
+                    // Muted cities that AREN'T currently contributing to the
+                    // result — e.g. user muted Toronto two weeks ago, searched
+                    // a small town today, and Toronto wasn't pulled in by the
+                    // auto-expand. Show them as ghost chips the user can tap
+                    // to unmute without waiting for an auto-expand that
+                    // includes them again.
+                    const contributingCities = new Set(nearbyCityCounts.map((entry) => entry.city));
+                    const mutedGhosts = Array.from(excludedNearbyCities).filter((city) => !contributingCities.has(city));
+                    if (!mutedGhosts.length) return null;
+                    return (
+                      <div className="event-muted-ghost-row" role="group" aria-label="Currently muted elsewhere">
+                        <span className="event-muted-ghost-label">Muted</span>
+                        {mutedGhosts.map((city) => (
+                          <button
+                            key={city}
+                            type="button"
+                            className="coverage-city-chip coverage-city-chip-ghost"
+                            onClick={() => toggleNearbyCity(city)}
+                            aria-pressed={false}
+                            title={`Tap to unmute ${city} — re-include it in future auto-expands`}
+                          >
+                            <span className="coverage-city-name">{city}</span>
+                            <span className="coverage-city-count" aria-hidden="true">+</span>
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </>
               )}
             </>
