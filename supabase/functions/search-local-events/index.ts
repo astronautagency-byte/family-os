@@ -45,17 +45,44 @@ const NEARBY_CITIES: Record<string, string[]> = {
 // variants that the geocoder recognises.
 const normalizeCity = (raw: string) => raw.trim().replace(/\s+/g, " ");
 
-const WHEN_FILTERS: Record<string, { chip?: string; tail?: string }> = {
-  today: { chip: "date:today" },
-  tomorrow: { chip: "date:tomorrow" },
-  "this week": { chip: "date:week" },
-  week: { chip: "date:week" },
-  "this month": { chip: "date:month" },
-  month: { chip: "date:month" },
-  "next month": { chip: "date:next_month" },
-  "this weekend": { tail: "this weekend" },
-  weekend: { tail: "this weekend" },
-  "next weekend": { tail: "next weekend" },
+// Google's own events index categorises by industry terms (Concerts,
+// Festivals, Exhibitions, Sports). Our UI uses friendlier vocabulary
+// ("family events", "kids activities") that doesn't always match
+// Google's stored categories. Map the dropdown sentences to the closest
+// discoverable Google Events term so a default search returns results
+// rather than zero-ing because of a category vocabulary mismatch.
+const CATEGORY_NORMALISER: Record<string, string> = {
+  "family events": "family-friendly activities",
+  "kids activities": "kids activities",
+  "festivals": "festivals",
+  "sports events": "sports events",
+  "concerts": "concerts",
+  "workshops": "workshops",
+  "outdoor activities": "outdoor activities",
+  "museums and exhibits": "museums",
+};
+const normalizeCategory = (raw: string) => {
+  const key = raw.toLowerCase().trim();
+  return CATEGORY_NORMALISER[key] || raw;
+};
+
+// SerpApi Google Events uses htichips for any date filter; embedding
+// "this weekend" in q actively zero-results suburban queries because
+// Google can't reconcile the natural-language date with its structured
+// event index. Map every supported `when` to a real chip value.
+// Valid htichips enum per SerpApi: date:today, date:tomorrow, date:week,
+// date:weekend, date:next_weekend, date:month, date:next_month.
+const WHEN_FILTERS: Record<string, string> = {
+  today: "date:today",
+  tomorrow: "date:tomorrow",
+  "this week": "date:week",
+  week: "date:week",
+  "this weekend": "date:weekend",
+  weekend: "date:weekend",
+  "next weekend": "date:next_weekend",
+  "this month": "date:month",
+  month: "date:month",
+  "next month": "date:next_month",
 };
 
 const COUNTRY_NAMES: Record<string, string> = {
@@ -99,11 +126,10 @@ Deno.serve(async (request) => {
 
     const body = await request.json().catch(() => ({}));
     const location = cleanText(body.location, 120);
-    const category = cleanText(body.category, 40) || "family events";
+    const categoryRaw = cleanText(body.category, 40) || "family events";
+    const category = normalizeCategory(categoryRaw);
     const when = cleanText(body.when, 40).toLowerCase();
-    const whenFilter = WHEN_FILTERS[when] || {};
-    const whenChip = whenFilter.chip || "";
-    const whenTail = whenFilter.tail || "";
+    const whenChip = WHEN_FILTERS[when] || "";
 
     const rawCountry = cleanText(body.country, 8).toLowerCase();
     const country = /^[a-z]{2}$/.test(rawCountry) ? rawCountry : "ca";
@@ -150,10 +176,7 @@ Deno.serve(async (request) => {
     const fetchCity = async (city: string, origin: "user" | "nearby") => {
       const endpoint = new URL("https://serpapi.com/search.json");
       endpoint.searchParams.set("engine", "google_events");
-      const qParts = [category];
-      if (whenTail) qParts.push(whenTail);
-      qParts.push("in", city);
-      endpoint.searchParams.set("q", qParts.join(" "));
+      endpoint.searchParams.set("q", category);          // q is just the category; date and city are NOT in q.
       endpoint.searchParams.set("hl", "en");
       endpoint.searchParams.set("gl", country);
       const googleDomain = GOOGLE_DOMAIN_FOR_COUNTRY[country];
@@ -185,7 +208,6 @@ Deno.serve(async (request) => {
             requestId, city, origin,
             count: result.value.length,
             htichips: whenChip || null,
-            qTail: whenTail || null,
             gl: country,
           }));
         } else {
@@ -214,15 +236,16 @@ Deno.serve(async (request) => {
     }
 
     // ── Phase 2 (conditional): auto-expand to nearby major areas when the
-    //    user's cities returned ZERO events AND nothing errored. We only
-    // Loosen: auto-expand when total result count is zero AND at least one
-    // user city cleanly returned 0 events. A single rate-limited city
-    // (counted in userErrors) no longer kills expansion for the rest.
+    //    user's own cities returned only a sparse result set. Threshold of
+    //    <4 events is intentional — suburban queries on SerpApi typically
+    //    return 0–3 real indexed events, while neighbouring metro areas
+    //    return dozens. Auto-expansion supplements without overwhelming
+    //    results when the user already had good coverage.
     const totalUserEvents = userMapped.reduce((sum, m) => sum + m.events.length, 0);
     const nearbyForCountry = NEARBY_CITIES[country] || [];
     const availableNearby = nearbyForCountry.filter((nearby) => !cities.some((c) => c.toLowerCase() === nearby.toLowerCase())).slice(0, 8);
     const userCleanZeroCount = userMapped.filter((m) => m.events.length === 0).length;
-    const nearbyCandidates = (totalUserEvents === 0
+    const nearbyCandidates = (totalUserEvents < 4
       && userCleanZeroCount > 0
       && userErrors.length < cities.length)
       ? availableNearby.slice(0, 3)
@@ -254,7 +277,7 @@ Deno.serve(async (request) => {
       return true;
     }).slice(0, 24);
 
-    const request = { category, when, whenChip: whenChip || null, whenTail: whenTail || null, country, cities };
+    const request = { category, when, whenChip: whenChip || null, country, cities };
     const totalEvents = events.length;
     const totalCities = cities.length + nearbyCandidates.length;
     const failCount = allErrors.length;
