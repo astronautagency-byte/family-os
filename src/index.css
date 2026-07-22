@@ -2316,8 +2316,6 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .settings-household-note strong{color:var(--color-ink)}
 
 /* Lazy-route loading fallback */
-.app-page-fallback{min-height:60vh;display:grid;place-items:center;color:var(--color-accent)}
-.app-page-fallback-spin{animation:spin 1s linear infinite}
 
 /* Pull-to-refresh: light overlay the user drags down from the top of any page
    wrapped by `<PullToRefresh>`. The host stretch-during-drag is set inline via
