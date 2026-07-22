@@ -455,6 +455,30 @@ export default function CalendarPage() {
     return `${failures.slice(0, -1).map((entry) => `${entry.city}`).join(", ")} and ${failures.at(-1).city} couldn't be reached`;
   };
 
+  // Derive a user-facing error string from a search result. Used by both the
+  // fresh runSearch path and the cache-replay path on modal reopen, so the
+  // wording (failing-cities note, retry hint, cities+when tuple) can't drift
+  // between them. Returns "" when the result carries events that should be
+  // shown directly — including the partial_upstream_error + populated-list
+  // case (the partial-warning strip renders below the list independently).
+  // The "broader category" copy was removed because the category dropdown
+  // was dropped last cycle; the retry hint points at the controls that
+  // still exist (city chips + When? picker + nearby-area pills below).
+  const deriveDiscoverError = (result, cities, when) => {
+    if (Array.isArray(result?.events) && result.events.length > 0) return "";
+    const retryHint = "Try a different set of areas, or pick a different date.";
+    if (result?.error) {
+      const cityNote = Array.isArray(result?.diagnostics?.perCityCounts) && result.diagnostics.perCityCounts.length ? ` (${result.diagnostics.perCityCounts.map((entry) => `${entry.city}: ${entry.count}`).join(", ")})` : "";
+      return `${result.error}${cityNote}`.trim();
+    }
+    if (result?.providerStatus === "partial_upstream_error") {
+      const failed = Array.isArray(result?.diagnostics?.failedCities) && result.diagnostics.failedCities.length ? formatCityFailure(result.diagnostics.failedCities) : "some areas";
+      return `${failed}. ${retryHint}`;
+    }
+    // empty_results or fallback (no providerStatus string that we recognise).
+    return `No matching events for ${(cities || []).join(", ")} (${when}). ${retryHint}`;
+  };
+
   // Bypass the cache + force a fresh request. Drops the badge immediately
   // so the UI doesn't show stale "cached" state during the network refresh.
   const refreshFromNetwork = async (citiesForRequest) => {
@@ -488,16 +512,10 @@ export default function CalendarPage() {
       } else {
         setCacheMeta(null);
       }
+      // Cache hit on next modal reopen OR a fresh runSearch both end up here.
+      // The helper unifies the wording so the two paths can't drift.
       if (!Array.isArray(result?.events) || !result.events.length) {
-        if (result?.error) {
-          const cityNote = Array.isArray(result?.diagnostics?.perCityCounts) && result.diagnostics.perCityCounts.length ? ` (${result.diagnostics.perCityCounts.map((entry) => `${entry.city}: ${entry.count}`).join(", ")})` : "";
-          setDiscoverError(`${result.error}${cityNote}`.trim());
-        } else if (result?.providerStatus === "partial_upstream_error") {
-          const failed = Array.isArray(result?.diagnostics?.failedCities) && result.diagnostics.failedCities.length ? formatCityFailure(result.diagnostics.failedCities) : "some areas";
-          setDiscoverError(`${failed}. We still couldn't find a match — try a broader category or a different date.`);
-        } else if (result?.providerStatus === "empty_results") {
-          setDiscoverError(`No matching ${CATEGORY_FOR_DISCOVERY} for ${citiesForRequest.join(", ")} (${discoverWhen}). Try a broader category, another area, or a different date.`);
-        } else { setDiscoverError("No matching events were found. Try a broader category, another city, or a different date."); }
+        setDiscoverError(deriveDiscoverError(result, citiesForRequest, discoverWhen));
       }
     } catch (error) { setDiscoveredEvents([]); setDiscoverError(error.message || "Could not load local events."); setResultDiagnostics(null); }
     finally { setDiscoverBusy(false); }
@@ -693,7 +711,12 @@ export default function CalendarPage() {
                 setCacheMeta(entry);
                 setDiscoveredEvents(Array.isArray(entry.payload?.events) ? entry.payload.events : []);
                 setResultDiagnostics(entry.payload?.diagnostics || null);
-                setDiscoverError("");
+                // The fresh runSearch path runs through the same helper, so
+                // cache replay + a fresh call produce identical wording.
+                // Returning "" here is correct for partial_upstream_error +
+                // populated-list results (the partial-warning strip is
+                // rendered below the list independently of discoverError).
+                setDiscoverError(deriveDiscoverError(entry.payload, initialCities, discoverWhen));
               } else if (!discoveredEvents.length) {
                 window.setTimeout(() => runSearch(initialCities), 0);
               }
