@@ -1,0 +1,109 @@
+/* ─────────────────────────────────────────────────────────────────────────
+ * FamOS landing-page tokens
+ *
+ *   - Landing-specific brand palette, structural radii, section padding,
+ *     and responsive-breakpoint constants live here so marketing can re-tune
+ *     the public surface without touching the app chrome.
+ *   - Imports src/theme/famos-tokens.css above. FAMOS owns the cross-brand
+ *     primitives (--color-canvas, --color-ink, --color-accent, --pastel-*,
+ *     --radius-pill / --radius-control / --radius-card / --radius-section /
+ *     --radius-pill-sm, --font-display) that landing.css reads directly;
+ *     this file only declares what is genuinely landing-specific.
+ *   - Loading order in src/landing.css:
+ *       1. (this file) — landing-specific tokens + FAMOS tokens
+ *       2. component rules (landing.css)
+ *   ─────────────────────────────────────────────────────────────────── */
+
+@import "./famos-tokens.css";
+
+:root {
+  /* ── Brand palette (landing-specific) ────────────────────────── */
+  --landing-color-primary: #7952E8;       /* CTA lavender, hover states, panel headings, step number 3 */
+  --landing-color-primary-dark: #5741C9;  /* Chart legend, deeper lavender accent */
+  --landing-color-surface-dark: #17171F;   /* CTA dark surface, dark active-state, deep ink */
+  --landing-color-text-muted: #625E69;    /* Muted body text on cream surfaces */
+  --landing-color-stage: #FFF0A8;         /* Cream-yellow stage panel background */
+  --landing-color-pink: #F45D9A;          /* Landing pink accent — final card hero, AI art bg */
+
+  /* ── Lavender / cream / gray / sage variations (landing-specific) ── */
+  --landing-color-lavender-soft: #EEE8FF; /* 5 sites; feature card "lilac" tone */
+  --landing-color-lavender-cool: #F5F1FF; /* 4 sites; cool cream-lavender variation */
+  --landing-color-lavender-mid: #F8F4FF;  /* 3 sites; mid-tone lavender-cream */
+  --landing-color-cream-step: #FFF8E8;    /* 1 site; .landing-steps section bg */
+  --landing-color-cream-intro: #F4F0FF;   /* 2 sites; .landing-intro pillars bg */
+  --landing-color-gray: #D7D2E2;          /* 3 sites; light gray border/dot */
+  --landing-color-gray-muted: #6D6874;    /* 3 sites; muted gray text on light surfaces */
+  --landing-color-sage-solid: #397B66;    /* 3 sites; deeper sage green accent */
+
+  /* ── Radii (landing-specific) ────────────────────────────────── */
+  --landing-radius-stage: 28px;          /* .stage-panel, .landing-ai-art */
+  --landing-radius-preview: 26px;       /* .auth-preview, product preview card */
+  --landing-radius-hero: 38px;           /* .landing-final card, .landing-hero-media */
+
+  /* ── Section padding (landing-specific) ──────────────────────── */
+  --landing-section-pad-y: 110px;        /* hero / intro / features / steps / privacy / final */
+  --landing-section-pad-x: 28px;
+  --landing-section-pad-y-mobile: 76px;
+  --landing-section-pad-x-mobile: 18px;
+
+  /* ── Common CTA paddings (landing-specific) ─────────────────── */
+  --landing-cta-pad-y: 13px;          /* landing-join, hero-cta, final CTA */
+  --landing-cta-pad-x: 20px;
+
+  /* ── Responsive breakpoints ──────────────────────────────────── */
+  /* CSS custom properties don't expand inside @media queries per current
+     spec, so the @media callsites in src/landing.css use literal pixels.
+     These three declarations document the values so a single source of
+     truth defines them — change one here, change both the call site
+     (manually until @custom-media lands) and the documentation.
+
+       ≥ 901 px : full desktop (default styles)
+       ≤ 900 px : tablet breakpoint  (--landing-bp-tablet)
+       ≤ 700 px : nav-collapse breakpoint (--landing-bp-nav)
+       ≤ 600 px : mobile breakpoint (--landing-bp-mobile)                */
+  --landing-bp-tablet: 900px;
+  --landing-bp-nav: 700px;
+  --landing-bp-mobile: 600px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Migration notes (2026-07-21)
+ *
+ *   - This file is the landing-page equivalent of src/theme/famos-tokens.css
+ *     for the live app chrome. FAMOS tokens load first via @import so the
+ *     landing can reuse --color-canvas, --color-ink, --color-good, the
+ *     --pastel-* family, --font-display, --radius-pill, --radius-control,
+ *     --radius-card, --radius-section, --radius-pill-sm without re-
+ *     declaration.
+ *   - src/landing.css imports this file at the top; 14 sweep rounds wired
+ *     the most-duplicated hex/radius/padding literals (≈75 sites) to
+ *     var(...) readers. The highest-leverage residual hex literals
+ *     (≥3 sites) were promoted to landing-specific tokens in this file:
+ *       #eee8ff × 5 → var(--landing-color-lavender-soft)
+ *       #f5f1ff × 4 → var(--landing-color-lavender-cool)
+ *       #f8f4ff × 3 → var(--landing-color-lavender-mid)
+ *       #d7d2e2 × 3 → var(--landing-color-gray)
+ *       #6d6874 × 3 → var(--landing-color-gray-muted)
+ *       #397b66 × 3 → var(--landing-color-sage-solid)
+ *       #ffddea × 3 → var(--pastel-pink) — FAMOS mirror
+ *       #f4f0ff × 2 → var(--landing-color-cream-intro)
+ *       #fff8e8 × 1 → var(--landing-color-cream-step)
+ *   - Truly single-site cream variants (#faf8ff, #fff9dd, #fff8fb, #fff6cf,
+ *     #eefaf5, #eefaf4, #edf6ff, and assorted 2-site #b34d6b / #92e0bf /
+ *     #90680c / etc.) are intentionally left inline — promoting them would
+ *     be additive, not deduplicative. Each ≤ 2 sites → not worth a token.
+ *   - Orphan tokens removed in this revision: --landing-color-cream-feature
+ *     (#FFEEAA, 0 sites), --landing-color-sage-200 (#C9F0E1, 0 sites),
+ *     --landing-color-sage-500 (#467363, 0 sites), --landing-color-sage-600
+ *     (#386A59, 0 sites), --landing-color-sage-700 (#3D8A70, 0 sites) all
+ *     declared in the previous revision but never had a reader in
+ *     src/landing.css (verified by post-sweep grep).
+ *   - The landing page's Landing.jsx framer-motion style={{}} props (JS
+ *     object values for y / scale / rotate / opacity) are JS-driven; they
+ *     don't read CSS tokens and were intentionally left untouched.
+ *   - Out of scope (per the FAMOS consolidation pattern): media-query
+ *     breakpoints, padding specifics (24px / 28px / 22px / 20px / 18px /
+ *     etc. page-by-page), and the @media-only four 1-occurrence breakpoint
+ *     literals at 950 / 650 / 980 / 850 — those are component-specific and
+ *     stay inline.
+ *   ─────────────────────────────────────────────────────────────────── */
