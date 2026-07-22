@@ -679,7 +679,7 @@ function OwnerProfileStep(props) {
 
         {props.step === 2 && <div className="onboarding-choice-group onboarding-priority-grid">
           <span><Sparkles size={15} /> Choose all that apply</span>
-          <div>{[["calendar", "Schedules", CalendarDays], ["meals", "Meal planning", ChefHat], ["groceries", "Shopping list", ShoppingCart], ["tasks", "Chores & tasks", CheckSquare], ["finance", "Budgeting", WalletCards], ["chat", "Family chat", MessageCircle]].map(([value, label, Icon]) => <button type="button" key={value} className={props.planningPriorities.includes(value) ? "selected" : ""} onClick={() => props.togglePriority(value)}><Icon size={16} />{label}{props.planningPriorities.includes(value) && <Check className="onboarding-pill-check" size={13} />}</button>)}</div>
+          <div>{[["calendar", "Schedules", CalendarDays], ["meals", "Meal planning", ChefHat], ["groceries", "Shopping", ShoppingCart], ["tasks", "Chores & tasks", CheckSquare], ["finance", "Budgeting", WalletCards], ["chat", "Family chat", MessageCircle]].map(([value, label, Icon]) => <button type="button" key={value} className={props.planningPriorities.includes(value) ? "selected" : ""} onClick={() => props.togglePriority(value)}><Icon size={16} />{label}{props.planningPriorities.includes(value) && <Check className="onboarding-pill-check" size={13} />}</button>)}</div>
         </div>}
 
         {props.step === 3 && <>

@@ -3291,3 +3291,22 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .event-cache-badge:active{transform:translateY(0) scale(.97)}
 .event-cache-badge svg{opacity:.65;transition:transform .6s var(--motion-fast) ease}
 .event-cache-badge:hover svg{transform:rotate(45deg);opacity:1}
+
+/* ------------------------------------------------------------------
+   Dark-mode defensiveness override (added 2026-07-22).
+   The FamOS brand label and the active bottom-nav tab rely on inherited
+   colour tokens; in some cascade contexts they rendered washed out. We
+   pin the highest-contrast values explicitly so the brand + active-tab
+   read clearly regardless of parent inheritance. Rules are still
+   scoped to .theme-dark so light mode is unaffected.
+   ------------------------------------------------------------------ */
+.theme-dark .nav-brand strong { color: #ffffff; font-weight: 800; letter-spacing: -.04em }
+.theme-dark .nav-brand span { color: rgba(255,255,255,.72) }
+.theme-dark .navbar-bg { color: var(--color-ink-soft) }
+.theme-dark .primary-nav { color: var(--color-ink-soft) }
+.theme-dark .nav-foot { color: var(--color-ink-soft) }
+.theme-dark .m3-navigation-item .nav-label { color: var(--color-ink-soft); font-weight: 700 }
+.theme-dark .m3-navigation-item.is-active .nav-label { color: #ffffff; font-weight: 800 }
+.theme-dark .m3-navigation-item.is-active .nav-icon { color: var(--color-accent) }
+.theme-dark .nav-icon svg { color: var(--color-ink) }
+.theme-dark .nav-icon { color: var(--color-ink) }
