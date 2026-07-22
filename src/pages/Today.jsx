@@ -192,38 +192,6 @@ export default function Today({ goTo }) {
   // dependency, micro-cost, removed after one play. The CSS rules also honour
   // prefers-reduced-motion via @media, but the early-return here avoids even
   // creating the DOM nodes for users who opt out of motion.
-  // Fetch meal ideas based on the current unchecked grocery list.
-  // Uses the recipe-search edge function to find recipes that use what
-  // the family already has in their shopping list.
-  useEffect(() => {
-    if (activeGroceries.length < 3) {
-      setMealIdeas([]);
-      setMealIdeasLoading(false);
-      return undefined;
-    }
-    let cancelled = false;
-    setMealIdeasLoading(true);
-    const ingredients = activeGroceries
-      .map((g) => g.name)
-      .filter(Boolean)
-      .slice(0, 8)
-      .join(", ");
-    const timer = setTimeout(async () => {
-      try {
-        const data = await invokeEdgeFunction("recipe-search", { query: ingredients, ingredients });
-        if (cancelled) return;
-        const root = data?.data && typeof data.data === "object" ? data.data : data;
-        const list = Array.isArray(root?.recipes) ? root.recipes : [];
-        setMealIdeas(list.slice(0, 3));
-      } catch {
-        if (!cancelled) setMealIdeas([]);
-      } finally {
-        if (!cancelled) setMealIdeasLoading(false);
-      }
-    }, 500);
-    return () => { cancelled = true; clearTimeout(timer); };
-  }, [activeGroceries]);
-
   const fireConfetti = () => {
     const host = composeContainerRef.current;
     if (!host) return;
@@ -310,6 +278,39 @@ export default function Today({ goTo }) {
   const weekDoneTasks = weekTasks.filter((t) => t.done);
 
   const activeGroceries = useMemo(() => groceries.filter((g) => !g.checked), [groceries]);
+
+  // Fetch meal ideas based on the current unchecked grocery list.
+  // Uses the recipe-search edge function to find recipes that use what
+  // the family already has in their shopping list.
+  useEffect(() => {
+    if (activeGroceries.length < 3) {
+      setMealIdeas([]);
+      setMealIdeasLoading(false);
+      return undefined;
+    }
+    let cancelled = false;
+    setMealIdeasLoading(true);
+    const ingredients = activeGroceries
+      .map((g) => g.name)
+      .filter(Boolean)
+      .slice(0, 8)
+      .join(", ");
+    const timer = setTimeout(async () => {
+      try {
+        const data = await invokeEdgeFunction("recipe-search", { query: ingredients, ingredients });
+        if (cancelled) return;
+        const root = data?.data && typeof data.data === "object" ? data.data : data;
+        const list = Array.isArray(root?.recipes) ? root.recipes : [];
+        setMealIdeas(list.slice(0, 3));
+      } catch {
+        if (!cancelled) setMealIdeas([]);
+      } finally {
+        if (!cancelled) setMealIdeasLoading(false);
+      }
+    }, 500);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [activeGroceries]);
+
   const groceryCount = activeGroceries.length;
   const groceryCategories = Object.entries(
     activeGroceries.reduce((acc, item) => {
