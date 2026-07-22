@@ -1,10 +1,41 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Baby, Bone, Carrot, Clipboard, Coffee, Cookie, Croissant, CupSoda, Download, Drumstick, ExternalLink, FlaskConical, Globe2, GripVertical, HeartPulse, Maximize2, Milk, Package, Pencil, Plus, Sandwich, ScanLine, ScrollText, Share2, ShoppingBag, Snowflake, Soup, SprayCan, Star, Store, Trash2, Truck, Wheat, Wine, X } from "lucide-react";
+import { Baby, Bone, Carrot, Check, ChevronDown, Clipboard, Coffee, Cookie, Croissant, CupSoda, Download, Drumstick, ExternalLink, FlaskConical, Globe2, GripVertical, HeartPulse, LoaderCircle, Maximize2, Milk, Package, Pencil, Plus, Sandwich, ScanLine, ScrollText, Share2, ShoppingBag, ShoppingBasket, Snowflake, Soup, SprayCan, Star, Store, Trash2, Truck, Wheat, Wine, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { Avatar, Card, Checkbox, EmptyState, Modal, PrimaryButton, SecondaryButton, Stepper, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import PullToRefresh from "../components/PullToRefresh";
+import { cookableRecipes } from "../lib/cookableTonight";
+import { invokeEdgeFunction } from "../lib/supabase";
 import { GROCERY_CATEGORIES } from "../data/mockData";
+
+// Cache successful recipe-search responses for 4h keyed off sorted
+// checked-grocery names + extras typed into the section. Same shape as
+// the discover-events cache — open the modal again later and the
+// bakery-pantry results are instant. The extras token is included so
+// typing "soy sauce" gets cache-hits matching the same pantry+extras.
+const GROCERY_RECIPES_CACHE_PREFIX = "famos_grocery_recipes_v1:";
+const GROCERY_RECIPES_CACHE_TTL_MS = 4 * 60 * 60 * 1000;
+const parseExtraIngredientNames = (raw) => String(raw || "").split(",").map((part) => part.toLowerCase().trim()).filter(Boolean);
+const buildGroceryRecipeCacheKey = (names, extras) => {
+  const tokens = [...names.map((name) => `p:${name}`), ...extras.map((name) => `x:${name}`)].filter(Boolean).sort();
+  return `${GROCERY_RECIPES_CACHE_PREFIX}${tokens.join("|")}`;
+};
+const readGroceryRecipeCache = (key) => {
+  try {
+    if (typeof window === "undefined") return null;
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    const entry = JSON.parse(raw);
+    if (!entry || typeof entry.cachedAt !== "number" || Date.now() - entry.cachedAt > GROCERY_RECIPES_CACHE_TTL_MS) return null;
+    return Array.isArray(entry.recipes) ? entry.recipes : null;
+  } catch { return null; }
+};
+const writeGroceryRecipeCache = (key, recipes) => {
+  try {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(key, JSON.stringify({ cachedAt: Date.now(), recipes }));
+  } catch { /* quota / private mode */ }
+};
 
 const emptyDraft = { name: "", category: GROCERY_CATEGORIES[0], quantity: 1, unit: "" };
 const emptyBarcodeDraft = { ...emptyDraft, code: "", brand: "", price: "", imageUrl: "" };
@@ -206,6 +237,61 @@ export default function Groceries() {
   const [deliveryStatus, setDeliveryStatus] = useState("");
 
   useEffect(() => { localStorage.setItem(STAPLES_KEY, JSON.stringify(staples)); }, [staples]);
+
+  // Cookable-from-pantry: fetch API Ninjas recipes indexed by the user's
+  // CHECKED grocery names on mount / toggle-change. The list is then
+  // filtered in-memory by the same cookableTonight helper the Meals page
+  // uses, so the grocery-page soft tier inherits the active-vs-cookable
+  // split semantics — same contract, different feed surface.
+  const [extraIngredients, setExtraIngredients] = useState("");
+  const [cookableRecipesData, setCookableRecipesData] = useState({ recipes: [], busy: false, error: "" });
+
+  useEffect(() => {
+    const checkedNames = groceries
+      .filter((g) => g && g.checked && typeof g.name === "string")
+      .map((g) => g.name.toLowerCase().trim())
+      .filter(Boolean);
+    if (!checkedNames.length) {
+      setCookableRecipesData({ recipes: [], busy: false, error: "" });
+      return undefined;
+    }
+    const extraNames = parseExtraIngredientNames(extraIngredients);
+    const cacheKey = buildGroceryRecipeCacheKey(checkedNames, extraNames);
+    const cached = readGroceryRecipeCache(cacheKey);
+    if (cached) {
+      setCookableRecipesData({ recipes: cached, busy: false, error: "" });
+      return undefined;
+    }
+    let cancelled = false;
+    setCookableRecipesData((current) => ({ recipes: current.recipes, busy: true, error: "" }));
+    const handle = setTimeout(async () => {
+      try {
+        // Send extras as the seed when present so API Ninjas narrows
+        // toward what the user typed; otherwise fall back to the
+        // checked-grocery name list (today's behaviour). Capped at 12
+        // total to stay within the function's request body budget.
+        const ingredientQuery = [...checkedNames.slice(0, 8), ...extraNames.slice(0, 8)].filter((value, index, array) => array.indexOf(value) === index).slice(0, 12).join(", ");
+        const seedQuery = extraNames.length ? extraNames.slice(0, 5).join(" ") : checkedNames.slice(0, 5).join(" ");
+        const data = await invokeEdgeFunction("recipe-search", {
+          query: seedQuery,
+          ingredients: ingredientQuery,
+          mealType: "dinner",
+        });
+        if (cancelled) return;
+        const list = Array.isArray(data?.recipes) ? data.recipes : [];
+        setCookableRecipesData({ recipes: list, busy: false, error: "" });
+        writeGroceryRecipeCache(cacheKey, list);
+      } catch (err) {
+        if (!cancelled) setCookableRecipesData({ recipes: [], busy: false, error: err?.message || "Recipe lookup failed." });
+      }
+    }, 350);
+    return () => { cancelled = true; clearTimeout(handle); };
+  }, [groceries, extraIngredients]);
+
+  const cookableList = useMemo(
+    () => cookableRecipes(cookableRecipesData.recipes, groceries),
+    [cookableRecipesData.recipes, groceries]
+  );
 
   const grouped = useMemo(() => {
     const map = {};
@@ -571,6 +657,70 @@ export default function Groceries() {
       />
 
       <div className="px-5 space-y-5 mt-2">
+        {checkedCount > 0 && (
+          <Card className="p-4 grocery-cookable-card">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="w-10 h-10 rounded-xl bg-[var(--color-good-soft)] flex items-center justify-center shrink-0">
+                <ShoppingBasket size={18} color="var(--color-good)" />
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="font-[var(--font-display)] text-[15px] font-semibold tracking-[-0.02em]">What can I make with what's checked?</p>
+                <small className="block text-[11.5px] text-[var(--color-ink-soft)] leading-snug">
+                  {checkedCount} pantry item{checkedCount === 1 ? "" : "s"} · {cookableList.length} recipe{cookableList.length === 1 ? "" : "s"} you can cook right now
+                </small>
+              </div>
+            </div>
+            <input
+              value={extraIngredients}
+              onChange={(event) => setExtraIngredients(event.target.value)}
+              placeholder="Add extra ingredients you have on hand (soy sauce, butter)…"
+              className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-[13.5px] text-[var(--color-ink)] placeholder:text-[var(--color-ink-faint)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] mb-3"
+              aria-label="Extra ingredients on hand"
+            />
+            {cookableRecipesData.busy && cookableList.length === 0 && (
+              <p className="flex items-center gap-2 text-[12px] text-[var(--color-ink-faint)] px-1 mb-2"><LoaderCircle size={13} className="animate-spin" /> Searching API Ninjas…</p>
+            )}
+            {cookableRecipesData.error && (
+              <p className="text-[11.5px] text-[var(--color-warn)] px-1 mb-2">{cookableRecipesData.error}</p>
+            )}
+            {!cookableRecipesData.busy && cookableList.length > 0 && (
+              <details className="famos-soft-tier meal-soft-tier grocery-cookable-tier" open>
+                <summary>
+                  <ChevronDown aria-hidden="true" size={14} />
+                  <div>
+                    <strong>
+                      <ShoppingBasket aria-hidden="true" size={13} /> {cookableList.length} you can cook now
+                    </strong>
+                    <small>tap to peek — every ingredient is already in your pantry</small>
+                  </div>
+                </summary>
+                <ul className="grocery-cookable-list">
+                  {cookableList.map((recipe) => (
+                    <li key={recipe.title} className="grocery-cookable-row">
+                      <strong>{recipe.title}</strong>
+                      {recipe.cuisine && <small className="grocery-cookable-cuisine">{recipe.cuisine}</small>}
+                      <ul className="grocery-cookable-ingredients">
+                        {(Array.isArray(recipe.ingredients) ? recipe.ingredients : []).map((ingredient, index) => (
+                          <li key={`${recipe.title}-${index}`}><Check aria-hidden="true" size={11} /> {ingredient}</li>
+                        ))}
+                      </ul>
+                    </li>
+                  ))}
+                </ul>
+                {extraIngredients.trim() && (
+                  <p className="grocery-cookable-extra-note">
+                    Extra on hand: <strong>{extraIngredients.trim()}</strong> — those go in too if the recipe matches.
+                  </p>
+                )}
+              </details>
+            )}
+            {!cookableRecipesData.busy && !cookableRecipesData.error && cookableList.length === 0 && (
+              <p className="text-[12px] text-[var(--color-ink-soft)] leading-snug px-1">
+                API Ninjas had no recipes that combine your pantry{extraIngredients.trim() ? ` with ${extraIngredients.trim()}` : ""} yet. Check off a few more staples, or simplify your extras to widen the search.
+              </p>
+            )}
+          </Card>
+        )}
         <Card
           className="delivery-banner-card relative overflow-hidden p-5 border-white/10 shadow-[0_22px_55px_rgba(18,16,43,0.24)]"
         >

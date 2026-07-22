@@ -768,6 +768,28 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .famos-soft-tier>summary small{font-size:11px;color:var(--color-ink-faint);line-height:1.35}
 
 /* Event muted tier — accent: --color-accent + slightly larger summary typography. */
+/* ── Grocery cookable-from-pantry soft-tier ──
+   On the Groceries page the "What can I make with what's checked?" card
+   is the **check-side** mirror of the meal page's **shop-side** soft tier.
+   Same `.famos-soft-tier` + `.meal-soft-tier` chrome (dashed border, chevron,
+   tap-to-peek) but `.grocery-cookable-*` provides the grocery-modifier
+   recipes list rendering: dense recipe rows with cuisine eyebrow + tick-
+   marked ingredient list, so the parent at the supermarket can scan
+   ingredient names against what's in their cart without crossing reference. */
+.grocery-cookable-card{margin-bottom:6px}
+.grocery-cookable-tier{--soft-bg:color-mix(in srgb,var(--color-accent) 6%,var(--color-surface))}
+.grocery-cookable-list{list-style:none;margin:10px 0 0;padding:6px 6px 4px;display:grid;gap:8px;max-height:min(46vh,360px);overflow-y:auto}
+.grocery-cookable-list::-webkit-scrollbar{width:6px}
+.grocery-cookable-list::-webkit-scrollbar-thumb{background:var(--color-border-strong);border-radius:3px}
+.grocery-cookable-row{padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--color-good) 4%,var(--color-surface));display:grid;gap:3px}
+.grocery-cookable-row strong{font-size:13px;font-weight:600;color:var(--color-ink);letter-spacing:-0.005em}
+.grocery-cookable-cuisine{margin-left:6px;font-size:10.5px;font-weight:500;color:var(--color-ink-faint);text-transform:lowercase;letter-spacing:0.02em}
+.grocery-cookable-ingredients{list-style:none;margin:4px 0 0;padding:0;display:grid;gap:2px}
+.grocery-cookable-ingredients li{font-size:11.5px;color:var(--color-ink-soft);line-height:1.4;display:flex;align-items:center;gap:5px}
+.grocery-cookable-ingredients li svg{flex:none;color:var(--color-good);opacity:.85}
+.grocery-cookable-extra-note{margin:8px 4px 2px;font-size:11.5px;color:var(--color-ink-soft);line-height:1.4}
+.grocery-cookable-extra-note strong{color:var(--color-accent-strong)}
+
 .event-discovery-muted-tier{--soft-border:color-mix(in srgb,var(--color-accent) 28%,var(--color-border));--soft-bg:color-mix(in srgb,var(--color-accent) 4%,var(--color-surface));--soft-summary:var(--color-ink);--soft-icon:var(--color-accent);margin-top:14px;padding:11px 14px}
 .event-discovery-muted-tier>summary{gap:10px}
 .event-discovery-muted-tier>summary strong{font-size:13px;font-weight:600;display:flex}
