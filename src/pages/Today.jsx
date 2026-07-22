@@ -58,17 +58,12 @@ const roundTemp = (value) => (Number.isFinite(Number(value)) ? Math.round(Number
 // Mirrors the spirit of the deleted Quick-start chips but stays inline as a
 // single line of hint copy. Cycles every 4.5s; pauses on focus / typed text.
 const BROADCAST_PLACEHOLDERS = [
-  "Say hi to the fam 👋",
-  "What's happening tonight? 🍝",
-  "Big news — share it 🎉",
-  "Heads up, family ⚡",
-  "Tell everyone you're thinking of them ❤️",
+  "Say hi to the family",
+  "What's happening tonight?",
+  "Big news — share it",
+  "Heads up, family",
+  "Tell everyone you're thinking of them",
 ];
-
-// Drifting decorative emoji halos behind the composer. Pure CSS animation —
-// blurred, sparse, intentionally tiny so they register as ambient confetti,
-// not noise. aria-hidden so they never reach assistive tech.
-const DRIFT_BUBBLES = ["✨", "❤️", "🎉", "🌟"];
 
 // Confetti palette matches the daypart sunrise gradient (kept in CSS vars so the
 // day/morning/evening variants pick up automatically).
@@ -394,11 +389,6 @@ export default function Today({ goTo }) {
       <div className="px-5 space-y-6 mt-2">
         <section className="broadcast-home" aria-label="Family broadcast">
           <div className="broadcast-confetti-host" ref={composeContainerRef}>
-            <div className="broadcast-deco-bubbles" aria-hidden="true">
-              {DRIFT_BUBBLES.map((emoji, index) => (
-                <span key={emoji} className={`broadcast-deco-bubble broadcast-deco-bubble-${index + 1}`}>{emoji}</span>
-              ))}
-            </div>
             <form
               className="broadcast-compose"
               onSubmit={postBroadcast}

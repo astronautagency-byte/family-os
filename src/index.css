@@ -2277,20 +2277,10 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .broadcast-submit.is-ready:hover:not(:disabled){transform:translateY(-2px) rotate(-2deg) scale(1.04);box-shadow:0 14px 30px color-mix(in srgb,var(--color-accent) 44%,transparent)}
 .broadcast-submit:disabled{opacity:.4;cursor:not-allowed}
 .broadcast-spin{animation:spin 1s linear infinite}
-.broadcast-deco-bubbles{position:absolute;inset:-22px;pointer-events:none;z-index:0;overflow:visible}
-.broadcast-deco-bubble{position:absolute;font-size:16px;opacity:.55;filter:blur(.5px);user-select:none;will-change:transform,opacity}
-.broadcast-deco-bubble-1{top:6%;left:-6%;animation:broadcast-deco-drift-a 11s ease-in-out infinite}
-.broadcast-deco-bubble-2{top:42%;right:-8%;font-size:14px;opacity:.45;filter:blur(1px);animation:broadcast-deco-drift-b 13s ease-in-out infinite}
-.broadcast-deco-bubble-3{bottom:-12%;left:24%;font-size:18px;animation:broadcast-deco-drift-c 15s ease-in-out infinite}
-.broadcast-deco-bubble-4{top:-14%;right:30%;font-size:13px;opacity:.4;filter:blur(1.2px);animation:broadcast-deco-drift-d 17s ease-in-out infinite}
-@keyframes broadcast-deco-drift-a{0%,100%{transform:translate(0,0) rotate(-4deg)}50%{transform:translate(8px,-12px) rotate(8deg)}}
-@keyframes broadcast-deco-drift-b{0%,100%{transform:translate(0,0) rotate(6deg)}50%{transform:translate(-10px,8px) rotate(-8deg)}}
-@keyframes broadcast-deco-drift-c{0%,100%{transform:translate(0,0) rotate(-2deg)}50%{transform:translate(6px,-10px) rotate(10deg)}}
-@keyframes broadcast-deco-drift-d{0%,100%{transform:translate(0,0) rotate(4deg)}50%{transform:translate(-8px,12px) rotate(-12deg)}}
 .broadcast-compose-error{color:var(--color-warn);font-size:12px;padding:0 4px}
 .broadcast-confetti{position:absolute;right:18px;top:22px;width:9px;height:9px;border-radius:2px;background:var(--c,var(--color-accent));pointer-events:none;opacity:0;animation:broadcast-confetti-fly 1.1s cubic-bezier(.18,.9,.32,1) forwards;transform-origin:center}
 @keyframes broadcast-confetti-fly{0%{transform:translate(0,0) rotate(0deg) scale(.6);opacity:1}55%{opacity:1}100%{transform:translate(var(--x,0),var(--y,-70px)) rotate(var(--rot,180deg)) scale(.9);opacity:0}}
-@media (prefers-reduced-motion: reduce){.broadcast-compose-icon.is-idle svg,.broadcast-compose,.broadcast-deco-bubble{animation:none!important}.broadcast-compose:focus-within{transform:none}.broadcast-compose-icon,.broadcast-sticker,.broadcast-submit{transition:none}.broadcast-deco-bubble{opacity:.35;filter:blur(1px)}}
+@media (prefers-reduced-motion: reduce){.broadcast-compose-icon.is-idle svg,.broadcast-compose{animation:none!important}.broadcast-compose:focus-within{transform:none}.broadcast-compose-icon,.broadcast-submit{transition:none}}
 /* ── Broadcast banners (home screen) — clean notification card ── */
 .broadcast-banner-list{display:grid;gap:10px}
 .broadcast-banner{position:relative;display:flex;align-items:flex-start;gap:12px;padding:15px 44px 15px 15px;border-radius:16px;border:1px solid color-mix(in srgb,var(--color-accent) 20%,var(--color-border));background:color-mix(in srgb,var(--color-accent) 6%,var(--color-surface));box-shadow:0 1px 2px rgba(16,24,40,.04)}
