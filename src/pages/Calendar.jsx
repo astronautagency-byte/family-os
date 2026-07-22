@@ -464,7 +464,8 @@ export default function CalendarPage() {
             </div>
           )}
 
-          {/* ── Day agenda ── */}
+          {/* ── Day agenda (list view only) ── */}
+          {calendarView === "list" && (
           <div className="calendar-agenda-section" ref={agendaRef}>
             <div className="calendar-agenda-label">{selectedLabel}</div>
             {dayEvents.length === 0 ? (
@@ -526,6 +527,7 @@ export default function CalendarPage() {
               </div>
             )}
           </div>
+          )}
         </div>
 
         {/* ── Modals (all preserved from original) ── */}
