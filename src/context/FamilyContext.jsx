@@ -832,6 +832,38 @@ export function FamilyProvider({ children, tabletMode = false }) {
     };
   }, [remote, googleConnected, googleProviderToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Background sync on (re)sign-in: when the user signs in on a new device or
+  // an existing session re-opens, the durable refresh token already lives in
+  // google-calendar-token. Mint a fresh access token from it and re-import
+  // events silently so the calendar is up-to-date before the user even opens
+  // the Calendar page. Skipped when the connection has lapsed (the helper
+  // leaves googleStatus='expired' so Settings can surface "Reconnect").
+  const backgroundSyncInFlightRef = useRef(null);
+  useEffect(() => {
+    if (!configured || !user?.id || !googleConnected) return undefined;
+    let cancelled = false;
+    const backgroundSync = async () => {
+      if (cancelled) return;
+      if (["syncing", "connecting"].includes(googleStatusRef.current)) return;
+      try {
+        if (backgroundSyncInFlightRef.current) {
+          await backgroundSyncInFlightRef.current;
+          return;
+        }
+        const run = (async () => {
+          await syncGoogleCalendarNow();
+        })();
+        backgroundSyncInFlightRef.current = run;
+        try { await run; } finally { backgroundSyncInFlightRef.current = null; }
+      } catch {
+        /* their own error UI takes over */
+      }
+    };
+    // Defer so the rest of the page settles first.
+    const handle = setTimeout(backgroundSync, 350);
+    return () => { cancelled = true; clearTimeout(handle); };
+  }, [configured, user?.id, googleConnected]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const connectGoogleCalendar = async () => {
     if (configured) {
       setGoogleStatus("connecting");
