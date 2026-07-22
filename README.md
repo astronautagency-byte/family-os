@@ -57,6 +57,36 @@ src/
     Settings.jsx    Manage family members, names, roles, and colors
 ```
 
+## Onboarding gate
+
+The post-login experience for a household *owner* is gated by `refreshAccount()` in `src/context/AuthContext.jsx`. The owner is treated as "set up" — and skips the wizard — when **any** of the following holds:
+
+1. The `household_profiles.completed_at` column is non-null for their household.
+2. The localStorage key `family-os:onboarding-profile-complete:<householdId>:<userId>` is exactly `"true"` in the browser.
+3. The owner clicked the "Skip the rest — my home is ready" button (wired to `markOnboardingComplete()` in `AuthContext`). That helper sets the local flag synchronously and best-effort writes `completed_at` server-side.
+4. Activity inference: any of `tasks`, `messages`, `events`, `meals`, or `grocery_items` has at least one row for the household. Confirms the family is operational even when their `household_profiles` row is missing or stale.
+
+Conceptually the gate is:
+
+```js
+const profileComplete =
+  Boolean(householdProfileData?.completed_at)
+  || localStorage.getItem(onboardingKey) === "true"
+  || activityInferredComplete; // any of 5 tables has rows
+```
+
+Companion changes (apply in this order if you are reproducing from scratch):
+
+- `supabase/migrations/202607210006_backfill_onboarding_completed.sql` — idempotent; backfills `completed_at` on any row originally inserted without it.
+- Git: `27c8667` (Layer 1 backfill), `d6391e2` (Layer 2 activity inference), `5407ad6` (Layer 3 escape hatch + `markOnboardingComplete`).
+
+### Policy for contributors
+
+- **Do not tighten the gate back to "only `completed_at IS NOT NULL`"**. Several existing households predate the `household_profiles` table; tightening the gate would re-introduce the bug where existing users are routed through all six `OwnerProfileStep` screens on sign-in even though their home is fully configured.
+- **Keep all four paths**. Each defends a different failure mode (server-side, client-side stale flag, an active user who never opened the wizard, an owner whose wizard was interrupted).
+- **If you remove the wizard, remove the gate entirely** instead. Leaving the gate without its `OwnerProfileStep` content would silently sign owners into a half-configured home.
+- **If you change `onboardingProfileKey()`, retest the existing-user scenario**: sign in to a household whose `household_profiles` row has no `completed_at` **and** whose localStorage flag is empty. They must NOT see the wizard.
+
 ## Supabase setup
 
 1. Create a Supabase project and run the SQL files in `supabase/migrations/` in filename order (or use `supabase db push`).
