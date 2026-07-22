@@ -11,6 +11,7 @@ import PullToRefresh from "../components/PullToRefresh";
 import { formatDuration, formatTime, todayISO } from "../lib/dates";
 import { fetchGooglePlaceSuggestions, googleMapsApiKey, loadGooglePlaces } from "../lib/googleMapsPlaces";
 import { invokeEdgeFunction } from "../lib/supabase";
+import { parseQuickAdd } from "../lib/quickCapture";
 
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const EVENT_TYPES = {
@@ -199,6 +200,10 @@ export default function CalendarPage() {
   const [cityDraft, setCityDraft] = useState("");
   const [calendarManagerOpen, setCalendarManagerOpen] = useState(false);
   const [draft, setDraft] = useState({ title: "", date: selectedDate, start: "18:00", end: "19:00", location: "", memberIds: [], eventType: "family", destination: "family" });
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [quickText, setQuickText] = useState("");
+  const quickRef = useRef(null);
+  const quickInputRef = useRef(null);
 
   // Weather: only relevant to TODAY's agenda header. Lat/lng come from the
   // household's saved address; the edge function is preferred, Open-Meteo is
@@ -311,11 +316,82 @@ export default function CalendarPage() {
     });
   }, [selectedDate]);
 
-  const openAdd = () => {
-    setDraft({ title: "", date: selectedDate, start: "18:00", end: "19:00", location: "", memberIds: members.map(m => m.id), eventType: "family", destination: "family" });
+  const openAdd = (prefill) => {
+    setDraft({
+      title: "",
+      date: selectedDate,
+      start: "18:00",
+      end: "19:00",
+      location: "",
+      memberIds: members.map(m => m.id),
+      eventType: "family",
+      destination: "family",
+      ...(prefill || {}),
+    });
     setSaveError("");
     setAdding(true);
   };
+
+  // Quick-capture: free-form text → parsed draft → openAdd with prefill.
+  // Cuts the add-event path from ~6 taps (FAB → fields → save) to 2:
+  // FAB + Enter. The parse is best-effort — bad input still opens the
+  // modal so the user can adjust without re-typing their title.
+  const openQuick = () => {
+    setQuickText("");
+    setQuickOpen(true);
+    // Focus the input once it's mounted.
+    requestAnimationFrame(() => quickInputRef.current?.focus());
+  };
+  const closeQuick = () => {
+    setQuickOpen(false);
+    setQuickText("");
+  };
+  const submitQuickCapture = () => {
+    const text = quickText.trim();
+    if (!text) return; // Empty Enter just no-ops; user can use the expand button for a blank form.
+    const parsed = parseQuickAdd(text, selectedDate);
+    if (parsed.date && parsed.date !== selectedDate) {
+      setSelectedDate(parsed.date);
+      // Also flip the month grid if the parsed date falls outside it,
+      // otherwise the highlighted cell disappears from view.
+      const parsedMonth = new Date(`${parsed.date}T12:00:00`);
+      if (parsedMonth.getFullYear() !== month.getFullYear() || parsedMonth.getMonth() !== month.getMonth()) {
+        setMonth(new Date(parsedMonth.getFullYear(), parsedMonth.getMonth(), 1));
+      }
+    }
+    openAdd({
+      title: parsed.title || text,
+      date: parsed.date,
+      start: parsed.start,
+      end: parsed.end,
+    });
+    closeQuick();
+  };
+  const expandQuickToForm = () => {
+    const text = quickText.trim();
+    setQuickOpen(false);
+    setQuickText("");
+    openAdd(text ? { title: text } : null);
+  };
+
+  // Click-outside / Escape to close the quick-capture pill.
+  useEffect(() => {
+    if (!quickOpen) return undefined;
+    const onPointerDown = (event) => {
+      if (quickRef.current && !quickRef.current.contains(event.target) && !event.target.closest(".calendar-fab")) {
+        closeQuick();
+      }
+    };
+    const onKey = (event) => { if (event.key === "Escape") closeQuick(); };
+    window.addEventListener("mousedown", onPointerDown);
+    window.addEventListener("touchstart", onPointerDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mousedown", onPointerDown);
+      window.removeEventListener("touchstart", onPointerDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [quickOpen]);
 
   const discoverLocation = householdProfileExtra?.city || householdProfileExtra?.address || "";
   const searchCities = discoverCities.length ? discoverCities : (discoverLocation ? [discoverLocation] : []);
@@ -844,9 +920,51 @@ export default function CalendarPage() {
         </Modal>
       </div>
     </PullToRefresh>
-    <button className="calendar-fab" onClick={openAdd} aria-label="Add event">
+    <button className="calendar-fab" onClick={openQuick} aria-label="Add event" aria-expanded={quickOpen}>
       <Plus size={26} />
     </button>
+    {quickOpen && (
+      <div className="calendar-quick-capture" ref={quickRef} role="dialog" aria-label="Quick add event">
+        <span className="calendar-quick-icon" aria-hidden="true"><Plus size={16} /></span>
+        <input
+          ref={quickInputRef}
+          className="calendar-quick-input"
+          value={quickText}
+          onChange={(event) => setQuickText(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") { event.preventDefault(); submitQuickCapture(); }
+          }}
+          placeholder="Try “dentist 3pm Wed” or “soccer 4:30pm tomorrow”"
+          aria-label="Event title, time, day"
+        />
+        <button
+          type="button"
+          className="calendar-quick-submit"
+          onClick={submitQuickCapture}
+          disabled={!quickText.trim()}
+          aria-label="Add parsed event"
+        >
+          Add
+        </button>
+        <button
+          type="button"
+          className="calendar-quick-expand"
+          onClick={expandQuickToForm}
+          aria-label="Open full event form"
+          title="Open full event form"
+        >
+          <ChevronRight size={16} />
+        </button>
+        <button
+          type="button"
+          className="calendar-quick-close"
+          onClick={closeQuick}
+          aria-label="Cancel quick add"
+        >
+          <X size={16} />
+        </button>
+      </div>
+    )}
     </>
   );
 }

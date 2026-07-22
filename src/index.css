@@ -3109,3 +3109,23 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .calendar-fab:hover{transform:translateY(-2px);background:var(--color-accent-strong);box-shadow:0 12px 28px color-mix(in srgb,var(--color-accent) 42%,transparent)}
 .calendar-fab:active{transform:translateY(0) scale(.96)}
 @media(min-width:720px){.calendar-fab{right:24px;bottom:24px}}
+
+/* Quick-capture pill: springs up from the FAB press so users can type
+   "dentist 3pm Wed" and prefill the add-event modal in two taps. */
+.calendar-quick-capture{position:fixed;right:18px;bottom:150px;z-index:31;display:flex;align-items:center;gap:4px;width:min(calc(100vw - 36px),440px);max-width:calc(100vw - 36px);padding:6px 6px 6px 10px;border-radius:28px;background:color-mix(in srgb,var(--color-accent-soft) 70%,var(--color-surface));border:1px solid color-mix(in srgb,var(--color-accent) 28%,var(--color-border));box-shadow:0 14px 36px color-mix(in srgb,var(--color-accent) 22%,transparent),0 2px 6px rgba(16,24,40,.06);transform-origin:bottom right;animation:quick-capture-spring .28s cubic-bezier(.32,.72,0,1)}
+.calendar-quick-icon{flex:0 0 auto;width:30px;height:30px;display:grid;place-items:center;border-radius:50%;background:var(--color-accent);color:#fff}
+.calendar-quick-input{flex:1;min-width:0;height:36px;padding:0 4px;background:transparent;border:0;outline:none;color:var(--color-ink);font-size:14.5px;font-weight:500}
+.calendar-quick-input::placeholder{color:var(--color-ink-faint);font-weight:400}
+.calendar-quick-submit{flex:0 0 auto;height:36px;padding:0 14px;border-radius:18px;background:var(--color-ink);color:#fff;border:0;font-weight:700;font-size:12.5px;cursor:pointer;transition:background var(--motion-fast) ease,transform var(--motion-fast) ease}
+.calendar-quick-submit:hover:not(:disabled){background:#000}
+.calendar-quick-submit:disabled{opacity:.35;cursor:not-allowed}
+.calendar-quick-submit:active{transform:scale(.94)}
+.calendar-quick-expand,.calendar-quick-close{flex:0 0 auto;width:30px;height:30px;display:grid;place-items:center;border-radius:50%;border:0;background:transparent;color:var(--color-ink-soft);cursor:pointer;transition:background var(--motion-fast) ease}
+.calendar-quick-expand:hover,.calendar-quick-close:hover{background:color-mix(in srgb,var(--color-accent) 14%,var(--color-surface))}
+.calendar-quick-close{margin-right:2px}
+@keyframes quick-capture-spring{from{opacity:0;transform:translateY(10px) scale(.5)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:480px){
+  .calendar-quick-capture{right:14px;bottom:152px;width:calc(100vw - 28px);padding:5px 5px 5px 10px}
+  .calendar-quick-input{font-size:15px}
+}
+@media(min-width:720px){.calendar-quick-capture{right:24px;bottom:90px}}
