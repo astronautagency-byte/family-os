@@ -249,8 +249,12 @@ export default function CalendarPage() {
     const cities=discoverCities.length?discoverCities:(discoverLocation?[discoverLocation]:[]);
     if(!cities.length){setDiscoverError("Add your home address in Settings, or add a city below, to discover nearby events.");return;}
     setDiscoverBusy(true);setDiscoverError("");
+    // `gl` on the SerpApi call must match the household country — otherwise
+    // every non-CA family sees zero results because the query is implicitly
+    // "in <city>, Canada" downstream.
+    const country=String(householdProfileExtra?.country||"ca").toLowerCase().slice(0,2);
     try{
-      const result=await invokeEdgeFunction("search-local-events",{location:cities[0],cities,category:discoverCategory,when:discoverWhen});
+      const result=await invokeEdgeFunction("search-local-events",{location:cities[0],cities,category:discoverCategory,when:discoverWhen,country});
       setDiscoveredEvents(Array.isArray(result?.events)?result.events:[]);
       if(!result?.events?.length)setDiscoverError("No matching events were found. Try a broader category, another city, or a different date.");
     }catch(error){setDiscoveredEvents([]);setDiscoverError(error.message||"Could not load local events.");}
@@ -301,7 +305,7 @@ export default function CalendarPage() {
       <PrimaryButton onClick={save} disabled={saving}>{saving?"Adding…":"Add it"}</PrimaryButton>
     </Modal>
     <Modal open={discovering} onClose={()=>setDiscovering(false)} title="Find something fun nearby">
-      <div className="event-discovery-intro"><span><Sparkles/></span><div><strong>{searchCities.length ? `Searching ${searchCities.length} area${searchCities.length===1?"":"s"}` : "Add your home area"}</strong><p>Fresh local events and experiences for your family, powered by OpenWeb Ninja.</p></div></div>
+      <div className="event-discovery-intro"><span><Sparkles/></span><div><strong>{searchCities.length ? `Searching ${searchCities.length} area${searchCities.length===1?"":"s"}` : "Add your home area"}</strong>          <p>Fresh local events and experiences for your family, powered by SerpApi (Google Events).</p></div></div>
       <div className="event-city-picker">
         <span>Search areas</span>
         <div className="event-city-chips">

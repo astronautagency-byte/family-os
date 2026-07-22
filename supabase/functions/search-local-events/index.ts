@@ -49,6 +49,12 @@ Deno.serve(async (request) => {
     const when = cleanText(body.when, 40).toLowerCase();
     const whenChip = WHEN_CHIPS[when] || "";
 
+    // Country drives SerpApi's `gl` param and the query tail. Default to "ca" so
+    // existing Canadian households don't change behaviour; non-Canadian clients
+    // pass their ISO 3166-1 alpha-2 country code from household_profile.country.
+    const rawCountry = cleanText(body.country, 8).toLowerCase();
+    const country = /^[a-z]{2}$/.test(rawCountry) ? rawCountry : "ca";
+
     const rawCities = Array.isArray(body.cities)
       ? body.cities.map((value: unknown) => cleanText(value, 120)).filter((value: string) => value.length >= 2)
       : [];
@@ -92,9 +98,10 @@ Deno.serve(async (request) => {
     const fetchCity = async (city: string) => {
       const endpoint = new URL("https://serpapi.com/search.json");
       endpoint.searchParams.set("engine", "google_events");
-      endpoint.searchParams.set("q", `${category} in ${city}, Canada`);
+      endpoint.searchParams.set("q", `${category} in ${city}`);
       endpoint.searchParams.set("hl", "en");
-      endpoint.searchParams.set("gl", "ca"); // Canada only, for now.
+      // Country is per-tenant (defaults to "ca" for households without a stored country).
+      endpoint.searchParams.set("gl", country);
       if (whenChip) endpoint.searchParams.set("htichips", whenChip);
       endpoint.searchParams.set("api_key", apiKey);
       const response = await fetch(endpoint);
@@ -121,7 +128,7 @@ Deno.serve(async (request) => {
       return true;
     }).slice(0, 24);
 
-    return json({ events, cities, provider: "SerpApi (Google Events)", country: "ca" });
+    return json({ events, cities, provider: "SerpApi (Google Events)", country });
   } catch (error) {
     console.error("search-local-events failed", error);
     return json({ error: error instanceof Error ? error.message : "Could not load local events." }, 500);
