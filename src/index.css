@@ -483,6 +483,69 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 }
 .reference-dashboard .today-compact-empty>div{padding:28px 16px}
 
+/* Meal ideas from your groceries — Today dashboard */
+.today-ideas-card{
+  background:color-mix(in srgb,var(--pastel-peach) 14%,var(--color-surface))!important;
+  border-color:color-mix(in srgb,var(--color-border) 76%,transparent)!important;
+  box-shadow:none!important;
+}
+.today-ideas-grid{
+  display:grid;
+  gap:8px;
+}
+.today-idea-card{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  width:100%;
+  padding:11px 12px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-control);
+  background:var(--color-surface);
+  text-align:left;
+  transition:border-color .18s ease,transform .14s ease,box-shadow .18s ease;
+}
+.today-idea-card:hover{
+  border-color:var(--color-accent);
+  box-shadow:0 4px 14px rgba(81,72,200,.1);
+}
+.today-idea-card:active{
+  transform:scale(.98);
+}
+.today-idea-index{
+  flex:0 0 auto;
+  display:grid;
+  place-items:center;
+  width:26px;
+  height:26px;
+  border-radius:50%;
+  background:color-mix(in srgb,var(--color-accent) 14%,transparent);
+  color:var(--color-accent-strong);
+  font-size:11px;
+  font-weight:800;
+}
+.today-idea-copy{
+  flex:1;
+  min-width:0;
+}
+.today-idea-copy strong{
+  display:block;
+  font-size:13px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.today-idea-copy small{
+  display:block;
+  margin-top:2px;
+  color:var(--color-ink-soft);
+  font-size:10.5px;
+}
+.today-idea-arrow{
+  flex:0 0 auto;
+  color:var(--color-ink-faint);
+}
+
 .rewards-screen{min-height:100vh;background:#fbf8ff}.rewards-header{height:86px;display:grid;grid-template-columns:42px 1fr 42px;align-items:center;padding:0 22px;border-bottom:1px solid var(--color-border)}.rewards-header img{width:34px;height:34px}.rewards-header h1{text-align:center;font-size:24px;font-weight:600;color:#5148c8}.rewards-header button{display:grid;place-items:center;color:#5148c8}.balance-card{margin-top:20px;background:#fff;border-radius:var(--radius-section);padding:46px 20px;text-align:center;box-shadow:0 8px 28px rgba(61,48,130,.06)}.reward-star{width:72px;height:72px;border-radius:50%;margin:0 auto 20px;background:#e1dcff;color:#5148c8;display:grid;place-items:center}.reward-star svg{width:39px;height:39px}.balance-card p{font-size:13px;letter-spacing:.12em;color:var(--color-ink-soft)}.balance-card h2{font-size:48px;line-height:1;margin:16px 0;color:#17172f}.balance-card h2 span{font-size:28px;color:#5148c8;font-weight:500}.balance-card small{display:inline-block;border-radius:20px;background:#c9f0e1;color:#386a59;padding:6px 20px;font-size:13px}.rewards-section-title{display:flex;justify-content:space-between;align-items:end;margin:38px 0 18px}.rewards-section-title h2{font-size:26px;letter-spacing:-.03em}.rewards-section-title span{color:#5148c8;font-size:14px}.reward-chores{display:grid;gap:12px}.reward-chores article{display:grid;grid-template-columns:58px 1fr 48px;align-items:center;gap:14px;background:#fff;border-radius:var(--radius-control);padding:16px 18px;box-shadow:0 5px 18px rgba(61,48,130,.07)}.chore-icon{width:52px;height:52px;border-radius:var(--radius-sm);background:#f1eeff;display:grid;place-items:center;color:#56536d}.chore-icon svg{width:27px}.reward-chores strong,.reward-chores article div span{display:block}.reward-chores strong{font-size:18px}.reward-chores article div span{font-size:14px;color:var(--color-ink-soft);margin-top:3px}.reward-chores article>button{width:42px;height:42px;border:2px solid #d4ceff;border-radius:50%;padding:5px}.reward-empty{background:#fff;padding:28px;text-align:center;border-radius:15px;color:var(--color-ink-soft)}.reward-shop{display:grid;grid-auto-flow:column;grid-auto-columns:72%;gap:16px;overflow-x:auto;padding-bottom:8px}.reward-shop article{background:#fff;border-radius:15px;overflow:hidden;box-shadow:0 5px 18px rgba(61,48,130,.07)}.reward-art{height:150px;position:relative;display:grid;place-items:center;background:linear-gradient(135deg,#c9d9ff,#f2c6ae);color:#fff}.reward-art.icecream{background:linear-gradient(135deg,#f3d0da,#f7b978)}.reward-art.movie{background:linear-gradient(135deg,#7169d9,#20203c)}.reward-art>span{position:absolute;right:10px;top:10px;padding:6px 11px;border-radius:var(--radius-section);background:#5c54ce;font-size:12px}.reward-art svg{width:52px;height:52px;opacity:.9}.reward-shop h3{font-size:18px;min-height:72px;padding:18px}.reward-shop button{margin:0 18px 18px;width:calc(100% - 36px);height:45px;border-radius:10px;background:#dfdbff;color:#5148c8;font-weight:600}.reward-shop button:disabled{opacity:.45}.reward-history{display:flex;gap:16px;align-items:center;margin:40px 0 20px;padding:22px;background:#f1eeff;border:1px solid #e3dfff;border-radius:var(--radius-md);color:var(--color-ink-soft)}.reward-history>span{font-size:28px;color:#5148c8}.reward-history p{font-size:14px}.reward-history small{display:block;margin-top:3px}.parent-banner{margin-top:18px;padding:16px;background:#17172f;color:#fff;border-radius:var(--radius-md);display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center}.parent-banner strong,.parent-banner span{display:block}.parent-banner span{font-size:11px;color:#c8c5d8;margin-top:2px}.parent-banner button{display:flex;align-items:center;gap:4px;background:#675fe1;padding:9px;border-radius:8px;font-size:11px}.parent-banner svg{width:13px}
 
 @media (min-width: 700px) {

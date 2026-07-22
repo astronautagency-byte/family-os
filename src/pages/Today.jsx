@@ -7,7 +7,7 @@ import { useAuth } from "../context/AuthContext";
 import { Avatar, AvatarStack, Card, Checkbox, EmptyState, Tag, colorVar } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import PullToRefresh from "../components/PullToRefresh";
-import { supabase } from "../lib/supabase";
+import { invokeEdgeFunction, supabase } from "../lib/supabase";
 import { addDays, dailyEncouragement, formatDayLabel, formatTime, fullDateLabel, greetingInfo, todayISO } from "../lib/dates";
 
 // Map a normalised weather "kind" (+ day/night) to a lucide icon and label.
@@ -172,6 +172,8 @@ export default function Today({ goTo }) {
   const [broadcasting, setBroadcasting] = useState(false);
   const [broadcastError, setBroadcastError] = useState("");
   const [broadcastFocused, setBroadcastFocused] = useState(false);
+  const [mealIdeas, setMealIdeas] = useState([]);
+  const [mealIdeasLoading, setMealIdeasLoading] = useState(false);
   const composeContainerRef = useRef(null);
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
 
@@ -190,6 +192,38 @@ export default function Today({ goTo }) {
   // dependency, micro-cost, removed after one play. The CSS rules also honour
   // prefers-reduced-motion via @media, but the early-return here avoids even
   // creating the DOM nodes for users who opt out of motion.
+  // Fetch meal ideas based on the current unchecked grocery list.
+  // Uses the recipe-search edge function to find recipes that use what
+  // the family already has in their shopping list.
+  useEffect(() => {
+    if (activeGroceries.length < 3) {
+      setMealIdeas([]);
+      setMealIdeasLoading(false);
+      return undefined;
+    }
+    let cancelled = false;
+    setMealIdeasLoading(true);
+    const ingredients = activeGroceries
+      .map((g) => g.name)
+      .filter(Boolean)
+      .slice(0, 8)
+      .join(", ");
+    const timer = setTimeout(async () => {
+      try {
+        const data = await invokeEdgeFunction("recipe-search", { query: ingredients, ingredients });
+        if (cancelled) return;
+        const root = data?.data && typeof data.data === "object" ? data.data : data;
+        const list = Array.isArray(root?.recipes) ? root.recipes : [];
+        setMealIdeas(list.slice(0, 3));
+      } catch {
+        if (!cancelled) setMealIdeas([]);
+      } finally {
+        if (!cancelled) setMealIdeasLoading(false);
+      }
+    }, 500);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [activeGroceries]);
+
   const fireConfetti = () => {
     const host = composeContainerRef.current;
     if (!host) return;
@@ -275,7 +309,7 @@ export default function Today({ goTo }) {
   const weekTasks = tasks.filter((t) => t.due >= today && t.due <= weekEnd);
   const weekDoneTasks = weekTasks.filter((t) => t.done);
 
-  const activeGroceries = groceries.filter((g) => !g.checked);
+  const activeGroceries = useMemo(() => groceries.filter((g) => !g.checked), [groceries]);
   const groceryCount = activeGroceries.length;
   const groceryCategories = Object.entries(
     activeGroceries.reduce((acc, item) => {
@@ -678,6 +712,53 @@ export default function Today({ goTo }) {
             )}
           </Card>
         </section>
+
+        {mealIdeas.length > 0 && (
+          <section className="today-ideas-section">
+            <Card className="today-ideas-card p-4">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Meal ideas</p>
+                  <h2 className="ui-section-title">Make this from your list</h2>
+                </div>
+                <span className="w-10 h-10 rounded-2xl bg-white border border-[var(--color-border)] flex items-center justify-center shrink-0">
+                  <ChefHat size={18} color="var(--color-accent)" />
+                </span>
+              </div>
+              <p className="text-[12px] text-[var(--color-ink-soft)] mb-3">Recipes that use ingredients already on your grocery list.</p>
+              <div className="today-ideas-grid">
+                {mealIdeas.map((recipe, index) => (
+                  <button
+                    key={`${recipe.title}-${index}`}
+                    className="today-idea-card"
+                    onClick={() => goTo("meals")}
+                  >
+                    <span className="today-idea-index">{index + 1}</span>
+                    <div className="today-idea-copy">
+                      <strong>{recipe.title}</strong>
+                      <small>
+                        {recipe.readyInMinutes ? `${recipe.readyInMinutes} min` : ""}
+                        {recipe.servings ? ` · Serves ${recipe.servings}` : ""}
+                      </small>
+                    </div>
+                    <ChevronRight size={14} className="today-idea-arrow" />
+                  </button>
+                ))}
+              </div>
+            </Card>
+          </section>
+        )}
+
+        {mealIdeasLoading && activeGroceries.length >= 3 && (
+          <section className="today-ideas-section">
+            <Card className="today-ideas-card p-4">
+              <div className="flex items-center gap-2 text-[12.5px] text-[var(--color-ink-soft)]">
+                <LoaderCircle size={14} className="animate-spin" />
+                <span>Finding recipes from your groceries…</span>
+              </div>
+            </Card>
+          </section>
+        )}
 
         <section>
           <Card className="today-tasks-card p-4">
