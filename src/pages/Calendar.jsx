@@ -315,7 +315,7 @@ export default function CalendarPage() {
               <button className="calendar-hero-action" onClick={() => setCalendarManagerOpen(true)} aria-label="Manage calendars">
                 <Settings2 size={17} />
               </button>
-              <button className="calendar-hero-action" onClick={() => { setDiscovering(true); setDiscoverCities((current) => current.length ? current : (discoverLocation ? [discoverLocation] : [])); if (!discoveredEvents.length) window.setTimeout(searchLocalEvents, 0); }} aria-label="Discover local events">
+              <button className="calendar-hero-action" onClick={() => { setDiscovering(true); setDiscoverCities((current) => current.length ? current : (discoverLocation ? [discoverLocation] : [])); if (!discoveredEvents.length) { const cities = discoverLocation ? [discoverLocation] : []; window.setTimeout(() => runSearch(cities), 0); } }} aria-label="Discover local events">
                 <Sparkles size={17} />
               </button>
               <button className="calendar-hero-action calendar-hero-action-primary" onClick={openAdd} aria-label="Add event">
