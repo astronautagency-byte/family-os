@@ -657,7 +657,7 @@ export default function CalendarPage() {
             <span><Sparkles /></span>
             <div>
               <strong>{searchCities.length ? `Searching ${searchCities.join(", ")}` : "Add your home area"}</strong>
-              <p>Fresh local events and experiences for your family, powered by SerpApi (Google Events).</p>
+              <p>Discover events and experiences nearby for your family.</p>
             </div>
           </div>
           <div className="event-city-picker">
