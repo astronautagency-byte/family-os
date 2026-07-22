@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo, useState } from "react";
-import { CalendarPlus, ChevronLeft, ChevronRight, ExternalLink, LoaderCircle, MapPin, Plus, Search, Settings2, Sparkles, Ticket, Trash2, TriangleAlert, X } from "lucide-react";
+import { CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, ExternalLink, EyeOff, LoaderCircle, MapPin, Plus, RefreshCw, Search, Settings2, Sparkles, Ticket, Trash2, TriangleAlert, Users, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { AvatarStack, DateField, Modal, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
@@ -191,7 +191,7 @@ function LocationAutocompleteField({ value, onChange }) {
 }
 
 export default function CalendarPage() {
-  const { members, memberById, events, googleEvents, feedEvents, calendarFeeds, googleConnected, googleCalendars, selectedGoogleCalendarIds, sharedGoogleCalendarIds, addEvent, addGoogleCalendarEvent, removeEvent, clearEvents, refreshData, syncGoogleCalendarNow } = useFamily();
+  const { members, memberById, events, googleEvents, feedEvents, calendarFeeds, googleConnected, googleCalendars, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleStatus, googleError, googleLastSynced, addEvent, addGoogleCalendarEvent, removeEvent, clearEvents, refreshData, syncGoogleCalendarNow, connectGoogleCalendar, disconnectGoogleCalendar, toggleGoogleCalendar, toggleGoogleCalendarSharing } = useFamily();
   const { householdProfileExtra } = useAuth();
   const [selectedDate,setSelectedDate]=useState(todayISO());
   const selected=new Date(`${selectedDate}T12:00:00`);
@@ -212,6 +212,7 @@ export default function CalendarPage() {
   const [discoverWhen,setDiscoverWhen]=useState("this weekend");
   const [discoverCities,setDiscoverCities]=useState([]);
   const [cityDraft,setCityDraft]=useState("");
+  const [calendarManagerOpen, setCalendarManagerOpen] = useState(false);
   const [draft,setDraft]=useState({title:"",date:selectedDate,start:"18:00",end:"19:00",location:"",memberIds:[],eventType:"family",destination:"family"});
   const allEvents=useMemo(()=>[
     ...events,
@@ -334,7 +335,7 @@ export default function CalendarPage() {
     <PageHeader title="Everyone’s where, when." illustration="calendar" subtitle={`${dayEvents.length} thing${dayEvents.length===1?"":"s"} on deck for this day.`} action={events.length?<button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button>:null} />
     <div className="px-5">
       <div className="calendar-tools-row">
-        <div className="calendar-source-filters" aria-label="Calendars">{sources.map(source=><button key={source.id} className={sourceFilter===source.id?"selected":""} onClick={()=>setSourceFilter(source.id)}>{source.color&&<i style={{backgroundColor:source.color}}/>}{source.label}</button>)}<button className="calendar-settings-link" onClick={()=>{window.location.hash="settings";}}><Settings2 size={13}/> Manage</button></div>
+        <div className="calendar-source-filters" aria-label="Calendars">{sources.map(source=><button key={source.id} className={sourceFilter===source.id?"selected":""} onClick={()=>setSourceFilter(source.id)}>{source.color&&<i style={{backgroundColor:source.color}}/>}{source.label}</button>)}        <button className="calendar-settings-link" onClick={() => setCalendarManagerOpen(true)} aria-label="Manage calendars"><Settings2 size={13}/> Calendars</button></div>
         <button className="discover-events-button" onClick={()=>{setDiscovering(true);setDiscoverCities((current)=>current.length?current:(discoverLocation?[discoverLocation]:[]));if(!discoveredEvents.length)window.setTimeout(searchLocalEvents,0);}}><Ticket/> Discover</button>
       </div>
       <div className="month-toolbar"><div><h2>{monthLabel}</h2><p>{visibleEvents.filter(e=>e.start.slice(0,7)===iso(month).slice(0,7)).length} events this month</p></div><div><button onClick={()=>setMonth(new Date(month.getFullYear(),month.getMonth()-1,1))}><ChevronLeft/></button><button onClick={()=>setMonth(new Date(month.getFullYear(),month.getMonth()+1,1))}><ChevronRight/></button></div></div>
@@ -356,6 +357,114 @@ export default function CalendarPage() {
       {calendarFeeds.length>0&&<p className="calendar-readonly-note">Imported calendars are available in the filters above, but remain read-only.</p>}
       {saveError&&<p className="calendar-save-error">{saveError}</p>}
       <PrimaryButton onClick={save} disabled={saving}>{saving?"Adding…":"Add it"}</PrimaryButton>
+    </Modal>
+    <Modal open={calendarManagerOpen} onClose={() => setCalendarManagerOpen(false)} title="Calendar management">
+      <div className="calendar-manager">
+        {!googleConnected ? (
+          <div className="calendar-manager-empty">
+            <span><CalendarDays size={32} /></span>
+            <strong>No Google Calendar connected</strong>
+            <p>Connect your Google Calendar to see events from multiple calendars in FamOS. You can connect personal, shared, and family calendars — then choose which ones to display and whether to share them with the household.</p>
+            <button
+              className="primary-button"
+              onClick={connectGoogleCalendar}
+              disabled={googleStatus === "connecting"}
+            >
+              {googleStatus === "connecting" ? "Connecting…" : "Connect Google Calendar"}
+            </button>
+          </div>
+        ) : (
+          <div className="calendar-manager-content">
+            <div className="calendar-manager-status">
+              <div className="calendar-manager-status-left">
+                <CalendarDays size={18} />
+                <div>
+                  <strong>Google Calendar</strong>
+                  <span>
+                    {googleStatus === "syncing" ? "Syncing…" : googleStatus === "expired" ? "Access expired" : googleStatus === "error" ? "Connection error" : googleLastSynced ? `Synced ${new Date(googleLastSynced).toLocaleString()}` : "Connected"}
+                  </span>
+                </div>
+              </div>
+              {googleStatus !== "syncing" && (
+                <button className="calendar-manager-sync" onClick={syncGoogleCalendarNow} aria-label="Sync now">
+                  <RefreshCw size={16} />
+                </button>
+              )}
+            </div>
+            {googleError && (
+              <div className="calendar-manager-error">
+                <TriangleAlert size={14} />
+                <span>{googleError}</span>
+              </div>
+            )}
+            {googleStatus === "expired" && (
+              <button className="calendar-manager-reconnect" onClick={connectGoogleCalendar}>
+                Reconnect Google Calendar
+              </button>
+            )}
+
+            <div className="calendar-manager-list-heading">
+              <strong>Your Google calendars</strong>
+              <span>{selectedGoogleCalendarIds.length} of {googleCalendars.length} connected</span>
+            </div>
+            <p className="calendar-manager-help">Toggle each calendar to show its events in FamOS. For calendars you own or co-own, you can also write events back to them.</p>
+
+            <ul className="calendar-manager-list">
+              {googleCalendars.map((calendar) => {
+                const connected = selectedGoogleCalendarIds.includes(calendar.id);
+                const shared = sharedGoogleCalendarIds.includes(calendar.id);
+                return (
+                  <li key={calendar.id} className={`calendar-manager-item ${connected ? "is-connected" : ""}`}>
+                    <i style={{ backgroundColor: calendar.backgroundColor }} />
+                    <div className="calendar-manager-item-info">
+                      <b>{calendar.summary}</b>
+                      <small>{calendar.primary ? "Primary" : calendar.accessRole === "reader" ? "Read only" : "Can add events"}</small>
+                    </div>
+                    <div className="calendar-manager-item-actions">
+                      <button
+                        className={`calendar-manager-toggle ${connected ? "on" : ""}`}
+                        onClick={() => toggleGoogleCalendar(calendar.id)}
+                        disabled={googleStatus === "syncing" || googleStatus === "connecting"}
+                        aria-pressed={connected}
+                        aria-label={`${connected ? "Disconnect" : "Connect"} ${calendar.summary}`}
+                      >
+                        <span className="calendar-manager-toggle-track">
+                          <span className="calendar-manager-toggle-thumb" />
+                        </span>
+                        {connected ? "Connected" : "Connect"}
+                      </button>
+                      <button
+                        className={`calendar-manager-share ${shared ? "on" : ""}`}
+                        onClick={() => toggleGoogleCalendarSharing(calendar.id)}
+                        disabled={!connected || googleStatus === "syncing" || googleStatus === "connecting"}
+                        aria-pressed={shared}
+                        title={connected ? (shared ? "Shared with household" : "Private to you") : "Connect this calendar first"}
+                      >
+                        {shared ? <Users size={15} /> : <EyeOff size={15} />}
+                        <span>{shared ? "Shared" : "Private"}</span>
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
+            <div className="calendar-manager-footer">
+              <button className="calendar-manager-disconnect" onClick={disconnectGoogleCalendar}>
+                Disconnect all Google calendars
+              </button>
+              <button
+                className={`calendar-manager-sync-full ${googleStatus === "syncing" ? "is-busy" : ""}`}
+                onClick={syncGoogleCalendarNow}
+                disabled={googleStatus === "syncing"}
+              >
+                <RefreshCw size={15} className={googleStatus === "syncing" ? "animate-spin" : ""} />
+                {googleStatus === "syncing" ? "Syncing…" : "Sync all now"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </Modal>
     <Modal open={discovering} onClose={()=>setDiscovering(false)} title="Find something fun nearby">
       <div className="event-discovery-intro"><span><Sparkles/></span><div><strong>{searchCities.length ? `Searching ${searchCities.length} area${searchCities.length===1?"":"s"}` : "Add your home area"}</strong>          <p>Fresh local events and experiences for your family, powered by SerpApi (Google Events).</p></div></div>

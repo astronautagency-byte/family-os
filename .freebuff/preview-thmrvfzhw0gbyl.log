@@ -1,0 +1,232 @@
+
+> family-os@0.0.0 dev
+> vite --host 127.0.0.1 --port 5173 --strictPort
+
+10:39:16 PM [vite] (client) Re-optimizing dependencies because vite config has changed
+
+  VITE v8.1.2  ready in 366 ms
+
+  ➜  Local:   http://127.0.0.1:5173/
+10:42:38 PM [vite] (client) hmr update /src/context/AuthContext.jsx, /src/index.css
+10:42:39 PM [vite] (client) hmr invalidate /src/context/AuthContext.jsx Could not Fast Refresh ("useAuth" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:42:39 PM [vite] (client) page reload src/context/AuthContext.jsx
+10:42:45 PM [vite] (client) hmr update /src/context/AuthContext.jsx, /src/index.css
+10:42:45 PM [vite] (client) hmr invalidate /src/context/AuthContext.jsx Could not Fast Refresh ("useAuth" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:42:45 PM [vite] (client) page reload src/context/AuthContext.jsx
+10:42:58 PM [vite] (client) hmr update /src/context/FamilyContext.jsx, /src/index.css
+10:42:58 PM [vite] (client) hmr invalidate /src/context/FamilyContext.jsx Could not Fast Refresh ("BROADCAST_REACTIONS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:42:58 PM [vite] (client) hmr update /src/App.jsx, /src/components/AppTopBar.jsx, /src/components/BottomNav.jsx, /src/pages/Today.jsx, /src/pages/Settings.jsx
+10:44:39 PM [vite] (client) hmr update /src/index.css
+10:45:13 PM [vite] (client) hmr update /src/pages/Today.jsx, /src/index.css
+10:45:20 PM [vite] (client) hmr update /src/index.css
+10:45:34 PM [vite] (client) hmr update /src/index.css
+10:45:42 PM [vite] (client) hmr update /src/index.css
+10:45:53 PM [vite] (client) hmr update /src/index.css
+10:46:01 PM [vite] (client) hmr update /src/index.css
+10:49:57 PM [vite] (client) hmr update /src/pages/Today.jsx, /src/index.css
+10:50:57 PM [vite] (client) hmr update /src/index.css
+10:53:54 PM [vite] (client) hmr update /src/context/AuthContext.jsx, /src/index.css
+10:53:54 PM [vite] (client) hmr invalidate /src/context/AuthContext.jsx Could not Fast Refresh ("useAuth" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:53:54 PM [vite] (client) page reload src/context/AuthContext.jsx
+10:56:09 PM [vite] (client) hmr update /src/pages/Calendar.jsx, /src/index.css
+10:57:20 PM [vite] (client) hmr update /src/pages/Calendar.jsx, /src/index.css
+10:58:17 PM [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] [0mUnexpected token. Did you mean `{'}'}` or `&rbrace;`?
+ -  in src/pages/Calendar.jsx at 24835..24835
+
+  Plugin: vite:oxc
+  File: /Users/alexvorobiev/Project Vibe/FamOS/famOS/src/pages/Calendar.jsx
+      at transformWithOxc (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/vite/dist/node/chunks/node.js:3663:19)
+      at TransformPluginContext.transform (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/vite/dist/node/chunks/node.js:3734:26)
+      at EnvironmentPluginContainer.transform (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/vite/dist/node/chunks/node.js:29716:51)
+      at async loadAndTransform (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/vite/dist/node/chunks/node.js:19731:26)
+      at async viteTransformMiddleware (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/vite/dist/node/chunks/node.js:24159:20)
+10:58:18 PM [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] [0mUnexpected token. Did you mean `{'}'}` or `&rbrace;`?
+ -  in src/pages/Calendar.jsx at 24835..24835
+
+  Plugin: vite:oxc
+  File: /Users/alexvorobiev/Project Vibe/FamOS/famOS/src/pages/Calendar.jsx
+      at transformWithOxc (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/vite/dist/node/chunks/node.js:3663:19)
+      at TransformPluginContext.transform (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/vite/dist/node/chunks/node.js:3734:26)
+      at EnvironmentPluginContainer.transform (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/vite/dist/node/chunks/node.js:29716:51)
+      at async loadAndTransform (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/vite/dist/node/chunks/node.js:19731:26)
+      at async viteTransformMiddleware (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/vite/dist/node/chunks/node.js:24159:20)
+10:58:25 PM [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] [0mUnexpected token. Did you mean `{'}'}` or `&rbrace;`?
+ -  in src/pages/Calendar.jsx at 24835..24835
+
+  Plugin: vite:oxc
+  File: /Users/alexvorobiev/Project Vibe/FamOS/famOS/src/pages/Calendar.jsx
+      at transformWithOxc (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/vite/dist/node/chunks/node.js:3663:19)
+      at TransformPluginContext.transform (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/vite/dist/node/chunks/node.js:3734:26)
+      at EnvironmentPluginContainer.transform (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/vite/dist/node/chunks/node.js:29716:51)
+      at async loadAndTransform (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/vite/dist/node/chunks/node.js:19731:26)
+      at async viteTransformMiddleware (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/vite/dist/node/chunks/node.js:24159:20)
+10:58:32 PM [vite] (client) hmr update /src/pages/Calendar.jsx, /src/index.css
+10:58:43 PM [vite] (client) hmr update /src/pages/Calendar.jsx, /src/index.css
+10:59:01 PM [vite] (client) hmr update /src/pages/Calendar.jsx, /src/index.css
+10:59:01 PM [vite] (client) hmr update /src/index.css
+11:02:48 PM [vite] (client) hmr update /src/pages/Settings.jsx, /src/index.css
+11:04:10 PM [vite] (client) hmr update /src/pages/Today.jsx, /src/index.css
+11:04:21 PM [vite] (client) hmr update /src/index.css
+11:04:21 PM [vite] Internal server error: Invalid declaration: `color var(--motion-base) ease`
+  Plugin: @tailwindcss/vite:generate:serve
+  File: /Users/alexvorobiev/Project Vibe/FamOS/famOS/src/index.css
+      at Se (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/tailwindcss/dist/lib.mjs:1:3380)
+      at Ef (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/tailwindcss/dist/lib.mjs:38:1384)
+      at lu (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/@tailwindcss/node/dist/index.mjs:10:3464)
+      at _.generate (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/@tailwindcss/vite/dist/index.mjs:1:5692)
+      at async TransformPluginContext.handler (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/@tailwindcss/vite/dist/index.mjs:1:3102)
+      at async EnvironmentPluginContainer.transform (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/vite/dist/node/chunks/node.js:29716:14)
+      at async loadAndTransform (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/vite/dist/node/chunks/node.js:19731:26)
+      at async viteTransformMiddleware (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/vite/dist/node/chunks/node.js:24159:20)
+11:05:21 PM [vite] (client) hmr update /src/index.css
+11:05:21 PM [vite] Internal server error: Invalid declaration: `color var(--motion-base) ease`
+  Plugin: @tailwindcss/vite:generate:serve
+  File: /Users/alexvorobiev/Project Vibe/FamOS/famOS/src/index.css
+      at Se (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/tailwindcss/dist/lib.mjs:1:3380)
+      at Ef (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/tailwindcss/dist/lib.mjs:38:1384)
+      at lu (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/@tailwindcss/node/dist/index.mjs:10:3464)
+      at _.generate (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/@tailwindcss/vite/dist/index.mjs:1:5692)
+      at async TransformPluginContext.handler (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/@tailwindcss/vite/dist/index.mjs:1:3102)
+      at async EnvironmentPluginContainer.transform (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/vite/dist/node/chunks/node.js:29716:14)
+      at async loadAndTransform (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/vite/dist/node/chunks/node.js:19731:26)
+      at async viteTransformMiddleware (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/vite/dist/node/chunks/node.js:24159:20)
+11:06:50 PM [vite] (client) hmr update /src/index.css
+11:07:35 PM [vite] (client) hmr update /src/index.css
+11:08:31 PM [vite] (client) hmr update /src/index.css
+11:09:08 PM [vite] (client) hmr update /src/components/BottomNav.jsx, /src/index.css
+11:16:05 PM [vite] (client) hmr update /src/pages/Today.jsx, /src/index.css
+11:16:12 PM [vite] (client) hmr update /src/index.css
+11:17:55 PM [vite] (client) hmr update /src/index.css, /src/pages/Meals.jsx
+11:18:30 PM [vite] (client) hmr update /src/index.css, /src/pages/Meals.jsx
+11:26:56 PM [vite] (client) hmr update /src/index.css
+11:32:29 PM [vite] (client) hmr update /src/context/AuthContext.jsx, /src/index.css
+11:32:29 PM [vite] (client) hmr invalidate /src/context/AuthContext.jsx Could not Fast Refresh ("useAuth" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+11:32:29 PM [vite] (client) page reload src/context/AuthContext.jsx
+11:32:37 PM [vite] (client) hmr update /src/context/AuthContext.jsx, /src/index.css
+11:32:37 PM [vite] (client) hmr invalidate /src/context/AuthContext.jsx Could not Fast Refresh ("useAuth" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+11:32:37 PM [vite] (client) page reload src/context/AuthContext.jsx
+11:37:49 PM [vite] (client) hmr update /src/index.css
+11:37:49 PM [vite] Internal server error: Can't resolve '../themes/famos/index.css' in '/Users/alexvorobiev/Project Vibe/FamOS/famOS/src'
+  Plugin: @tailwindcss/vite:generate:serve
+  File: /Users/alexvorobiev/Project Vibe/FamOS/famOS/src/index.css
+      at finishWithoutResolve (/Users/alexvorobiev/Project Vibe/FamOS/famOS/node_modules/enhanced-resolve/lib/Resolver.js:942:18)
+      at /Users/alexvorobiev/Project Vibe/FamOS/famOS/node_modules/enhanced-resolve/lib/Resolver.js:1034:14
+      at /Users/alexvorobiev/Project Vibe/FamOS/famOS/node_modules/enhanced-resolve/lib/Resolver.js:1111:5
+      at eval (eval at create (/Users/alexvorobiev/Project Vibe/FamOS/famOS/node_modules/tapable/lib/HookCodeFactory.js:31:10), <anonymous>:15:1)
+      at /Users/alexvorobiev/Project Vibe/FamOS/famOS/node_modules/enhanced-resolve/lib/Resolver.js:1111:5
+      at eval (eval at create (/Users/alexvorobiev/Project Vibe/FamOS/famOS/node_modules/tapable/lib/HookCodeFactory.js:31:10), <anonymous>:27:1)
+      at /Users/alexvorobiev/Project Vibe/FamOS/famOS/node_modules/enhanced-resolve/lib/DescriptionFilePlugin.js:94:43
+      at /Users/alexvorobiev/Project Vibe/FamOS/famOS/node_modules/enhanced-resolve/lib/Resolver.js:1111:5
+      at eval (eval at create (/Users/alexvorobiev/Project Vibe/FamOS/famOS/node_modules/tapable/lib/HookCodeFactory.js:31:10), <anonymous>:15:1)
+      at /Users/alexvorobiev/Project Vibe/FamOS/famOS/node_modules/enhanced-resolve/lib/Resolver.js:1111:5
+11:38:25 PM [vite] (client) hmr update /src/index.css
+11:38:25 PM [vite] Internal server error: Can't resolve '../themes/famos/index.css' in '/Users/alexvorobiev/Project Vibe/FamOS/famOS/src'
+  Plugin: @tailwindcss/vite:generate:serve
+  File: /Users/alexvorobiev/Project Vibe/FamOS/famOS/src/index.css
+      at finishWithoutResolve (/Users/alexvorobiev/Project Vibe/FamOS/famOS/node_modules/enhanced-resolve/lib/Resolver.js:942:18)
+      at /Users/alexvorobiev/Project Vibe/FamOS/famOS/node_modules/enhanced-resolve/lib/Resolver.js:1034:14
+      at /Users/alexvorobiev/Project Vibe/FamOS/famOS/node_modules/enhanced-resolve/lib/Resolver.js:1111:5
+      at eval (eval at create (/Users/alexvorobiev/Project Vibe/FamOS/famOS/node_modules/tapable/lib/HookCodeFactory.js:31:10), <anonymous>:15:1)
+      at /Users/alexvorobiev/Project Vibe/FamOS/famOS/node_modules/enhanced-resolve/lib/Resolver.js:1111:5
+      at eval (eval at create (/Users/alexvorobiev/Project Vibe/FamOS/famOS/node_modules/tapable/lib/HookCodeFactory.js:31:10), <anonymous>:27:1)
+      at /Users/alexvorobiev/Project Vibe/FamOS/famOS/node_modules/enhanced-resolve/lib/DescriptionFilePlugin.js:94:43
+      at /Users/alexvorobiev/Project Vibe/FamOS/famOS/node_modules/enhanced-resolve/lib/Resolver.js:1111:5
+      at eval (eval at create (/Users/alexvorobiev/Project Vibe/FamOS/famOS/node_modules/tapable/lib/HookCodeFactory.js:31:10), <anonymous>:15:1)
+      at /Users/alexvorobiev/Project Vibe/FamOS/famOS/node_modules/enhanced-resolve/lib/Resolver.js:1111:5
+11:39:48 PM [vite] (client) hmr update /src/index.css
+11:43:41 PM [vite] (client) hmr update /src/index.css
+11:43:41 PM [vite] (client) hmr update /src/pages/Today.jsx, /src/index.css
+11:43:41 PM [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] [0mEncountered diff marker
+    [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/Today.jsx:52:1 [38;5;246m][0m
+    [38;5;246m│[0m
+ [38;5;246m52 │[0m <<<<<<<[38;5;249m [0m[38;5;249mH[0m[38;5;249mE[0m[38;5;249mA[0m[38;5;249mD[0m
+ [38;5;240m   │[0m ───┬───  
+ [38;5;240m   │[0m    ╰───── between this marker and `=======` is the code that we're merging into
+ [38;5;240m   │[0m 
+ [38;5;246m67 │[0m =======
+ [38;5;240m   │[0m ───┬───  
+ [38;5;240m   │[0m    ╰───── between this marker and `>>>>>>>` is the incoming code
+ [38;5;240m   │[0m 
+ [38;5;246m77 │[0m >>>>>>>[38;5;249m [0m[38;5;249mp[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249me[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249mo[0m[38;5;249mf[0m[38;5;249m [0m[38;5;249m6[0m[38;5;249mf[0m[38;5;249m1[0m[38;5;249m6[0m[38;5;249m5[0m[38;5;249m7[0m[38;5;249md[0m[38;5;249m [0m[38;5;249m([0m[38;5;249mM[0m[38;5;249ma[0m[38;5;249mk[0m[38;5;249me[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249mh[0m[38;5;249me[0m[38;5;249m [0m[38;5;249mb[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249ma[0m[38;5;249md[0m[38;5;249mc[0m[38;5;249ma[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249mp[0m[38;5;249mu[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249mb[0m[38;5;249mo[0m[38;5;249mx[0m[38;5;249m [0m[38;5;249mp[0m[38;5;249ml[0m[38;5;249ma[0m[38;5;249my[0m[38;5;249mf[0m[38;5;249mu[0m[38;5;249ml[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249md[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mp[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249mh[0m[38;5;249me[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mh[0m[38;5;249mi[0m[38;5;249mp[0m[38;5;249m-[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249m)[0m
+ [38;5;240m   │[0m ───┬───  
+ [38;5;240m   │[0m    ╰───── this marker concludes the conflict region
+ [38;5;240m   │[0m 
+ [38;5;240m   │[0m [38;5;115mHelp[0m: Conflict markers indicate that a merge was started but could not be completed due to merge conflicts.
+ [38;5;240m   │[0m       To resolve a conflict, keep only the code you want and then delete the lines containing conflict markers.
+ [38;5;240m   │[0m       If you're having merge conflicts after pulling new code, the top section is the code you already had and the bottom section is the remote code.
+ [38;5;240m   │[0m       If you're in the middle of a rebase, the top section is the code being rebased onto and the bottom section is the code coming from the current commit being rebased.
+ [38;5;240m   │[0m       If you have nested conflicts, resolve the outermost conflict first.
+[38;5;246m────╯[0m
+
+  Plugin: vite:oxc
+  File: /Users/alexvorobiev/Project Vibe/FamOS/famOS/src/pages/Today.jsx
+      at transformWithOxc (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/vite/dist/node/chunks/node.js:3663:19)
+      at TransformPluginContext.transform (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/vite/dist/node/chunks/node.js:3734:26)
+      at EnvironmentPluginContainer.transform (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/vite/dist/node/chunks/node.js:29716:51)
+      at async loadAndTransform (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/vite/dist/node/chunks/node.js:19731:26)
+      at async viteTransformMiddleware (file:///Users/alexvorobiev/Project%20Vibe/FamOS/famOS/node_modules/vite/dist/node/chunks/node.js:24159:20)
+11:43:59 PM [vite] (client) hmr update /src/index.css
+11:43:59 PM [vite] (client) hmr update /src/pages/Today.jsx, /src/index.css
+11:47:36 PM [vite] (client) hmr update /src/pages/Today.jsx, /src/index.css
+11:48:14 PM [vite] (client) hmr update /src/index.css
+11:49:45 PM [vite] (client) hmr update /src/pages/Today.jsx, /src/index.css
+11:50:47 PM [vite] (client) hmr update /src/index.css
+11:50:47 PM [vite] (client) hmr update /src/pages/Today.jsx, /src/index.css
+11:53:38 PM [vite] (client) hmr update /src/context/AuthContext.jsx, /src/index.css
+11:53:38 PM [vite] (client) hmr update /src/index.css
+12:01:01 AM [vite] (client) hmr update /src/index.css
+12:06:23 AM [vite] (client) hmr update /src/index.css, /src/landing.css
+12:09:38 AM [vite] (client) hmr update /src/index.css, /src/landing.css
+12:10:56 AM [vite] (client) hmr update /src/index.css, /src/landing.css
+12:14:54 AM [vite] (client) hmr update /src/index.css, /src/pages/Landing.jsx, /src/pages/Settings.jsx
+12:15:54 AM [vite] (client) hmr update /src/pages/Landing.jsx, /src/index.css
+12:16:19 AM [vite] (client) hmr update /src/pages/Landing.jsx, /src/index.css
+12:16:29 AM [vite] (client) hmr update /src/pages/Landing.jsx, /src/index.css
+12:16:42 AM [vite] (client) hmr update /src/pages/Landing.jsx, /src/index.css
+12:16:53 AM [vite] (client) hmr update /src/pages/Landing.jsx, /src/index.css
+12:17:34 AM [vite] (client) hmr update /src/pages/Landing.jsx, /src/index.css
+12:18:10 AM [vite] (client) hmr update /src/pages/Settings.jsx, /src/index.css
+12:18:21 AM [vite] (client) hmr update /src/pages/Settings.jsx, /src/index.css
+12:18:35 AM [vite] (client) hmr update /src/pages/Landing.jsx, /src/index.css
+12:19:59 AM [vite] (client) hmr update /src/pages/Landing.jsx, /src/index.css
+12:20:47 AM [vite] (client) hmr update /src/pages/Landing.jsx, /src/index.css
+12:21:02 AM [vite] (client) hmr update /src/index.css, /src/landing.css
+12:25:07 AM [vite] (client) hmr update /src/context/AuthContext.jsx, /src/index.css
+12:25:08 AM [vite] (client) hmr invalidate /src/context/AuthContext.jsx Could not Fast Refresh ("useAuth" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:25:08 AM [vite] (client) page reload src/context/AuthContext.jsx
+12:25:19 AM [vite] (client) hmr update /src/context/FamilyContext.jsx, /src/index.css
+12:25:19 AM [vite] (client) hmr invalidate /src/context/FamilyContext.jsx Could not Fast Refresh ("BROADCAST_REACTIONS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:25:19 AM [vite] (client) hmr update /src/App.jsx, /src/components/AppTopBar.jsx, /src/components/BottomNav.jsx, /src/pages/Today.jsx, /src/pages/Settings.jsx, /src/pages/Calendar.jsx, /src/pages/Chat.jsx, /src/pages/Meals.jsx, /src/pages/Tasks.jsx, /src/pages/Groceries.jsx, /src/pages/FamAI.jsx
+12:26:38 AM [vite] (client) hmr update /src/pages/Calendar.jsx, /src/index.css
+12:26:50 AM [vite] (client) hmr update /src/index.css
+12:27:07 AM [vite] (client) hmr update /src/pages/Chat.jsx, /src/index.css
+12:28:39 AM [vite] (client) hmr update /src/pages/Chat.jsx, /src/index.css
+12:28:47 AM [vite] (client) hmr update /src/index.css
+12:30:29 AM [vite] (client) hmr update /src/pages/Landing.jsx, /src/index.css
+12:30:44 AM [vite] (client) hmr update /src/index.css, /src/landing.css
+12:31:29 AM [vite] (client) hmr update /src/pages/Landing.jsx, /src/index.css
+12:33:04 AM [vite] (client) page reload index.html
+12:35:46 AM [vite] (client) hmr update /src/context/FamilyContext.jsx, /src/index.css
+12:35:46 AM [vite] (client) hmr invalidate /src/context/FamilyContext.jsx Could not Fast Refresh ("BROADCAST_REACTIONS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:35:46 AM [vite] (client) hmr update /src/App.jsx, /src/components/AppTopBar.jsx, /src/components/BottomNav.jsx, /src/pages/Today.jsx, /src/pages/Settings.jsx, /src/pages/Calendar.jsx, /src/pages/Chat.jsx, /src/pages/Meals.jsx, /src/pages/Tasks.jsx, /src/pages/Groceries.jsx, /src/pages/FamAI.jsx
+12:36:39 AM [vite] (client) hmr update /src/context/FamilyContext.jsx, /src/index.css
+12:36:39 AM [vite] (client) hmr invalidate /src/context/FamilyContext.jsx Could not Fast Refresh ("BROADCAST_REACTIONS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:36:39 AM [vite] (client) hmr update /src/App.jsx, /src/components/AppTopBar.jsx, /src/components/BottomNav.jsx, /src/pages/Today.jsx, /src/pages/Settings.jsx, /src/pages/Calendar.jsx, /src/pages/Chat.jsx, /src/pages/Meals.jsx, /src/pages/Tasks.jsx, /src/pages/Groceries.jsx, /src/pages/FamAI.jsx
+12:38:47 AM [vite] (client) hmr update /src/App.jsx, /src/context/AuthContext.jsx, /src/context/FamilyContext.jsx, /src/pages/Today.jsx, /src/pages/Settings.jsx, /src/pages/Calendar.jsx, /src/pages/Meals.jsx, /src/pages/FamAI.jsx, /src/index.css
+12:38:47 AM [vite] (client) hmr invalidate /src/context/AuthContext.jsx Could not Fast Refresh ("useAuth" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:38:47 AM [vite] (client) page reload src/context/AuthContext.jsx
+12:38:47 AM [vite] (client) hmr invalidate /src/context/FamilyContext.jsx Could not Fast Refresh ("BROADCAST_REACTIONS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:38:47 AM [vite] (client) hmr update /src/App.jsx, /src/components/AppTopBar.jsx, /src/components/BottomNav.jsx, /src/pages/Today.jsx, /src/pages/Settings.jsx, /src/pages/Calendar.jsx, /src/pages/Chat.jsx, /src/pages/Meals.jsx, /src/pages/Tasks.jsx, /src/pages/Groceries.jsx, /src/pages/FamAI.jsx
+12:38:58 AM [vite] (client) hmr update /src/pages/Calendar.jsx, /src/index.css
+12:41:22 AM [vite] (client) hmr update /src/pages/Calendar.jsx, /src/index.css
+12:41:30 AM [vite] (client) hmr update /src/pages/Calendar.jsx, /src/index.css
+12:41:48 AM [vite] (client) hmr update /src/index.css
+12:42:31 AM [vite] (client) hmr update /src/pages/Calendar.jsx, /src/index.css
