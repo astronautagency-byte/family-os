@@ -12,16 +12,72 @@ const json = (body: Record<string, unknown>, status = 200) => new Response(JSON.
 
 const cleanText = (value: unknown, max = 160) => typeof value === "string" ? value.trim().slice(0, max) : "";
 
-// SerpApi's google_events "date chips" — map the app's friendly `when` to a filter.
-const WHEN_CHIPS: Record<string, string> = {
-  today: "date:today",
-  tomorrow: "date:tomorrow",
-  "this week": "date:week",
-  week: "date:week",
-  "this weekend": "date:weekend",
-  weekend: "date:weekend",
-  "this month": "date:month",
-  month: "date:month",
+// SerpApi's google_events engine only documents these htichips for date
+// filtering. "this weekend" / "weekend" / "next weekend" are NOT in the
+// documented chip set — passing `date:weekend` makes SerpApi return an
+// empty events_results silently. For those, we bake the temporal phrase
+// into the q parameter instead so Google can still match it.
+//
+// Single source of truth: each entry can specify an optional htichips
+// (passed to SerpApi) AND/OR an optional tail (inlined into q). The shape
+// MUST stay in sync with tests/local-event-query.test.js.
+const WHEN_FILTERS: Record<string, { chip?: string; tail?: string }> = {
+  today: { chip: "date:today" },
+  tomorrow: { chip: "date:tomorrow" },
+  "this week": { chip: "date:week" },
+  week: { chip: "date:week" },
+  "this month": { chip: "date:month" },
+  month: { chip: "date:month" },
+  "next month": { chip: "date:next_month" },
+  "this weekend": { tail: "this weekend" },
+  weekend: { tail: "this weekend" },
+  "next weekend": { tail: "next weekend" },
+};
+
+// Country code → human-readable name used by SerpApi's `location` parameter
+// for better geocoding. Unknown codes fall back to the ISO code itself so
+// the call still goes through.
+const COUNTRY_NAMES: Record<string, string> = {
+  ca: "Canada",
+  us: "United States",
+  mx: "Mexico",
+  gb: "United Kingdom",
+  uk: "United Kingdom",
+  au: "Australia",
+  nz: "New Zealand",
+  de: "Germany",
+  fr: "France",
+  es: "Spain",
+  it: "Italy",
+  pt: "Portugal",
+  nl: "Netherlands",
+  ie: "Ireland",
+  jp: "Japan",
+  kr: "South Korea",
+  sg: "Singapore",
+  in: "India",
+  br: "Brazil",
+  za: "South Africa",
+};
+
+// Per-region Google domain so the underlying Google search ranks local results.
+const GOOGLE_DOMAIN_FOR_COUNTRY: Record<string, string> = {
+  ca: "google.ca",
+  us: "google.com",
+  mx: "google.com.mx",
+  gb: "google.co.uk",
+  uk: "google.co.uk",
+  au: "google.com.au",
+  nz: "google.co.nz",
+  de: "google.de",
+  fr: "google.fr",
+  es: "google.es",
+  it: "google.it",
+  pt: "google.pt",
+  nl: "google.nl",
+  ie: "google.ie",
+  jp: "google.co.jp",
+  sg: "google.com.sg",
 };
 
 Deno.serve(async (request) => {
@@ -47,7 +103,9 @@ Deno.serve(async (request) => {
     const location = cleanText(body.location, 120);
     const category = cleanText(body.category, 40) || "family events";
     const when = cleanText(body.when, 40).toLowerCase();
-    const whenChip = WHEN_CHIPS[when] || "";
+    const whenFilter = WHEN_FILTERS[when] || {};
+    const whenChip = whenFilter.chip || "";
+    const whenTail = whenFilter.tail || "";
 
     // Country drives SerpApi's `gl` param and the query tail. Default to "ca" so
     // existing Canadian households don't change behaviour; non-Canadian clients
@@ -98,10 +156,22 @@ Deno.serve(async (request) => {
     const fetchCity = async (city: string) => {
       const endpoint = new URL("https://serpapi.com/search.json");
       endpoint.searchParams.set("engine", "google_events");
-      endpoint.searchParams.set("q", `${category} in ${city}`);
+      // Build q so the temporal phrase is inlined for "this/next weekend"
+      // (SerpApi has no documented htichips for them). Strict template so
+      // tests can lock the shape down.
+      const qParts = [category];
+      if (whenTail) qParts.push(whenTail);
+      qParts.push("in", city);
+      endpoint.searchParams.set("q", qParts.join(" "));
       endpoint.searchParams.set("hl", "en");
       // Country is per-tenant (defaults to "ca" for households without a stored country).
       endpoint.searchParams.set("gl", country);
+      const googleDomain = GOOGLE_DOMAIN_FOR_COUNTRY[country];
+      if (googleDomain) endpoint.searchParams.set("google_domain", googleDomain);
+      // location param is the preferred geocoder input on SerpApi's docs —
+      // it works alongside `q` and lifts results out of the wrong country.
+      const countryName = COUNTRY_NAMES[country] || country.toUpperCase();
+      endpoint.searchParams.set("location", `${city}, ${countryName}`);
       if (whenChip) endpoint.searchParams.set("htichips", whenChip);
       endpoint.searchParams.set("api_key", apiKey);
       const response = await fetch(endpoint);
@@ -113,22 +183,112 @@ Deno.serve(async (request) => {
       return results.map((event: Record<string, unknown>) => mapEvent(event, city));
     };
 
-    const settled = await Promise.allSettled(cities.map(fetchCity));
-    const mapped = settled.flatMap((result) => result.status === "fulfilled" ? result.value : []);
-    if (!mapped.length) {
-      const firstError = settled.find((result) => result.status === "rejected") as PromiseRejectedResult | undefined;
-      if (firstError) return json({ error: firstError.reason instanceof Error ? firstError.reason.message : "Event provider error." }, 502);
+    // Pure ladder: `mapped` = successful per-city results; `errors` = thrown
+    // ones. Status values map cleanly to what the client should render.
+    // Mirror kept in tests/local-event-query.test.js.
+    const deriveProviderStatus = (mappedCount: number, errorCount: number, total: number, totalEvents: number) => {
+      if (errorCount === total) return "upstream_error";
+      if (errorCount > 0) return "partial_upstream_error";
+      if (totalEvents > 0) return "ok";
+      return "empty_results";
+    };
+
+    // Run up to 2 cities in parallel — SerpApi's free tier is rate-limited
+    // per minute so calling 4+ simultaneously can trip the plan limit. This
+    // batching also keeps the surfaced "timing" honest in the UI.
+    const mapped: Array<{ city: string; events: ReturnType<typeof mapEvent>[] }> = [];
+    const errors: { city: string; message: string }[] = [];
+    const batchSize = Math.min(2, cities.length);
+    for (let index = 0; index < cities.length; index += batchSize) {
+      const batch = cities.slice(index, index + batchSize);
+      const settled = await Promise.allSettled(batch.map(fetchCity));
+      for (let batchIndex = 0; batchIndex < settled.length; batchIndex += 1) {
+        const result = settled[batchIndex];
+        const city = batch[batchIndex];
+        if (result.status === "fulfilled") {
+          mapped.push({ city, events: result.value });
+          console.log(JSON.stringify({
+            event: "family_local_events_fetch",
+            requestId,
+            city,
+            count: result.value.length,
+            htichips: whenChip || null,
+            qTail: whenTail || null,
+            gl: country,
+          }));
+        } else {
+          const message = result.reason instanceof Error ? result.reason.message : String(result.reason);
+          errors.push({ city, message });
+          console.warn(JSON.stringify({
+            event: "family_local_events_fetch_failed",
+            requestId,
+            city,
+            message,
+          }));
+        }
+      }
     }
 
+    const flatEvents = mapped.flatMap((entry) => entry.events);
     const seen = new Set<string>();
-    const events = mapped.filter((event: { id: string; name: string }) => {
+    const events = flatEvents.filter((event: { id: string; name: string }) => {
       if (!event.name) return false;
       if (seen.has(event.id)) return false;
       seen.add(event.id);
       return true;
     }).slice(0, 24);
 
-    return json({ events, cities, provider: "SerpApi (Google Events)", country });
+    const request = { category, when, whenChip: whenChip || null, whenTail: whenTail || null, country, cities };
+    const totalEvents = events.length;
+    const providerStatus = deriveProviderStatus(mapped.length, errors.length, cities.length, totalEvents);
+    const diagnostics = {
+      perCityCounts: mapped.map((entry) => ({ city: entry.city, count: entry.events.length })),
+      // Structured so the client can build its own copy, retry filtering,
+      // and any diagnostic overlays without parsing prose.
+      failedCities: errors.map((entry) => ({ city: entry.city, message: entry.message })),
+      succeededCities: mapped.map((entry) => entry.city),
+    };
+
+    if (events.length === 0) {
+      if (providerStatus === "upstream_error") {
+        return json({
+          events: [],
+          cities,
+          provider: "SerpApi (Google Events)",
+          country,
+          request,
+          providerStatus,
+          diagnostics,
+          error: errors[0]?.message || "Event provider could not be reached.",
+        }, 502);
+      }
+      console.log(JSON.stringify({
+        event: "family_local_events_empty",
+        requestId,
+        providerStatus,
+        perCityCounts: diagnostics.perCityCounts,
+      }));
+      return json({ events: [], cities, provider: "SerpApi (Google Events)", country, request, providerStatus, diagnostics });
+    }
+
+    if (providerStatus === "partial_upstream_error") {
+      console.log(JSON.stringify({
+        event: "family_local_events_partial",
+        requestId,
+        perCityCounts: diagnostics.perCityCounts,
+        failedCities: diagnostics.failedCities.map((entry) => entry.city),
+      }));
+    }
+
+    return json({
+      events,
+      cities,
+      provider: "SerpApi (Google Events)",
+      country,
+      request,
+      providerStatus,
+      diagnostics,
+    });
   } catch (error) {
     console.error("search-local-events failed", error);
     return json({ error: error instanceof Error ? error.message : "Could not load local events." }, 500);

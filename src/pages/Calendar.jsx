@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo, useState } from "react";
-import { CalendarPlus, ChevronLeft, ChevronRight, ExternalLink, LoaderCircle, MapPin, Plus, Search, Sparkles, Ticket, Trash2, X } from "lucide-react";
+import { CalendarPlus, ChevronLeft, ChevronRight, ExternalLink, LoaderCircle, MapPin, Plus, Search, Sparkles, Ticket, Trash2, TriangleAlert, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { AvatarStack, DateField, Modal, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
@@ -246,20 +246,64 @@ export default function CalendarPage() {
     const base=current.length?current:(discoverLocation?[discoverLocation]:[]);
     return base.filter((c)=>c!==city);
   });
-  const searchLocalEvents=async()=>{
-    const cities=discoverCities.length?discoverCities:(discoverLocation?[discoverLocation]:[]);
-    if(!cities.length){setDiscoverError("Add your home address in Settings, or add a city below, to discover nearby events.");return;}
+  const [resultDiagnostics,setResultDiagnostics]=useState(null);
+  // Reset stale diagnostics whenever the city set mutates so the partial
+  // banner does not linger after the user removes/Adds an area without
+  // re-running the search.
+  useEffect(()=>{
+    setResultDiagnostics(null);
+  },[searchCities.join("|")]);
+  const formatCityFailure = (failures) => {
+    if(!Array.isArray(failures)||!failures.length) return "";
+    if(failures.length===1) return `${failures[0].city} couldn't be reached`;
+    if(failures.length===2) return `${failures[0].city} and ${failures[1].city} couldn't be reached`;
+    return `${failures.slice(0,-1).map((entry)=>`${entry.city}`).join(", ")} and ${failures.at(-1).city} couldn't be reached`;
+  };
+  const runSearch = async (citiesForRequest) => {
+    if(!citiesForRequest.length){setDiscoverError("Add your home address in Settings, or add a city below, to discover nearby events.");setResultDiagnostics(null);return;}
     setDiscoverBusy(true);setDiscoverError("");
     // `gl` on the SerpApi call must match the household country — otherwise
     // every non-CA family sees zero results because the query is implicitly
     // "in <city>, Canada" downstream.
     const country=String(householdProfileExtra?.country||"ca").toLowerCase().slice(0,2);
     try{
-      const result=await invokeEdgeFunction("search-local-events",{location:cities[0],cities,category:discoverCategory,when:discoverWhen,country});
+      const result=await invokeEdgeFunction("search-local-events",{location:citiesForRequest[0],cities:citiesForRequest,category:discoverCategory,when:discoverWhen,country});
       setDiscoveredEvents(Array.isArray(result?.events)?result.events:[]);
-      if(!result?.events?.length)setDiscoverError("No matching events were found. Try a broader category, another city, or a different date.");
-    }catch(error){setDiscoveredEvents([]);setDiscoverError(error.message||"Could not load local events.");}
+      setResultDiagnostics(result?.diagnostics || null);
+      if(!Array.isArray(result?.events)||!result.events.length){
+        // Surface the real upstream error first — the static fallback only
+        // shows when the provider actually returned zero matching items.
+        if(result?.error){
+          const cityNote=Array.isArray(result?.diagnostics?.perCityCounts)&&result.diagnostics.perCityCounts.length
+            ?` (${result.diagnostics.perCityCounts.map((entry)=>`${entry.city}: ${entry.count}`).join(", ")})`
+            :"";
+          setDiscoverError(`${result.error}${cityNote}`.trim());
+        }
+        else if(result?.providerStatus==="partial_upstream_error"){
+          const failed=Array.isArray(result?.diagnostics?.failedCities)&&result.diagnostics.failedCities.length?formatCityFailure(result.diagnostics.failedCities):"some areas";
+          setDiscoverError(`${failed}. We still couldn't find a match — try a broader category or a different date.`);
+        }
+        else if(result?.providerStatus==="empty_results"){
+          setDiscoverError(`No matching ${discoverCategory} for ${citiesForRequest.join(", ")} (${discoverWhen}). Try a broader category, another area, or a different date.`);
+        }
+        else{
+          setDiscoverError("No matching events were found. Try a broader category, another city, or a different date.");
+        }
+      }
+      else if(result?.providerStatus==="partial_upstream_error"){
+        // Soft secondary line below the list — banner above + Retry CTA.
+      }
+    }catch(error){setDiscoveredEvents([]);setDiscoverError(error.message||"Could not load local events.");setResultDiagnostics(null);}
     finally{setDiscoverBusy(false);}
+  };
+  const searchLocalEvents=async()=>{
+    const cities=discoverCities.length?discoverCities:(discoverLocation?[discoverLocation]:[]);
+    await runSearch(cities);
+  };
+  const retryFailedCities=async()=>{
+    const failures=Array.isArray(resultDiagnostics?.failedCities)?resultDiagnostics.failedCities.map((entry)=>entry.city).filter(Boolean):[];
+    if(!failures.length) return;
+    await runSearch(failures);
   };
   const addDiscoveredEvent=(event)=>{
     const start=new Date((event.startTime||"").replace(" ","T"));
@@ -328,7 +372,42 @@ export default function CalendarPage() {
       </div>
       {discoverBusy&&<div className="event-discovery-loading"><LoaderCircle/> Finding ideas near your family…</div>}
       {discoverError&&<div className="event-discovery-error">{discoverError}{!discoverLocation&&<button onClick={()=>{setDiscovering(false);window.location.hash="settings";}}>Open Settings</button>}</div>}
-      {!discoverBusy&&discoveredEvents.length>0&&<div className="discovered-event-list">{discoveredEvents.map(event=><article key={event.id}><div className="discovered-event-thumb">{event.thumbnail?<img src={event.thumbnail} alt="" loading="lazy" referrerPolicy="no-referrer"/>:<Ticket aria-hidden="true"/>}</div><div className="discovered-event-copy"><div><span>{event.dateLabel||(event.startTime?new Date(event.startTime.replace(" ","T")).toLocaleDateString("en-CA",{weekday:"short",month:"short",day:"numeric"}):"Date varies")}</span>{event.ticketSource&&<small><Ticket/> {event.ticketSource}</small>}</div><h3>{event.name}</h3><p>{event.description||"Open the event page for details."}</p><b><MapPin/>{event.virtual?"Online event":event.venue?.name||event.venue?.city||searchCities[0]||discoverLocation}</b><footer><button onClick={()=>addDiscoveredEvent(event)}><CalendarPlus/> Add to calendar</button>{event.link&&<a href={event.link} target="_blank" rel="noreferrer">View details <ExternalLink/></a>}</footer></div></article>)}</div>}
+      {!discoverBusy&&discoveredEvents.length>0&&<>
+        {resultDiagnostics?.failedCities?.length>0&&(
+          <div className="event-discovery-partial-warning" role="status">
+            <span aria-hidden="true"><TriangleAlert size={16}/></span>
+            <div>
+              <strong>{formatCityFailure(resultDiagnostics.failedCities)}</strong>
+              <small>Showing events from the {resultDiagnostics.succeededCities?.length||0} other area{(resultDiagnostics.succeededCities?.length||0)===1?"":"s"} you searched.</small>
+            </div>
+            <button type="button" className="event-discovery-retry-city" onClick={retryFailedCities}><Search aria-hidden="true" size={14}/> Retry {resultDiagnostics.failedCities.length===1?"that area":"those areas"}</button>
+          </div>
+        )}
+        <div className="discovered-event-list">
+          {discoveredEvents.map(event=>(
+            <article key={event.id}>
+              <div className="discovered-event-thumb">
+                {event.thumbnail
+                  ? <img src={event.thumbnail} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                  : <Ticket aria-hidden="true" />}
+              </div>
+              <div className="discovered-event-copy">
+                <div>
+                  <span>{event.dateLabel || (event.startTime ? new Date(event.startTime.replace(" ", "T")).toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" }) : "Date varies")}</span>
+                  {event.ticketSource && <small><Ticket aria-hidden="true"/> {event.ticketSource}</small>}
+                </div>
+                <h3>{event.name}</h3>
+                <p>{event.description || "Open the event page for details."}</p>
+                <b><MapPin aria-hidden="true"/>{event.virtual ? "Online event" : event.venue?.name || event.venue?.city || searchCities[0] || discoverLocation}</b>
+                <footer>
+                  <button type="button" onClick={()=>addDiscoveredEvent(event)}><CalendarPlus aria-hidden="true"/> Add to calendar</button>
+                  {event.link && <a href={event.link} target="_blank" rel="noreferrer">View details <ExternalLink aria-hidden="true"/></a>}
+                </footer>
+              </div>
+            </article>
+          ))}
+        </div>
+      </>}
       <small className="event-discovery-source">Event details come from public web sources and may change. Confirm times, availability, suitability, and prices with the event provider before making plans.</small>
     </Modal>
     <Modal open={!!selectedEvent} onClose={()=>setSelectedEvent(null)} title={selectedEvent?.title || "Event details"}>
