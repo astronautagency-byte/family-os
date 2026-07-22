@@ -458,20 +458,23 @@ export default function Meals() {
                   const cooks = (meal?.cookIds ?? []).map((id) => memberById[id]).filter(Boolean);
                   return (
                     <div className={`meal-slot-row ${slot === "dinner" ? "is-dinner" : ""}`} key={slot}>
-                      {meal?.title && (
-                        <button
-                          className="meal-slot-clear"
-                          onClick={(e) => { e.stopPropagation(); removeMeal(meal.id); }}
-                          aria-label={`Clear ${meal.title}`}
-                          title="Clear this meal"
-                        >
-                          <X size={14} />
-                        </button>
-                      )}
                       <button
                         onClick={() => meal?.title ? openCookRecipe(meal) : openEditor(date, slot)}
                         className="meal-slot-button flex items-center gap-3 text-left transition-colors"
                       >
+                        {meal?.title && (
+                          <span
+                            className="meal-slot-clear"
+                            onClick={(e) => { e.stopPropagation(); removeMeal(meal.id); }}
+                            aria-label={`Clear ${meal.title}`}
+                            title="Clear this meal"
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); removeMeal(meal.id); } }}
+                          >
+                            <X size={14} />
+                          </span>
+                        )}
                         <Icon size={16} color="var(--color-ink-faint)" className="shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="meal-slot-label text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-ink-faint)]">
