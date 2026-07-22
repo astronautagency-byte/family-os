@@ -445,9 +445,6 @@ export default function CalendarPage() {
   const runSearch = async (citiesForRequest) => {
     if (!citiesForRequest.length) { setDiscoverError("Add your home address in Settings, or add a city below, to discover nearby events."); setResultDiagnostics(null); setCacheMeta(null); return; }
     setDiscoverBusy(true); setDiscoverError("");
-    // Reset the local-area filter so the new result set isn't pre-filtered
-    // behind the toggle the user just changed out of.
-    setCoverageLocalOnly(false);
     const country = String(householdProfileExtra?.country || "ca").toLowerCase().slice(0, 2);
     try {
       const result = await invokeEdgeFunction("search-local-events", { location: citiesForRequest[0], cities: citiesForRequest, category: CATEGORY_FOR_DISCOVERY, when: discoverWhen, country });
@@ -550,6 +547,15 @@ export default function CalendarPage() {
     );
   }, { dependencies: [month] });
 
+  // Coverage strip relies on the local-only toggle to filter the rendered
+  // list. Reset it whenever the result set changes so the user always
+  // sees the full mix first, then opts into the local-only slice via the
+  // strip's button — covers every caller (runSearch, refreshFromNetwork,
+  // retryFailedCities, cache-hit re-open) in one place.
+  useEffect(() => {
+    setCoverageLocalOnly(false);
+  }, [discoveredEvents]);
+
   const dayEventCount = visibleEvents.filter(e => e.start.slice(0, 10) === selectedDate).length;
 
   // Coverage transparency: when nearby-cities expansion fired, show a
@@ -607,11 +613,6 @@ export default function CalendarPage() {
                 setDiscoveredEvents(Array.isArray(entry.payload?.events) ? entry.payload.events : []);
                 setResultDiagnostics(entry.payload?.diagnostics || null);
                 setDiscoverError("");
-                // Coverage strip relies on toggled state to filter the
-                // rendered list — reset on cache-hit re-open so the user
-                // doesn't come back to a silently-filtered cached view
-                // from a previous session.
-                setCoverageLocalOnly(false);
               } else if (!discoveredEvents.length) {
                 window.setTimeout(() => runSearch(initialCities), 0);
               }
