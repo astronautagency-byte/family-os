@@ -157,14 +157,15 @@ const normaliseRecipe = (payload) => {
   };
 };
 
-// API Ninjas accepts a single free-text `title` parameter (the API docs call
-// it a "name search") and an optional `ingredients` filter (premium-only).
-// Free tier searches by title only — passing "dinner Italian Vegetarian chicken"
-// as the title almost never matches a real recipe name. Use only the raw
-// `query` (the meal title the person typed) as the search term. Dietary
-// restrictions, meal type, and cuisine are NOT sent to API Ninjas — they are
-// applied client-side after results arrive (or not at all, since the free tier
-// returns one recipe and there's nothing to filter).
+// API Ninjas accepts a free-text `query` parameter (name search) and an
+// optional `ingredients` filter. Both can be used independently — the API
+// requires at least a `title` OR `ingredients` parameter.
+//
+// - `query` → API Ninjas `title` param (recipe name search)
+// - `ingredients` → API Ninjas `ingredients` param (ingredient-based search)
+//
+// Dietary restrictions, meal type, and cuisine are NOT sent to API Ninjas;
+// they are applied client-side after results arrive.
 const buildSearchParams = ({ query = "", ingredients = "" } = {}) => {
   const params = new URLSearchParams();
   const title = cleanText(query, 200);
@@ -202,9 +203,9 @@ Deno.serve(async (request) => {
 
     const body = await request.json().catch(() => ({}));
     const searchParams = buildSearchParams(body || {});
-    if (!searchParams.get("title")) {
+    if (!searchParams.get("title") && !searchParams.get("ingredients")) {
       return new Response(
-        JSON.stringify({ error: "Add a search term or an ingredient so we can find a recipe.", recipes: [] }),
+        JSON.stringify({ error: "Add a recipe name or an ingredient so we can find a recipe.", recipes: [] }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
