@@ -969,11 +969,6 @@ export default function CalendarPage() {
             <small>Add nearby cities to widen the search radius. Results merge across every area.</small>
           </div>
           <div className="event-discovery-controls">
-            <div className="event-discovery-scope">
-              <span>Showing</span>
-              <strong>Family-friendly events & activities nearby</strong>
-              <small>No category filter — we send Google's family-targeted event query so coverage is wide and the search can't get stuck on a narrow category.</small>
-            </div>
             <label><span>When?</span>
               <select value={discoverWhen} onChange={event => setDiscoverWhen(event.target.value)}>
                 <option>today</option><option>tomorrow</option><option>this weekend</option><option>next weekend</option><option>this month</option>
