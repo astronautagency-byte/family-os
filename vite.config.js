@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -7,6 +7,26 @@ export default defineConfig({
   build: {
     target: ['es2018', 'safari13'],
     cssTarget: 'safari13'
+  },
+  // Force the automatic JSX runtime so vitest uses _jsx from react/jsx-runtime
+  // instead of legacy React.createElement — otherwise tests crash with
+  // "ReferenceError: React is not defined" at the first JSX site.
+  // Lives at the top level because vitest reads vite-level esbuild exactly
+  // here, NOT inside the test block.
+  esbuild: {
+    jsx: 'automatic',
+  },
+  // Vitest block — augments vite.config.js so vitest reads it directly.
+  // Splits the destructive-action component contract tests off the pure-JS
+  // node:test suite already in tests/. Disable `vitest` discovery anywhere
+  // .freebuff footsteps land today (desktop preview SQLite + log).
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./vitest.setup.js'],
+    include: ['src/**/__tests__/**/*.{test,spec}.{js,jsx}', 'src/**/*.{test,spec}.{js,jsx}'],
+    exclude: ['node_modules', 'dist', '.freebuff', 'tests'],
+    css: false,
   },
   plugins: [
     react(),
