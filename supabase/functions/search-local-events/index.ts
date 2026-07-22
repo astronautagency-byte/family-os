@@ -45,26 +45,9 @@ const NEARBY_CITIES: Record<string, string[]> = {
 // variants that the geocoder recognises.
 const normalizeCity = (raw: string) => raw.trim().replace(/\s+/g, " ");
 
-// Google's own events index categorises by industry terms (Concerts,
-// Festivals, Exhibitions, Sports). Our UI uses friendlier vocabulary
-// ("family events", "kids activities") that doesn't always match
-// Google's stored categories. Map the dropdown sentences to the closest
-// discoverable Google Events term so a default search returns results
-// rather than zero-ing because of a category vocabulary mismatch.
-const CATEGORY_NORMALISER: Record<string, string> = {
-  "family events": "family-friendly activities",
-  "kids activities": "kids activities",
-  "festivals": "festivals",
-  "sports events": "sports events",
-  "concerts": "concerts",
-  "workshops": "workshops",
-  "outdoor activities": "outdoor activities",
-  "museums and exhibits": "museums",
-};
-const normalizeCategory = (raw: string) => {
-  const key = raw.toLowerCase().trim();
-  return CATEGORY_NORMALISER[key] || raw;
-};
+// The frontend now sends a single canonical category (CATEGORY_FOR_DISCOVERY
+// from src/pages/Calendar.jsx). The old dropdown-keyed normaliser had
+// no callers, so just trim via the shared cleanText helper.
 
 // SerpApi Google Events uses htichips for any date filter; embedding
 // "this weekend" in q actively zero-results suburban queries because
@@ -126,8 +109,7 @@ Deno.serve(async (request) => {
 
     const body = await request.json().catch(() => ({}));
     const location = cleanText(body.location, 120);
-    const categoryRaw = cleanText(body.category, 40) || "family events";
-    const category = normalizeCategory(categoryRaw);
+    const category = cleanText(body.category, 40) || "family events";
     const when = cleanText(body.when, 40).toLowerCase();
     const whenChip = WHEN_FILTERS[when] || "";
 

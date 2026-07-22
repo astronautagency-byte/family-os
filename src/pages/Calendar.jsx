@@ -15,6 +15,13 @@ import { parseQuickAdd } from "../lib/quickCapture";
 import { eventCacheKey, readEventCache, writeEventCache, clearEventCache, formatEventCacheAge } from "../lib/eventSearchCache";
 
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+
+// Discover-events modal query — sent to SerpApi as `q=`. The original UI
+// exposed eight dropdown options but staying on a narrow category returned
+// zero results for suburban addresses. We now send a single Google-Events
+// family-friendly query so the search can't get stuck on a too-narrow term
+// while still tilting results toward family-appropriate events.
+const CATEGORY_FOR_DISCOVERY = "family-friendly events";
 const EVENT_TYPES = {
   family: { label: "Family", color: "#5b55d6" },
   school: { label: "School", color: "#4f8177" },
@@ -195,7 +202,6 @@ export default function CalendarPage() {
   const [discoverBusy, setDiscoverBusy] = useState(false);
   const [discoverError, setDiscoverError] = useState("");
   const [discoveredEvents, setDiscoveredEvents] = useState([]);
-  const [discoverCategory, setDiscoverCategory] = useState("family events");
   const [discoverWhen, setDiscoverWhen] = useState("this weekend");
   const [discoverCities, setDiscoverCities] = useState([]);
   const [cityDraft, setCityDraft] = useState("");
@@ -426,7 +432,7 @@ export default function CalendarPage() {
   // so the UI doesn't show stale "cached" state during the network refresh.
   const refreshFromNetwork = async (citiesForRequest) => {
     const key = eventCacheKey({
-      category: discoverCategory,
+      category: CATEGORY_FOR_DISCOVERY,
       when: discoverWhen,
       country: String(householdProfileExtra?.country || "ca").toLowerCase().slice(0, 2),
       cities: citiesForRequest,
@@ -440,13 +446,13 @@ export default function CalendarPage() {
     setDiscoverBusy(true); setDiscoverError("");
     const country = String(householdProfileExtra?.country || "ca").toLowerCase().slice(0, 2);
     try {
-      const result = await invokeEdgeFunction("search-local-events", { location: citiesForRequest[0], cities: citiesForRequest, category: discoverCategory, when: discoverWhen, country });
+      const result = await invokeEdgeFunction("search-local-events", { location: citiesForRequest[0], cities: citiesForRequest, category: CATEGORY_FOR_DISCOVERY, when: discoverWhen, country });
       setDiscoveredEvents(Array.isArray(result?.events) ? result.events : []);
       setResultDiagnostics(result?.diagnostics || null);
       // Persist successful responses (incl. empty-but-no-error) for the 4h TTL
       // window. upstream_error is intentionally skipped so transient failures
       // don't poison the next modal open.
-      const key = eventCacheKey({ category: discoverCategory, when: discoverWhen, country, cities: citiesForRequest });
+      const key = eventCacheKey({ category: CATEGORY_FOR_DISCOVERY, when: discoverWhen, country, cities: citiesForRequest });
       const writeAt = Date.now();
       writeEventCache(key, result, writeAt);
       if (result?.providerStatus !== "upstream_error") {
@@ -462,7 +468,7 @@ export default function CalendarPage() {
           const failed = Array.isArray(result?.diagnostics?.failedCities) && result.diagnostics.failedCities.length ? formatCityFailure(result.diagnostics.failedCities) : "some areas";
           setDiscoverError(`${failed}. We still couldn't find a match — try a broader category or a different date.`);
         } else if (result?.providerStatus === "empty_results") {
-          setDiscoverError(`No matching ${discoverCategory} for ${citiesForRequest.join(", ")} (${discoverWhen}). Try a broader category, another area, or a different date.`);
+          setDiscoverError(`No matching ${CATEGORY_FOR_DISCOVERY} for ${citiesForRequest.join(", ")} (${discoverWhen}). Try a broader category, another area, or a different date.`);
         } else { setDiscoverError("No matching events were found. Try a broader category, another city, or a different date."); }
       }
     } catch (error) { setDiscoveredEvents([]); setDiscoverError(error.message || "Could not load local events."); setResultDiagnostics(null); }
@@ -562,7 +568,7 @@ export default function CalendarPage() {
               // value we're about to apply so the cache lookup matches the eventual state.
               setDiscoverCities(initialCities);
               const countryKey = String(householdProfileExtra?.country || "ca").toLowerCase().slice(0, 2);
-              const key = eventCacheKey({ category: discoverCategory, when: discoverWhen, country: countryKey, cities: initialCities });
+              const key = eventCacheKey({ category: CATEGORY_FOR_DISCOVERY, when: discoverWhen, country: countryKey, cities: initialCities });
               const entry = readEventCache(key);
               if (entry) {
                 setCacheMeta(entry);
@@ -844,11 +850,11 @@ export default function CalendarPage() {
             <small>Add nearby cities to widen the search radius. Results merge across every area.</small>
           </div>
           <div className="event-discovery-controls">
-            <label><span>What sounds good?</span>
-              <select value={discoverCategory} onChange={event => setDiscoverCategory(event.target.value)}>
-                <option>family events</option><option>kids activities</option><option>festivals</option><option>sports events</option><option>concerts</option><option>workshops</option><option>outdoor activities</option><option>museums and exhibits</option>
-              </select>
-            </label>
+            <div className="event-discovery-scope">
+              <span>Showing</span>
+              <strong>Family-friendly events & activities nearby</strong>
+              <small>No category filter — we send Google's family-targeted event query so coverage is wide and the search can't get stuck on a narrow category.</small>
+            </div>
             <label><span>When?</span>
               <select value={discoverWhen} onChange={event => setDiscoverWhen(event.target.value)}>
                 <option>today</option><option>tomorrow</option><option>this weekend</option><option>next weekend</option><option>this month</option>
