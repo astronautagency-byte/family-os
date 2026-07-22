@@ -4,6 +4,7 @@ import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, colorVar, Modal, SecondaryButton } from "../components/ui";
 import PageHeader from "../components/PageHeader";
+import ConfirmAction from "../components/ConfirmAction";
 import { detectIntent, intentKey } from "../lib/chatIntents";
 
 
@@ -302,35 +303,53 @@ export default function Chat() {
         </button>
       </form>
 
-      <Modal open={manageOpen} onClose={() => !clearing && setManageOpen(false)} title={confirmClear ? "Are you sure?" : "Clear messages"}>
-        {!confirmClear ? (
-          <div className="chat-clear-panel">
-            <p className="chat-clear-intro">Clearing messages is permanent and cannot be undone.</p>
-            <button type="button" className="chat-clear-option" onClick={() => { setClearError(""); setConfirmClear("family"); }}>
-              <span><UsersRound size={18} /></span>
-              <div><strong>Clear family chat</strong><small>Delete the shared household thread for everyone{familyCount ? ` · ${familyCount} message${familyCount === 1 ? "" : "s"}` : ""}.</small></div>
+      <Modal open={manageOpen && !confirmClear} onClose={() => !clearing && setManageOpen(false)} title="Clear messages">
+        <div className="chat-clear-panel">
+          <p className="chat-clear-intro">Clearing messages is permanent and cannot be undone.</p>
+          <button type="button" className="chat-clear-option" onClick={() => { setClearError(""); setConfirmClear("family"); }}>
+            <span><UsersRound size={18} /></span>
+            <div><strong>Clear family chat</strong><small>Delete the shared household thread for everyone{familyCount ? ` · ${familyCount} message${familyCount === 1 ? "" : "s"}` : ""}.</small></div>
+          </button>
+          {!tabletMode && (
+            <button type="button" className="chat-clear-option" onClick={() => { setClearError(""); setConfirmClear("dms"); }}>
+              <span><LockKeyhole size={18} /></span>
+              <div><strong>Clear my direct messages</strong><small>Delete only your 1:1 conversations{myDmCount ? ` · ${myDmCount} message${myDmCount === 1 ? "" : "s"}` : ""}.</small></div>
             </button>
-            {!tabletMode && (
-              <button type="button" className="chat-clear-option" onClick={() => { setClearError(""); setConfirmClear("dms"); }}>
-                <span><LockKeyhole size={18} /></span>
-                <div><strong>Clear my direct messages</strong><small>Delete only your 1:1 conversations{myDmCount ? ` · ${myDmCount} message${myDmCount === 1 ? "" : "s"}` : ""}.</small></div>
-              </button>
-            )}
-            {clearError && <p className="chat-clear-error">{clearError}</p>}
-          </div>
-        ) : (
-          <div className="chat-clear-panel">
-            <p className="reset-confirm-copy">{confirmClear === "family"
-              ? "This permanently deletes the shared family chat for every member of your household."
-              : "This permanently deletes all of your direct-message conversations. Other members keep their own."}</p>
-            {clearError && <p className="chat-clear-error">{clearError}</p>}
-            <div className="reset-confirm-actions">
-              <SecondaryButton onClick={() => setConfirmClear(null)} disabled={clearing}>Back</SecondaryButton>
-              <button className="event-danger-button" onClick={runClear} disabled={clearing}><Trash2 size={16} /> {clearing ? "Clearing…" : confirmClear === "family" ? "Delete family chat" : "Delete my DMs"}</button>
-            </div>
-          </div>
-        )}
+          )}
+          {clearError && <p className="chat-clear-error">{clearError}</p>}
+        </div>
       </Modal>
+      <ConfirmAction
+        open={!!confirmClear}
+        busy={clearing}
+        onClose={() => { if (!clearing) { setConfirmClear(null); setManageOpen(false); } }}
+        onConfirm={async () => {
+          setClearing(true); setClearError("");
+          try {
+            if (confirmClear === "family") await clearFamilyChat();
+            else await clearMyDirectMessages(currentUserId);
+            setConfirmClear(null);
+            setManageOpen(false);
+          } catch (error) {
+            setClearError(error.message || "Those messages could not be cleared.");
+            setConfirmClear(null);
+            setManageOpen(false);
+          } finally {
+            setClearing(false);
+          }
+        }}
+        title={confirmClear === "family" ? "Clear the family chat?" : "Clear your direct messages?"}
+        copy={
+          confirmClear === "family"
+            ? `This permanently deletes the shared family chat for every member of your household${familyCount ? ` (${familyCount} message${familyCount === 1 ? "" : "s"} right now)` : ""}. Other members can't undo this.`
+            : `This permanently deletes your direct-message conversations${myDmCount ? ` (${myDmCount} message${myDmCount === 1 ? "" : "s"} right now)` : ""}. Others keep their own threads.`
+        }
+        confirmLabel={confirmClear === "family" ? "Clear family chat" : "Clear my DMs"}
+        tier={confirmClear === "family" ? "type-to-confirm" : "confirm"}
+        word="CLEAR CHAT"
+        busyLabel="Clearing…"
+      />
+      {clearError && confirmClear === null && <p className="chat-clear-error">{clearError}</p>}
     </div>
   );
 }

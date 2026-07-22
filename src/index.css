@@ -1157,6 +1157,24 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 
 /* App-wide reset controls and spacious dialogs */
 .page-action-stack{display:flex;flex-direction:column;align-items:flex-end;gap:5px}.page-action-stack>button{font-size:11px;color:var(--color-ink-soft)}.page-reset-button{display:inline-flex!important;align-items:center;gap:5px;padding:6px 9px;border:1px solid var(--color-border);border-radius:var(--radius-pill);background:#fff;color:var(--color-ink-soft);font-size:11px;font-weight:650}.page-reset-button svg{width:13px;height:13px}.reset-confirm-copy{margin:-2px 0 24px;color:var(--color-ink-soft);font-size:13px;line-height:1.55}.reset-confirm-actions{display:grid;grid-template-columns:1fr 1.5fr;gap:10px;align-items:center}.reset-confirm-actions>button:first-child{height:44px;border:1px solid var(--color-border);border-radius:var(--radius-sm);background:#fff;font-size:14px;font-weight:600}
+
+/* ── ConfirmAction destructive-modal block ──
+   Drives every tier in the tiered confirmation system. Tier "confirm"
+   shows destructive button enabled; tier "type-to-confirm" arms it only
+   once the user types the matching word. The confirm-destructive-action
+   class overrides m3-button-filled so the destructive intent reads as a
+   warning (red surface) instead of the accent primary, while keeping the
+   same animation, ripple, and disabled-state behaviours. */
+.confirm-action-copy{color:var(--color-ink-soft);font-size:13.5px;line-height:1.55;margin:2px 0 16px}
+.confirm-action-typed-block{margin:6px 0 8px}
+.confirm-action-typed-token{font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--color-warn)}
+.confirm-action-typed-hint{color:var(--color-ink-faint);font-size:11.5px;display:block;margin-top:4px}
+.confirm-action-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;align-items:center;margin-top:6px}
+.confirm-action-actions>button:first-child{height:44px;border:1px solid var(--color-border);border-radius:var(--radius-sm);background:#fff;font-size:14px;font-weight:600}
+.confirm-destructive-action{background:var(--color-warn)!important;color:#fff!important;border-color:transparent!important;box-shadow:0 6px 16px color-mix(in srgb,var(--color-warn) 28%,transparent)!important}
+.confirm-destructive-action:hover:not(:disabled){background:color-mix(in srgb,var(--color-warn) 90%,#000)!important;box-shadow:0 10px 22px color-mix(in srgb,var(--color-warn) 36%,transparent)!important}
+.confirm-destructive-action:disabled{background:color-mix(in srgb,var(--color-warn) 22%,var(--color-border))!important;color:#fff!important;box-shadow:none!important;cursor:not-allowed;opacity:.65}
+@media (max-width:480px){.confirm-action-actions{grid-template-columns:1fr}}
 .meal-range-toggle{display:flex;gap:4px;margin-bottom:12px}.meal-range-toggle button{flex:1;padding:9px;border:1px solid var(--color-border);background:#fff;color:var(--color-ink-soft);font-size:12px;font-weight:700}.meal-range-toggle button:first-child{border-radius:var(--radius-sm) 0 0 12px}.meal-range-toggle button:last-child{border-radius:0 12px 12px 0}.meal-range-toggle button.selected{border-color:var(--color-accent);background:var(--color-accent-soft);color:var(--color-accent)}
 .task-category-picker{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 18px}.task-category-picker button{display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--color-border);border-radius:var(--radius-pill);background:#fff;color:var(--color-ink-soft);font-size:11.5px;font-weight:650}.task-category-picker i{width:8px;height:8px;border-radius:50%;background:var(--task-color)}.task-category-picker button.selected{border-color:var(--task-color);background:color-mix(in srgb,var(--task-color) 12%,white);color:var(--task-color)}.task-board-group.rose{border-color:#f3d4dd;background:#fff0f4}.task-board-group.rose .task-group-title h2{color:#b94f6b}.task-board-group.rose .task-group-title>span{background:#f6c7d4;color:#8e3f57}.task-board-group.amber{border-color:#f3dfbd;background:#fff8e8}.task-board-group.amber .task-group-title h2{color:#a76521}.task-board-group.amber .task-group-title>span{background:#f6dfb7;color:#81501c}
 

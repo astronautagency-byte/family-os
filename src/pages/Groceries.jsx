@@ -8,6 +8,7 @@ import { cookableRecipes } from "../lib/cookableTonight";
 import { invokeEdgeFunction } from "../lib/supabase";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useLocalCache } from "../hooks/useLocalCache";
+import ConfirmAction from "../components/ConfirmAction";
 import { GROCERY_CATEGORIES } from "../data/mockData";
 
 // The Groceries-page soft-tier cache key + parser still live here: the key
@@ -207,6 +208,7 @@ export default function Groceries() {
   const [masterDraft, setMasterDraft] = useState(emptyDraft);
   const [showAllStaples, setShowAllStaples] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [clearingChecked, setClearingChecked] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [barcodeModal, setBarcodeModal] = useState(false);
   const [barcodeDraft, setBarcodeDraft] = useState(emptyBarcodeDraft);
@@ -657,7 +659,7 @@ export default function Groceries() {
         action={<div className="grocery-mode-actions">
           <button onClick={() => { resetBarcodeDraft(); setReturnToFocus(false); setBarcodeModal(true); }}><ScanLine size={14} /> Scan product</button>
           {groceries.length > 0 && <button onClick={() => setFocusMode(true)}><Maximize2 size={14} /> Focus shop</button>}
-          {checkedCount > 0 && <button onClick={clearCheckedGroceries}>Clear checked</button>}
+          {checkedCount > 0 && <button onClick={() => setClearingChecked(true)}>Clear {checkedCount} checked</button>}
           {groceries.length > 0 && <button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button>}
         </div>}
       />
@@ -927,6 +929,14 @@ export default function Groceries() {
         </div>
       </Modal>
       <Modal open={clearing} onClose={()=>setClearing(false)} title="Clear the grocery list?"><p className="reset-confirm-copy">This clears the active list. Your saved staples stay ready for next time.</p><div className="reset-confirm-actions"><button onClick={()=>setClearing(false)}>Cancel</button><PrimaryButton onClick={async()=>{await clearGroceries();setClearing(false)}}>Clear list</PrimaryButton></div></Modal>
+      <ConfirmAction
+        open={clearingChecked}
+        onClose={() => setClearingChecked(false)}
+        onConfirm={async () => { await clearCheckedGroceries(); setClearingChecked(false); }}
+        title={checkedCount === 1 ? "Clear the 1 checked item?" : `Clear the ${checkedCount} checked items?`}
+        copy="These items you've already shopped will be removed from the list. Anything unchecked stays put so you can carry it over to the next trip."
+        confirmLabel={checkedCount === 1 ? "Clear 1 checked" : `Clear ${checkedCount} checked`}
+      />
 
       <Modal open={!!masterEditing} onClose={() => setMasterEditing(null)} title={masterEditing === "new" ? "Save a favourite" : "Edit favourite"}>
         <TextField label="Item" placeholder="e.g. Greek yogurt" value={masterDraft.name} onChange={(e) => updateMasterName(e.target.value)} autoFocus />

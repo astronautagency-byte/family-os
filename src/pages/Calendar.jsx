@@ -8,6 +8,7 @@ import { supabase } from "../lib/supabase";
 import { AvatarStack, DateField, Modal, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import PullToRefresh from "../components/PullToRefresh";
+import ConfirmAction from "../components/ConfirmAction";
 import { formatDuration, formatTime, todayISO } from "../lib/dates";
 import { fetchGooglePlaceSuggestions, googleMapsApiKey, loadGooglePlaces } from "../lib/googleMapsPlaces";
 import { invokeEdgeFunction } from "../lib/supabase";
@@ -293,6 +294,11 @@ export default function CalendarPage() {
     return () => { cancelled = true; controller.abort(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasWeatherLocation, latitude, longitude]);
+
+  // Count only FamOS-authored events (mapped server source "familyos" -> "local").
+  // Connected Google and imported feed events live in googleEvents / feedEvents
+  // and are not cleared by `clearEvents`, so they don't belong in this count.
+  const localEventsCount = events.filter((event) => event.source === "local").length;
 
   const allEvents = useMemo(() => [
     ...events,
@@ -1219,13 +1225,21 @@ export default function CalendarPage() {
           </div>
         </Modal>
 
-        <Modal open={clearing} onClose={() => setClearing(false)} title="Reset FamOS calendar?">
-          <p className="reset-confirm-copy">This removes FamOS events only. Connected Google and imported calendars are not changed.</p>
-          <div className="reset-confirm-actions">
-            <button onClick={() => setClearing(false)}>Cancel</button>
-            <PrimaryButton onClick={async () => { await clearEvents(); setClearing(false); }}>Clear FamOS events</PrimaryButton>
-          </div>
-        </Modal>
+        <ConfirmAction
+          open={clearing}
+          onClose={() => setClearing(false)}
+          onConfirm={async () => { await clearEvents(); setClearing(false); }}
+          title={localEventsCount === 0 ? "No FamOS events to clear" : localEventsCount === 1 ? "Reset the 1 FamOS event?" : `Reset all ${localEventsCount} FamOS events?`}
+          copy={
+            localEventsCount === 0
+              ? "You haven't added any FamOS events yet. Connected Google and imported calendars stay as they are."
+              : localEventsCount === 1
+                ? "This removes the 1 FamOS event you created. Connected Google and imported calendars are not changed."
+                : `This removes all ${localEventsCount} FamOS events you created. Connected Google and imported calendars are not changed.`
+          }
+          confirmLabel={localEventsCount === 0 ? "Nothing to clear" : localEventsCount === 1 ? "Clear 1 event" : `Clear ${localEventsCount} events`}
+          busy={clearing}
+        />
       </div>
     </PullToRefresh>
     <button className="calendar-fab" onClick={openQuick} aria-label="Add event" aria-expanded={quickOpen}>

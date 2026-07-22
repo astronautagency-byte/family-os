@@ -3,6 +3,7 @@ import { AlertCircle, Bell, Bot, CalendarDays, CheckCircle2, ExternalLink, Eye, 
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, Card, Modal, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
+import ConfirmAction from "../components/ConfirmAction";
 import PageHeader from "../components/PageHeader";
 import { FAMILY_COLORS } from "../data/mockData";
 import { AVATAR_PRESETS } from "../data/avatarLibrary";
@@ -890,54 +891,47 @@ export default function Settings() {
         </div>
       </Modal>
 
-      <Modal open={!!memberToRemove} onClose={() => { if (!removingMember) setMemberToRemove(null); }} title={`Remove ${memberToRemove?.name || "family member"}?`}>
-        <p className="text-[14px] text-[var(--color-ink-soft)] mb-2">
-          They will immediately lose access to {household?.name || "this household"} and its calendar, tasks, meals, groceries and chat.
-        </p>
-        <p className="text-[12px] text-[var(--color-ink-faint)] mb-5">
-          Their FamOS login will not be deleted. You can invite them back later.
-        </p>
-        {removeMemberError && <p className="text-[12.5px] text-[var(--color-warn)] mb-3">{removeMemberError}</p>}
-        <div className="flex gap-2">
-          <SecondaryButton disabled={removingMember} onClick={() => setMemberToRemove(null)}>Cancel</SecondaryButton>
-          <PrimaryButton
-            disabled={removingMember}
-            onClick={async () => {
-              setRemovingMember(true);
-              setRemoveMemberError("");
-              try {
-                await removeMember(memberToRemove.id);
-                setMemberToRemove(null);
-              } catch (error) {
-                setRemoveMemberError(error.message || "Could not remove this family member.");
-              } finally {
-                setRemovingMember(false);
-              }
-            }}
-          >
-            {removingMember ? "Removing…" : "Remove member"}
-          </PrimaryButton>
-        </div>
-      </Modal>
+      <ConfirmAction
+        open={!!memberToRemove}
+        busy={removingMember}
+        onClose={() => { if (!removingMember) { setMemberToRemove(null); setRemoveMemberError(""); } }}
+        onConfirm={async () => {
+          setRemovingMember(true);
+          setRemoveMemberError("");
+          try {
+            await removeMember(memberToRemove.id);
+            setMemberToRemove(null);
+          } catch (error) {
+            setRemoveMemberError(error.message || "Could not remove this family member.");
+          } finally {
+            setRemovingMember(false);
+          }
+        }}
+        title={`Remove ${memberToRemove?.name || "family member"}?`}
+        copy={
+          removeMemberError
+            ? removeMemberError
+            : `They will immediately lose access to ${household?.name || "this household"} and its calendar, tasks, meals, groceries and chat. Their FamOS login will not be deleted. You can invite them back later.`
+        }
+        confirmLabel={removingMember ? "Removing…" : "Remove member"}
+        tier="type-to-confirm"
+        word="REMOVE"
+        busyLabel="Removing…"
+      />
 
-      {/* Reset confirmation */}
-      <Modal open={confirmingReset} onClose={() => setConfirmingReset(false)} title="Reset to demo data?">
-        <p className="text-[14px] text-[var(--color-ink-soft)] mb-5">
-          This replaces your current family members, calendar, meals, groceries, and tasks with the original demo
-          data. This can't be undone.
-        </p>
-        <div className="flex gap-2">
-          <SecondaryButton onClick={() => setConfirmingReset(false)}>Cancel</SecondaryButton>
-          <PrimaryButton
-            onClick={() => {
-              resetToDemoData();
-              setConfirmingReset(false);
-            }}
-          >
-            Reset
-          </PrimaryButton>
-        </div>
-      </Modal>
+      <ConfirmAction
+        open={confirmingReset}
+        onClose={() => setConfirmingReset(false)}
+        onConfirm={() => {
+          resetToDemoData();
+          setConfirmingReset(false);
+        }}
+        title="Reset to demo data?"
+        copy="This replaces your current family members, calendar, meals, groceries, and tasks with the original demo data. This can't be undone — every action the family has taken will be erased."
+        confirmLabel="Reset to demo data"
+        tier="type-to-confirm"
+        word="RESET"
+      />
 
       <Modal open={editingHousehold} onClose={() => setEditingHousehold(false)} title={isMasterOwner ? "Edit household" : "Home location & preferences"}>
         {isMasterOwner

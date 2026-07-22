@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { Avatar, AvatarStack, Card, Modal, PrimaryButton, SecondaryButton, TextField, colorVar } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import PullToRefresh from "../components/PullToRefresh";
+import ConfirmAction from "../components/ConfirmAction";
 import { MEAL_SLOTS } from "../data/mockData";
 import { recipeSearchProfileForMeal } from "../data/recipeBox";
 import { addDays, formatDayLabel, todayISO } from "../lib/dates";
@@ -714,7 +715,20 @@ export default function Meals() {
           <PrimaryButton onClick={save}>Save</PrimaryButton>
         </div>
       </Modal>
-      <Modal open={clearing} onClose={()=>setClearing(false)} title="Clear the meal plan?"><p className="reset-confirm-copy">This clears planned meals. Your ideas and family members stay put.</p><div className="reset-confirm-actions"><button onClick={()=>setClearing(false)}>Cancel</button><PrimaryButton onClick={async()=>{await clearMeals();setClearing(false)}}>Clear meals</PrimaryButton></div></Modal>
+      <ConfirmAction
+        open={clearing}
+        onClose={() => setClearing(false)}
+        onConfirm={async () => { await clearMeals(); setClearing(false); }}
+        title="Clear the meal plan?"
+        copy={
+          meals.length === 0
+            ? "There are no meals to clear right now."
+            : meals.length === 1
+              ? "This clears the 1 planned meal. Your ideas and family members stay put."
+              : `This clears all ${meals.length} planned meals. Your ideas and family members stay put.`
+        }
+        confirmLabel={meals.length === 1 ? "Clear 1 meal" : `Clear ${meals.length} meals`}
+      />
 
       {/* Roulette picker — shows up to 3 recipe options from API Ninjas */}
       <Modal open={!!rouletteOptions} onClose={() => setRouletteOptions(null)} title={rouletteOptions ? `${SLOT_META[rouletteOptions.slot].label} roulette` : ""}>
