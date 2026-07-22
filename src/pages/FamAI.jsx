@@ -225,7 +225,8 @@ function calendarTaskSuggestions(events = [], tasks = [], members = []) {
 // Pulls every unchecked grocery name and asks API Ninjas (via the
 // `recipe-search` edge function) for recipes that match them. Returns
 // already-shaped `plan_meal` actions the Fam AI review panel can show.
-async function mealActionsFromGroceries(groceryList = []) {
+// **Only suggests meals for open dinner slots** (slots without a planned meal).
+async function mealActionsFromGroceries(groceryList = [], existingMeals = []) {
   const ingredients = groceryList
     .filter((item) => !item.checked && item.name)
     .map((item) => item.name)
@@ -236,11 +237,26 @@ async function mealActionsFromGroceries(groceryList = []) {
   try {
     const data = await invokeEdgeFunction("recipe-search", { ingredients, mealType: "dinner" });
     const recipes = Array.isArray(data?.recipes) ? data.recipes : [];
-    return recipes.slice(0, 4).map((recipe, index) => ({
+
+    // Find the next 7 days' open dinner slots (no existing meal with a title)
+    const today = todayISO();
+    const openSlots = [];
+    for (let i = 0; i < 7; i++) {
+      const date = addDays(today, i);
+      const hasDinner = existingMeals.some(
+        (meal) => meal.date === date && meal.slot === "dinner" && meal.title
+      );
+      if (!hasDinner) {
+        openSlots.push({ date, slot: "dinner" });
+      }
+    }
+
+    // Assign recipes only to open slots (up to the number available)
+    return recipes.slice(0, openSlots.length).map((recipe, index) => ({
       id: `meal-${index}-${recipe.title}`,
       type: "plan_meal",
       args: {
-        date: addDays(todayISO(), index),
+        date: openSlots[index].date,
         slot: "dinner",
         title: recipe.title,
         notes: `Suggested from groceries · ${recipe.cuisine || "Family favourite"}`,
@@ -252,12 +268,87 @@ async function mealActionsFromGroceries(groceryList = []) {
   }
 }
 
-// FamAI used to infer missing grocery items from a small static recipe box.
-// That source is gone (every recipe now comes from API Ninjas) so this bridge
-// degrades to a no-op. Families add groceries inside Cook Mode, where we
-// have the live ingredients straight from API Ninjas.
-function groceryActionsFromMeals() {
-  return [];
+// Suggests common grocery items that are likely needed based on planned meals,
+// **filtered to only items not already on the grocery list**.
+// Uses category-based heuristics rather than calling API Ninjas per-meal.
+function groceryActionsFromMeals(plannedMeals = [], existingGroceries = []) {
+  const today = todayISO();
+  const existingNames = new Set(
+    existingGroceries
+      .filter((item) => item.name)
+      .map((item) => item.name.toLowerCase().trim())
+  );
+  const alreadyHas = (name) => existingNames.has(name.toLowerCase().trim());
+
+  const items = [];
+  const add = (name, category = "Other") => {
+    if (alreadyHas(name)) return;
+    items.push({
+      id: `meal-grocery-${items.length}`,
+      type: "add_grocery",
+      args: { name, category, quantity: 1, unit: "" },
+    });
+  };
+
+  // Only look at planned meals in the next 7 days
+  const upcomingMeals = plannedMeals
+    .filter((meal) => meal.date >= today && meal.title)
+    .slice(0, 20);
+
+  for (const meal of upcomingMeals) {
+    const title = meal.title.toLowerCase();
+    if (/chicken|turkey|fajitas|stir.?fry/.test(title)) {
+      if (!alreadyHas("chicken breast")) add("Chicken breast", "Meat & Seafood");
+      if (!alreadyHas("bell peppers")) add("Bell peppers", "Produce");
+      if (!alreadyHas("onions")) add("Onions", "Produce");
+      if (/fajitas|taco|burrito|enchilada/.test(title)) {
+        if (!alreadyHas("tortillas")) add("Tortillas", "Pantry");
+        if (!alreadyHas("sour cream")) add("Sour cream", "Dairy & Eggs");
+      }
+    }
+    if (/salmon|fish|seafood/.test(title)) {
+      if (!alreadyHas("lemon")) add("Lemon", "Produce");
+      if (!alreadyHas("rice")) add("Rice", "Pasta, Rice & Grains");
+    }
+    if (/chili|soup|stew/.test(title)) {
+      if (!alreadyHas("canned tomatoes")) add("Canned tomatoes", "Canned & Jarred");
+      if (!alreadyHas("kidney beans")) add("Kidney beans", "Canned & Jarred");
+    }
+    if (/pasta|spaghetti|bolognese|lasagna/.test(title)) {
+      if (!alreadyHas("pasta")) add("Pasta", "Pasta, Rice & Grains");
+      if (!alreadyHas("pasta sauce")) add("Pasta sauce", "Condiments & Sauces");
+    }
+    if (/pizza|flatbread/.test(title)) {
+      if (!alreadyHas("pizza dough")) add("Pizza dough", "Pantry");
+      if (!alreadyHas("mozzarella")) add("Mozzarella", "Dairy & Eggs");
+    }
+    if (/rice|bowl|grain/.test(title)) {
+      if (!alreadyHas("rice")) add("Rice", "Pasta, Rice & Grains");
+      if (!alreadyHas("soy sauce")) add("Soy sauce", "Condiments & Sauces");
+    }
+    if (/taco|burrito|quesadilla|enchilada/.test(title)) {
+      if (!alreadyHas("shredded cheese")) add("Shredded cheese", "Dairy & Eggs");
+      if (!alreadyHas("salsa")) add("Salsa", "Condiments & Sauces");
+    }
+    if (/sandwich|wrap|burger/.test(title)) {
+      if (!alreadyHas("bread")) add("Bread", "Bakery");
+      if (!alreadyHas("lettuce")) add("Lettuce", "Produce");
+    }
+    if (/roast|bake|grill/.test(title)) {
+      if (!alreadyHas("potatoes")) add("Potatoes", "Produce");
+      if (!alreadyHas("garlic")) add("Garlic", "Produce");
+    }
+    if (/curry|indian|thai|asian/.test(title)) {
+      if (!alreadyHas("coconut milk")) add("Coconut milk", "Canned & Jarred");
+      if (!alreadyHas("curry paste")) add("Curry paste", "International Foods");
+    }
+    if (/salad|green|veggie|vegetable/.test(title)) {
+      if (!alreadyHas("olive oil")) add("Olive oil", "Condiments & Sauces");
+      if (!alreadyHas("salad dressing")) add("Salad dressing", "Condiments & Sauces");
+    }
+  }
+
+  return items.slice(0, 10);
 }
 
 // Returns recipe *titles* suggested by API Ninjas based on the current
@@ -375,7 +466,8 @@ export default function FamAI() {
       .filter((event) => event.title && event.start);
 
     if (addedGroceries.length) {
-      const nextMeals = await mealActionsFromGroceries([...groceries, ...addedGroceries]);
+      const projectedMeals = [...meals, ...addedMeals];
+      const nextMeals = await mealActionsFromGroceries([...groceries, ...addedGroceries], projectedMeals);
       if (nextMeals.length) {
         return {
           message: "Since we touched the grocery list, I also found dinners you can make from those items. Want me to add these to the meal planner?",
@@ -385,7 +477,8 @@ export default function FamAI() {
     }
 
     if (addedMeals.length) {
-      const nextGroceries = groceryActionsFromMeals([...meals, ...addedMeals], groceries);
+      const projectedMeals = [...meals, ...addedMeals];
+      const nextGroceries = groceryActionsFromMeals(projectedMeals, [...groceries, ...addedGroceries]);
       if (nextGroceries.length) {
         return {
           message: "I can also build the missing grocery list for those planned meals. Review the items below.",
@@ -504,7 +597,7 @@ export default function FamAI() {
       }
 
       if (wantsGroceryList(text) && projectedMeals.some((meal) => meal.title)) {
-        const missingActions = groceryActionsFromMeals();
+        const missingActions = groceryActionsFromMeals(projectedMeals, projectedGroceries);
         const mealIdeas = (await apiNinjasMealTitlesFromGroceries(projectedGroceries)).slice(0, 3).map((recipe) => recipe.title);
         setMessages((current) => [...current, {
           role: "assistant",
@@ -517,7 +610,7 @@ export default function FamAI() {
       }
 
       if (wantsMealIdeas(text) && projectedGroceries.some((item) => !item.checked)) {
-        const mealActions = await mealActionsFromGroceries(projectedGroceries);
+        const mealActions = await mealActionsFromGroceries(projectedGroceries, projectedMeals);
         if (mealActions.length) {
           setMessages((current) => [...current, {
             role: "assistant",
