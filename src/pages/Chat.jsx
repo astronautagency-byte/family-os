@@ -5,6 +5,8 @@ import { useAuth } from "../context/AuthContext";
 import { Avatar, colorVar, Modal, SecondaryButton } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 
+
+
 function timeLabel(value) {
   return new Date(value).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
@@ -45,10 +47,15 @@ export default function Chat() {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [threadMessages.length, activeThread]);
 
-  // Viewing the chat clears the unread badges (nav + top bar). Re-runs as new
-  // messages arrive while the page is open so they never count as unread.
+  // Viewing the chat clears the unread badge. Only marks read on the first
+  // render with messages loaded — not on every realtime update (which would
+  // suppress the badge forever). The ref resets on unmount so re-entering
+  // the chat tab also marks new messages read.
+  const chatMountedRef = useRef(false);
   useEffect(() => {
+    if (chatMountedRef.current || !messages.length) return;
     markChatRead?.();
+    chatMountedRef.current = true;
   }, [messages, markChatRead]);
 
   const submit = async (event) => {

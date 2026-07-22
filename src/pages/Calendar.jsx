@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo, useState } from "react";
-import { CalendarPlus, ChevronLeft, ChevronRight, ExternalLink, LoaderCircle, MapPin, Plus, Search, Sparkles, Ticket, Trash2, TriangleAlert, X } from "lucide-react";
+import { CalendarPlus, ChevronLeft, ChevronRight, ExternalLink, LoaderCircle, MapPin, Plus, Search, Settings2, Sparkles, Ticket, Trash2, TriangleAlert, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { AvatarStack, DateField, Modal, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
@@ -333,7 +333,10 @@ export default function CalendarPage() {
   return <PullToRefresh onRefresh={refreshAll}><div className="pb-28 reference-calendar">
     <PageHeader title="Everyone’s where, when." illustration="calendar" subtitle={`${dayEvents.length} thing${dayEvents.length===1?"":"s"} on deck for this day.`} action={events.length?<button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button>:null} />
     <div className="px-5">
-      <div className="calendar-tools-row"><div className="calendar-source-filters" aria-label="Calendars">{sources.map(source=><button key={source.id} className={sourceFilter===source.id?"selected":""} onClick={()=>setSourceFilter(source.id)}>{source.color&&<i style={{backgroundColor:source.color}}/>}{source.label}</button>)}</div><button className="discover-events-button" onClick={()=>{setDiscovering(true);setDiscoverCities((current)=>current.length?current:(discoverLocation?[discoverLocation]:[]));if(!discoveredEvents.length)window.setTimeout(searchLocalEvents,0);}}><Ticket/> Discover local events</button></div>
+      <div className="calendar-tools-row">
+        <div className="calendar-source-filters" aria-label="Calendars">{sources.map(source=><button key={source.id} className={sourceFilter===source.id?"selected":""} onClick={()=>setSourceFilter(source.id)}>{source.color&&<i style={{backgroundColor:source.color}}/>}{source.label}</button>)}<button className="calendar-settings-link" onClick={()=>{window.location.hash="settings";}}><Settings2 size={13}/> Manage</button></div>
+        <button className="discover-events-button" onClick={()=>{setDiscovering(true);setDiscoverCities((current)=>current.length?current:(discoverLocation?[discoverLocation]:[]));if(!discoveredEvents.length)window.setTimeout(searchLocalEvents,0);}}><Ticket/> Discover</button>
+      </div>
       <div className="month-toolbar"><div><h2>{monthLabel}</h2><p>{visibleEvents.filter(e=>e.start.slice(0,7)===iso(month).slice(0,7)).length} events this month</p></div><div><button onClick={()=>setMonth(new Date(month.getFullYear(),month.getMonth()-1,1))}><ChevronLeft/></button><button onClick={()=>setMonth(new Date(month.getFullYear(),month.getMonth()+1,1))}><ChevronRight/></button></div></div>
       <div className="month-calendar">
         <div className="weekday-row">{["SUN","MON","TUE","WED","THU","FRI","SAT"].map(d=><span key={d}>{d}</span>)}</div>

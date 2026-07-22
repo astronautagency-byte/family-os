@@ -916,17 +916,22 @@ export function FamilyProvider({ children, tabletMode = false }) {
       await syncGoogleEvents(token);
     } catch {
       if (configured) {
-        setGoogleStatus("connecting");
-        setGoogleError(null);
-        try {
-          await signInWithGoogle();
-        } catch (reconnectError) {
-          setGoogleStatus("error");
-          setGoogleError(reconnectError.message || "Could not reconnect Google Calendar.");
+        // Use the cached Supabase provider_token as a fallback instead of
+        // triggering a full OAuth redirect. The token lasts ~1 hour and is
+        // refreshed by Supabase in the background.
+        if (googleProviderToken) {
+          setGoogleAccessTokenState(googleProviderToken);
+          await syncGoogleEvents(googleProviderToken);
+          return;
         }
+        // No token available at all — surface the expired state so the user
+        // can manually reconnect from Settings instead of an automatic OAuth
+        // redirect on every sign-in.
+        setGoogleStatus("expired");
+        setGoogleError("Google Calendar access expired. Go to Settings → Integrations to reconnect.");
         return;
       }
-      // Silent refresh failed (likely expired / revoked) — ask for consent again.
+      // Non-configured (local mode): silent refresh failed — ask for consent.
       try {
         const { accessToken } = await requestGoogleAccessToken(googleClientId, { silent: false });
         setGoogleAccessTokenState(accessToken);

@@ -553,15 +553,21 @@ export function AuthProvider({ children }) {
       // Identity already linked. Confirm the durable refresh token is still
       // valid in the google-calendar-token edge function. If so, the user is
       // connected — no OAuth round-trip required.
+      //
+      // If the edge function is not deployed yet or returns an error, the
+      // identity is still linked — reuse it rather than redirecting the user
+      // to Google OAuth on every sign-in. The Supabase session's provider_token
+      // (available for ~1 hour) can still sync the calendar.
       try {
         const status = await invokeEdgeFunction("google-calendar-token", { action: "status" });
         if (status?.connected) {
           return { reused: true, identity: existing };
         }
       } catch {
-        // Edge function unreachable / not deployed yet. Fall through to the
-        // OAuth flow so the user can re-capture a refresh token.
+        // Edge function unreachable / not deployed yet. The identity is still
+        // linked — reuse it without OAuth redirect.
       }
+      return { reused: true, identity: existing };
     }
 
     await performGoogleOAuthLink();

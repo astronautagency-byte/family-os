@@ -85,6 +85,7 @@ Deno.serve(async (request) => {
   if (request.method !== "POST") return json({ error: "Method not allowed." }, 405);
 
   try {
+    const requestId = crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const authorization = request.headers.get("Authorization");
     if (!authorization) return json({ error: "Sign in to discover local events." }, 401);
 
