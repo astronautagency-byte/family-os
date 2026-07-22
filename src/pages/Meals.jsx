@@ -180,8 +180,8 @@ export default function Meals() {
   };
 
   const missingIngredients = (cookRecipe?.ingredients || []).filter((ingredient) => {
-    if (typeof ingredient === "string") return !groceries.some((grocery) => !grocery.checked && grocery.name.toLowerCase() === ingredient.trim().toLowerCase());
-    if (ingredient && typeof ingredient === "object" && ingredient.name) return !groceries.some((grocery) => !grocery.checked && grocery.name.toLowerCase() === ingredient.name.toLowerCase());
+    if (typeof ingredient === "string") return !groceries.some((grocery) => grocery.name.toLowerCase() === ingredient.trim().toLowerCase());
+    if (ingredient && typeof ingredient === "object" && ingredient.name) return !groceries.some((grocery) => grocery.name.toLowerCase() === ingredient.name.toLowerCase());
     return false;
   });
 
@@ -378,6 +378,16 @@ export default function Meals() {
                   const cooks = (meal?.cookIds ?? []).map((id) => memberById[id]).filter(Boolean);
                   return (
                     <div className={`meal-slot-row ${slot === "dinner" ? "is-dinner" : ""}`} key={slot}>
+                      {meal?.title && (
+                        <button
+                          className="meal-slot-clear"
+                          onClick={(e) => { e.stopPropagation(); removeMeal(meal.id); }}
+                          aria-label={`Clear ${meal.title}`}
+                          title="Clear this meal"
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
                       <button
                         onClick={() => meal?.title ? openCookRecipe(meal) : openEditor(date, slot)}
                         className="meal-slot-button flex items-center gap-3 text-left transition-colors"
@@ -390,7 +400,7 @@ export default function Meals() {
                           <p className={`meal-slot-value text-[14px] truncate ${meal?.title ? "has-meal text-[var(--color-ink)] font-medium" : "is-empty text-[var(--color-ink-faint)]"}`}>
                             {meal?.title || "Add a meal"}
                           </p>
-                          {meal?.title && <span className="meal-cook-hint"><ChefHat size={12} /> Cook Mode available</span>}
+                          {meal?.title && <span className="meal-cook-hint"><ChefHat size={12} /> Cook</span>}
                         </div>
                         {cooks.length > 0 && <AvatarStack members={cooks} size="sm" />}
                       </button>
@@ -543,18 +553,18 @@ export default function Meals() {
                     )}
                   </ul>
                   <button
-                    className="recipe-grocery-button"
+                    className={`recipe-grocery-button ${missingIngredients.length && !cookIngredientsAdded ? "needs-items" : ""}`}
                     disabled={missingIngredients.length === 0 || cookIngredientsAdded}
                     onClick={addCookIngredients}
                     title={missingIngredients.length ? `Add ${missingIngredients.length} ingredients to groceries` : "All ingredients already on list"}
                   >
                     <ShoppingCart size={15} />
                     {cookIngredientsAdded
-                      ? "Ingredients added"
+                      ? "✓ Ingredients added to list"
                       : missingIngredients.length
-                        ? `Add ${missingIngredients.length} ingredients to groceries`
+                        ? `➕ Add ${missingIngredients.length} missing to grocery list`
                         : cookRecipe.ingredients.length
-                          ? "Ingredients already on list"
+                          ? "✓ All groceries covered"
                           : "No ingredients to add yet"}
                   </button>
                 </Card>
