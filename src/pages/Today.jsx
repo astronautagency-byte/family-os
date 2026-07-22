@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CalendarDays, ChefHat, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, Clock3, Droplets, Home, ListChecks, MapPin, Megaphone, Moon, ShoppingCart, Sparkles, Sun, TriangleAlert, Users, Wind, X } from "lucide-react";
+import { CalendarDays, ChefHat, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, Clock3, Droplets, Home, ListChecks, LoaderCircle, MapPin, Megaphone, Moon, PartyPopper, ShoppingCart, Sparkles, Sun, TriangleAlert, Users, Wind, X } from "lucide-react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { BROADCAST_REACTIONS, useFamily } from "../context/FamilyContext";
@@ -47,6 +47,28 @@ const dayLabel = (date) => {
   return Number.isNaN(parsed.getTime()) ? "" : parsed.toLocaleDateString(undefined, { weekday: "short" });
 };
 const roundTemp = (value) => (Number.isFinite(Number(value)) ? Math.round(Number(value)) : "—");
+
+// Quick-start chips shown above the composer when it's empty. Tap one to fill the
+// input with a friendly starter line — turns the empty composer into a tiny
+// guide ("choose a starter or write your own").
+const PROMPT_CHIPS = [
+  { emoji: "👋", label: "Quick hello", text: "Hey fam, just checking in 👋" },
+  { emoji: "🍝", label: "Dinner?", text: "Dinner tonight: " },
+  { emoji: "⚡", label: "Heads up", text: "Heads up — " },
+  { emoji: "❤️", label: "Love you", text: "Love you all ❤️" },
+  { emoji: "🎉", label: "Big news", text: "Big news — " },
+];
+
+// Confetti palette matches the daypart sunrise gradient (kept in CSS vars so the
+// day/morning/evening variants pick up automatically).
+const CONFETTI_COLORS = [
+  "var(--color-accent)",
+  "var(--color-fam-rose)",
+  "var(--color-fam-marigold)",
+  "var(--color-fam-plum)",
+  "var(--color-fam-sky)",
+];
+
 
 function BroadcastBanner({ item, sender, reactions, currentUserId, onReact, onClear }) {
   const ref = useRef(null);
@@ -143,14 +165,60 @@ export default function Today({ goTo }) {
   const [broadcastText, setBroadcastText] = useState("");
   const [broadcasting, setBroadcasting] = useState(false);
   const [broadcastError, setBroadcastError] = useState("");
+  const [broadcastFocused, setBroadcastFocused] = useState(false);
+  const composeContainerRef = useRef(null);
+
+  // Tiny DOM confetti burst on successful broadcast. Pure CSS keyframe — no
+  // dependency, micro-cost, removed after one play. The CSS rules also honour
+  // prefers-reduced-motion via @media, but the early-return here avoids even
+  // creating the DOM nodes for users who opt out of motion.
+  const fireConfetti = () => {
+    const host = composeContainerRef.current;
+    if (!host) return;
+    const reduced = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) return;
+    const count = 14;
+    for (let i = 0; i < count; i += 1) {
+      const dot = document.createElement("span");
+      dot.className = "broadcast-confetti";
+      dot.style.setProperty("--c", CONFETTI_COLORS[i % CONFETTI_COLORS.length]);
+      // Spread upward, slightly to the right (where the button sits), with some variance.
+      dot.style.setProperty("--x", `${(Math.random() * 160 - 30).toFixed(0)}px`);
+      dot.style.setProperty("--y", `${(-30 - Math.random() * 90).toFixed(0)}px`);
+      dot.style.setProperty("--rot", `${(Math.random() * 540 - 90).toFixed(0)}deg`);
+      dot.style.animationDelay = `${(Math.random() * 0.08).toFixed(2)}s`;
+      host.appendChild(dot);
+      setTimeout(() => dot.remove(), 1300);
+    }
+  };
+
+  const applyPrompt = (text) => {
+    setBroadcastText(text);
+    const input = composeContainerRef.current?.querySelector(".broadcast-compose input");
+    if (input) {
+      input.focus();
+      input.setSelectionRange(text.length, text.length);
+    }
+  };
+
   const postBroadcast = async (event) => {
     event.preventDefault();
     if (!broadcastText.trim() || broadcasting) return;
     setBroadcasting(true); setBroadcastError("");
-    try { await broadcastMessage(broadcastText.trim()); setBroadcastText(""); }
+    try {
+      await broadcastMessage(broadcastText.trim());
+      setBroadcastText("");
+      fireConfetti();
+    }
     catch (error) { setBroadcastError(error.message || "Could not broadcast right now."); }
     finally { setBroadcasting(false); }
   };
+  const broadcastReady = broadcastText.trim().length > 0;
+  // Hide the wiggle + chips whenever the composer is "engaged" — text entered,
+  // focused, or actively sending a message. CSS owns the wiggle keyframe; we
+  // just flip the `is-idle` class.
+  const composerIdle = !broadcastReady && !broadcastFocused && !broadcasting;
+  const showPrompts = composerIdle;
   const today = todayISO();
   const weekDays = Array.from({ length: 7 }, (_, index) => addDays(today, index));
   const weekEnd = weekDays[weekDays.length - 1];
@@ -304,16 +372,47 @@ export default function Today({ goTo }) {
 
       <div className="px-5 space-y-6 mt-2">
         <section className="broadcast-home" aria-label="Family broadcast">
-          <form className="broadcast-compose" onSubmit={postBroadcast}>
-            <span className="broadcast-compose-icon"><Megaphone size={18} /></span>
-            <input
-              value={broadcastText}
-              onChange={(event) => setBroadcastText(event.target.value)}
-              placeholder="Broadcast a note to everyone’s home screen…"
-              aria-label="Broadcast a message to the family"
-            />
-            <button type="submit" disabled={!broadcastText.trim() || broadcasting}>{broadcasting ? "Sending…" : "Broadcast"}</button>
-          </form>
+          <div className="broadcast-confetti-host" ref={composeContainerRef}>
+            <form
+              className="broadcast-compose"
+              onSubmit={postBroadcast}
+            >
+              <span
+                className={`broadcast-compose-icon ${composerIdle ? "is-idle" : ""}`}
+                aria-hidden="true"
+              ><Megaphone size={18} /></span>
+              <input
+                value={broadcastText}
+                onChange={(event) => setBroadcastText(event.target.value)}
+                onFocus={() => setBroadcastFocused(true)}
+                onBlur={() => setBroadcastFocused(false)}
+                placeholder="Broadcast a note to everyone’s home screen…"
+                aria-label="Broadcast a message to the family"
+                maxLength={4000}
+              />
+              <button type="submit" className={broadcastReady ? "is-ready" : ""} disabled={!broadcastReady || broadcasting} aria-live="polite">
+                {broadcasting ? <LoaderCircle className="broadcast-spin" size={14} aria-hidden="true" /> : <PartyPopper size={14} aria-hidden="true" />}
+                {broadcasting ? "Sending…" : "Broadcast"}
+              </button>
+            </form>
+            {showPrompts && (
+              <div className="broadcast-chips" role="list" aria-label="Quick broadcast starters">
+                {PROMPT_CHIPS.map((chip) => (
+                  <button
+                    key={chip.emoji}
+                    type="button"
+                    role="listitem"
+                    className="broadcast-chip"
+                    onClick={() => applyPrompt(chip.text)}
+                    aria-label={`Start a broadcast: ${chip.text}`}
+                  >
+                    <span aria-hidden="true" className="broadcast-chip-emoji">{chip.emoji}</span>
+                    <span className="broadcast-chip-label">{chip.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           {broadcastError && <p className="broadcast-compose-error">{broadcastError}</p>}
           {broadcasts.length > 0 && (
             <div className="broadcast-banner-list">
