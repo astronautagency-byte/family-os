@@ -279,7 +279,7 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType, dieta
           <ul className="space-y-1 mt-2">
             {aiMeals.map((meal) => (
               <li key={meal.title}>
-                <button onClick={() => onPick(meal.title, meal.notes)} className="w-full rounded-xl bg-white border border-[var(--color-border)] px-3 py-2 text-left flex items-start gap-2">
+                <button onClick={() => onPick(meal.title, meal.notes)} className="w-full rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] px-3 py-2 text-left flex items-start gap-2">
                   <Check size={14} className="text-[var(--color-good)] mt-0.5 shrink-0" />
                   <span className="flex-1 min-w-0">
                     <span className="block text-[13.5px] font-medium">{meal.title}</span>

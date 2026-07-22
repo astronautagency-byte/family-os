@@ -682,7 +682,7 @@ export default function Groceries() {
               value={extraIngredients}
               onChange={(event) => setExtraIngredients(event.target.value)}
               placeholder="Add extra ingredients you have on hand (soy sauce, butter)…"
-              className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-[13.5px] text-[var(--color-ink)] placeholder:text-[var(--color-ink-faint)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] mb-3"
+              className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[13.5px] text-[var(--color-ink)] placeholder:text-[var(--color-ink-faint)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] mb-3"
               aria-label="Extra ingredients on hand"
             />
             {cookableRecipesData.busy && cookableList.length === 0 && (
@@ -735,7 +735,7 @@ export default function Groceries() {
           <img src="/marketing/delivery-banner.png" alt="" className="delivery-banner-art" aria-hidden="true" />
           <div className="delivery-banner-shade" aria-hidden="true" />
           <div className="relative flex items-start gap-3">
-            <span className="w-11 h-11 rounded-2xl bg-white/95 flex items-center justify-center shrink-0 shadow-[0_10px_24px_rgba(0,0,0,0.18)] ring-1 ring-white/20">
+            <span className="w-11 h-11 rounded-2xl bg-[color-mix(in_srgb,var(--color-surface)_95%,transparent)] flex items-center justify-center shrink-0 shadow-[0_10px_24px_rgba(0,0,0,0.18)] ring-1 ring-[var(--color-border-strong)]/60">
               <Truck size={21} color="var(--color-accent)" />
             </span>
             <div className="flex-1 min-w-0">
@@ -747,7 +747,7 @@ export default function Groceries() {
                 <button
                   onClick={openDelivery}
                   disabled={!deliveryItems.length}
-                  className="inline-flex items-center gap-2 rounded-full bg-white/95 text-[var(--color-accent)] border border-white/40 px-3 py-2 text-[12px] font-semibold shadow-[0_8px_20px_rgba(0,0,0,0.16)] disabled:opacity-45"
+                  className="inline-flex items-center gap-2 rounded-full bg-[color-mix(in_srgb,var(--color-surface)_95%,transparent)] text-[var(--color-accent)] border border-[var(--color-border)]/60 px-3 py-2 text-[12px] font-semibold shadow-[0_8px_20px_rgba(0,0,0,0.16)] disabled:opacity-45"
                 >
                   <ShoppingBag size={14} />
                   {deliveryItems.length ? `${deliveryItems.length} item${deliveryItems.length === 1 ? "" : "s"}` : "List empty"}
@@ -758,7 +758,7 @@ export default function Groceries() {
                   <button
                     key={app.id}
                     onClick={() => openGroceryPartner(app.url)}
-                    className="min-h-[48px] rounded-2xl bg-white px-3 flex items-center justify-center transition-transform hover:-translate-y-0.5 active:scale-[0.98]"
+                    className="min-h-[48px] rounded-2xl bg-[var(--color-surface)] px-3 flex items-center justify-center transition-transform hover:-translate-y-0.5 active:scale-[0.98]"
                     style={{ border: `1px solid ${app.brandBorder}`, boxShadow: `0 11px 24px ${app.brandColor}1c` }}
                     aria-label={`Open ${app.name}`}
                   >
@@ -767,9 +767,9 @@ export default function Groceries() {
                 ))}
               </div>
               <div className="mt-2 grid grid-cols-3 gap-2">
-                <button onClick={copyDeliveryList} disabled={!deliveryItems.length} className="inline-flex items-center justify-center gap-1.5 rounded-full bg-white px-3 py-2 text-[11.5px] font-semibold text-[#19172b] border border-black/5 shadow-sm disabled:opacity-45"><Clipboard size={13} /> Copy</button>
-                <button onClick={shareDeliveryList} disabled={!deliveryItems.length} className="inline-flex items-center justify-center gap-1.5 rounded-full bg-white px-3 py-2 text-[11.5px] font-semibold text-[#19172b] border border-black/5 shadow-sm disabled:opacity-45"><Share2 size={13} /> Share</button>
-                <button onClick={downloadDeliveryList} disabled={!deliveryItems.length} className="inline-flex items-center justify-center gap-1.5 rounded-full bg-white px-3 py-2 text-[11.5px] font-semibold text-[#19172b] border border-black/5 shadow-sm disabled:opacity-45"><Download size={13} /> Save</button>
+                <button onClick={copyDeliveryList} disabled={!deliveryItems.length} className="inline-flex items-center justify-center gap-1.5 rounded-full bg-[var(--color-surface)] px-3 py-2 text-[11.5px] font-semibold text-[var(--color-ink)] border border-black/5 shadow-sm disabled:opacity-45"><Clipboard size={13} /> Copy</button>
+                <button onClick={shareDeliveryList} disabled={!deliveryItems.length} className="inline-flex items-center justify-center gap-1.5 rounded-full bg-[var(--color-surface)] px-3 py-2 text-[11.5px] font-semibold text-[var(--color-ink)] border border-black/5 shadow-sm disabled:opacity-45"><Share2 size={13} /> Share</button>
+                <button onClick={downloadDeliveryList} disabled={!deliveryItems.length} className="inline-flex items-center justify-center gap-1.5 rounded-full bg-[var(--color-surface)] px-3 py-2 text-[11.5px] font-semibold text-[var(--color-ink)] border border-black/5 shadow-sm disabled:opacity-45"><Download size={13} /> Save</button>
               </div>
             </div>
           </div>
@@ -781,7 +781,7 @@ export default function Groceries() {
             <button onClick={() => openMasterItem()} className="flex items-center gap-1 text-[11.5px] font-semibold text-[var(--color-accent)]"><Plus size={13} /> New staple</button>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            {(showAllStaples ? staples : staples.slice(0, 6)).map((staple) => <div key={staple.id} draggable onDragStart={(event) => { event.dataTransfer.setData("application/json", JSON.stringify(staple)); setDragging(true); }} onDragEnd={() => setDragging(false)} className="group relative min-w-0 flex items-center rounded-2xl bg-white border border-[var(--color-border)] notion-shadow overflow-hidden cursor-grab active:cursor-grabbing">
+            {(showAllStaples ? staples : staples.slice(0, 6)).map((staple) => <div key={staple.id} draggable onDragStart={(event) => { event.dataTransfer.setData("application/json", JSON.stringify(staple)); setDragging(true); }} onDragEnd={() => setDragging(false)} className="group relative min-w-0 flex items-center rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] notion-shadow overflow-hidden cursor-grab active:cursor-grabbing">
               <button onClick={() => addStapleToList(staple)} className="flex flex-1 min-w-0 items-center gap-2.5 p-2.5 text-left active:bg-[var(--color-accent-soft)] transition-colors" aria-label={`Add ${staple.name} to grocery list`}>
                 <GroceryIcon category={staple.category} size={15} />
                 <span className="min-w-0 flex-1"><span className="block text-[13.5px] font-medium truncate">{staple.name}</span><span className="block text-[10.5px] text-[var(--color-ink-faint)] truncate">{staple.quantity}{staple.unit ? ` ${staple.unit}` : ""}</span></span>
@@ -1008,7 +1008,7 @@ export default function Groceries() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-[var(--color-border)] overflow-hidden bg-white dark:bg-[var(--color-surface)]">
+          <div className="rounded-2xl border border-[var(--color-border)] overflow-hidden bg-[var(--color-surface)]">
             <div className="px-3 py-2 bg-[var(--color-surface-sunken)] flex items-center justify-between">
               <p className="text-[12px] font-semibold text-[var(--color-ink)]">Ready-to-copy list</p>
               <p className="text-[11.5px] text-[var(--color-ink-soft)]">{deliveryItems.length} items</p>
@@ -1036,7 +1036,7 @@ export default function Groceries() {
                 <button
                   key={app.id}
                   onClick={() => openGroceryPartner(app.url)}
-                  className="min-h-[52px] rounded-2xl bg-white px-3 flex items-center justify-between shadow-sm transition-transform active:scale-[0.98]"
+                  className="min-h-[52px] rounded-2xl bg-[var(--color-surface)] px-3 flex items-center justify-between shadow-sm transition-transform active:scale-[0.98]"
                   style={{ border: `1px solid ${app.brandColor}44` }}
                 >
                   <GroceryDeliveryLogo app={app} />

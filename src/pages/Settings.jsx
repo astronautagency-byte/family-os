@@ -242,7 +242,7 @@ function CalendarFeedsCard() {
       {adding ? (
         <div>
           <label className="block text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-1.5">Calendar type</label>
-          <select value={provider} onChange={(event) => setProvider(event.target.value)} className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-3 text-[14px] mb-3">
+          <select value={provider} onChange={(event) => setProvider(event.target.value)} className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 text-[14px] mb-3">
             <option value="apple">Apple / iCloud</option>
             <option value="outlook">Outlook / Microsoft 365</option>
             <option value="ical">Other iCal feed</option>
@@ -339,7 +339,7 @@ function DeliveryTestCard() {
   const statusColor = (status) => {
     if (status === "sent") return "var(--color-good)";
     // rate_limited is "wait N seconds" — calmer amber than hard failures
-    if (status === "rate_limited") return "#b8761f";
+    if (status === "rate_limited") return "#B8761F";  /* slightly orange-shifted amber, distinct from generic --color-warn (#D55A2A in light / #FF7547 in dark) so rate-limit visually differentiates from failed/blocked/unreachable */
     if (status === "blocked" || status === "paused") return "var(--color-warn)";
     if (status === "failed" || status === "unreachable") return "var(--color-warn)";
     if (status === "skipped" || status === "not_configured") return "var(--color-ink-faint)";

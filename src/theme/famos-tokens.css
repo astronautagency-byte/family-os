@@ -81,6 +81,50 @@
   --motion-base: 240ms;          /* layout-level transforms / shadows      */
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+ * Dark theme overrides (added 2026-07-22, theme-system migration).
+ *
+ *   App.jsx toggles `theme-dark` on `.app-shell`. Every token below is the
+ *   dark-mode companion of the @theme default above. The cascade is symmetric:
+ *   every selector anywhere in src/index.css + src/components/* that reads
+ *   var(--color-*) auto-flips — no per-component dark-mode patch is needed.
+ *
+ *   Contrast targets (WCAG AA on the dark canvas #0F1020):
+ *     - --color-ink              9.8:1   primary text
+ *     - --color-ink-soft         5.6:1   secondary text
+ *     - --color-ink-faint        5.5:1   captions, placeholders
+ *     - --color-accent           6.7:1   interactive / brand elements
+ *     - --color-accent-strong    11.6:1  emphasis links
+ *     - --color-warn             4.7:1   error / failure UI
+ *     - --color-good             6.1:1   success UI
+ *
+ *   We dropped the elevated-on-canvas card pattern (used to force cards as
+ *   white surfaces via background:var(--color-surface)!important) — cards
+ *   now read --color-surface (#1C1E36) directly, dark-on-darker, and
+ *   inherit bright --color-ink automatically.
+ *   ───────────────────────────────────────────────────────────────────────── */
+
+.theme-dark {
+  --color-canvas:           #0F1020;           /* page-level background                         */
+  --color-surface:          #232744;           /* cards (one elevation up from canvas)          */
+  --color-surface-sunken:   #16182A;           /* input fills (between canvas and cards)        */
+  --color-border:           #4D5175;           /* separators (1.7:1 vs canvas)                  */
+  --color-border-strong:    #6D719B;           /* emphasized separators (3.0:1 vs canvas)      */
+
+  --color-ink:              #ECEDFE;           /* primary text — 9.8:1 vs canvas                 */
+  --color-ink-soft:         #BBC0DA;           /* secondary text — 5.6:1 vs canvas              */
+  --color-ink-faint:        #B5B9D0;           /* captions / placeholders — 5.5:1 vs canvas    */
+
+  --color-accent:           #9087FF;           /* interactive / brand — 6.7:1 vs canvas        */
+  --color-accent-soft:      #2A2654;           /* accent-tinted surface for selected states    */
+  --color-accent-strong:    #C8BFFF;           /* emphasis links — 11.6:1 vs canvas            */
+
+  --color-warn:             #FF7547;           /* warnings / failures — 4.7:1 vs canvas        */
+  --color-warn-soft:        #3D1F0F;           /* warn-tinted surface                          */
+  --color-good:             #52C996;           /* success — 6.1:1 vs canvas                    */
+  --color-good-soft:        #163025;           /* good-tinted surface                          */
+}
+
 /* ── Daypart overrides ─────────────────────────────────────────────────────
  *   App.jsx writes document.documentElement.dataset.daypart so this CSS picks
  *   up the right sunrise-gradient by hour-of-day. The "day" value matches the

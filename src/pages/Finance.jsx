@@ -244,7 +244,7 @@ export default function Finance() {
           )}
         </Card>
 
-        <button onClick={openReceiptCapture} className="w-full rounded-2xl border border-[var(--color-border)] bg-white px-4 py-3 text-left shadow-sm active:scale-[.99] transition-transform">
+        <button onClick={openReceiptCapture} className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-left shadow-sm active:scale-[.99] transition-transform">
           <span className="flex items-center gap-3">
             <span className="w-11 h-11 rounded-2xl bg-[var(--color-accent-soft)] text-[var(--color-accent)] flex items-center justify-center"><Camera size={19} /></span>
             <span className="flex-1">
@@ -303,7 +303,7 @@ export default function Finance() {
 
       <Modal open={receiptOpen} onClose={() => { setReceiptOpen(false); setError(""); }} title="Scan receipt">
         <label className="block rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface-sunken)] p-4 text-center mb-4 cursor-pointer">
-          {receipt.previewUrl ? <img src={receipt.previewUrl} alt="Receipt preview" className="max-h-48 w-full object-contain rounded-xl bg-white mb-3" /> : <span className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-white text-[var(--color-accent)] flex items-center justify-center"><Upload size={22} /></span>}
+          {receipt.previewUrl ? <img src={receipt.previewUrl} alt="Receipt preview" className="max-h-48 w-full object-contain rounded-xl bg-[var(--color-surface)] mb-3" /> : <span className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-[var(--color-surface)] text-[var(--color-accent)] flex items-center justify-center"><Upload size={22} /></span>}
           <span className="block text-[13px] font-semibold text-[var(--color-ink)]">{receipt.file ? receipt.file.name : "Upload or take a receipt photo"}</span>
           <span className="block text-[11.5px] text-[var(--color-ink-faint)] mt-1">On iPhone, choose Camera and let the tiny robot squint at it.</span>
           <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={(event) => handleReceiptFile(event.target.files?.[0])} />
@@ -314,7 +314,7 @@ export default function Finance() {
           <textarea value={receipt.text} onChange={(event) => setReceipt((current) => ({ ...current, text: event.target.value }))} placeholder="Paste receipt text here if you have it." className="w-full min-h-24 rounded-2xl border border-[var(--color-border)] bg-[var(--color-field)] px-4 py-3 text-[14px] outline-none focus:border-[var(--color-accent)]" />
         </label>
 
-        <button onClick={analyzeReceipt} disabled={receiptBusy || (!receipt.file && !receipt.text.trim())} className="w-full rounded-2xl border border-[var(--color-border)] bg-white px-4 py-3 text-[13px] font-semibold text-[var(--color-accent-strong)] disabled:opacity-45 mb-4">
+        <button onClick={analyzeReceipt} disabled={receiptBusy || (!receipt.file && !receipt.text.trim())} className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[13px] font-semibold text-[var(--color-accent-strong)] disabled:opacity-45 mb-4">
           {receiptBusy ? "Analyzing receipt…" : "Analyze receipt"}
         </button>
         {receipt.message && <p className={`text-[12px] rounded-xl px-3 py-2 mb-4 ${receipt.status === "done" ? "bg-[var(--color-good-soft)] text-[var(--color-good)]" : "bg-[var(--color-accent-soft)] text-[var(--color-ink-soft)]"}`}>{receipt.message}</p>}

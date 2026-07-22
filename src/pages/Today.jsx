@@ -135,7 +135,7 @@ function MiniMetric({ icon: Icon, label, value, note, tone = "accent", onClick }
   const body = (
     <Card className={`today-metric-card today-metric-${tone} p-4 h-full active:scale-[0.99] transition-transform`}>
       <div className="flex items-start justify-between gap-3">
-        <span className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-white border border-[var(--color-border)] ${toneClass}`}>
+        <span className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-[var(--color-surface)] border border-[var(--color-border)] ${toneClass}`}>
           <Icon size={19} />
         </span>
         {onClick && <ChevronRight size={17} color="var(--color-ink-faint)" />}
@@ -535,20 +535,20 @@ export default function Today({ goTo }) {
                   {nextEvent ? "Today at a glance" : "Today is clear"}
                 </h2>
               </div>
-              <span className="w-12 h-12 rounded-2xl bg-white border border-[var(--color-border)] flex items-center justify-center shrink-0">
+              <span className="w-12 h-12 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center shrink-0">
                 <Home size={22} color="var(--color-accent)" />
               </span>
             </div>
             <div className="grid sm:grid-cols-4 gap-2 mt-5">
               {todayBrief.map((item) => (
-                <div key={item} className="rounded-2xl bg-white border border-[var(--color-border)] px-3 py-2 text-[12px] font-semibold text-[var(--color-ink)]">
+                <div key={item} className="rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] px-3 py-2 text-[12px] font-semibold text-[var(--color-ink)]">
                   {item}
                 </div>
               ))}
             </div>
             {nextEvent ? (
-              <button onClick={() => goTo("calendar")} className="mt-5 w-full text-left rounded-2xl bg-white border border-[var(--color-border)] p-4 flex items-center gap-3 active:scale-[0.99] transition-transform">
-                <span className="w-11 h-11 rounded-2xl bg-white border border-[var(--color-border)] text-[var(--color-accent)] flex items-center justify-center shrink-0">
+              <button onClick={() => goTo("calendar")} className="mt-5 w-full text-left rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 flex items-center gap-3 active:scale-[0.99] transition-transform">
+                <span className="w-11 h-11 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-accent)] flex items-center justify-center shrink-0">
                   <Clock3 size={20} />
                 </span>
                 <span className="flex-1 min-w-0">
@@ -559,7 +559,7 @@ export default function Today({ goTo }) {
                 <AvatarStack members={(nextEvent.memberIds || []).map((id) => memberById[id]).filter(Boolean)} />
               </button>
             ) : (
-              <p className="mt-5 rounded-2xl bg-white border border-[var(--color-border)] p-4 text-[14px] text-[var(--color-ink-soft)]">Nothing urgent on the calendar. Take the win.</p>
+              <p className="mt-5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-[14px] text-[var(--color-ink-soft)]">Nothing urgent on the calendar. Take the win.</p>
             )}
           </Card>
 
@@ -569,14 +569,14 @@ export default function Today({ goTo }) {
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">This week</p>
                 <h2 className="ui-section-title">This week</h2>
               </div>
-              <span className="w-10 h-10 rounded-2xl bg-white border border-[var(--color-border)] flex items-center justify-center shrink-0">
+              <span className="w-10 h-10 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center shrink-0">
                 <Sparkles size={18} color="var(--color-accent)" />
               </span>
             </div>
             <div className="space-y-4">
               <ProgressLine label="Dinner plan coverage" value={weekDinners.length} total={7} color="var(--color-warn)" />
               <ProgressLine label="Task completion" value={weekDoneTasks.length} total={weekTasks.length || 1} color="var(--color-good)" />
-              <div className="rounded-2xl bg-white border border-[var(--color-border)] p-3">
+              <div className="rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] p-3">
                 <p className="text-[12px] font-semibold text-[var(--color-ink)]">Busiest day</p>
                 <p className="text-[13px] text-[var(--color-ink-soft)]">{busiestDay?.count ? `${formatDayLabel(busiestDay.date)} has ${busiestDay.count} moving piece${busiestDay.count === 1 ? "" : "s"}.` : "No heavy days in the next week."}</p>
               </div>
@@ -663,7 +663,7 @@ export default function Today({ goTo }) {
                 const meal = meals.find((m) => m.date === date && m.slot === "dinner" && m.title);
                 const adder = meal?.createdBy ? memberById[meal.createdBy] : null;
                 return (
-                  <div key={date} className="flex items-center gap-3 rounded-2xl bg-white border border-[var(--color-border)] px-3 py-2.5">
+                  <div key={date} className="flex items-center gap-3 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] px-3 py-2.5">
                     <span className="w-12 shrink-0 text-[11.5px] font-bold uppercase text-[var(--color-accent-strong)]">{date === today ? "Today" : formatDayLabel(date, { withWeekday: true }).split(",")[0]}</span>
                     <div className="flex-1 min-w-0">
                       <span className="block text-[13px] text-[var(--color-ink)] truncate">{meal?.title || "Open dinner slot"}</span>
@@ -702,12 +702,12 @@ export default function Today({ goTo }) {
               <>
                 <div className="flex flex-wrap gap-2 mb-3">
                   {groceryCategories.slice(0, 4).map(([category, count]) => (
-                    <span key={category} className="today-category-chip inline-flex items-center rounded-full border border-[var(--color-border)] bg-white px-2.5 py-1 text-xs font-medium text-[var(--color-good)]">{category} · {count}</span>
+                    <span key={category} className="today-category-chip inline-flex items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-xs font-medium text-[var(--color-good)]">{category} · {count}</span>
                   ))}
                 </div>
                 <div className="grid sm:grid-cols-2 gap-2">
                   {activeGroceries.slice(0, 6).map((item) => (
-                    <div key={item.id} className="today-list-item rounded-2xl border border-[var(--color-border)] bg-white px-3 py-2.5">
+                    <div key={item.id} className="today-list-item rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5">
                       <p className="text-[13px] font-semibold text-[var(--color-ink)] truncate">{item.name}</p>
                       <p className="text-[11.5px] text-[var(--color-ink-soft)]">{item.category || "Other"}{item.quantity ? ` · ${item.quantity}${item.unit ? ` ${item.unit}` : ""}` : ""}</p>
                     </div>
@@ -726,7 +726,7 @@ export default function Today({ goTo }) {
                   <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Meal ideas</p>
                   <h2 className="ui-section-title">Make this from your list</h2>
                 </div>
-                <span className="w-10 h-10 rounded-2xl bg-white border border-[var(--color-border)] flex items-center justify-center shrink-0">
+                <span className="w-10 h-10 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center shrink-0">
                   <ChefHat size={18} color="var(--color-accent)" />
                 </span>
               </div>
@@ -786,7 +786,7 @@ export default function Today({ goTo }) {
                   const assignee = memberById[t.assigneeId];
                   const taskAdder = t.createdBy ? memberById[t.createdBy] : null;
                   return (
-                    <li key={t.id} className="today-list-item flex items-center gap-3 px-3 py-2.5 rounded-2xl bg-white border border-[var(--color-border)]">
+                    <li key={t.id} className="today-list-item flex items-center gap-3 px-3 py-2.5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)]">
                       <Checkbox checked={t.done} onChange={() => toggleTask(t.id)} color={assignee?.color} />
                       <div className="flex-1 min-w-0">
                         <span className={`block text-[14px] ${t.done ? "line-through text-[var(--color-ink-faint)]" : "text-[var(--color-ink)]"} truncate`}>{t.title}</span>

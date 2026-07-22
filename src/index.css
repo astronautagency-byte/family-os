@@ -1727,25 +1727,16 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .theme-dark .topbar-wordmark strong,.theme-dark .nav-brand strong{color:#fff}
 .theme-dark .topbar-wordmark img,.theme-dark .nav-brand img{background:#25213a}
 .theme-dark .topbar-avatar:not(:has(img)){background:#302b58;color:#ddd6ff}
-.theme-dark .topbar-actions button,.theme-dark .topbar-actions svg{color:var(--color-ink-soft)}
 .theme-toggle-button{width:32px;height:32px;border-radius:var(--radius-pill);display:grid;place-items:center;background:var(--color-surface-sunken);color:var(--color-ink-soft)}
 .theme-toggle-button svg{width:17px!important;height:17px!important}
 .theme-toggle-button[aria-pressed="true"]{background:#fff2b8;color:#7c5a00}
 .theme-dark .theme-toggle-button[aria-pressed="true"]{background:#2d2955;color:#ffe59a}
-.theme-dark .kinship-card,.theme-dark .notification-feed,.theme-dark .modal-card,.theme-dark .location-autocomplete-input,.theme-dark .focus-shopping-item,.theme-dark .cook-focus-panel,.theme-dark .cook-focus-copy,.theme-dark .cook-panel,.theme-dark .cook-step-card,.theme-dark .cook-quiet-reference,.theme-dark .chat-panel,.theme-dark .calendar-event-card,.theme-dark .recipe-detail-card,.theme-dark .family-roster-card{background:var(--color-surface)!important;color:var(--color-ink)!important}
-.theme-dark input,.theme-dark select,.theme-dark textarea,.theme-dark .calendar-select-label select{background:var(--color-surface-sunken)!important;color:var(--color-ink)!important;border-color:var(--color-border)!important}
-.theme-dark input::placeholder,.theme-dark textarea::placeholder{color:var(--color-ink-faint)}
-.theme-dark .family-hero,.theme-dark .reference-dashboard section .kinship-card,.theme-dark .reference-meals .kinship-card,.theme-dark .reference-settings section>.kinship-card,.theme-dark .reference-settings section:nth-of-type(2)>.kinship-card:first-of-type{background:#181a2b!important;color:var(--color-ink)!important}
 .theme-dark .family-hero::after{background:linear-gradient(90deg,rgba(24,26,43,.98) 0%,rgba(24,26,43,.86) 38%,rgba(24,26,43,.08) 70%)}
 .theme-dark .notification-row.is-unread{background:#242037}
 .theme-dark .notification-row:hover{background:#2d2955}
-.theme-dark .calendar-sources-tab:not(.selected),.theme-dark .meal-ideas-launcher button,.theme-dark .pending-invite-actions button,.theme-dark .avatar-preset-grid button,.theme-dark .avatar-editor-actions button,.theme-dark .advanced-calendar-fields,.theme-dark .cook-guide-actions button:not(.primary),.theme-dark .cook-source-link{background:var(--color-surface)!important;color:var(--color-ink-soft)!important;border-color:var(--color-border)!important}
 .theme-dark .focus-shopping-overlay,.theme-dark .cook-focus-screen{background:linear-gradient(180deg,#10111f,#151628)}
 .theme-dark .focus-shopping-header,.theme-dark .cook-focus-topbar{background:rgba(18,19,34,.9)}
-.theme-dark .cook-photo-card,.theme-dark .cook-progress-card,.theme-dark .cook-check-row,.theme-dark .agenda-delete,.theme-dark .barcode-actions label,.theme-dark .barcode-actions button,.theme-dark .google-calendar-note{background:var(--color-surface)!important;color:var(--color-ink)!important}
 .theme-dark .cook-guide-actions button.primary,.theme-dark .cook-primary-action,.theme-dark .primary-button{color:#fff!important}
-.theme-dark .page-title,.theme-dark .ui-section-title,.theme-dark h1,.theme-dark h2,.theme-dark h3,.theme-dark h4,.theme-dark strong{color:var(--color-ink)}
-.theme-dark .page-subtitle,.theme-dark p,.theme-dark small,.theme-dark .cook-panel-note,.theme-dark .recipe-detail-head span,.theme-dark .recipe-detail-grid ul,.theme-dark .recipe-detail-grid ol{color:var(--color-ink-soft)}
 .theme-dark .text-\[var\(--color-ink\)\]{color:var(--color-ink)!important}
 .theme-dark .text-\[var\(--color-ink-soft\)\]{color:var(--color-ink-soft)!important}
 .theme-dark .text-\[var\(--color-ink-faint\)\]{color:var(--color-ink-faint)!important}
@@ -1756,78 +1747,14 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .theme-dark .avatar-editor-preview{border-color:#2b2d4b;color:#fff}
 .theme-dark .avatar-preset-grid img,.theme-dark .topbar-avatar{background:#fff}
 
-/* Dark mode: keep surfaces dark and readable across the app.
-   A lot of screens intentionally use white cards/chips in light mode; without
-   these overrides the text tokens invert while those local white backgrounds do not. */
-.theme-dark .reference-dashboard,
-.theme-dark .reference-groceries,
-.theme-dark .reference-meals,
-.theme-dark .reference-tasks,
-.theme-dark .reference-settings,
-.theme-dark .fam-ai-page {
-  background:#0f1020!important;
-  color:var(--color-ink)!important;
-}
-.theme-dark .page-header,
-.theme-dark .reference-tasks .page-header,
-.theme-dark .reference-meals .page-header,
-.theme-dark .reference-groceries .page-header,
-.theme-dark .reference-dashboard .page-header {
-  background:#111225!important;
-  color:var(--color-ink)!important;
-  border-color:var(--color-border)!important;
-}
-.theme-dark .app-content .bg-white,
-.theme-dark .app-content [class*="bg-white"],
-.theme-dark .reference-dashboard .today-metric-card .rounded-2xl.bg-white,
-.theme-dark .reference-dashboard .today-command-card .bg-white,
-.theme-dark .reference-dashboard .today-pulse-card .bg-white,
-.theme-dark .reference-dashboard .today-flow-card .bg-white,
-.theme-dark .reference-dashboard .today-load-card .bg-white,
-.theme-dark .reference-dashboard .today-meals-card .bg-white,
-.theme-dark .reference-dashboard .today-groceries-card .bg-white,
-.theme-dark .reference-dashboard .today-tasks-card .bg-white {
-  background:#20223a!important;
-  color:var(--color-ink)!important;
-  border-color:var(--color-border)!important;
-}
+/* (safety-net block removed: tokens in src/theme/famos-tokens.css now handle all of these) */
 .theme-dark .app-content .text-white:not(.primary-button):not(.rounded-full),
 .theme-dark .app-content [class*="text-white"]:not(.primary-button) {
   color:var(--color-ink)!important;
 }
-.theme-dark .app-content .text-\[var\(--color-ink\)\],
-.theme-dark .app-content .text-\[var\(--color-ink-soft\)\],
-.theme-dark .app-content .text-\[var\(--color-ink-faint\)\],
-.theme-dark .app-content h1,
-.theme-dark .app-content h2,
-.theme-dark .app-content h3,
-.theme-dark .app-content h4,
-.theme-dark .app-content strong {
-  color:var(--color-ink)!important;
-}
-.theme-dark .app-content p,
-.theme-dark .app-content small,
-.theme-dark .app-content em,
-.theme-dark .app-content li,
-.theme-dark .page-subtitle {
-  color:var(--color-ink-soft)!important;
-}
-.theme-dark .reference-dashboard .today-metric-card,
-.theme-dark .reference-dashboard .today-command-card,
-.theme-dark .reference-dashboard .today-pulse-card,
-.theme-dark .reference-dashboard .today-flow-card,
-.theme-dark .reference-dashboard .today-load-card,
-.theme-dark .reference-dashboard .today-meals-card,
-.theme-dark .reference-dashboard .today-groceries-card,
-.theme-dark .reference-dashboard .today-tasks-card,
-.theme-dark .task-board-group,
-.theme-dark .task-board-row,
-.theme-dark .reference-groceries .kinship-card,
-.theme-dark .reference-meals>.px-5>.kinship-card {
-  background:#181a2b!important;
-  color:var(--color-ink)!important;
-  border-color:var(--color-border-strong)!important;
-}
+
+
+
 .theme-dark .weekly-progress {
   background:#5f55d8!important;
   color:#fff!important;
@@ -3293,19 +3220,15 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .event-cache-badge:hover svg{transform:rotate(45deg);opacity:1}
 
 /* ------------------------------------------------------------------
-   Dark-mode chrome typography (WCAG AA on the dark canvas).
-   Cards inherit --color-surface + --color-ink via the existing
+   Dark-mode brand pinning — brand-specific only.
+   The token layer (.theme-dark block in src/theme/famos-tokens.css)
    `.theme-dark .kinship-card` rule (white-on-dark elevation pattern),
-   so we don't touch the ink tokens globally — instead we lift every
+   across the entire app via a single CSS variable flip. What's left every
    element that sits on the bare dark canvas background to AA-readable
    values directly. Contrast ratios stated vs the dark --color-canvas
    #0F1020 (relative luminance ~0.012). Light mode is unaffected —
    every rule is `.theme-dark`-prefixed.
    ------------------------------------------------------------------ */
-.theme-dark .page-title { color: #ECEDFE }                                                                                       /* 9.8:1 — primary text */
-.theme-dark .page-subtitle { color: #BBC0DA }                                                                                    /* 5.6:1 — secondary text */
-.theme-dark .page-eyebrow, .theme-dark .page-header-content>div>p:first-child { color: #9087FF; font-weight: 750 }                  /* 6.7:1 — brighter accent on dark */
-.theme-dark input::placeholder, .theme-dark textarea::placeholder { color: #8C92B4 }                                              /* 4.7:1 — form hints */
 .theme-dark .topbar-wordmark strong { color: #FFFFFF }
 .theme-dark .nav-brand strong { color: #FFFFFF; font-weight: 800; letter-spacing: -.04em }
 .theme-dark .nav-brand span { color: rgba(255,255,255,.72) }
