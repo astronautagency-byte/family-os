@@ -289,12 +289,13 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 
 /* Event cards in agenda */
 .calendar-agenda{display:grid;gap:10px}
-.calendar-event{display:grid;grid-template-columns:52px 3px 1fr;gap:12px;padding:13px 14px 13px 0;border-radius:var(--radius-card);border:1px solid var(--color-border);background:var(--color-surface);transition:border-color var(--motion-fast) ease,box-shadow var(--motion-fast) ease,transform var(--motion-fast) ease;cursor:pointer}
+.calendar-event{display:grid;grid-template-columns:56px 3px 1fr;gap:14px;padding:14px 16px 14px 14px;border-radius:var(--radius-card);border:1px solid var(--color-border);background:var(--color-surface);transition:border-color var(--motion-fast) ease,box-shadow var(--motion-fast) ease,transform var(--motion-fast) ease;cursor:pointer}
 .calendar-event:hover{border-color:var(--color-border-strong);box-shadow:0 2px 8px rgba(27,25,53,.04);transform:translateY(-1px)}
 .calendar-event:active{transform:scale(.99)}
-.calendar-event-time{display:flex;flex-direction:column;align-items:flex-end;gap:2px;padding-top:1px}
+.calendar-event-time{display:flex;flex-direction:column;align-items:flex-end;gap:1px;padding-top:1px}
 .calendar-event-start{font-size:13px;font-weight:650;color:var(--color-ink);line-height:1.2}
 .calendar-event-end{font-size:10px;font-weight:600;color:var(--color-ink-faint);line-height:1.2}
+.calendar-event-duration{font-size:10px;font-weight:500;color:var(--color-ink-faint);line-height:1.2;margin-top:3px;padding:1px 5px;border-radius:6px;background:color-mix(in srgb,var(--color-ink-faint) 10%,transparent)}
 .calendar-event-line{width:3px;border-radius:99px;flex:none;align-self:stretch;opacity:.6}
 .calendar-event-body{min-width:0;position:relative}
 .calendar-event-body strong{display:block;font-size:14px;font-weight:650;color:var(--color-ink);line-height:1.3;padding-right:28px}

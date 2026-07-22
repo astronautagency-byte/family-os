@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { AvatarStack, DateField, Modal, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import PullToRefresh from "../components/PullToRefresh";
-import { formatTime, todayISO } from "../lib/dates";
+import { formatDuration, formatTime, todayISO } from "../lib/dates";
 import { fetchGooglePlaceSuggestions, googleMapsApiKey, loadGooglePlaces } from "../lib/googleMapsPlaces";
 import { invokeEdgeFunction } from "../lib/supabase";
 
@@ -459,6 +459,7 @@ export default function CalendarPage() {
                       <div className="calendar-event-time">
                         <span className="calendar-event-start">{formatTime(ev.start)}</span>
                         {ev.end && <span className="calendar-event-end">{formatTime(ev.end)}</span>}
+                        {ev.end && <span className="calendar-event-duration">{formatDuration(ev.start, ev.end)}</span>}
                       </div>
                       <div className="calendar-event-line" style={{ backgroundColor: type.color }} />
                       <div className="calendar-event-body">

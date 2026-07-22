@@ -17,6 +17,18 @@ export function formatTime(isoString) {
   return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 
+export function formatDuration(startIso, endIso) {
+  if (!startIso || !endIso) return "";
+  const ms = new Date(endIso).getTime() - new Date(startIso).getTime();
+  if (Number.isNaN(ms) || ms <= 0) return "";
+  const totalMinutes = Math.round(ms / 60000);
+  if (totalMinutes < 60) return `${totalMinutes}m`;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (minutes === 0) return `${hours}h`;
+  return `${hours}h ${minutes}m`;
+}
+
 export function formatDayLabel(dateStr, { withWeekday = true } = {}) {
   const d = new Date(dateStr + "T00:00:00");
   return d.toLocaleDateString(undefined, {
