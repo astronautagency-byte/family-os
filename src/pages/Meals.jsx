@@ -515,6 +515,7 @@ export default function Meals() {
                   const meal = mealFor(date, slot);
                   const Icon = SLOT_META[slot].icon;
                   const cooks = (meal?.cookIds ?? []).map((id) => memberById[id]).filter(Boolean);
+                  const adder = meal?.createdBy ? memberById[meal.createdBy] : null;
                   return (
                     <div className={`meal-slot-row ${slot === "dinner" ? "is-dinner" : ""}`} key={slot}>
                       <button
@@ -542,6 +543,7 @@ export default function Meals() {
                           <p className={`meal-slot-value text-[14px] truncate ${meal?.title ? "has-meal text-[var(--color-ink)] font-medium" : "is-empty text-[var(--color-ink-faint)]"}`}>
                             {meal?.title || "Add a meal"}
                           </p>
+                          {meal?.title && adder && <span className="meal-slot-adder text-[10.5px] text-[var(--color-ink-faint)] truncate">Added by {adder.name}</span>}
                           {meal?.title && <span className="meal-cook-hint"><ChefHat size={12} /> Cook</span>}
                           {(() => {
                             const badge = meal?.id && mealMissingCount[meal.id];

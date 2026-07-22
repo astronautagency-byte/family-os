@@ -1578,6 +1578,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 
 /* Cook focus mode for planned meals. */
 .meal-cook-hint{display:flex;align-items:center;gap:4px;margin-top:3px;color:var(--color-accent);font-size:10.5px;font-weight:850;letter-spacing:.01em}
+.meal-slot-adder{display:block;margin-top:1px;color:var(--color-ink-faint);font-size:10.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* Grocery-status badge on planned meal cards */
 .meal-grocery-badge{display:inline-flex;align-items:center;gap:3px;margin-top:4px;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:800;line-height:1.2;white-space:nowrap;transition:background .18s ease,color .18s ease,transform .12s ease}

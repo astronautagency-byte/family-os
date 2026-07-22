@@ -661,10 +661,14 @@ export default function Today({ goTo }) {
             <div className="space-y-2">
               {weekDays.slice(0, 5).map((date) => {
                 const meal = meals.find((m) => m.date === date && m.slot === "dinner" && m.title);
+                const adder = meal?.createdBy ? memberById[meal.createdBy] : null;
                 return (
                   <div key={date} className="flex items-center gap-3 rounded-2xl bg-white border border-[var(--color-border)] px-3 py-2.5">
                     <span className="w-12 shrink-0 text-[11.5px] font-bold uppercase text-[var(--color-accent-strong)]">{date === today ? "Today" : formatDayLabel(date, { withWeekday: true }).split(",")[0]}</span>
-                    <span className="flex-1 text-[13px] text-[var(--color-ink)] truncate">{meal?.title || "Open dinner slot"}</span>
+                    <div className="flex-1 min-w-0">
+                      <span className="block text-[13px] text-[var(--color-ink)] truncate">{meal?.title || "Open dinner slot"}</span>
+                      {adder && <small className="block text-[10.5px] text-[var(--color-ink-faint)] truncate">Added by {adder.name}</small>}
+                    </div>
                     {(() => {
                       const badge = meal?.id && mealMissingCount[meal.id];
                       if (!badge) return null;
@@ -780,12 +784,14 @@ export default function Today({ goTo }) {
               <ul className="grid md:grid-cols-2 gap-2">
                 {todaysTasks.map((t) => {
                   const assignee = memberById[t.assigneeId];
+                  const taskAdder = t.createdBy ? memberById[t.createdBy] : null;
                   return (
                     <li key={t.id} className="today-list-item flex items-center gap-3 px-3 py-2.5 rounded-2xl bg-white border border-[var(--color-border)]">
                       <Checkbox checked={t.done} onChange={() => toggleTask(t.id)} color={assignee?.color} />
-                      <span className={`flex-1 text-[14px] ${t.done ? "line-through text-[var(--color-ink-faint)]" : "text-[var(--color-ink)]"}`}>
-                        {t.title}
-                      </span>
+                      <div className="flex-1 min-w-0">
+                        <span className={`block text-[14px] ${t.done ? "line-through text-[var(--color-ink-faint)]" : "text-[var(--color-ink)]"} truncate`}>{t.title}</span>
+                        {taskAdder && <small className="block text-[10.5px] text-[var(--color-ink-faint)] truncate">Added by {taskAdder.name}</small>}
+                      </div>
                       {assignee && <Avatar member={assignee} size="sm" />}
                     </li>
                   );
