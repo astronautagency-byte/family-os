@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertCircle, Bell, Bot, CalendarDays, CheckCircle2, ExternalLink, Eye, EyeOff, ImagePlus, Info, Link2, MapPin, Pencil, Plus, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Trash2, Upload, Users, Utensils } from "lucide-react";
+import { AlertCircle, Bell, Bot, CalendarDays, CheckCircle2, ExternalLink, Eye, EyeOff, ImagePlus, Info, Link2, MapPin, Megaphone, Pencil, Phone, Plus, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Trash2, Upload, Users, Utensils } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, Card, Modal, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
@@ -255,6 +255,140 @@ function CalendarFeedsCard() {
         </div>
       ) : (
         <SecondaryButton onClick={() => setAdding(true)} className="flex items-center justify-center gap-2"><Plus size={15} /> Add calendar feed</SecondaryButton>
+      )}
+    </Card>
+  );
+}
+
+function DeliveryTestCard() {
+  const { user } = useAuth();
+  const STORAGE_KEY = "famos-delivery-test:last-run";
+  const PHONE_KEY = "famos-delivery-test:phone";
+  const [phone, setPhone] = useState(() => {
+    try { return localStorage.getItem(PHONE_KEY) || ""; } catch { return ""; }
+  });
+  const [results, setResults] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [lastRunAt, setLastRunAt] = useState(() => {
+    try { return localStorage.getItem(STORAGE_KEY) || null; } catch { return null; }
+  });
+  const [secondsLeft, setSecondsLeft] = useState(0);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!lastRunAt) { setSecondsLeft(0); return undefined; }
+    const computeRemaining = () => {
+      const elapsed = Math.floor((Date.now() - new Date(lastRunAt).getTime()) / 1000);
+      return Math.max(0, 60 - elapsed);
+    };
+    setSecondsLeft(computeRemaining());
+    const tick = window.setInterval(() => setSecondsLeft(computeRemaining()), 1000);
+    return () => window.clearInterval(tick);
+  }, [lastRunAt]);
+
+  const isThrottled = secondsLeft > 0;
+
+  const run = async () => {
+    if (busy || isThrottled) return;
+    setBusy(true);
+    setError("");
+    try {
+      const normalizedPhone = phone.trim().replace(/[^\d+]/g, "");
+      const { data, error: functionError } = await supabase.functions.invoke("test-delivery", {
+        body: {
+          testPhone: normalizedPhone.startsWith("+") ? normalizedPhone : normalizedPhone ? `+${normalizedPhone}` : "",
+        },
+      });
+      if (functionError) {
+        const status = functionError?.context?.status;
+        throw new Error(status ? `${functionError.message || "Delivery test failed"} (HTTP ${status})` : (functionError.message || "Delivery test failed"));
+      }
+      setResults(Array.isArray(data?.results) ? data.results : []);
+      const now = new Date().toISOString();
+      setLastRunAt(now);
+      try {
+        localStorage.setItem(STORAGE_KEY, now);
+        localStorage.setItem(PHONE_KEY, phone);
+      } catch { /* storage full / disabled — fine */ }
+    } catch (e) {
+      setError(e.message || "Delivery test failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const channelLabel = {
+    aws_ses: "Amazon SES",
+    resend: "Resend",
+    supabase_smtp: "Supabase SMTP",
+    aws_sns: "Amazon SNS",
+    textbelt: "Textbelt",
+    sms: "SMS",
+  };
+  const statusColor = (status) => {
+    if (status === "sent") return "var(--color-good)";
+    // rate_limited is "wait N seconds" — calmer amber than hard failures
+    if (status === "rate_limited") return "#b8761f";
+    if (status === "blocked" || status === "paused") return "var(--color-warn)";
+    if (status === "failed" || status === "unreachable") return "var(--color-warn)";
+    if (status === "skipped" || status === "not_configured") return "var(--color-ink-faint)";
+    return "var(--color-ink)";
+  };
+
+  return (
+    <Card className="p-4 mt-3">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-10 h-10 rounded-lg bg-[var(--color-surface-sunken)] border border-[var(--color-border)] flex items-center justify-center shrink-0">
+          <Megaphone size={18} color="var(--color-ink)" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-[14.5px] text-[var(--color-ink)]">Delivery channels</p>
+          <p className="text-[12.5px] text-[var(--color-ink-soft)]">Fire a real test through every configured email + SMS provider.</p>
+        </div>
+      </div>
+      <TextField
+        label="Phone for SMS test (optional)"
+        placeholder="+1 (416) 555-0123"
+        value={phone}
+        onChange={(event) => setPhone(formatPhoneInput(event.target.value))}
+        inputMode="tel"
+      />
+      <p className="text-[11.5px] text-[var(--color-ink-faint)] -mt-2 mb-2">Email always tests your account email ({user?.email || "—"}). Add a mobile for a SMS round-trip.</p>
+      <p className="text-[11px] text-[var(--color-ink-faint)] leading-snug mb-2">
+        You may receive up to 3 inbound test emails (one per configured email provider) plus 1 SMS, all tagged <code>[FamOS test]</code> or <q>FamOS delivery-channel self-test</q> so you can filter them out of your inbox.
+      </p>
+      {error && <p className="text-[12px] text-[var(--color-warn)] mb-2">{error}</p>}
+      <div className="flex flex-wrap items-center gap-2">
+        <PrimaryButton onClick={run} disabled={busy || isThrottled}>
+          {busy ? "Running…" : isThrottled ? `Wait ${secondsLeft}s` : "Run delivery test"}
+        </PrimaryButton>
+        {lastRunAt && <small className="text-[11.5px] text-[var(--color-ink-faint)]">Last run {new Date(lastRunAt).toLocaleString()}</small>}
+      </div>
+      {results && (
+        <ul className="mt-3 space-y-1.5">
+          {results.map((result) => (
+            <li key={result.channel} className="flex items-start gap-2.5 rounded-xl bg-[var(--color-surface-sunken)] p-2.5 border border-[var(--color-border)]">
+              <span className="w-2 h-2 mt-1.5 rounded-full shrink-0" style={{ backgroundColor: statusColor(result.status) }} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-2">
+                  <strong className="text-[12.5px] text-[var(--color-ink)]">{channelLabel[result.channel] || result.channel}</strong>
+                  <em className="text-[11px] not-italic" style={{ color: statusColor(result.status) }}>{result.status.replace(/_/g, " ")}</em>
+                </div>
+                {result.error && <small className="text-[11.5px] text-[var(--color-ink-soft)] block leading-snug mt-0.5">{result.error}</small>}
+                {result.message && !result.error && <small className="text-[11.5px] text-[var(--color-ink-soft)] block leading-snug mt-0.5">{result.message}</small>}
+                {!result.error && result.status === "sent" && result.kind === "email" && <small className="text-[11px] text-[var(--color-ink-faint)] block mt-0.5">Check your inbox for a [FamOS test] message</small>}
+                {!result.error && result.status === "sent" && result.kind === "sms" && <small className="text-[11px] text-[var(--color-ink-faint)] block mt-0.5">Check your phone for the FamOS delivery-test text</small>}
+                {(result.region || result.latency_ms !== undefined) && (
+                  <small className="text-[10.5px] text-[var(--color-ink-faint)] block mt-0.5">
+                    {result.region ? `region: ${result.region}` : ""}
+                    {result.region && result.latency_ms !== undefined ? " · " : ""}
+                    {result.latency_ms !== undefined ? `${result.latency_ms} ms` : ""}
+                  </small>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
     </Card>
   );
@@ -703,6 +837,7 @@ export default function Settings() {
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">Integrations</h2>
           <GoogleCalendarCard />
           <CalendarFeedsCard />
+          <DeliveryTestCard />
         </section>
 
         <section>
