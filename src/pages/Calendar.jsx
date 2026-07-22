@@ -153,7 +153,7 @@ export default function CalendarPage() {
   const [cityDraft, setCityDraft] = useState("");
   const [calendarManagerOpen, setCalendarManagerOpen] = useState(false);
   const [draft, setDraft] = useState({ title: "", date: selectedDate, start: "18:00", end: "19:00", location: "", memberIds: [], eventType: "family", destination: "family" });
-  const [showMonth, setShowMonth] = useState(false);
+  const [calendarView, setCalendarView] = useState("list"); // "list" | "calendar"
 
   const allEvents = useMemo(() => [
     ...events,
@@ -331,12 +331,12 @@ export default function CalendarPage() {
 
   // Animate month grid cells when toggled open
   useGSAP(() => {
-    if (!showMonth) return;
+    if (calendarView !== "calendar") return;
     gsap.fromTo(".calendar-month-grid button",
       { scale: 0.8, opacity: 0 },
       { scale: 1, opacity: 1, duration: 0.25, stagger: 0.01, ease: "back.out(1.3)" }
     );
-  }, { dependencies: [showMonth], scope: daystripRef });
+  }, { dependencies: [calendarView], scope: daystripRef });
 
   const dayEventCount = visibleEvents.filter(e => e.start.slice(0, 10) === selectedDate).length;
 
@@ -385,50 +385,60 @@ export default function CalendarPage() {
             })}
           </div>
 
-          {/* ── Month toggle ── */}
-          <button className="calendar-month-toggle" onClick={() => setShowMonth((prev) => !prev)}>
-            <span>{monthLabel}</span>
-            <ChevronRight size={14} className={`calendar-month-chevron ${showMonth ? "open" : ""}`} />
-          </button>
+          {/* ── View toggle: List / Calendar ── */}
+          <div className="calendar-view-toggle">
+            <button
+              className={`calendar-view-btn ${calendarView === "list" ? "active" : ""}`}
+              onClick={() => setCalendarView("list")}
+            >
+              <CalendarDays size={14} />
+              <span>List</span>
+            </button>
+            <button
+              className={`calendar-view-btn ${calendarView === "calendar" ? "active" : ""}`}
+              onClick={() => setCalendarView("calendar")}
+            >
+              <CalendarDays size={13} />
+              <span>Calendar</span>
+            </button>
+          </div>
 
-          {/* ── Collapsible month grid ── */}
-          {showMonth && (
-            <>
-              <div className="calendar-month">
-                <div className="calendar-month-header">
-                  <button onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}><ChevronLeft size={16} /></button>
-                  <strong>{monthLabel}</strong>
-                  <button onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}><ChevronRight size={16} /></button>
-                </div>
-                <div className="calendar-month-weekdays">
-                  {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => <span key={i}>{d}</span>)}
-                </div>
-                <div className="calendar-month-grid">
-                  {cells.map((d) => {
-                    const key = iso(d);
-                    const inMonth = d.getMonth() === month.getMonth();
-                    const active = key === selectedDate;
-                    const cellEvents = visibleEvents.filter(e => e.start.slice(0, 10) === key);
-                    return (
-                      <button
-                        key={key}
-                        className={`${inMonth ? "" : "outside"} ${active ? "selected" : ""} ${key === todayStr ? "today" : ""}`}
-                        onClick={() => { setSelectedDate(key); setShowMonth(false); }}
-                      >
-                        <b>{d.getDate()}</b>
-                        {cellEvents.length > 0 && (
-                          <span className="calendar-month-dots">
-                            {cellEvents.slice(0, 3).map(event => (
-                              <i key={event.id} style={{ backgroundColor: EVENT_TYPES[eventType(event)].color }} />
-                            ))}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+          {/* ── Month grid (calendar view) ── */}
+          {calendarView === "calendar" && (
+            <div className="calendar-month">
+              <div className="calendar-month-header">
+                <button onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}><ChevronLeft size={16} /></button>
+                <strong>{monthLabel}</strong>
+                <button onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}><ChevronRight size={16} /></button>
               </div>
-            </>
+              <div className="calendar-month-weekdays">
+                {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => <span key={i}>{d}</span>)}
+              </div>
+              <div className="calendar-month-grid">
+                {cells.map((d) => {
+                  const key = iso(d);
+                  const inMonth = d.getMonth() === month.getMonth();
+                  const active = key === selectedDate;
+                  const cellEvents = visibleEvents.filter(e => e.start.slice(0, 10) === key);
+                  return (
+                    <button
+                      key={key}
+                      className={`${inMonth ? "" : "outside"} ${active ? "selected" : ""} ${key === todayStr ? "today" : ""}`}
+                      onClick={() => { setSelectedDate(key); }}
+                    >
+                      <b>{d.getDate()}</b>
+                      {cellEvents.length > 0 && (
+                        <span className="calendar-month-dots">
+                          {cellEvents.slice(0, 3).map(event => (
+                            <i key={event.id} style={{ backgroundColor: EVENT_TYPES[eventType(event)].color }} />
+                          ))}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           )}
 
           {/* ── Source filter pills ── */}

@@ -234,12 +234,11 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .calendar-daystrip-item.selected .calendar-daystrip-dot{background:#fff;opacity:.8}
 
 /* Month toggle button */
-.calendar-month-toggle{display:flex;align-items:center;gap:6px;padding:10px 20px;width:100%;text-align:left;color:var(--color-ink);font-size:15px;font-weight:650;transition:color var(--motion-fast) ease}
-.calendar-month-toggle:hover{color:var(--color-accent-strong)}
-.calendar-month-toggle .calendar-month-chevron{color:var(--color-ink-faint);transition:transform var(--motion-fast) ease}
-.calendar-month-toggle .calendar-month-chevron.open{transform:rotate(90deg)}
-
-/* Month grid — collapsible, compact */
+.calendar-view-toggle{display:flex;gap:3px;padding:0 20px 14px}
+.calendar-view-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:var(--radius-pill);border:0;background:color-mix(in srgb,var(--color-border) 40%,transparent);color:var(--color-ink-soft);font-size:12px;font-weight:650;transition:all var(--motion-fast) ease}
+.calendar-view-btn:hover{background:color-mix(in srgb,var(--color-accent) 16%,transparent);color:var(--color-accent-strong)}
+.calendar-view-btn.active{background:var(--color-accent);color:#fff}
+/* Month grid */
 .calendar-month{padding:0 20px 10px}
 .calendar-month-header{display:flex;align-items:center;justify-content:space-between;padding:14px 2px 12px;border-bottom:1px solid var(--color-border)}
 .calendar-month-header strong{font-size:15px;font-weight:650;color:var(--color-ink)}
@@ -260,7 +259,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .calendar-month-dots i{width:3.5px;height:3.5px;border-radius:50%;display:block}
 
 /* Source filters — tabs below month grid */
-.calendar-sources{padding:0 20px 18px}
+.calendar-sources{padding:0 20px 10px}
 .calendar-sources-tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none}
 .calendar-sources-tab{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;padding:5px 10px;border:0;border-radius:var(--radius-pill);background:color-mix(in srgb,var(--color-border) 45%,transparent);color:var(--color-ink-soft);font-size:10.5px;font-weight:650;transition:all var(--motion-fast) ease;flex-shrink:0}
 .calendar-sources-tab:hover{background:color-mix(in srgb,var(--color-accent) 20%,transparent);color:var(--color-accent-strong)}
