@@ -699,7 +699,9 @@ export default function Settings() {
             <div className="flex items-start gap-3 mb-3">
               <Info size={17} className="mt-0.5 shrink-0" color="var(--color-ink-faint)" />
               <p className="text-[13px] text-[var(--color-ink-soft)] leading-relaxed">
-                {configured ? "Your household data is encrypted in transit and stored in Supabase. Row-level security limits access to members of your household." : "FamOS is in local demo mode. Add Supabase environment variables to turn on private household sync."}
+                {configured
+                  ? "Your household data is encrypted in transit and at rest. Only members of your household can read or change it — access is gated by row-level database policies."
+                  : "FamOS is in local demo mode on this device. Sign in to encrypt and sync your family\u2019s data across every device your household uses."}
               </p>
             </div>
             {!configured && <SecondaryButton onClick={() => setConfirmingReset(true)} className="flex items-center justify-center gap-2">
