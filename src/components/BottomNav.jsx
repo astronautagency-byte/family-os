@@ -1,14 +1,14 @@
-import { CalendarDays, CheckSquare, CookingPot, Home, MessageCircle, ShoppingCart, Sparkles } from "lucide-react";
+import { Bot, CalendarDays, CheckSquare, CookingPot, Home, MessageCircle, ShoppingCart } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 
 const TABS = [
-  { id: "today", label: "Today", icon: Home },
-  { id: "calendar", label: "Calendar", icon: CalendarDays },
-  { id: "meals", label: "Meals", icon: CookingPot },
-  { id: "tasks", label: "Tasks", icon: CheckSquare },
-  { id: "groceries", label: "Groceries", icon: ShoppingCart },
-  { id: "chat", label: "Chat", icon: MessageCircle },
-  { id: "famai", label: "Fam AI", icon: Sparkles },
+  { id: "today", label: "Today", icon: Home, hint: "Today's snapshot" },
+  { id: "calendar", label: "Calendar", icon: CalendarDays, hint: "Family events" },
+  { id: "meals", label: "Meals", icon: CookingPot, hint: "This week's plan" },
+  { id: "tasks", label: "Tasks", icon: CheckSquare, hint: "Open tasks" },
+  { id: "groceries", label: "Groceries", icon: ShoppingCart, hint: "Shared shopping list" },
+  { id: "chat", label: "Chat", icon: MessageCircle, hint: "Family messages" },
+  { id: "famai", label: "Fam AI", icon: Bot, hint: "Ask anything — meal, grocery, task help" },
 ];
 
 const FEATURE_KEYS = { calendar: "calendar", meals: "meals", tasks: "tasks", groceries: "groceries", chat: "chat", famai: "fam_ai" };
@@ -39,7 +39,8 @@ export default function BottomNav({ active, onChange, features = {}, tabletMode 
               onClick={() => onChange(tab.id)}
               className={`nav-item m3-navigation-item ${isActive ? "is-active" : ""}`}
               aria-current={isActive ? "page" : undefined}
-              aria-label={badge ? `${tab.label}, ${badge} unread message${badge === 1 ? "" : "s"}` : undefined}
+              aria-label={badge ? `${tab.label}, ${badge} unread message${badge === 1 ? "" : "s"}` : `${tab.label}${tab.hint ? ` — ${tab.hint}` : ""}`}
+              title={tab.hint || tab.label}
             >
               <span className="nav-icon">
                 <Icon size={20} strokeWidth={isActive ? 2.25 : 1.8} />
