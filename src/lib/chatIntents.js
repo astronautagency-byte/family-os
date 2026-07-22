@@ -68,28 +68,58 @@ function combineDateTime(day, time) {
 }
 
 function detectGrocery(text) {
-  const patternA = /^(?:(?:we|i|i'm|im|let's|all|the kids)\s+)?(?:need|out of|running low on|low on|short on)\s+(.+?)\.?$/i;
+  // Group A — explicit shortage / need statements.
+  const patternA = /^(?:(?:we|i|i'm|im|let's|all|the kids)\s+)?(?:need|out of|running low on|low on|short on|almost out of|almost out|ran out of|ran out|are out of|are out|don't have any more|forgot|forgot to get|forgot to buy)\s+(.+?)\.?$/i;
   const matchA = patternA.exec(text);
   if (matchA) {
     const items = splitItems(matchA[1]);
     if (items.length) return { kind: "grocery", items };
   }
-  const patternB = /^(?:add|put|grab|buy|get)\s+(.+?)\s+(?:to|on)\s+(?:the\s+)?(?:list|grocery list|grocery|sheet)\.?$/i;
+  // Group B — list-append verbs followed by an explicit list target.
+  const patternB = /^(?:add|put|grab|buy|get|drop|throw)\s+(.+?)\s+(?:to|on|onto|in(?:to)?)\s+(?:the\s+)?(?:list|grocery list|grocery|shopping list|sheet|next order)\.?$/i;
   const matchB = patternB.exec(text);
   if (matchB) {
     const items = splitItems(matchB[1]);
     if (items.length) return { kind: "grocery", items };
   }
+  // Group C — bare pickup verbs ("pick up milk", "grab some bread").
+  // Only matches when there's no day/time attached — those belong on the calendar.
+  const patternC = /^(?:(?:please|plz|can someone|could someone|let's|lets|maybe we should|we should|i'll|ill|i'm gonna|im gonna|i'm going to|im going to|we're gonna|we're going to|gonna|gotta|need to)\s+)?(?:pick up|pickup|grab|get|buy|pick up some|grab some)\s+(.+?)\.?$/i;
+  const matchC = patternC.exec(text);
+  if (matchC) {
+    const tail = matchC[1];
+    // Reject if it has day-of-week or time — that's an event/schedule, not a grocery run.
+    if (!DAY_WORDS.test(tail) && !TIME_PATTERN.test(tail)) {
+      const items = splitItems(tail);
+      if (items.length) return { kind: "grocery", items };
+    }
+  }
+  // Group D — "we should buy milk" / "go get some eggs" — softer hint.
+  const patternD = /^(?:we (?:should|need to)|(?:i|let's) (?:should|will|shall)?\s*)?(?:go )?(?:pick up|grab|get|buy|snag)\s+(?:some\s+|a\s+|the\s+)?(.+?)\.?$/i;
+  const matchD = patternD.exec(text);
+  if (matchD) {
+    const tail = matchD[1];
+    if (!DAY_WORDS.test(tail) && !TIME_PATTERN.test(tail) && tail.length <= 80) {
+      const items = splitItems(tail);
+      if (items.length && items[0].length >= 2) return { kind: "grocery", items };
+    }
+  }
   return null;
 }
 
 function detectTask(text) {
-  const taskVerbs = /^(?:remind me to|remember to|don't forget to|don't forget|i need to|i've gotta|ive gotta|i gotta|i should|i must|i have to|gotta)\s+(.+?)\.?$/i;
+  // Reminder + obligation phrases.
+  const taskVerbs = /^(?:remind me to|remember to|don't forget to|don't forget|make sure to|make sure|make certain to|i need to|i've gotta|ive gotta|i gotta|i should|i must|i have to|gotta|gotta remember to|i wanna|i want to|need to remember to|todo:?)\s+(.+?)\.?$/i;
   const matchA = taskVerbs.exec(text);
   if (matchA) return buildTaskIntent(matchA[1]);
-  const imperativeVerbs = /^(pick up|pickup|call|email|text|message|reply|renew|book|book the|book a|schedule|sign|sign the|sign up|sign up for|pay|clean|launder|fix|return|wash|dropoff|drop off|drop by)\s+(.+?)\.?$/i;
+  // Bare imperative action verbs ("call mom", "pay rent").
+  const imperativeVerbs = /^(pick up|pickup|call|email|text|message|reply to|reply|renew|book|book the|book a|schedule|sign|sign the|sign up|sign up for|pay|clean|launder|fix|return|wash|dropoff|drop off|drop by|feed|walk|water|change|charge|fill up|fill|grocery shop|grocery|groceries|set up|setup|test|try|send|submit|file|finish|complete|organize|tidy|sort|pack|unpack|load|unload|charge up|throw out|take out|recycle|return the)\s+(.+?)\.?$/i;
   const matchB = imperativeVerbs.exec(text);
   if (matchB) return buildTaskIntent(`${matchB[1]} ${matchB[2]}`);
+  // Polite / hedge imperative: "please X mom", "can you call mom"
+  const politeVerbs = /^(?:please|plz|pls)\s+(.+?)\.?$/i;
+  const matchC = politeVerbs.exec(text);
+  if (matchC && /^[a-z]+\b/i.test(matchC[1])) return buildTaskIntent(matchC[1]);
   return null;
 }
 
@@ -127,23 +157,51 @@ function detectMeal(text) {
   return { kind: "meal", title: storedTitle, slot, date };
 }
 
+// A richer set of nouns that almost always correspond to a calendar event.
+// Each entry has the canonical form; we match word-boundaries case-insensitively.
+const EVENT_NOUNS = [
+  "appointment", "meeting", "practice", "session", "game", "match",
+  "class", "lesson", "tutorial", "workshop", "seminar", "lecture",
+  "dentist", "doctor", "vet", "checkup", "check-up",
+  "birthday party", "birthday", "party", "celebration",
+  "playdate", "play date", "play-date",
+  "date night", "date", "anniversary", "reunion",
+  "recital", "concert", "show", "performance", "play",
+  "showcase", "ceremony", "rehearsal", "audition",
+  "wedding", "funeral", "service", "memorial",
+  "movie", "theater", "theatre", "opera", "ballet",
+  "court", "trial", "hearing", "deposition",
+  "interview", "orientation",
+  "reservation", "reservations", "booking",
+  "club", "recess", "training", "tryouts",
+  "soccer", "football", "basketball", "hockey", "baseball", "tennis", "golf",
+  "ballet class", "piano lesson", "swimming lesson",
+  "field trip", "open house", "graduation", "commencement",
+  "brunch", "lunch date", "dinner date", "drinks",
+  "trip", "flight", "layover",
+  "hot yoga", "spin class", "crossfit",
+].join("|");
+const EVENT_NOUN_RE = new RegExp(`\\b(${EVENT_NOUNS})\\b`, "i");
+
 function detectEvent(text) {
-  const eventVerbs = /\b(pick up|pickup|appointment|meeting|practice|game|class|lesson|dentist|doctor|birthday party|birthday|club|recess|training|interview|show|concert|movie|court|trial|reservation)\b/i;
-  if (!eventVerbs.test(text)) return null;
+  const hasEventNoun = EVENT_NOUN_RE.test(text);
+  // Allow generic "event"/"appointment" + noun phrases, e.g. "lunch with Sarah".
+  const hasGenericEventWord = /\b(event|appointment|date|plan|plans|plans for|we have a|there's|theres|is having|is having a|having a|i'm going to|im going to|i'm attending|i'm at|i'm)\b/i.test(text) && !/\b(add|need|out of|low on|short on)\b/i.test(text);
+  if (!hasEventNoun && !hasGenericEventWord) return null;
   const dayMatch = text.match(DAY_WORDS);
   const timeMatch = text.match(TIME_PATTERN);
-  if (!dayMatch && !timeMatch) return null;
-  // Strip the first verb-style phrase to get the underlying title.
-  const titleMatch = text.match(/^(?:i have a|i have|there's|theres|we have a|we have|i've got|ive got|got a|got|don't forget|remind me about|remind me of)\s+(.+?)\.?$/i);
+  if (!dayMatch && !timeMatch && !/^\s*(remind me|don't forget)\b/i.test(text)) return null;
+  const titleMatch = text.match(/^(?:i have a|i have|there's|theres|there's a|theres a|we have a|we have|we have an|we're having|were having|i'm having|im having|i've got|ive got|got a|got an|got|is having|having|don't forget|remind me about|remind me of|it's|its)\s+(.+?)\.?$/i);
   let cleanedTitle = (titleMatch ? titleMatch[1] : text)
-    .replace(/\s+(?:at|on|by)\b.*$/i, "")
+    .replace(/\s+(?:at|on|by|next|in)\b.*$/i, "")
     .replace(dayMatch ? dayMatch[0] : "", "")
     .replace(timeMatch ? timeMatch[0] : "", "")
     .replace(/\s{2,}/g, " ")
     .trim();
   if (cleanedTitle.length < 2 || cleanedTitle.length > 80) return null;
   const date = combineDateTime(dayMatch ? dayMatch[0] : null, timeMatch ? timeMatch[0] : null);
-  return { kind: "event", title: cleanedTitle.charAt(0).toUpperCase() + cleanedTitle.slice(1), date };
+  const title = cleanedTitle.charAt(0).toUpperCase() + cleanedTitle.slice(1);
+  return { kind: "event", title, date };
 }
 
 /**

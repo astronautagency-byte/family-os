@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Clock3, LockKeyhole, MessageCircle, Plus, Send, ShoppingCart, Trash2, UsersRound, X } from "lucide-react";
+import { CalendarPlus, Check, ChefHat, Clock3, LockKeyhole, MessageCircle, Plus, Send, ShoppingCart, Trash2, UsersRound, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, colorVar, Modal, SecondaryButton } from "../components/ui";
@@ -29,8 +29,8 @@ function saveDismissed(userId, map) {
 function intentIcon(intent) {
   if (intent.kind === "grocery") return ShoppingCart;
   if (intent.kind === "task") return Check;
-  if (intent.kind === "meal") return Clock3;
-  if (intent.kind === "event") return Clock3;
+  if (intent.kind === "meal") return ChefHat;
+  if (intent.kind === "event") return CalendarPlus;
   return Plus;
 }
 
