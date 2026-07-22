@@ -543,7 +543,7 @@ export default function Meals() {
                           <p className={`meal-slot-value text-[14px] truncate ${meal?.title ? "has-meal text-[var(--color-ink)] font-medium" : "is-empty text-[var(--color-ink-faint)]"}`}>
                             {meal?.title || "Add a meal"}
                           </p>
-                          {meal?.title && adder && <span className="meal-slot-adder text-[10.5px] text-[var(--color-ink-faint)] truncate">Added by {adder.name}</span>}
+                          {meal?.title && adder && <Avatar member={adder} size="xs" className="ml-1" aria-label={`Added by ${adder.name}`} />}
                           {meal?.title && <span className="meal-cook-hint"><ChefHat size={12} /> Cook</span>}
                           {(() => {
                             const badge = meal?.id && mealMissingCount[meal.id];

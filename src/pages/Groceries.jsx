@@ -684,7 +684,7 @@ export default function Groceries() {
                             )}
                           </button>
                           {adder && !item.checked && (
-                            <span className="text-[11px] text-[var(--color-ink-faint)] shrink-0">{adder.name}</span>
+                            <Avatar member={adder} size="xs" className="shrink-0" aria-label={`Added by ${adder.name}`} />
                           )}
                           <button onClick={() => saveAsStaple(item)} className="p-1 text-[var(--color-ink-faint)] shrink-0" aria-label={`Save ${item.name} as a frequent item`} title="Save as frequent"><Star size={15} fill={staples.some((staple) => staple.name.toLowerCase() === item.name.toLowerCase()) ? "currentColor" : "none"} /></button>
                           <button onClick={() => removeGrocery(item.id)} className="p-1 -mr-1 text-[var(--color-ink-faint)] shrink-0">

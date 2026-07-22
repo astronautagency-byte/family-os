@@ -11,6 +11,7 @@ export function colorVar(colorId) {
 export function Avatar({ member, size = "md" }) {
   if (!member) return null;
   const sizes = {
+    xs: "w-[18px] h-[18px] text-[8px] ring-1",
     sm: "w-6 h-6 text-[10px]",
     md: "w-8 h-8 text-xs",
     lg: "w-11 h-11 text-sm",
@@ -21,7 +22,7 @@ export function Avatar({ member, size = "md" }) {
       style={{ backgroundColor: member.avatarUrl ? "#fff" : colorVar(member.color) }}
       title={member.name}
     >
-      {member.initials}
+      {member.initials && (size === "xs" ? member.initials.charAt(0) : member.initials)}
       {member.avatarUrl && (
         <img
           src={member.avatarUrl}

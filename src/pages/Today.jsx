@@ -667,7 +667,7 @@ export default function Today({ goTo }) {
                     <span className="w-12 shrink-0 text-[11.5px] font-bold uppercase text-[var(--color-accent-strong)]">{date === today ? "Today" : formatDayLabel(date, { withWeekday: true }).split(",")[0]}</span>
                     <div className="flex-1 min-w-0">
                       <span className="block text-[13px] text-[var(--color-ink)] truncate">{meal?.title || "Open dinner slot"}</span>
-                      {adder && <small className="block text-[10.5px] text-[var(--color-ink-faint)] truncate">Added by {adder.name}</small>}
+                      {adder && <Avatar member={adder} size="xs" className="ml-1 mt-0.5" aria-label={`Added by ${adder.name}`} />}
                     </div>
                     {(() => {
                       const badge = meal?.id && mealMissingCount[meal.id];
@@ -790,7 +790,7 @@ export default function Today({ goTo }) {
                       <Checkbox checked={t.done} onChange={() => toggleTask(t.id)} color={assignee?.color} />
                       <div className="flex-1 min-w-0">
                         <span className={`block text-[14px] ${t.done ? "line-through text-[var(--color-ink-faint)]" : "text-[var(--color-ink)]"} truncate`}>{t.title}</span>
-                        {taskAdder && <small className="block text-[10.5px] text-[var(--color-ink-faint)] truncate">Added by {taskAdder.name}</small>}
+                        {taskAdder && <Avatar member={taskAdder} size="xs" className="ml-1 mt-0.5" aria-label={`Added by ${taskAdder.name}`} />}
                       </div>
                       {assignee && <Avatar member={assignee} size="sm" />}
                     </li>
