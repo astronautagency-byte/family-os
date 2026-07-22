@@ -248,6 +248,26 @@ export default function Today({ goTo }) {
   const dinner = meals.find((m) => m.date === today && m.slot === "dinner");
   const weekDinners = weekDays.map((date) => meals.find((m) => m.date === date && m.slot === "dinner" && m.title)).filter(Boolean);
 
+  // Shared ingredient cache (same key/format as Meals.jsx) so the grocery
+  // badge shows on today's meals without needing to open Cook Mode first.
+  const INGREDIENT_CACHE_KEY = "famos:meal-ingredients:v1";
+  const loadIngredientCache = () => {
+    try {
+      const raw = typeof window !== "undefined" && window.localStorage.getItem(INGREDIENT_CACHE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch { return {}; }
+  };
+  const mealIngredientsCache = useMemo(() => loadIngredientCache(), []);
+  const mealMissingCount = useMemo(() => {
+    const result = {};
+    for (const [mealId, names] of Object.entries(mealIngredientsCache)) {
+      const namesList = Array.isArray(names) ? names : [];
+      const missing = namesList.filter((name) => !groceries.some((grocery) => grocery.name.toLowerCase() === name));
+      result[mealId] = { missing: missing.length, total: namesList.length };
+    }
+    return result;
+  }, [mealIngredientsCache, groceries]);
+
   const todaysTasks = tasks
     .filter((t) => t.due === today)
     .sort((a, b) => Number(a.done) - Number(b.done));
@@ -610,6 +630,16 @@ export default function Today({ goTo }) {
                   <div key={date} className="flex items-center gap-3 rounded-2xl bg-white border border-[var(--color-border)] px-3 py-2.5">
                     <span className="w-12 shrink-0 text-[11.5px] font-bold uppercase text-[var(--color-accent-strong)]">{date === today ? "Today" : formatDayLabel(date, { withWeekday: true }).split(",")[0]}</span>
                     <span className="flex-1 text-[13px] text-[var(--color-ink)] truncate">{meal?.title || "Open dinner slot"}</span>
+                    {(() => {
+                      const badge = meal?.id && mealMissingCount[meal.id];
+                      if (!badge) return null;
+                      return (
+                        <span className={`today-meal-badge ${badge.missing === 0 ? "covered" : "needs"}`}>
+                          <ShoppingCart size={9} />
+                          {badge.missing === 0 ? "✓" : badge.missing}
+                        </span>
+                      );
+                    })()}
                     {meal?.cookIds?.length ? <AvatarStack members={meal.cookIds.map((id) => memberById[id]).filter(Boolean)} size="sm" /> : <Tag tone="neutral">Plan</Tag>}
                   </div>
                 );
