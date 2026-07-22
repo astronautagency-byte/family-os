@@ -1008,6 +1008,17 @@ export default function CalendarPage() {
                 const cities = discoverCities.length ? discoverCities : (discoverLocation ? [discoverLocation] : []);
                 refreshFromNetwork(cities);
               }}>{discoverBusy ? "Retrying…" : "Try again"}</button>
+              {/* Diagnostic transparency: when the error is "no matches",
+                  tell the user what was actually queried rather than
+                  leaving them guessing whether the providers ran. Per-
+                  city results + per-provider totals come from resultDiagnostics
+                  which the edge function already returns on a 502/200 —
+                  we just hadn't surfaced the success-side shape here. */}
+              {resultDiagnostics && (resultDiagnostics.perCityCounts?.length > 0 || typeof resultDiagnostics.providerCounts === "object") && (
+                <small className="event-discovery-coverage">
+                  Searched {resultDiagnostics.perCityCounts?.length || 0} {resultDiagnostics.expanded ? "(including 3 nearby) " : ""} cities · {resultDiagnostics.providerCounts?.google_events ?? 0} SerpApi events · {resultDiagnostics.providerCounts?.ticketmaster ?? 0} Ticketmaster events
+                </small>
+              )}
               {/* Nearby-cities fallback — surfaces when the edge function
                   returned empty AND has a country-specific major-city list
                   to suggest. Tapping a pill adds that city to discoverCities
