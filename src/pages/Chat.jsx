@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CalendarPlus, Check, ChefHat, Clock3, LockKeyhole, MessageCircle, Plus, Send, ShoppingCart, Trash2, UsersRound, X } from "lucide-react";
+import { CalendarPlus, Check, ChefHat, LockKeyhole, MessageCircle, Plus, Send, ShoppingCart, Trash2, UsersRound, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, colorVar, Modal, SecondaryButton } from "../components/ui";

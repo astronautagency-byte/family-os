@@ -378,7 +378,9 @@ export default function CalendarPage() {
         </div>
 
         <div className="px-5">
-          {/* ── Day strip ── */}
+          {/* ── Day strip — only rendered in List view. In Calendar view the
+                full month grid replaces it, so showing both was redundant. */}
+          {calendarView === "list" && (
           <div className="calendar-daystrip" ref={daystripRef}>
             {dayStrip.map((d) => {
               const key = iso(d);
@@ -398,6 +400,7 @@ export default function CalendarPage() {
               );
             })}
           </div>
+          )}
 
           {/* ── View toggle: List / Calendar ── */}
           <div className="calendar-view-toggle">
