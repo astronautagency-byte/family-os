@@ -3,6 +3,7 @@
 // Versioned prefix so future schema changes invalidate cleanly.
 // Errors are never cached (only successful responses with results).
 
+const CACHE_PREFIX_BASE = "famos_";
 const STORAGE_PREFIX = "famos_event_search:v1:";
 const TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
 
@@ -96,3 +97,45 @@ export function formatEventCacheAge(cachedAtMs, now = Date.now()) {
 }
 
 export const EVENT_CACHE_TTL_MS = TTL_MS;
+
+/**
+ * Count every `famos_*` localStorage entry without removing anything.
+ * Used by Settings → Privacy to show a live "X cached entries" pill so the
+ * user can see what the clear-all action will affect.
+ */
+export function countFamosCacheEntries() {
+  const storage = safeStorage();
+  if (!storage) return 0;
+  let count = 0;
+  try {
+    for (let index = 0; index < storage.length; index += 1) {
+      const key = storage.key(index);
+      if (key && key.startsWith(CACHE_PREFIX_BASE)) count += 1;
+    }
+  } catch { /* private mode / blocked storage */ }
+  return count;
+}
+
+/**
+ * Wipe every `famos_*` localStorage entry in one pass. Returns the number
+ * of keys removed. Safe to call when localStorage is unavailable; returns
+ * 0 in that case. Iterates in reverse so removals don't shift the live
+ * enumeration out from under us.
+ */
+export function clearAllFamosCache() {
+  const storage = safeStorage();
+  if (!storage) return 0;
+  let removed = 0;
+  try {
+    const targets = [];
+    for (let index = 0; index < storage.length; index += 1) {
+      const key = storage.key(index);
+      if (key && key.startsWith(CACHE_PREFIX_BASE)) targets.push(key);
+    }
+    for (const key of targets) {
+      storage.removeItem(key);
+      removed += 1;
+    }
+  } catch { /* private mode / quota */ }
+  return removed;
+}

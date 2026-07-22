@@ -10,6 +10,7 @@ import { PRICING_PLAN, formatMoney } from "../data/pricingPlan";
 import { supabase } from "../lib/supabase";
 import AddressAutocomplete from "../components/AddressAutocomplete";
 import { formatPhoneInput, isValidPhoneNumber, normalizePhoneE164 } from "../utils/phone";
+import { clearAllFamosCache, countFamosCacheEntries } from "../lib/eventSearchCache";
 
 const HOUSEHOLD_DIETARY_OPTIONS = ["Vegetarian", "Vegan", "Gluten-free", "Dairy-free", "Nut-free", "Shellfish-free", "Low sugar"];
 
@@ -303,6 +304,9 @@ export default function Settings() {
   const [householdAvoid, setHouseholdAvoid] = useState("");
   const [householdSaving, setHouseholdSaving] = useState(false);
   const [householdStatus, setHouseholdStatus] = useState("");
+  const [cachedCount, setCachedCount] = useState(0);
+  const [confirmingClearCache, setConfirmingClearCache] = useState(false);
+  const [cacheClearStatus, setCacheClearStatus] = useState("");
   const householdLocationResolved = (
     householdLatitude !== null
     && householdLatitude !== ""
@@ -429,6 +433,22 @@ export default function Settings() {
   };
 
   useEffect(() => { loadPendingInvites(); }, [configured, household?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Refresh the local-caches count whenever the user signs in/out or
+  // returns to Settings — so the "Clear cached searches" button always
+  // shows an accurate live number.
+  useEffect(() => {
+    setCachedCount(countFamosCacheEntries());
+  }, [configured, household?.id]);
+
+  const clearCachedData = () => {
+    const removed = clearAllFamosCache();
+    setCachedCount(0);
+    setConfirmingClearCache(false);
+    setCacheClearStatus(removed === 0
+      ? "Already clear — no cached entries were stored in this browser."
+      : `Cleared ${removed} cached ${removed === 1 ? "entry" : "entries"}. FamOS will fetch fresh event results on your next search.`);
+  };
 
   const openNew = () => {
     setName("");
@@ -715,6 +735,30 @@ export default function Settings() {
           </Card>
         </section>
 
+        <section>
+          <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">Privacy</h2>
+          <Card className="p-4">
+            <div className="flex items-start gap-3 mb-3">
+              <ShieldCheck size={17} className="mt-0.5 shrink-0" color="var(--color-ink-faint)" />
+              <p className="text-[13px] text-[var(--color-ink-soft)] leading-relaxed">
+                FamOS keeps a few small shortcuts in this browser's localStorage so it can skip a network round-trip on repeat searches. None of that data leaves your device unless you sign in. You can wipe it in one tap below.
+              </p>
+            </div>
+            <div className="cached-search-row">
+              <div className="min-w-0">
+                <strong>Cached searches</strong>
+                <span>{cachedCount === 0
+                  ? "No cached entries"
+                  : `${cachedCount} ${cachedCount === 1 ? "entry" : "entries"} stored · each expires automatically after 4 hours`}</span>
+              </div>
+              <SecondaryButton onClick={() => setConfirmingClearCache(true)} disabled={cachedCount === 0} className="flex items-center gap-2 shrink-0">
+                <Trash2 size={14} /> Clear cached searches
+              </SecondaryButton>
+            </div>
+            {cacheClearStatus && <p className="text-[12px] text-[var(--color-ink-soft)] mt-2 px-1">{cacheClearStatus}</p>}
+          </Card>
+        </section>
+
         {configured && <section>
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">Account password</h2>
           <Card className="p-4">
@@ -944,6 +988,22 @@ export default function Settings() {
         <div className="flex gap-2">
           <SecondaryButton onClick={() => setEditingHousehold(false)}>Cancel</SecondaryButton>
           <PrimaryButton onClick={saveHousehold} disabled={householdSaving || !householdName.trim() || (Boolean(householdAddress.trim()) && !householdLocationResolved)}>{householdSaving ? "Saving…" : "Save household"}</PrimaryButton>
+        </div>
+      </Modal>
+
+      <Modal open={confirmingClearCache} onClose={() => setConfirmingClearCache(false)} title="Clear cached searches?">
+        <p className="text-[14px] text-[var(--color-ink-soft)] mb-2">
+          This removes <strong>{cachedCount}</strong> cached {cachedCount === 1 ? "entry" : "entries"} from this browser.
+          FamOS will fetch fresh event results on your next search.
+        </p>
+        <p className="text-[12px] text-[var(--color-ink-faint)] mb-5">
+          Your household data, accounts, and anything stored on FamOS servers is untouched — only the local shortcuts kept in this browser go.
+        </p>
+        <div className="flex gap-2">
+          <SecondaryButton onClick={() => setConfirmingClearCache(false)}>Cancel</SecondaryButton>
+          <PrimaryButton onClick={clearCachedData} disabled={cachedCount === 0}>
+            Clear {cachedCount} {cachedCount === 1 ? "entry" : "entries"}
+          </PrimaryButton>
         </div>
       </Modal>
 
