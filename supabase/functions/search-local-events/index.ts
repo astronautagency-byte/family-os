@@ -10,7 +10,8 @@ const json = (body: Record<string, unknown>, status = 200) => new Response(JSON.
   headers: { ...corsHeaders, "Content-Type": "application/json" },
 });
 
-const cleanText = (value: unknown, max = 160) => typeof value === "string" ? value.trim().slice(0, max) : "";
+const cleanText = (value: unknown, max = 160): string =>
+  typeof value === "string" ? value.trim().slice(0, max) : "";
 
 // Nearby major metropolitan areas per country — used for two purposes:
 //   1. Auto-expansion when the user's exact town returns 0 events (SerpApi
@@ -43,11 +44,7 @@ const NEARBY_CITIES: Record<string, string[]> = {
 // "newmarket on" → "Newmarket On" actively hurts the lookup. Pass-through
 // preserves province codes, hyphens (Saint-Étienne), and user-known
 // variants that the geocoder recognises.
-const normalizeCity = (raw: string) => raw.trim().replace(/\s+/g, " ");
-
-// The frontend now sends a single canonical category (CATEGORY_FOR_DISCOVERY
-// from src/pages/Calendar.jsx). The old dropdown-keyed normaliser had
-// no callers, so just trim via the shared cleanText helper.
+const normalizeCity = (raw: string): string => raw.trim().replace(/\s+/g, " ");
 
 // SerpApi Google Events uses htichips for any date filter; embedding
 // "this weekend" in q actively zero-results suburban queries because
@@ -121,19 +118,20 @@ const computeTimeRange = (when: string): { startDateTime: string; endDateTime: s
       end.setDate(end.getDate() + 7);
       break;
     case "weekend":
-    case "this weekend":
-      // Saturday → Monday morning (a weekend event could run Friday night).
+    case "this weekend": {
       const dayOfWeek = start.getDay();
       const daysUntilSat = (6 - dayOfWeek + 7) % 7 || 7;
       start.setDate(start.getDate() + daysUntilSat);
       end.setDate(start.getDate() + 2);
       break;
-    case "next weekend":
+    }
+    case "next weekend": {
       const dow = start.getDay();
       const offset = (6 - dow + 7) % 7 || 14;
       start.setDate(start.getDate() + offset);
       end.setDate(start.getDate() + 2);
       break;
+    }
     case "month":
     case "this month":
       end.setMonth(end.getMonth() + 1);
@@ -149,6 +147,28 @@ const computeTimeRange = (when: string): { startDateTime: string; endDateTime: s
     startDateTime: start.toISOString().slice(0, 19) + "Z",
     endDateTime: end.toISOString().slice(0, 19) + "Z",
   };
+};
+
+// Shared event shape both providers normalize into. RunProvider uses
+// this so it can carry either provider's events under a single type.
+type MappedEvent = {
+  id: string;
+  name: string;
+  description: string;
+  startTime: string;
+  endTime: string;
+  dateLabel: string;
+  when: string;
+  virtual: boolean;
+  thumbnail: string;
+  publisher: string;
+  link: string;
+  ticketSource: string;
+  venue: { name: string; address: string; city: string; rating: number | null };
+  origin: "user" | "nearby";
+  fromCity: string;
+  tags: Array<{ label: string }>;
+  provider: "google_events" | "ticketmaster";
 };
 
 Deno.serve(async (request) => {
@@ -185,29 +205,39 @@ Deno.serve(async (request) => {
     const rawCountry = cleanText(body.country, 8).toLowerCase();
     const country = /^[a-z]{2}$/.test(rawCountry) ? rawCountry : "ca";
 
-    const rawCities = Array.isArray(body.cities)
+    const rawCities: string[] = Array.isArray(body.cities)
       ? body.cities.map((value: unknown) => normalizeCity(cleanText(value, 120)))
       : [];
-    const cities = Array.from(new Set(rawCities.length ? rawCities : (location.length >= 2 ? [normalizeCity(location)] : []))).slice(0, 6);
-    // Client's per-city muted set — user chip clicks that should NOT trigger
-    // a SerpApi fetch. Normalise the same way as user cities so case /
-    // whitespace variants match. Capped at 20 so a malicious client can't
-    // bloat the filter chain.
-    const mutedSet = new Set(Array.isArray(body.mutedNearbyCities)
-      ? body.mutedNearbyCities
-        .map((value: unknown) => normalizeCity(cleanText(value, 120)))
-        .filter(Boolean)
-      : []
-    );
-    const isMuted = (city: string) => {
+    const cities: string[] = Array.from(new Set(rawCities.length ? rawCities : (location.length >= 2 ? [normalizeCity(location)] : []))).slice(0, 6);
+
+    // Client's per-city muted set — user chip clicks that should NOT
+    // trigger a SerpApi fetch. Explicit Set<string> annotation so deno's
+    // strict mode doesn't widen it to `Set<unknown>` after the chained
+    // filter (prior bug: muted values came back as unknown).
+    const mutedCities: string[] = (Array.isArray(body.mutedNearbyCities) ? body.mutedNearbyCities : [])
+      .map((value: unknown) => normalizeCity(cleanText(value, 120)))
+      .filter((s: string): s is string => s.length > 0);
+    const mutedSet: Set<string> = new Set(mutedCities);
+    const isMuted = (city: string): boolean => {
       const norm = city.toLowerCase();
       for (const muted of mutedSet) if (muted.toLowerCase() === norm) return true;
       return false;
     };
     if (!cities.length) return json({ error: "Add a home address in Settings to discover events nearby." }, 400);
 
+    // Helpers: pull typed values out of arbitrary objects with bounded
+    // safety. Many fields come back from SerpApi/TM as `unknown` (because
+    // we cast external payloads to Record), so these keep the mappers
+    // terse without `any` leakage at the network boundary.
+    const asRecord = (value: unknown): Record<string, unknown> =>
+      value && typeof value === "object" ? value as Record<string, unknown> : {};
+    const recordString = (obj: unknown, key: string, max = 160): string => {
+      const value = asRecord(obj)[key];
+      return typeof value === "string" ? value.trim().slice(0, max) : "";
+    };
+
     // ──── SerpApi (Google Events) mapper ────
-    const mapSerpEvent = (event: Record<string, unknown>, city: string, origin: "user" | "nearby") => {
+    const mapSerpEvent = (event: Record<string, unknown>, city: string, origin: "user" | "nearby"): MappedEvent => {
       const date = event.date && typeof event.date === "object" ? event.date as Record<string, unknown> : {};
       const venue = event.venue && typeof event.venue === "object" ? event.venue as Record<string, unknown> : {};
       const ticketInfo = Array.isArray(event.ticket_info) ? event.ticket_info : [];
@@ -237,41 +267,44 @@ Deno.serve(async (request) => {
         origin,
         fromCity: city,
         tags: [],
-        provider: "google_events" as const,
+        provider: "google_events",
       };
     };
 
     // ──── Ticketmaster Discovery API mapper ────
     // Ticketmaster returns rich structured data: id, name, url, dates,
     // images[], priceRanges[], and _embedded.venues[]. We map into our
-    // existing event shape so Calendar.jsx needs no UI changes. Fields
-    // we can't fill cleanly (description, dateLabel) get sensible
-    // fallbacks rather than fabricated text.
-    const mapTicketmasterEvent = (event: Record<string, unknown>, city: string, origin: "user" | "nearby") => {
-      const dates = event.dates && typeof event.dates === "object" ? event.dates as Record<string, unknown> : {};
-      const startObj = dates.start && typeof dates.start === "object" ? dates.start as Record<string, unknown> : {};
-      const images = Array.isArray(event.images) ? event.images : [];
-      const image = images[0] && typeof images[0] === "object" ? images[0] as Record<string, unknown> : {};
-      const venues = event._embedded && typeof event._embedded === "object" && Array.isArray((event._embedded as Record<string, unknown>).venues)
-        ? (event._embedded as Record<string, unknown>).venues as Array<Record<string, unknown>>
+    // existing event shape so Calendar.jsx needs no UI changes. Using
+    // intermediate `Record<string, unknown>` casts with explicit field
+    // extraction (recordString helper) keeps deno's strict checker happy
+    // and keeps the response shape resilient to TM API schema drift.
+    const mapTicketmasterEvent = (event: unknown, city: string, origin: "user" | "nearby"): MappedEvent => {
+      const ev = asRecord(event);
+      const datesRoot = asRecord(ev.dates);
+      const startObj: Record<string, unknown> = (datesRoot.start && typeof datesRoot.start === "object") ? datesRoot.start as Record<string, unknown> : {};
+      const endObj: Record<string, unknown> = (datesRoot.end && typeof datesRoot.end === "object") ? datesRoot.end as Record<string, unknown> : {};
+
+      const imagesRoot = Array.isArray(ev.images) ? ev.images as Array<Record<string, unknown>> : [];
+      const image: Record<string, unknown> = imagesRoot[0] || {};
+
+      const venuesRoot = (ev._embedded && typeof ev._embedded === "object" && Array.isArray((ev._embedded as Record<string, unknown>).venues))
+        ? (ev._embedded as Record<string, unknown>).venues as Array<Record<string, unknown>>
         : [];
-      const venue = venues[0] || {};
-      const venueName = cleanText(venue.name, 160);
-      const venueAddress = venue.address && typeof venue.address === "object" ? venue.address as Record<string, unknown> : {};
-      const venueCity = venue.city && typeof venue.city === "object" ? venue.city as Record<string, unknown> : {};
-      const countryName = venueCountry && typeof venueCountry === "object" ? venueCountry as Record<string, unknown> : {};
-      const addressParts = [
-        cleanText(venueAddress.line1, 160),
-        cleanText(venueAddress.line2, 160),
-      ].filter(Boolean);
-      const startDateTime = cleanText(startObj.dateTime, 32) || cleanText(startObj.localDate, 32);
-      const startDateOnly = cleanText(startObj.localDate, 32);
+      const venue: Record<string, unknown> = venuesRoot[0] || {};
+      const venueAddress: Record<string, unknown> = (venue.address && typeof venue.address === "object") ? venue.address as Record<string, unknown> : {};
+      const venueCity: Record<string, unknown> = (venue.city && typeof venue.city === "object") ? venue.city as Record<string, unknown> : {};
+
+      const addressParts = [recordString(venueAddress, "line1", 160), recordString(venueAddress, "line2", 160)].filter(Boolean);
+      const startDateTime = recordString(startObj, "dateTime", 32) || recordString(startObj, "localDate", 32);
+      const startDateOnly = recordString(startObj, "localDate", 32);
+      const startLocalTime = recordString(startObj, "localTime", 16);
+
       // dateLabel prefers Ticketmaster's structured localDate + localTime
       // which is already in the user's timezone, so we render it cleanly.
       let dateLabel = "";
       if (startDateOnly) {
-        const timeOnly = cleanText(startObj.localTime, 16);
-        const parsed = new Date(`${startDateOnly}T${(timeOnly || "00:00:00").slice(0, 8)}`);
+        const timeOnly = startLocalTime ? startLocalTime.slice(0, 8) : "00:00:00";
+        const parsed = new Date(`${startDateOnly}T${timeOnly}`);
         if (!Number.isNaN(parsed.getTime())) {
           dateLabel = parsed.toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" });
         }
@@ -280,41 +313,56 @@ Deno.serve(async (request) => {
         const parsed = new Date(startDateTime);
         if (!Number.isNaN(parsed.getTime())) dateLabel = parsed.toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" });
       }
-      const tmId = cleanText(event.id, 80);
-      const tmUrl = cleanText(event.url, 500);
-      const name = cleanText(event.name, 180);
+
+      const tmId = recordString(ev, "id", 80);
+      const tmUrl = recordString(ev, "url", 500);
+      const name = cleanText(ev.name, 180);
+
+      // Tags from TM's classification hierarchy: classifications[0].segment.name
+      // is the broad category ("Music", "Sports") — useful as a single chip.
+      const classifications = Array.isArray(ev.classifications) ? ev.classifications as Array<Record<string, unknown>> : [];
+      const firstClassification = classifications[0] || {};
+      const segmentObj: Record<string, unknown> = (firstClassification.segment && typeof firstClassification.segment === "object")
+        ? firstClassification.segment as Record<string, unknown>
+        : {};
+      const tagLabel = recordString(segmentObj, "name", 60);
+
+      // Prefix with provider tag so the dedupe set can never collide
+      // with a SerpApi event whose id lowercase-matches something
+      // Ticketmaster generated (paranoid but cheap).
+      const id = tmId
+        ? `tm:${tmId}`
+        : (name ? `tm:${name}|${startDateOnly}`.toLowerCase() : crypto.randomUUID());
+
       return {
-        // Prefix with provider tag so the dedupe set can never collide
-        // with a SerpApi event whose id lowercase-matches something
-        // Ticketmaster generated (paranoid but cheap).
-        id: tmId ? `tm:${tmId}` : (name ? `tm:${name}|${startDateOnly}`.toLowerCase() : crypto.randomUUID()),
+        id,
         name,
-        description: name, // Ticketmaster doesn't expose long descriptions; surface name as description so Calendar renders something legible
+        // Ticketmaster doesn't expose long descriptions; surface the
+        // event name as description so the card shows something legible.
+        description: name,
         startTime: startDateTime,
-        endTime: typeof dates.end === "object" && dates.end && cleanText((dates.end as Record<string, unknown>).dateTime, 32),
+        endTime: recordString(endObj, "dateTime", 32),
         dateLabel,
         when: dateLabel,
         virtual: addressParts.some((part) => /online|virtual/i.test(part)),
-        thumbnail: cleanText(image.url, 500),
-        publisher: venueName || "Ticketmaster",
+        thumbnail: recordString(image, "url", 500),
+        publisher: recordString(venue, "name", 100) || "Ticketmaster",
         link: tmUrl,
         ticketSource: "Ticketmaster",
         venue: {
-          name: venueName,
+          name: recordString(venue, "name", 160),
           address: addressParts.join(", "),
-          city: cleanText(venueCity.name, 100) || city,
+          city: recordString(venueCity, "name", 100) || city,
           rating: null,
         },
         origin,
         fromCity: city,
-        tags: cleanText(event.classifications && Array.isArray(event.classifications) && (event.classifications[0] as Record<string, unknown>)?.segment?.name, 60)
-          ? [{ label: cleanText((event.classifications[0] as Record<string, unknown>).segment.name, 60) }]
-          : [],
-        provider: "ticketmaster" as const,
+        tags: tagLabel ? [{ label: tagLabel }] : [],
+        provider: "ticketmaster",
       };
     };
 
-    const fetchSerpCity = async (city: string, origin: "user" | "nearby", apiKey: string) => {
+    const fetchSerpCity = async (city: string, origin: "user" | "nearby", apiKey: string): Promise<MappedEvent[]> => {
       const endpoint = new URL("https://serpapi.com/search.json");
       endpoint.searchParams.set("engine", "google_events");
       endpoint.searchParams.set("q", category);          // q is just the category; date and city are NOT in q.
@@ -327,15 +375,15 @@ Deno.serve(async (request) => {
       if (whenChip) endpoint.searchParams.set("htichips", whenChip);
       endpoint.searchParams.set("api_key", apiKey);
       const response = await fetch(endpoint);
-      const payload = await response.json().catch(() => null);
-      if (!response.ok || payload?.error) {
-        throw new Error(String(payload?.error || `Event provider returned HTTP ${response.status}.`));
-      }
-      const results = Array.isArray(payload?.events_results) ? payload.events_results : [];
-      return results.map((event: Record<string, unknown>) => mapSerpEvent(event, city, origin));
+      const payload = asRecord(await response.json().catch(() => null));
+      if (!response.ok) throw new Error(`Event provider returned HTTP ${response.status}.`);
+      const errorText = recordString(payload, "error", 600);
+      if (errorText) throw new Error(errorText);
+      const results: Array<Record<string, unknown>> = Array.isArray(payload.events_results) ? payload.events_results as Array<Record<string, unknown>> : [];
+      return results.map((event) => mapSerpEvent(event, city, origin));
     };
 
-    const fetchTicketmasterCity = async (city: string, origin: "user" | "nearby", apiKey: string) => {
+    const fetchTicketmasterCity = async (city: string, origin: "user" | "nearby", apiKey: string): Promise<MappedEvent[]> => {
       const endpoint = new URL("https://app.ticketmaster.com/discovery/v2/events.json");
       endpoint.searchParams.set("apikey", apiKey);
       endpoint.searchParams.set("city", city);
@@ -347,22 +395,25 @@ Deno.serve(async (request) => {
       endpoint.searchParams.set("size", "20");
       endpoint.searchParams.set("sort", "date,asc");
       const response = await fetch(endpoint);
-      const payload = await response.json().catch(() => null);
-      if (!response.ok || payload?.error) {
-        throw new Error(String(payload?.error?.message || payload?.error || `Ticketmaster returned HTTP ${response.status}.`));
-      }
-      const embedded = payload?._embedded;
-      const events = Array.isArray(embedded?.events) ? embedded.events : [];
-      return events.map((event: Record<string, unknown>) => mapTicketmasterEvent(event, city, origin));
+      const payload = asRecord(await response.json().catch(() => null));
+      if (!response.ok) throw new Error(`Ticketmaster returned HTTP ${response.status}.`);
+      const errorField = asRecord(payload.error);
+      const errorText = recordString(errorField, "message", 600) || recordString(payload, "error", 600);
+      if (errorText) throw new Error(errorText);
+      const embedded = asRecord(payload._embedded);
+      const events: unknown[] = Array.isArray(embedded.events) ? embedded.events as unknown[] : [];
+      return events.map((event) => mapTicketmasterEvent(event, city, origin));
     };
+
+    type FetchFn = (city: string, origin: "user" | "nearby") => Promise<MappedEvent[]>;
 
     const runProvider = async (
       citiesForBatch: string[],
       origin: "user" | "nearby",
-      fetcher: (city: string, origin: "user" | "nearby") => Promise<Array<Record<string, unknown>>>,
+      fetcher: FetchFn,
       providerLabel: string,
-    ) => {
-      const mapped: Array<{ city: string; origin: "user" | "nearby"; events: ReturnType<typeof mapSerpEvent>[] }> = [];
+    ): Promise<{ mapped: Array<{ city: string; origin: "user" | "nearby"; events: MappedEvent[] }>; errors: { city: string; message: string; provider: string }[] }> => {
+      const mapped: Array<{ city: string; origin: "user" | "nearby"; events: MappedEvent[] }> = [];
       const errors: { city: string; message: string; provider: string }[] = [];
       if (!citiesForBatch.length) return { mapped, errors };
       const batchSize = 2; // respect both providers' per-second quotas at the city-batch granularity
@@ -422,19 +473,19 @@ Deno.serve(async (request) => {
     //    5 rps Ticketmaster ceiling is too tight to multiply by an
     //    implicit "+ 3 nearby cities" without informing the user.
     const totalUserEvents = userMapped.reduce((sum, m) => sum + m.events.length, 0);
-    const nearbyForCountry = NEARBY_CITIES[country] || [];
+    const nearbyForCountry: string[] = NEARBY_CITIES[country] || [];
     // Two filters applied: (a) the contributing city isn't already in the
     // user's own cities list (no point fetching the same metro twice),
     // (b) the city isn't muted by the user via a chip — skipping
     // seasrches the user has already dismissed saves SerpApi quota and
     // keeps the "Try nearby major area" pill from suggesting cities the
     // user has already rejected.
-    const availableNearby = nearbyForCountry
-      .filter((nearby) => !cities.some((c) => c.toLowerCase() === nearby.toLowerCase()))
+    const availableNearby: string[] = nearbyForCountry
+      .filter((nearby) => !cities.some((c: string) => c.toLowerCase() === nearby.toLowerCase()))
       .filter((nearby) => !isMuted(nearby))
       .slice(0, 8);
     const userCleanZeroCount = userMapped.filter((m) => m.events.length === 0).length;
-    const nearbyCandidates = serpApiKey && (totalUserEvents < 4
+    const nearbyCandidates: string[] = serpApiKey && (totalUserEvents < 4
       && userCleanZeroCount > 0
       && userErrors.length < cities.length)
       ? availableNearby.slice(0, 3)
@@ -452,12 +503,11 @@ Deno.serve(async (request) => {
     const allErrors = [...userErrors, ...nearbyErrors];
 
     // First-seen-wins dedupe by event id; user-city entries precede nearby
-    // entries so user cities' events win on ties. The `tm:` and `gv:` /
-    // unprefixed prefixes (SerpApi ids are title|date lowercased) prevent
-    // collisions between the two providers.
+    // entries so user cities' events win on ties. The `tm:` and unprefixed
+    // (SerpApi) ids prevent collisions between the two providers.
     const flatEvents = allMapped.flatMap((entry) => entry.events);
     const seen = new Set<string>();
-    const events = flatEvents.filter((event: { id: string; name: string }) => {
+    const events = flatEvents.filter((event: MappedEvent) => {
       if (!event.name) return false;
       if (seen.has(event.id)) return false;
       seen.add(event.id);
@@ -471,15 +521,15 @@ Deno.serve(async (request) => {
     // Provider status considers the union of both providers' results.
     // A single SerpApi city failing while Ticketmaster succeeds in the
     // same city is `partial_upstream_error`, not a hard failure.
-    const deriveProviderStatus = () => {
+    const deriveProviderStatus = (): string => {
       if (totalEvents > 0) return failCount > 0 ? "partial_upstream_error" : "ok";
       if (failCount > 0 && failCount < totalCities) return "partial_upstream_error";
       if (failCount === totalCities) return "upstream_error";
       return "empty_results";
     };
     const providerStatus = deriveProviderStatus();
-    const serpEvents = events.filter((e: { provider?: string }) => e.provider === "google_events").length;
-    const ticketmasterEvents = events.filter((e: { provider?: string }) => e.provider === "ticketmaster").length;
+    const serpEvents = events.filter((e) => e.provider === "google_events").length;
+    const ticketmasterEvents = events.filter((e) => e.provider === "ticketmaster").length;
     const diagnostics = {
       perCityCounts: allMapped.map((entry) => ({ city: entry.city, origin: entry.origin, count: entry.events.length })),
       failedCities: allErrors.map((entry) => ({ city: entry.city, message: entry.message, provider: entry.provider })),
@@ -490,14 +540,16 @@ Deno.serve(async (request) => {
       providerCounts: { google_events: serpEvents, ticketmaster: ticketmasterEvents },
     };
 
+    const providerLabel = serpApiKey && ticketmasterKey
+      ? "SerpApi + Ticketmaster"
+      : serpApiKey ? "SerpApi (Google Events)" : "Ticketmaster";
+
     if (events.length === 0) {
       if (providerStatus === "upstream_error") {
         return json({
           events: [],
           cities,
-          provider: serpApiKey && ticketmasterKey
-            ? "SerpApi + Ticketmaster"
-            : serpApiKey ? "SerpApi (Google Events)" : "Ticketmaster",
+          provider: providerLabel,
           country,
           request: requestPayload,
           providerStatus,
@@ -512,7 +564,7 @@ Deno.serve(async (request) => {
         expanded: diagnostics.expanded,
         providerCounts: diagnostics.providerCounts,
       }));
-      return json({ events: [], cities, provider: serpApiKey && ticketmasterKey ? "SerpApi + Ticketmaster" : serpApiKey ? "SerpApi (Google Events)" : "Ticketmaster", country, request: requestPayload, providerStatus, diagnostics });
+      return json({ events: [], cities, provider: providerLabel, country, request: requestPayload, providerStatus, diagnostics });
     }
 
     if (providerStatus === "partial_upstream_error") {
@@ -526,7 +578,7 @@ Deno.serve(async (request) => {
 
     return json({
       events, cities,
-      provider: serpApiKey && ticketmasterKey ? "SerpApi + Ticketmaster" : serpApiKey ? "SerpApi (Google Events)" : "Ticketmaster",
+      provider: providerLabel,
       country, request: requestPayload, providerStatus, diagnostics,
     });
   } catch (error) {
