@@ -17,6 +17,7 @@ import { useFamily } from "../context/FamilyContext";
 import { isCookableTonight } from "../lib/cookableTonight";
 import { addDays, formatDayLabel, todayISO } from "../lib/dates";
 import { invokeEdgeFunction, supabase } from "../lib/supabase";
+import { useFeatureFlag } from "../hooks/useFeatureFlag";
 
 const actionMeta = {
   add_task: { label: "Create task", Icon: CheckSquare },
@@ -789,7 +790,9 @@ export default function FamAI() {
   // (grocery / task / event) have no ingredient signal and stay in
   // the primary list regardless of pantry state. `groceries` comes
   // from the useFamily() destructure further up; no second hook call
-  // (Rules of Hooks).
+  // (Rules of Hooks). The soft-tier render is gated behind the shared
+  // `cookable-soft-tier` flag so admin can dim all three surfaces in unison.
+  const [cookableEnabled] = useFeatureFlag("cookable-soft-tier");
   const cookablePlanMealActions = pending.filter((action) =>
     action.type === "plan_meal"
     && Array.isArray(action.args?.ingredients)
@@ -898,7 +901,7 @@ export default function FamAI() {
                 );
               })}
             </div>
-            {cookablePlanMealActions.length > 0 && (
+            {cookableEnabled && cookablePlanMealActions.length > 0 && (
               <details className="famos-soft-tier meal-soft-tier">
                 <summary>
                   <ChevronDown aria-hidden="true" size={14} />

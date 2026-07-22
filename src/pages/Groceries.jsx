@@ -6,35 +6,21 @@ import PageHeader from "../components/PageHeader";
 import PullToRefresh from "../components/PullToRefresh";
 import { cookableRecipes } from "../lib/cookableTonight";
 import { invokeEdgeFunction } from "../lib/supabase";
+import { useFeatureFlag } from "../hooks/useFeatureFlag";
+import { useLocalCache } from "../hooks/useLocalCache";
 import { GROCERY_CATEGORIES } from "../data/mockData";
 
-// Cache successful recipe-search responses for 4h keyed off sorted
-// checked-grocery names + extras typed into the section. Same shape as
-// the discover-events cache — open the modal again later and the
-// bakery-pantry results are instant. The extras token is included so
-// typing "soy sauce" gets cache-hits matching the same pantry+extras.
+// The Groceries-page soft-tier cache key + parser still live here: the key
+// shape (p:pantry + x:extras, sort, join) is Groceries-specific, but TTL'd
+// localStorage read/write/clear are now sourced from `useLocalCache`. The
+// feature gate ("cookable-soft-tier") is sourced from `useFeatureFlag`,
+// shared by all three soft-tier surfaces so admin can flip them in unison.
 const GROCERY_RECIPES_CACHE_PREFIX = "famos_grocery_recipes_v1:";
 const GROCERY_RECIPES_CACHE_TTL_MS = 4 * 60 * 60 * 1000;
 const parseExtraIngredientNames = (raw) => String(raw || "").split(",").map((part) => part.toLowerCase().trim()).filter(Boolean);
 const buildGroceryRecipeCacheKey = (names, extras) => {
   const tokens = [...names.map((name) => `p:${name}`), ...extras.map((name) => `x:${name}`)].filter(Boolean).sort();
   return `${GROCERY_RECIPES_CACHE_PREFIX}${tokens.join("|")}`;
-};
-const readGroceryRecipeCache = (key) => {
-  try {
-    if (typeof window === "undefined") return null;
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return null;
-    const entry = JSON.parse(raw);
-    if (!entry || typeof entry.cachedAt !== "number" || Date.now() - entry.cachedAt > GROCERY_RECIPES_CACHE_TTL_MS) return null;
-    return Array.isArray(entry.recipes) ? entry.recipes : null;
-  } catch { return null; }
-};
-const writeGroceryRecipeCache = (key, recipes) => {
-  try {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem(key, JSON.stringify({ cachedAt: Date.now(), recipes }));
-  } catch { /* quota / private mode */ }
 };
 
 const emptyDraft = { name: "", category: GROCERY_CATEGORIES[0], quantity: 1, unit: "" };
@@ -245,8 +231,28 @@ export default function Groceries() {
   // split semantics — same contract, different feed surface.
   const [extraIngredients, setExtraIngredients] = useState("");
   const [cookableRecipesData, setCookableRecipesData] = useState({ recipes: [], busy: false, error: "" });
+  const [cookableEnabled] = useFeatureFlag("cookable-soft-tier");
+
+  // Memoised cache accessor. The cache key is pantry-tokens + extras,
+  // so it changes when groceries toggle or extras type. Rebuilding
+  // `useLocalCache` on key change is intentional — the new helper
+  // bundle locks onto the new localStorage key in a single pass.
+  const groceryCacheKey = useMemo(() => {
+    const checkedNames = groceries
+      .filter((g) => g && g.checked && typeof g.name === "string")
+      .map((g) => g.name.toLowerCase().trim())
+      .filter(Boolean);
+    if (!checkedNames.length || !cookableEnabled) return null;
+    const extraNames = parseExtraIngredientNames(extraIngredients);
+    return buildGroceryRecipeCacheKey(checkedNames, extraNames);
+  }, [groceries, extraIngredients, cookableEnabled]);
+  const groceryCache = useLocalCache(groceryCacheKey, GROCERY_RECIPES_CACHE_TTL_MS);
 
   useEffect(() => {
+    if (!cookableEnabled) {
+      setCookableRecipesData({ recipes: [], busy: false, error: "" });
+      return undefined;
+    }
     const checkedNames = groceries
       .filter((g) => g && g.checked && typeof g.name === "string")
       .map((g) => g.name.toLowerCase().trim())
@@ -256,10 +262,10 @@ export default function Groceries() {
       return undefined;
     }
     const extraNames = parseExtraIngredientNames(extraIngredients);
-    const cacheKey = buildGroceryRecipeCacheKey(checkedNames, extraNames);
-    const cached = readGroceryRecipeCache(cacheKey);
-    if (cached) {
-      setCookableRecipesData({ recipes: cached, busy: false, error: "" });
+    const cached = groceryCache.read();
+    const cachedRecipes = cached && Array.isArray(cached.recipes) ? cached.recipes : null;
+    if (cachedRecipes) {
+      setCookableRecipesData({ recipes: cachedRecipes, busy: false, error: "" });
       return undefined;
     }
     let cancelled = false;
@@ -280,13 +286,13 @@ export default function Groceries() {
         if (cancelled) return;
         const list = Array.isArray(data?.recipes) ? data.recipes : [];
         setCookableRecipesData({ recipes: list, busy: false, error: "" });
-        writeGroceryRecipeCache(cacheKey, list);
+        groceryCache.write({ recipes: list });
       } catch (err) {
         if (!cancelled) setCookableRecipesData({ recipes: [], busy: false, error: err?.message || "Recipe lookup failed." });
       }
     }, 350);
     return () => { cancelled = true; clearTimeout(handle); };
-  }, [groceries, extraIngredients]);
+  }, [groceries, extraIngredients, cookableEnabled, groceryCache]);
 
   const cookableList = useMemo(
     () => cookableRecipes(cookableRecipesData.recipes, groceries),
@@ -657,7 +663,7 @@ export default function Groceries() {
       />
 
       <div className="px-5 space-y-5 mt-2">
-        {checkedCount > 0 && (
+        {cookableEnabled && checkedCount > 0 && (
           <Card className="p-4 grocery-cookable-card">
             <div className="flex items-center gap-3 mb-3">
               <span className="w-10 h-10 rounded-xl bg-[var(--color-good-soft)] flex items-center justify-center shrink-0">

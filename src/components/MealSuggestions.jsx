@@ -4,6 +4,7 @@ import { normaliseDietaryPreferences } from "../data/recipeBox";
 import { useFamily } from "../context/FamilyContext";
 import { invokeEdgeFunction, supabase } from "../lib/supabase";
 import { cookableRecipes } from "../lib/cookableTonight";
+import { useFeatureFlag } from "../hooks/useFeatureFlag";
 
 const MEAL_TYPES = ["breakfast", "lunch", "dinner"];
 const ROULETTE_QUERIES = [
@@ -64,8 +65,11 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType, dieta
   // "you can make this tonight" (collapsed accordion below). Mirrors the
   // muted-events pattern from Calendar.jsx — hard-filter preserves the
   // active list's quietness while letting the user peek at cookable meals
-  // without committing up front.
+  // without committing up front. The flag is sourced from the shared
+  // `useFeatureFlag` primitive so admin can flip all three soft-tier
+  // surfaces in unison without touching MealSuggestions specifically.
   const { groceries } = useFamily();
+  const [cookableEnabled] = useFeatureFlag("cookable-soft-tier");
   const cookableList = cookableRecipes(recipes, groceries);
   const cookableIds = new Set(cookableList.map((recipe) => recipe.title));
   const activeRecipes = recipes.filter((recipe) => !cookableIds.has(recipe.title));
@@ -234,8 +238,9 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType, dieta
       {/* Soft tier — meals the user has full pantry coverage for. Collapsed
           by default so the active list stays the primary surface; chevron +
           dashed-border treatment matches the muted-events soft tier. Adds
-          nothing when no cookable meals exist (empty-state guard). */}
-      {cookableList.length > 0 && (
+          nothing when no cookable meals exist (empty-state guard) or when
+          the admin kill-switch has flipped `cookable-soft-tier` off. */}
+      {cookableEnabled && cookableList.length > 0 && (
         <details className="meal-soft-tier">
           <summary>
             <ChevronDown aria-hidden="true" size={14} />
