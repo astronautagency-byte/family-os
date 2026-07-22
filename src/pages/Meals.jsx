@@ -642,6 +642,25 @@ export default function Meals() {
                         notes: `${SLOT_META[rouletteOptions.slot].label} roulette · ${rouletteOptions.cuisine}`,
                         cookIds: [],
                       });
+                      // Cache ingredient names so the grocery-status badge
+                      // shows immediately on the meal card without needing
+                      // to open Cook Mode first. Deferred to next render
+                      // cycle so the meal is available via mealFor().
+                      const ingredientNames = (recipe.ingredients || [])
+                        .map((item) => typeof item === "string" ? item.trim().toLowerCase() : (item?.name || "").trim().toLowerCase())
+                        .filter(Boolean);
+                      if (ingredientNames.length) {
+                        setTimeout(() => {
+                          const created = mealFor(rouletteOptions.date, rouletteOptions.slot);
+                          if (created?.id) {
+                            setMealIngredientsCache((current) => {
+                              const next = { ...current, [created.id]: ingredientNames };
+                              saveIngredientCache(next);
+                              return next;
+                            });
+                          }
+                        }, 0);
+                      }
                       setRouletteOptions(null);
                     }}
                   >
