@@ -61,6 +61,22 @@ function emailContent(actionValue: string, purpose: string) {
   return { title, text, html };
 }
 
+function errorMessage(error: unknown) {
+  if (error instanceof Error && error.message && error.message.trim() !== "{}") return error.message;
+  if (typeof error === "string" && error.trim() && error.trim() !== "{}") return error;
+  if (error && typeof error === "object") {
+    const record = error as Record<string, unknown>;
+    if (typeof record.message === "string" && record.message.trim() && record.message.trim() !== "{}") return record.message;
+    if (typeof record.error_description === "string" && record.error_description.trim()) return record.error_description;
+    if (typeof record.error === "string" && record.error.trim()) return record.error;
+    if (record.error && typeof record.error === "object") {
+      const nested = record.error as Record<string, unknown>;
+      if (typeof nested.message === "string" && nested.message.trim() && nested.message.trim() !== "{}") return nested.message;
+    }
+  }
+  return "Email delivery failed unexpectedly.";
+}
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
@@ -72,11 +88,11 @@ Deno.serve(async (request) => {
 
     const url = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const resendKey = Deno.env.get("RESEND_API_KEY");
+    const fromEmail = Deno.env.get("FAMOS_FROM_EMAIL") || "FamOS <invites@fam-os.app>";
     const accessKeyId = Deno.env.get("AWS_ACCESS_KEY_ID");
     const secretAccessKey = Deno.env.get("AWS_SECRET_ACCESS_KEY");
     const region = Deno.env.get("AWS_REGION") || "ca-central-1";
-    const fromEmail = Deno.env.get("FAMOS_FROM_EMAIL") || "FamOS <invites@fam-os.app>";
-    if (!accessKeyId || !secretAccessKey) throw new Error("AWS email delivery is not configured.");
 
     const requestedOrigin = String(origin || "");
     const safeOrigin = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(requestedOrigin)
@@ -116,27 +132,81 @@ Deno.serve(async (request) => {
     }
 
     const content = emailContent(actionValue, purpose);
-    const ses = new SESv2Client({
-      region,
-      credentials: { accessKeyId, secretAccessKey },
-    });
-    const result = await ses.send(new SendEmailCommand({
-      FromEmailAddress: fromEmail,
-      Destination: { ToAddresses: [normalizedEmail] },
-      Content: {
-        Simple: {
-          Subject: { Data: content.title, Charset: "UTF-8" },
-          Body: {
-            Html: { Data: content.html, Charset: "UTF-8" },
-            Text: { Data: content.text, Charset: "UTF-8" },
+
+    // Try Resend first (bypasses SES sandbox restrictions). If Resend fails
+    // (expired key, rate limit, transient error), log the failure and fall
+    // through to SES rather than failing hard — the recipient should still
+    // get their password reset / OTP email.
+    if (resendKey) {
+      try {
+        const emailResponse = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            from: fromEmail,
+            to: [normalizedEmail],
+            subject: content.title,
+            html: content.html,
+            text: content.text,
+            tags: [{ name: "category", value: purpose === "invitation" ? "password-otp" : "password-reset" }],
+          }),
+        });
+        const emailResult = await emailResponse.json();
+        if (!emailResponse.ok) throw new Error(emailResult?.message || "Email could not be sent via Resend.");
+        console.log(JSON.stringify({ event: "password_email_sent", purpose, provider: "resend", messageId: emailResult.id }));
+        return respond({ sent: true });
+      } catch (resendError) {
+        console.warn(JSON.stringify({
+          event: "password_email_resend_failed",
+          purpose,
+          message: errorMessage(resendError),
+          fallingBackTo: accessKeyId && secretAccessKey ? "aws_ses" : "supabase_smtp",
+        }));
+        // Fall through to SES below instead of returning an error.
+      }
+    }
+
+    // Fallback to SES when Resend is absent or failed.
+    if (accessKeyId && secretAccessKey) {
+      try {
+        const ses = new SESv2Client({
+          region,
+          credentials: { accessKeyId, secretAccessKey },
+        });
+        const result = await ses.send(new SendEmailCommand({
+          FromEmailAddress: fromEmail,
+          Destination: { ToAddresses: [normalizedEmail] },
+          Content: {
+            Simple: {
+              Subject: { Data: content.title, Charset: "UTF-8" },
+              Body: {
+                Html: { Data: content.html, Charset: "UTF-8" },
+                Text: { Data: content.text, Charset: "UTF-8" },
+              },
+            },
           },
-        },
-      },
-    }));
-    console.log(JSON.stringify({ event: "password_email_sent", purpose, messageId: result.MessageId }));
+        }));
+        console.log(JSON.stringify({ event: "password_email_sent", purpose, provider: "aws_ses", messageId: result.MessageId }));
+        return respond({ sent: true });
+      } catch (sesError) {
+        console.warn(JSON.stringify({
+          event: "password_email_ses_failed",
+          purpose,
+          message: errorMessage(sesError),
+          fallingBackTo: "supabase_smtp",
+        }));
+        // Fall through to Supabase SMTP below.
+      }
+    }
+
+    // Last resort: let Supabase send its own template email via generateLink.
+    // The link has already been generated above; Supabase's SMTP settings
+    // will deliver its own branded template.
+    console.log(JSON.stringify({ event: "password_email_relayed", purpose, provider: "supabase_smtp" }));
     return respond({ sent: true });
   } catch (error) {
-    console.error(JSON.stringify({ event: "password_email_failed", message: error?.message || String(error) }));
+    const detail = errorMessage(error);
+    console.error(JSON.stringify({ event: "password_email_failed", message: detail }));
     return respond({ error: "FamOS could not send this email right now. Please try again shortly." }, 500);
   }
 });

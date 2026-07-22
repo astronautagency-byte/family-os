@@ -124,12 +124,13 @@ Companion changes (apply in this order if you are reproducing from scratch):
    }
    ```
    The administrator configuring or inspecting the AWS SMS account also needs read access to AWS End User Messaging SMS, including `sms-voice:DescribeAccountAttributes`. Do not add administrator permissions to the key stored in Supabase.
-5. Deploy the family invitation email function:
+5. Deploy the family invitation email function and the password/invite-OTP email function:
    ```bash
    supabase functions deploy send-family-invitation
+   supabase functions deploy send-password-email
    supabase functions deploy prepare-invited-account
    ```
-   Supabase automatically provides `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`. The function generates Supabase-secured links and uses Resend only for the FamOS-branded delivery.
+   Supabase automatically provides `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`. Both functions generate Supabase-secured links and use Resend for branded email delivery. `send-password-email` handles password resets and invitation OTP codes; `send-family-invitation` handles the full HTML invitation email for new members.
 6. Configure Supabase Auth URL settings and make sure `https://fam-os.app/`, `http://localhost:5173`, and `http://127.0.0.1:5173` are allowed redirect URLs.
 7. Start the app and sign in. New owners name their family, then can invite members immediately or skip and add them later from Settings. New invitees create a password from the secure link; existing users sign in and confirm the waiting household.
 
