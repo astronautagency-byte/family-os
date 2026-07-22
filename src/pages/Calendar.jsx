@@ -30,6 +30,15 @@ const eventType = (event) => {
 };
 const sourceId = (event) => event.source === "google" ? `google:${event.calendarId||"primary"}` : event.sourceFeedId ? `feed:${event.sourceFeedId}` : "family";
 
+// ISO 8601 week number for a given date.
+const isoWeek = (d) => {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+};
+
 function LocationAutocompleteField({ value, onChange }) {
   const inputRef = useRef(null);
   const onChangeRef = useRef(onChange);
@@ -177,6 +186,11 @@ export default function CalendarPage() {
     start.setDate(1 - first.getDay());
     return Array.from({ length: 42 }, (_, i) => { const d = new Date(start); d.setDate(start.getDate() + i); return d; });
   }, [month]);
+
+  // Week number for each of the 6 rows in the month grid.
+  const rowWeeks = useMemo(() =>
+    Array.from({ length: 6 }, (_, i) => isoWeek(cells[i * 7])),
+  [cells]);
 
   const dayEvents = useMemo(() =>
     visibleEvents.filter(e => e.start.slice(0, 10) === selectedDate).sort((a, b) => a.start.localeCompare(b.start)),
@@ -414,29 +428,34 @@ export default function CalendarPage() {
               <div className="calendar-month-weekdays">
                 {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => <span key={i}>{d}</span>)}
               </div>
-              <div className="calendar-month-grid">
-                {cells.map((d) => {
-                  const key = iso(d);
-                  const inMonth = d.getMonth() === month.getMonth();
-                  const active = key === selectedDate;
-                  const cellEvents = visibleEvents.filter(e => e.start.slice(0, 10) === key);
-                  return (
-                    <button
-                      key={key}
-                      className={`${inMonth ? "" : "outside"} ${active ? "selected" : ""} ${key === todayStr ? "today" : ""}`}
-                      onClick={() => { setSelectedDate(key); }}
-                    >
-                      <b>{d.getDate()}</b>
-                      {cellEvents.length > 0 && (
-                        <span className="calendar-month-dots">
-                          {cellEvents.slice(0, 3).map(event => (
-                            <i key={event.id} style={{ backgroundColor: EVENT_TYPES[eventType(event)].color }} />
-                          ))}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
+              <div className="calendar-month-grid-area">
+                <div className="calendar-weeknums" aria-hidden="true">
+                  {rowWeeks.map((week, i) => <span key={i}>W{week}</span>)}
+                </div>
+                <div className="calendar-month-grid">
+                  {cells.map((d) => {
+                    const key = iso(d);
+                    const inMonth = d.getMonth() === month.getMonth();
+                    const active = key === selectedDate;
+                    const cellEvents = visibleEvents.filter(e => e.start.slice(0, 10) === key);
+                    return (
+                      <button
+                        key={key}
+                        className={`${inMonth ? "" : "outside"} ${active ? "selected" : ""} ${key === todayStr ? "today" : ""}`}
+                        onClick={() => { setSelectedDate(key); }}
+                      >
+                        <b>{d.getDate()}</b>
+                        {cellEvents.length > 0 && (
+                          <span className="calendar-month-dots">
+                            {cellEvents.slice(0, 3).map(event => (
+                              <i key={event.id} style={{ backgroundColor: EVENT_TYPES[eventType(event)].color }} />
+                            ))}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}

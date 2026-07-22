@@ -246,7 +246,10 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .calendar-month-header button:hover{background:var(--color-accent-soft)}
 .calendar-month-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;padding:8px 0 4px}
 .calendar-month-weekdays span{text-align:center;font-size:10px;font-weight:700;color:var(--color-ink-faint);text-transform:uppercase;letter-spacing:.02em}
-.calendar-month-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.calendar-month-grid-area{display:flex;gap:6px;align-items:stretch}
+.calendar-weeknums{display:flex;flex-direction:column;gap:3px;padding-top:0}
+.calendar-weeknums span{flex:1;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--color-ink-faint);letter-spacing:.01em;min-width:22px;text-align:center;padding-bottom:1px}
+.calendar-month-grid{display:grid;flex:1;grid-template-columns:repeat(7,1fr);gap:3px}
 .calendar-month-grid button{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--color-ink);font-size:13px;font-weight:500;transition:background var(--motion-fast) ease,transform var(--motion-fast) ease}
 .calendar-month-grid button:hover{background:var(--color-accent-soft)}
 .calendar-month-grid button:active{transform:scale(.9)}
