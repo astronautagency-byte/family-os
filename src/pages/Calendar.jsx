@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo, useState } from "react";
-import { CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, ExternalLink, Eye, EyeOff, LoaderCircle, MapPin, Moon, Plus, RefreshCw, Search, Settings2, Sparkles, Sun, Ticket, Trash2, TriangleAlert, Users, X } from "lucide-react";
+import { CalendarDays, CalendarPlus, ChevronDown, ChevronLeft, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, ExternalLink, Eye, EyeOff, LoaderCircle, MapPin, Moon, Plus, RefreshCw, Search, Settings2, Sparkles, Sun, Ticket, Trash2, TriangleAlert, Users, X } from "lucide-react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useFamily } from "../context/FamilyContext";
@@ -514,6 +514,16 @@ export default function CalendarPage() {
     const end = new Date((event.endTime || "").replace(" ", "T"));
     const validStart = !Number.isNaN(start.getTime());
     const validEnd = !Number.isNaN(end.getTime());
+    // Adding a muted-city event to the family calendar counts as the user
+    // re-engaging with that city — auto-unmute so future searches stop
+    // filtering that origin out and the muted-tier doesn't get stale.
+    if (event.origin === "nearby" && event.fromCity && excludedNearbyCities.has(event.fromCity)) {
+      setExcludedNearbyCities((prev) => {
+        const next = new Set(prev);
+        next.delete(event.fromCity);
+        return next;
+      });
+    }
     setDraft({
       title: event.name || "",
       date: validStart ? iso(start) : selectedDate,
@@ -614,6 +624,11 @@ export default function CalendarPage() {
   // originating search city. No fallback needed — mixing fromCity/venue.city
   // would let one chip click exclude some events but not others.
   const displayedNearbyEvents = totalNearbyEvents.filter((event) => !excludedNearbyCities.has(event.fromCity));
+  // Soft-tier: hard-filtered events from muted cities. They are removed
+  // from the active list (preserving the chip's quietness promise) but
+  // surfaced in a collapsible "Suggestions" section below, so a rare
+  // yearly event the user muted isn't silently lost.
+  const mutedNearbyEvents = totalNearbyEvents.filter((event) => excludedNearbyCities.has(event.fromCity));
   const displayedEvents = coverageLocalOnly
     ? userAreaEvents
     : excludedNearbyCities.size === 0
@@ -631,16 +646,18 @@ export default function CalendarPage() {
   const nearbyLabel = nearbyCities.length <= 3
     ? nearbyCities.join(", ")
     : `${nearbyCities.slice(0, 2).join(", ")} +${nearbyCities.length - 2} more`;
-  const hiddenNearbyCount = totalNearbyEvents.length - displayedNearbyEvents.length;
-  // Headline stays meaningful even when some chips are excluded, so the
-  // user can see the "actually visible" total alongside the chip-level
-  // toggles underneath.
+  const mutedCount = mutedNearbyEvents.length;
+  // The "below" hint is dropped whenever the soft tier won't render
+  // (local-only mode or zero muted events) — pointing to a tier that
+  // doesn't exist is worse than saying less. In local-only mode we still
+  // surface the muted count so the user knows what they're hiding.
+  const mutedHint = `${mutedCount} muted suggestion${mutedCount === 1 ? "" : "s"} below`;
   const coverageSummary = coverageLocalOnly
-    ? `Showing ${userAreaEvents.length} from ${userCityLabel}. ${totalNearbyEvents.length} nearby events hidden.`
-    : userAreaEvents.length === 0 && hiddenNearbyCount === totalNearbyEvents.length && totalNearbyEvents.length > 0
-      ? `Showing 0 from ${userCityLabel}. ${totalNearbyEvents.length} nearby events hidden.`
-      : hiddenNearbyCount > 0
-        ? `Showing ${userAreaEvents.length} from ${userCityLabel} + ${displayedNearbyEvents.length} from nearby (${nearbyLabel}). ${hiddenNearbyCount} hidden by your city selection.`
+    ? `Showing ${userAreaEvents.length} from ${userCityLabel}. ${mutedCount} muted.`
+    : userAreaEvents.length === 0 && mutedCount === totalNearbyEvents.length && totalNearbyEvents.length > 0
+      ? `No events from ${userCityLabel}. ${mutedHint}.`
+      : mutedCount > 0
+        ? `Showing ${userAreaEvents.length} from ${userCityLabel} + ${displayedNearbyEvents.length} from nearby (${nearbyLabel}). ${mutedHint}.`
         : `Showing ${userAreaEvents.length} from ${userCityLabel} + ${displayedNearbyEvents.length} from nearby (${nearbyLabel}).`;
   const coverageToggleDisabled = !coverageLocalOnly && userAreaEvents.length === 0;
 
@@ -1034,6 +1051,50 @@ export default function CalendarPage() {
                   </article>
                 ))}
               </div>
+              {/* ── Muted suggestions tier ──
+                  Surface events from muted cities in a collapsible low-priority
+                  section so rare-but-relevant events (a once-a-year Toronto
+                  marathon) aren't silently lost. Collapsed by default to
+                  preserve the chip's quietness promise — clicking it expands
+                  inline. Hidden in local-only mode (coverageLocalOnly). */}
+              {mutedNearbyEvents.length > 0 && !coverageLocalOnly && (
+                <details className="event-discovery-muted-tier">
+                  <summary>
+                    <ChevronDown aria-hidden="true" size={15} />
+                    <div>
+                      <strong>
+                        {mutedNearbyEvents.length} muted suggestion{mutedNearbyEvents.length === 1 ? "" : "s"}
+                      </strong>
+                      <small>
+                        from {Array.from(new Set(mutedNearbyEvents.map((event) => event.fromCity).filter(Boolean))).join(", ")} — tap to peek
+                      </small>
+                    </div>
+                  </summary>
+                  <div className="discovered-event-list discovered-event-list-muted">
+                    {mutedNearbyEvents.map((event) => (
+                      <article key={event.id}>
+                        <div className="discovered-event-thumb">
+                          {event.thumbnail ? <img src={event.thumbnail} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <Ticket aria-hidden="true" />}
+                        </div>
+                        <div className="discovered-event-copy">
+                          <div>
+                            <span>{event.dateLabel || (event.startTime ? new Date(event.startTime.replace(" ", "T")).toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" }) : "Date varies")}</span>
+                            {event.ticketSource && <small><Ticket aria-hidden="true" /> {event.ticketSource}</small>}
+                            <small className="discovered-event-from discovered-event-from-muted"><MapPin aria-hidden="true" /> {event.fromCity} (muted)</small>
+                          </div>
+                          <h3>{event.name}</h3>
+                          <p>{event.description || "Open the event page for details."}</p>
+                          <b><MapPin aria-hidden="true" />{event.virtual ? "Online event" : event.venue?.name || event.venue?.city || searchCities[0] || discoverLocation}</b>
+                          <footer>
+                            <button type="button" onClick={() => addDiscoveredEvent(event)}><CalendarPlus aria-hidden="true" /> Add to calendar</button>
+                            {event.link && <a href={event.link} target="_blank" rel="noreferrer">View details <ExternalLink aria-hidden="true" /></a>}
+                          </footer>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </details>
+              )}
               {resultDiagnostics?.expanded && (
                 <>
                   <div className="event-coverage-strip" role="status" aria-live="polite">

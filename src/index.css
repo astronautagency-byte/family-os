@@ -734,6 +734,24 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .coverage-city-chip-ghost{border-style:dashed;border-color:var(--color-border);background:transparent;color:var(--color-ink-faint);font-style:italic}
 .coverage-city-chip-ghost:hover{border-style:solid;border-color:var(--color-accent);color:var(--color-accent-strong);font-style:normal}
 .coverage-city-chip-ghost .coverage-city-count{background:transparent;color:inherit}
+
+/* Muted suggestions tier — collapsible low-priority section that surfaces
+   events from muted cities (e.g. a once-a-year Toronto marathon). Hard-
+   filtered from the main list to preserve chip quietness; this tier lets
+   the user peek without committing to a full unmute. */
+.event-discovery-muted-tier{margin-top:14px;padding:11px 14px;border:1px dashed color-mix(in srgb,var(--color-accent) 28%,var(--color-border));border-radius:14px;background:color-mix(in srgb,var(--color-accent) 4%,var(--color-surface))}
+.event-discovery-muted-tier>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;color:var(--color-ink);transition:color var(--motion-fast) cubic-bezier(.2,.8,.2,1)}
+.event-discovery-muted-tier>summary::-webkit-details-marker{display:none}
+.event-discovery-muted-tier>summary:hover{color:var(--color-accent-strong)}
+.event-discovery-muted-tier>summary>svg{transition:transform var(--motion-fast) cubic-bezier(.2,.8,.2,1);color:var(--color-accent);flex:0 0 auto}
+.event-discovery-muted-tier[open]>summary>svg{transform:rotate(180deg)}
+.event-discovery-muted-tier>summary>div{flex:1;min-width:0;display:grid;gap:1px}
+.event-discovery-muted-tier>summary strong{font-size:13px;font-weight:600}
+.event-discovery-muted-tier>summary small{font-size:11.5px;color:var(--color-ink-faint);line-height:1.35}
+.discovered-event-list-muted{margin-top:11px;max-height:min(40vh,440px);opacity:.82}
+.discovered-event-list-muted:hover,.discovered-event-list-muted:focus-within{opacity:1}
+.discovered-event-list-muted article{border-style:dashed;background:color-mix(in srgb,var(--color-accent) 3%,#fff)}
+.discovered-event-from-muted{background:color-mix(in srgb,var(--color-warn) 14%,transparent);color:var(--color-warn)}
 .coverage-city-name{font-weight:600}
 .coverage-city-count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 6px;border-radius:9px;background:color-mix(in srgb,var(--color-accent) 18%,transparent);color:var(--color-accent-strong);font-size:10.5px;font-weight:700}
 .coverage-city-chip.excluded .coverage-city-count{background:color-mix(in srgb,var(--color-ink-faint) 22%,transparent);color:var(--color-ink-faint);text-decoration:none}
