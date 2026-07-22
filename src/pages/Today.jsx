@@ -1,10 +1,96 @@
-import { useEffect, useState } from "react";
-import { CalendarDays, ChefHat, ChevronRight, CloudRain, Clock3, Home, ListChecks, MapPin, Megaphone, ShoppingCart, Sparkles, Sun, Users, X } from "lucide-react";
-import { useFamily } from "../context/FamilyContext";
+import { useEffect, useRef, useState } from "react";
+import { CalendarDays, ChefHat, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, Clock3, Droplets, Home, ListChecks, MapPin, Megaphone, Moon, ShoppingCart, Sparkles, Sun, TriangleAlert, Users, Wind, X } from "lucide-react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+import { BROADCAST_REACTIONS, useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, AvatarStack, Card, Checkbox, EmptyState, Tag, colorVar } from "../components/ui";
 import PageHeader from "../components/PageHeader";
+import { supabase } from "../lib/supabase";
 import { addDays, dailyEncouragement, formatDayLabel, formatTime, fullDateLabel, greetingInfo, todayISO } from "../lib/dates";
+
+// Map a normalised weather "kind" (+ day/night) to a lucide icon and label.
+const WEATHER_KIND = {
+  clear: { day: Sun, night: Moon, label: "Clear" },
+  "partly-cloudy": { day: CloudSun, night: CloudMoon, label: "Partly cloudy" },
+  cloudy: { day: Cloud, night: Cloud, label: "Cloudy" },
+  fog: { day: CloudFog, night: CloudFog, label: "Fog" },
+  drizzle: { day: CloudDrizzle, night: CloudDrizzle, label: "Drizzle" },
+  rain: { day: CloudRain, night: CloudRain, label: "Rain" },
+  snow: { day: CloudSnow, night: CloudSnow, label: "Snow" },
+  thunder: { day: CloudLightning, night: CloudLightning, label: "Storms" },
+};
+const weatherKind = (kind) => WEATHER_KIND[kind] || WEATHER_KIND.cloudy;
+function WeatherGlyph({ kind, isDay = true, size = 20 }) {
+  const meta = weatherKind(kind);
+  const Icon = isDay ? meta.day : meta.night;
+  return <Icon size={size} />;
+}
+
+// Open-Meteo WMO weather codes → our kind vocabulary (used only in the keyless fallback).
+const wmoToKind = (code) => {
+  const c = Number(code);
+  if (c === 0) return "clear";
+  if (c === 1 || c === 2) return "partly-cloudy";
+  if (c === 3) return "cloudy";
+  if (c === 45 || c === 48) return "fog";
+  if (c >= 51 && c <= 57) return "drizzle";
+  if ((c >= 61 && c <= 67) || (c >= 80 && c <= 82)) return "rain";
+  if ((c >= 71 && c <= 77) || c === 85 || c === 86) return "snow";
+  if (c >= 95) return "thunder";
+  return "cloudy";
+};
+
+const conditionLabel = (entry) => entry?.conditionText || weatherKind(entry?.kind).label;
+const dayLabel = (date) => {
+  const parsed = new Date(`${date}T00:00:00`);
+  return Number.isNaN(parsed.getTime()) ? "" : parsed.toLocaleDateString(undefined, { weekday: "short" });
+};
+const roundTemp = (value) => (Number.isFinite(Number(value)) ? Math.round(Number(value)) : "—");
+
+function BroadcastBanner({ item, sender, reactions, currentUserId, onReact, onClear }) {
+  const ref = useRef(null);
+  useGSAP(() => {
+    if (!ref.current) return undefined;
+    const media = gsap.matchMedia();
+    media.add("(prefers-reduced-motion: no-preference)", () => {
+      gsap.fromTo(ref.current, { autoAlpha: 0, y: -16, scale: 0.94 }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.55, ease: "back.out(1.7)" });
+    });
+    return () => media.revert();
+  }, { scope: ref });
+
+  return (
+    <div className="broadcast-banner" ref={ref}>
+      {sender ? <Avatar member={sender} size="md" /> : <span className="broadcast-banner-icon"><Megaphone size={18} /></span>}
+      <div className="broadcast-banner-body">
+        <div className="broadcast-banner-meta">
+          <strong>{sender?.name || "Family"}</strong>
+          <span className="broadcast-banner-time">{formatTime(item.sentAt)}</span>
+        </div>
+        <p>{item.text}</p>
+        <div className="broadcast-reactions">
+          {BROADCAST_REACTIONS.map((emoji) => {
+            const list = reactions.filter((reaction) => reaction.reaction === emoji);
+            const mine = list.some((reaction) => reaction.memberId === currentUserId);
+            return (
+              <button
+                key={emoji}
+                className={`broadcast-reaction ${mine ? "reacted" : ""} ${list.length ? "" : "empty"}`}
+                onClick={() => onReact(item.id, emoji)}
+                aria-label={`React ${emoji}${list.length ? ` (${list.length})` : ""}`}
+                aria-pressed={mine}
+              >
+                <span aria-hidden="true">{emoji}</span>
+                {list.length > 0 && <em>{list.length}</em>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <button className="broadcast-banner-clear" onClick={() => onClear(item.id)} aria-label="Clear broadcast"><X size={16} /></button>
+    </div>
+  );
+}
 
 function percent(part, total) {
   if (!total) return 0;
@@ -50,7 +136,7 @@ function ProgressLine({ label, value, total, color = "var(--color-accent)" }) {
 }
 
 export default function Today({ goTo }) {
-  const { members, memberById, events, googleEvents, feedEvents, meals, tasks, groceries, toggleTask, tabletMode, broadcasts, broadcastMessage, clearBroadcast } = useFamily();
+  const { members, memberById, events, googleEvents, feedEvents, meals, tasks, groceries, toggleTask, tabletMode, broadcasts, broadcastMessage, clearBroadcast, reactionsByMessage, reactToBroadcast, currentUserId } = useFamily();
   const { profile, user, householdProfileExtra } = useAuth();
   const [weather, setWeather] = useState(null);
   const [weatherError, setWeatherError] = useState("");
@@ -142,35 +228,69 @@ export default function Today({ goTo }) {
   useEffect(() => {
     if (!hasWeatherLocation) {
       setWeather(null);
-      return;
+      return undefined;
     }
     const controller = new AbortController();
-    const url = new URL("https://api.open-meteo.com/v1/forecast");
-    url.search = new URLSearchParams({
-      latitude: String(latitude),
-      longitude: String(longitude),
-      current: "temperature_2m,apparent_temperature,weather_code,precipitation,rain,wind_speed_10m",
-      hourly: "precipitation_probability,weather_code",
-      timezone: "auto",
-      forecast_days: "1",
-    });
-    fetch(url, { signal: controller.signal })
-      .then((response) => {
-        if (!response.ok) throw new Error("Weather is unavailable.");
-        return response.json();
-      })
-      .then((data) => {
-        const nowHour = data.current?.time?.slice(0, 13);
-        const index = data.hourly?.time?.findIndex((time) => time.startsWith(nowHour));
-        const rainChance = index >= 0 ? data.hourly.precipitation_probability?.[index] : Math.max(...(data.hourly?.precipitation_probability || [0]));
-        setWeather({ ...data.current, rainChance: rainChance || 0 });
-        setWeatherError("");
-      })
-      .catch((error) => { if (error.name !== "AbortError") setWeatherError(error.message); });
-    return () => controller.abort();
+    let cancelled = false;
+
+    // Keyless fallback (Open-Meteo) — used when the weatherapi edge function isn't
+    // deployed or fails. Normalised to the same shape as the edge function payload.
+    const fromOpenMeteo = async () => {
+      const url = new URL("https://api.open-meteo.com/v1/forecast");
+      url.search = new URLSearchParams({
+        latitude: String(latitude),
+        longitude: String(longitude),
+        current: "temperature_2m,apparent_temperature,weather_code,relative_humidity_2m,wind_speed_10m,is_day",
+        hourly: "precipitation_probability",
+        daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max",
+        timezone: "auto",
+        forecast_days: "3",
+      }).toString();
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) throw new Error("Weather is unavailable.");
+      const data = await response.json();
+      const cur = data.current || {};
+      const times = data.hourly?.time || [];
+      const nowHour = cur.time?.slice(0, 13);
+      const startIndex = Math.max(times.findIndex((time) => time.startsWith(nowHour)), 0);
+      const rainChance = data.hourly?.precipitation_probability?.[startIndex] || 0;
+      const daily = (data.daily?.time || []).map((date, i) => ({ date, maxC: data.daily.temperature_2m_max?.[i], minC: data.daily.temperature_2m_min?.[i], rainChance: data.daily.precipitation_probability_max?.[i] || 0, kind: wmoToKind(data.daily.weather_code?.[i]), conditionText: "" }));
+      return {
+        source: "open-meteo",
+        location: null,
+        current: { tempC: cur.temperature_2m, feelsLikeC: cur.apparent_temperature, kind: wmoToKind(cur.weather_code), conditionText: "", isDay: cur.is_day === 1, windKph: cur.wind_speed_10m || 0, humidity: cur.relative_humidity_2m || 0, uv: 0, rainChance },
+        daily,
+        alerts: [],
+      };
+    };
+
+    const run = async () => {
+      try {
+        if (supabase) {
+          const { data, error } = await supabase.functions.invoke("weather", { body: { latitude, longitude, days: 3 } });
+          if (!error && data && !data.error && data.current) {
+            if (!cancelled) { setWeather(data); setWeatherError(""); }
+            return;
+          }
+        }
+        const fallback = await fromOpenMeteo();
+        if (!cancelled) { setWeather(fallback); setWeatherError(""); }
+      } catch (error) {
+        if (cancelled || error?.name === "AbortError") return;
+        try {
+          const fallback = await fromOpenMeteo();
+          if (!cancelled) { setWeather(fallback); setWeatherError(""); }
+        } catch (fallbackError) {
+          if (!cancelled && fallbackError?.name !== "AbortError") setWeatherError(fallbackError.message || "Weather is unavailable.");
+        }
+      }
+    };
+    run();
+    return () => { cancelled = true; controller.abort(); };
   }, [hasWeatherLocation, latitude, longitude]);
 
-  const weatherRisk = weather && (weather.rainChance >= 50 || weather.wind_speed_10m >= 40);
+  const weatherNow = weather?.current;
+  const weatherRisk = weatherNow && (weatherNow.rainChance >= 50 || weatherNow.windKph >= 40);
   const disruptedEvents = weatherRisk ? todaysEvents.filter((event) => event.location) : [];
 
   return (
@@ -197,31 +317,51 @@ export default function Today({ goTo }) {
           {broadcastError && <p className="broadcast-compose-error">{broadcastError}</p>}
           {broadcasts.length > 0 && (
             <div className="broadcast-banner-list">
-              {broadcasts.map((item) => {
-                const sender = memberById[item.senderId];
-                return (
-                  <div className="broadcast-banner" key={item.id}>
-                    <span className="broadcast-banner-icon"><Megaphone size={18} /></span>
-                    <div className="broadcast-banner-body">
-                      <div className="broadcast-banner-meta"><strong>{sender?.name || "Family"}</strong><span>Broadcast · {formatTime(item.sentAt)}</span></div>
-                      <p>{item.text}</p>
-                    </div>
-                    <button className="broadcast-banner-clear" onClick={() => clearBroadcast(item.id)} aria-label="Clear broadcast"><X size={16} /></button>
-                  </div>
-                );
-              })}
+              {broadcasts.map((item) => (
+                <BroadcastBanner
+                  key={item.id}
+                  item={item}
+                  sender={memberById[item.senderId]}
+                  reactions={reactionsByMessage[item.id] || []}
+                  currentUserId={currentUserId}
+                  onReact={reactToBroadcast}
+                  onClear={clearBroadcast}
+                />
+              ))}
             </div>
           )}
         </section>
         <Card className="weather-now-card p-4">
-          <div className="weather-now-main">
-            <span>{weatherRisk ? <CloudRain size={22} /> : <Sun size={22} />}</span>
-            <div>
-              <strong>{weather ? `${Math.round(weather.temperature_2m)}°` : "Local weather"}</strong>
-              <small>{householdProfileExtra?.city || householdProfileExtra?.address || "Add your home address"}</small>
+          {weather?.alerts?.length > 0 && (
+            <div className="weather-alerts">
+              {weather.alerts.map((alert, index) => (
+                <div className="weather-alert" key={`${alert.event}-${index}`}>
+                  <TriangleAlert size={16} />
+                  <span><strong>{alert.event}</strong>{alert.headline && <small>{alert.headline}</small>}</span>
+                </div>
+              ))}
             </div>
-            {weather && <p>{weather.rainChance}% rain · Feels like {Math.round(weather.apparent_temperature)}° · Wind {Math.round(weather.wind_speed_10m)} km/h</p>}
+          )}
+          <div className="weather-now-main">
+            <span className={`weather-now-glyph ${weatherRisk ? "risk" : ""}`}>{weatherNow ? <WeatherGlyph kind={weatherNow.kind} isDay={weatherNow.isDay} size={24} /> : <Sun size={24} />}</span>
+            <div>
+              <strong>{weatherNow ? `${roundTemp(weatherNow.tempC)}°` : "Local weather"}</strong>
+              <small>{weatherNow ? `${conditionLabel(weatherNow)} · ${weather?.location?.name || householdProfileExtra?.city || householdProfileExtra?.address || "Your area"}` : householdProfileExtra?.city || householdProfileExtra?.address || "Add your home address"}</small>
+            </div>
+            {weatherNow && <p><Droplets size={13} /> {weatherNow.rainChance}% · Feels {roundTemp(weatherNow.feelsLikeC)}° · <Wind size={13} /> {Math.round(weatherNow.windKph)} km/h</p>}
           </div>
+          {weather?.daily?.length > 0 && (
+            <div className="weather-daily" aria-label="3-day forecast">
+              {weather.daily.map((day, index) => (
+                <div className="weather-day" key={day.date}>
+                  <span className="weather-day-label">{index === 0 ? "Today" : dayLabel(day.date)}</span>
+                  <WeatherGlyph kind={day.kind} isDay size={18} />
+                  <span className={`weather-day-rain ${day.rainChance >= 30 ? "wet" : ""}`}><Droplets size={11} /> {day.rainChance}%</span>
+                  <span className="weather-day-temps"><strong>{roundTemp(day.maxC)}°</strong> <em>{roundTemp(day.minC)}°</em></span>
+                </div>
+              ))}
+            </div>
+          )}
           {!hasWeatherLocation && <button onClick={() => goTo("settings")} className="weather-address-action"><MapPin size={16} /><span><strong>Add an address to turn on weather</strong><small>FamOS will also flag today’s location-based events when weather may disrupt them.</small></span><ChevronRight size={16} /></button>}
           {disruptedEvents.length > 0 && <button onClick={() => goTo("calendar")} className="weather-event-warning"><CloudRain size={16} /><span><strong>Weather may affect {disruptedEvents.length} event{disruptedEvents.length === 1 ? "" : "s"} today</strong><small>{disruptedEvents.map((event) => event.title).join(", ")}</small></span><ChevronRight size={16} /></button>}
           {weatherError && <small className="address-autocomplete-warning">{weatherError}</small>}

@@ -12,6 +12,18 @@ const json = (body: Record<string, unknown>, status = 200) => new Response(JSON.
 
 const cleanText = (value: unknown, max = 160) => typeof value === "string" ? value.trim().slice(0, max) : "";
 
+// SerpApi's google_events "date chips" — map the app's friendly `when` to a filter.
+const WHEN_CHIPS: Record<string, string> = {
+  today: "date:today",
+  tomorrow: "date:tomorrow",
+  "this week": "date:week",
+  week: "date:week",
+  "this weekend": "date:weekend",
+  weekend: "date:weekend",
+  "this month": "date:month",
+  month: "date:month",
+};
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (request.method !== "POST") return json({ error: "Method not allowed." }, 405);
@@ -22,9 +34,9 @@ Deno.serve(async (request) => {
 
     const url = Deno.env.get("SUPABASE_URL");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const apiKey = Deno.env.get("OPENWEBNINJA_API_KEY");
+    const apiKey = Deno.env.get("SERPAPI_KEY");
     if (!url || !serviceKey) return json({ error: "FamOS event discovery is not configured." }, 503);
-    if (!apiKey) return json({ error: "Local event discovery needs its OpenWeb Ninja API key configured." }, 503);
+    if (!apiKey) return json({ error: "Local event discovery needs its SerpApi key configured." }, 503);
 
     const admin = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
     const token = authorization.replace(/^Bearer\s+/i, "").trim();
@@ -34,76 +46,82 @@ Deno.serve(async (request) => {
     const body = await request.json().catch(() => ({}));
     const location = cleanText(body.location, 120);
     const category = cleanText(body.category, 40) || "family events";
-    const when = cleanText(body.when, 40) || "this weekend";
-    // Accept a list of cities to widen the search radius. Falls back to the
-    // single `location` string for backwards compatibility with older clients.
+    const when = cleanText(body.when, 40).toLowerCase();
+    const whenChip = WHEN_CHIPS[when] || "";
+
     const rawCities = Array.isArray(body.cities)
       ? body.cities.map((value: unknown) => cleanText(value, 120)).filter((value: string) => value.length >= 2)
       : [];
     const cities = Array.from(new Set(rawCities.length ? rawCities : (location.length >= 2 ? [location] : []))).slice(0, 6);
     if (!cities.length) return json({ error: "Add a home address in Settings to discover events nearby." }, 400);
 
-    const mapEvent = (event: Record<string, unknown>) => {
+    const mapEvent = (event: Record<string, unknown>, city: string) => {
+      const date = event.date && typeof event.date === "object" ? event.date as Record<string, unknown> : {};
       const venue = event.venue && typeof event.venue === "object" ? event.venue as Record<string, unknown> : {};
-      const ticketLinks = Array.isArray(event.ticket_links) ? event.ticket_links : [];
-      const infoLinks = Array.isArray(event.info_links) ? event.info_links : [];
-      const firstTicket = ticketLinks[0] && typeof ticketLinks[0] === "object" ? ticketLinks[0] as Record<string, unknown> : {};
-      const firstInfo = infoLinks[0] && typeof infoLinks[0] === "object" ? infoLinks[0] as Record<string, unknown> : {};
+      const ticketInfo = Array.isArray(event.ticket_info) ? event.ticket_info : [];
+      const firstTicket = ticketInfo[0] && typeof ticketInfo[0] === "object" ? ticketInfo[0] as Record<string, unknown> : {};
+      const addressParts = Array.isArray(event.address) ? event.address.map((part) => cleanText(part, 160)).filter(Boolean) : [];
+      const title = cleanText(event.title, 180);
+      const dateLabel = cleanText(date.start_date, 40) || cleanText(date.when, 60);
       return {
-        id: cleanText(event.event_id, 240) || crypto.randomUUID(),
-        name: cleanText(event.name, 180),
+        // SerpApi has no stable id — derive one so we can dedupe across cities.
+        id: `${title}|${cleanText(date.start_date, 40)}`.toLowerCase() || crypto.randomUUID(),
+        name: title,
         description: cleanText(event.description, 600),
-        startTime: cleanText(event.start_time, 40),
-        endTime: cleanText(event.end_time, 40),
-        virtual: Boolean(event.is_virtual),
-        thumbnail: cleanText(event.thumbnail, 500),
-        publisher: cleanText(event.publisher, 100),
-        link: cleanText(firstTicket.link, 500) || cleanText(event.link, 500) || cleanText(firstInfo.link, 500),
+        // SerpApi returns human date strings, not ISO. Keep a friendly label for
+        // display; leave startTime empty so the "add to calendar" flow uses sane defaults.
+        startTime: "",
+        endTime: "",
+        dateLabel,
+        when: cleanText(date.when, 80),
+        virtual: addressParts.some((part) => /online|virtual/i.test(part)),
+        thumbnail: cleanText(event.thumbnail, 500) || cleanText(event.image, 500),
+        publisher: cleanText(firstTicket.source, 100) || cleanText(venue.name, 100),
+        link: cleanText(event.link, 500) || cleanText(firstTicket.link, 500),
         ticketSource: cleanText(firstTicket.source, 80),
         venue: {
-          name: cleanText(venue.name, 160),
-          address: cleanText(venue.full_address, 240),
-          city: cleanText(venue.city, 100),
+          name: cleanText(venue.name, 160) || addressParts[0] || "",
+          address: addressParts.join(", "),
+          city: cleanText(venue.city, 100) || city,
           rating: typeof venue.rating === "number" ? venue.rating : null,
         },
-        tags: Array.isArray(event.tags) ? event.tags.filter((tag: unknown) => typeof tag === "string").slice(0, 5) : [],
+        tags: [],
       };
     };
 
     const fetchCity = async (city: string) => {
-      const endpoint = new URL("https://api.openwebninja.com/realtime-events-data/search-events");
-      endpoint.searchParams.set("query", `${category} in ${city} ${when}`);
-      const response = await fetch(endpoint, { headers: { "x-api-key": apiKey } });
+      const endpoint = new URL("https://serpapi.com/search.json");
+      endpoint.searchParams.set("engine", "google_events");
+      endpoint.searchParams.set("q", `${category} in ${city}, Canada`);
+      endpoint.searchParams.set("hl", "en");
+      endpoint.searchParams.set("gl", "ca"); // Canada only, for now.
+      if (whenChip) endpoint.searchParams.set("htichips", whenChip);
+      endpoint.searchParams.set("api_key", apiKey);
+      const response = await fetch(endpoint);
       const payload = await response.json().catch(() => null);
-      if (!response.ok) {
-        const message = payload?.message || payload?.error || `Event provider returned HTTP ${response.status}.`;
-        throw new Error(String(message));
+      if (!response.ok || payload?.error) {
+        throw new Error(String(payload?.error || `Event provider returned HTTP ${response.status}.`));
       }
-      return Array.isArray(payload) ? payload
-        : Array.isArray(payload?.data) ? payload.data
-        : Array.isArray(payload?.events) ? payload.events
-        : Array.isArray(payload?.data?.events) ? payload.data.events
-        : [];
+      const results = Array.isArray(payload?.events_results) ? payload.events_results : [];
+      return results.map((event: Record<string, unknown>) => mapEvent(event, city));
     };
 
     const settled = await Promise.allSettled(cities.map(fetchCity));
-    const rawEvents = settled.flatMap((result) => result.status === "fulfilled" ? result.value : []);
-    if (!rawEvents.length) {
+    const mapped = settled.flatMap((result) => result.status === "fulfilled" ? result.value : []);
+    if (!mapped.length) {
       const firstError = settled.find((result) => result.status === "rejected") as PromiseRejectedResult | undefined;
       if (firstError) return json({ error: firstError.reason instanceof Error ? firstError.reason.message : "Event provider error." }, 502);
     }
 
-    // Merge results across cities and drop duplicates by event id (or name+time).
     const seen = new Set<string>();
-    const events = rawEvents.map(mapEvent).filter((event: { id: string; name: string; startTime: string }) => {
+    const events = mapped.filter((event: { id: string; name: string }) => {
       if (!event.name) return false;
-      const key = event.id || `${event.name}|${event.startTime}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
+      if (seen.has(event.id)) return false;
+      seen.add(event.id);
       return true;
     }).slice(0, 24);
 
-    return json({ events, cities, provider: "OpenWeb Ninja" });
+    return json({ events, cities, provider: "SerpApi (Google Events)", country: "ca" });
   } catch (error) {
     console.error("search-local-events failed", error);
     return json({ error: error instanceof Error ? error.message : "Could not load local events." }, 500);

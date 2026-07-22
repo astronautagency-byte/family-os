@@ -80,6 +80,9 @@ function makeId(prefix) {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
+// Emoji reactions a family member can tap on a broadcast.
+export const BROADCAST_REACTIONS = ["❤️", "👍", "😄", "🎉"];
+
 async function getNotificationRegistration(timeoutMs = 900) {
   if (!("serviceWorker" in navigator)) return null;
   return Promise.race([
@@ -115,6 +118,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
   const [groceries, setGroceries] = useState(saved?.groceries ?? initialGroceries);
   const [tasks, setTasks] = useState(saved?.tasks ?? initialTasks);
   const [messages, setMessages] = useState(saved?.messages ?? initialMessages);
+  const [messageReactions, setMessageReactions] = useState(saved?.messageReactions ?? []);
   const [expenses, setExpenses] = useState(saved?.expenses ?? []);
   const [weeklyBudget, setWeeklyBudgetState] = useState(saved?.weeklyBudget ?? 0);
   const [monthlyBudget, setMonthlyBudgetState] = useState(saved?.monthlyBudget ?? 0);
@@ -240,13 +244,13 @@ export function FamilyProvider({ children, tabletMode = false }) {
 
   useEffect(() => {
     if (remote) return;
-    const payload = JSON.stringify({ members, events, meals, groceries, tasks, messages, expenses, weeklyBudget, monthlyBudget, financePeriod });
+    const payload = JSON.stringify({ members, events, meals, groceries, tasks, messages, messageReactions, expenses, weeklyBudget, monthlyBudget, financePeriod });
     try {
       localStorage.setItem(STORAGE_KEY, payload);
     } catch (e) {
       console.warn("Could not save Family OS data locally.", e);
     }
-  }, [members, events, meals, groceries, tasks, messages, expenses, weeklyBudget, monthlyBudget, financePeriod, remote]);
+  }, [members, events, meals, groceries, tasks, messages, messageReactions, expenses, weeklyBudget, monthlyBudget, financePeriod, remote]);
 
   const mapProfile = (row, membershipRole) => ({
     id: row.id,
@@ -274,6 +278,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
   const mapEvent = (row) => ({ id: row.id, title: row.title, start: row.starts_at, end: row.ends_at, location: row.location, source: row.source === "familyos" ? "local" : row.source, externalId: row.external_id || null, calendarId: row.external_calendar_id || null, memberIds: (row.event_participants || []).map((p) => p.user_id) });
   const mapMeal = (row) => ({ id: row.id, date: row.meal_date, slot: row.slot, title: row.title, notes: row.notes, cookIds: row.cook_ids || [] });
   const mapMessage = (row) => ({ id: row.id, senderId: row.sender_id, recipientId: row.recipient_id || null, text: row.body, sentAt: row.created_at, source: row.source || "famos", sourceSender: row.source_sender || "", broadcast: row.broadcast === true });
+  const mapReaction = (row) => ({ id: row.id, messageId: row.message_id, memberId: row.member_id, reaction: row.reaction, createdAt: row.created_at });
   const mapExpense = (row) => ({
     id: row.id,
     description: row.description,
@@ -314,6 +319,9 @@ export function FamilyProvider({ children, tabletMode = false }) {
         setMonthlyBudgetState(Number(financeResult.data?.monthly_budget || 0));
         setFinancePeriodState(financeResult.data?.tracking_period || "weekly");
       }
+      // Reactions are optional — a missing table (pre-migration) must not block the rest.
+      const reactionsResult = await supabase.from("message_reactions").select("*").eq("household_id", household.id);
+      if (!reactionsResult.error) setMessageReactions(reactionsResult.data.map(mapReaction));
     } catch (e) { setDataError(e.message || "Could not load household data."); }
     finally { setDataLoading(false); }
   };
@@ -328,6 +336,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "events", filter: `household_id=eq.${household.id}` }, (payload) => notifyFromChange("events", payload))
       .on("postgres_changes", { event: "*", schema: "public", table: "meals", filter: `household_id=eq.${household.id}` }, (payload) => { notifyFromChange("meals", payload); loadRemoteData(); })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `household_id=eq.${household.id}` }, (payload) => { notifyFromChange("messages", payload); loadRemoteData(); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "message_reactions", filter: `household_id=eq.${household.id}` }, loadRemoteData)
       .on("postgres_changes", { event: "*", schema: "public", table: "expenses", filter: `household_id=eq.${household.id}` }, loadRemoteData)
       .on("postgres_changes", { event: "*", schema: "public", table: "household_members", filter: `household_id=eq.${household.id}` }, loadRemoteData)
       .on("postgres_changes", { event: "*", schema: "public", table: "household_finance_settings", filter: `household_id=eq.${household.id}` }, loadRemoteData)
@@ -597,6 +606,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
       const row = { household_id: household.id, sender_id: user.id, recipient_id: null, body, broadcast: true };
       let result = await supabase.from("messages").insert(row).select().single();
       if (result.error && /broadcast|schema cache|column/i.test(result.error.message || "")) {
+        // Broadcast column not deployed yet — fall back to a plain household message.
         const { broadcast: _broadcast, ...compatibleRow } = row;
         result = await supabase.from("messages").insert(compatibleRow).select().single();
       }
@@ -623,6 +633,37 @@ export function FamilyProvider({ children, tabletMode = false }) {
       }
     }
     setMessages((prev) => prev.map((message) => message.id === id ? { ...message, broadcast: false } : message));
+  };
+
+  // Reactions grouped by message id, so the Today banner can render counts + who-reacted.
+  const reactionsByMessage = useMemo(() => {
+    const grouped = {};
+    for (const reaction of messageReactions) {
+      (grouped[reaction.messageId] ||= []).push(reaction);
+    }
+    return grouped;
+  }, [messageReactions]);
+
+  // Toggle the current member's reaction on a broadcast (tap once to add, again to remove).
+  const reactToBroadcast = async (messageId, reaction) => {
+    if (!messageId || !BROADCAST_REACTIONS.includes(reaction)) return;
+    const mine = messageReactions.find((item) => item.messageId === messageId && item.memberId === currentUserId && item.reaction === reaction);
+    if (remote) {
+      if (mine) {
+        setMessageReactions((prev) => prev.filter((item) => item.id !== mine.id));
+        const { error } = await supabase.from("message_reactions").delete().eq("id", mine.id);
+        if (error) loadRemoteData();
+      } else {
+        const row = { message_id: messageId, household_id: household.id, member_id: user.id, reaction };
+        const { data, error } = await supabase.from("message_reactions").insert(row).select().single();
+        if (error) { if (!/duplicate|unique/i.test(error.message || "")) setDataError(error.message); return; }
+        setMessageReactions((prev) => [...prev, mapReaction(data)]);
+      }
+    } else if (mine) {
+      setMessageReactions((prev) => prev.filter((item) => item.id !== mine.id));
+    } else {
+      setMessageReactions((prev) => [...prev, { id: makeId("react"), messageId, memberId: currentUserId, reaction, createdAt: new Date().toISOString() }]);
+    }
   };
 
   // ---- Finance ----
@@ -1055,7 +1096,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
     groceries, addGrocery, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries, clearGroceries,
     tasks: visibleTasks, addTask, toggleTask, updateTask, removeTask, clearTasks,
     messages: visibleMessages, sendMessage, importMessages, clearFamilyChat, clearMyDirectMessages,
-    unreadMessageCount, markChatRead, broadcasts, broadcastMessage, clearBroadcast,
+    unreadMessageCount, markChatRead, broadcasts, broadcastMessage, clearBroadcast, reactionsByMessage, reactToBroadcast, currentUserId,
     expenses, weeklyBudget, monthlyBudget, financePeriod, addExpense, removeExpense, setFinanceBudget, setFinancePeriod,
     resetToDemoData,
     dataLoading, dataError, refreshData: loadRemoteData,
