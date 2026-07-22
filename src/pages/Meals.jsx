@@ -69,6 +69,14 @@ const recipeFromSearch = (data) => {
   return list[0] || null;
 };
 
+// Pull all recipes from a search response (used by the roulette picker
+// which now requests 3 results so the family can choose).
+const recipesFromSearch = (data) => {
+  if (!data) return [];
+  const root = data?.data && typeof data.data === "object" ? data.data : data;
+  return Array.isArray(root?.recipes) ? root.recipes : [];
+};
+
 // Skinny recipe used while we wait for API Ninjas. Cook Mode renders the
 // title alone so the family still gets a holdable target even when the
 // instructions blob hasn't arrived yet.
@@ -124,6 +132,8 @@ export default function Meals() {
   const badgeTimerRef = useRef(null);
   const [, forceUpdate] = useState(0);
   useEffect(() => () => { if (badgeTimerRef.current) window.clearTimeout(badgeTimerRef.current); }, []);
+  const [rouletteOptions, setRouletteOptions] = useState(null); // { date, slot, recipes[] }
+  const [rouletteBusy, setRouletteBusy] = useState(false);
   const [savedRecipes, setSavedRecipes] = useState(() => readStoredJson(SAVED_RECIPES_KEY, []));
   const [planningRecipe, setPlanningRecipe] = useState(null);
   const [dietaryPreferences, setDietaryPreferences] = useState(() => {
@@ -182,22 +192,21 @@ export default function Meals() {
     // title only, so we need a phrase like "Italian chicken pasta" instead of
     // passing mealType/dietary metadata that no recipe title contains.
     const query = `${cuisine} ${ingredient}`.trim().slice(0, 120);
+    setRouletteBusy(true);
     const { data, error } = await supabase.functions.invoke("recipe-search", { body: { query } }).catch(() => ({ data: null, error: new Error("offline") }));
     const recipeErr = data?.error || error?.message;
-    const recipe = !recipeErr ? recipeFromSearch(data) : null;
-    if (!recipe?.title) {
+    const list = !recipeErr ? recipesFromSearch(data) : [];
+    if (list.length === 0) {
       await setMealForSlot(date, slot, {
         title: `${cuisine} ${slot} pick`,
         notes: recipeErr ? "Add a title above and tap Cook to look up steps." : "Add a title above and tap Cook.",
         cookIds: [],
       });
+      setRouletteBusy(false);
       return;
     }
-    await setMealForSlot(date, slot, {
-      title: recipe.title,
-      notes: `${SLOT_META[slot].label} roulette · ${cuisine}`,
-      cookIds: [],
-    });
+    setRouletteOptions({ date, slot, recipes: list.slice(0, 3), cuisine });
+    setRouletteBusy(false);
   };
 
   const chooseSavedRecipe = async (recipeToPlan) => {
@@ -569,7 +578,7 @@ export default function Meals() {
         />
 
         <div className="meal-editor-tools">
-          <button onClick={() => editing && rouletteForSlot(editing.date, editing.slot).then(() => setEditing(null))}><Dices size={16} /> Roulette</button>
+          <button onClick={() => { if (editing) { rouletteForSlot(editing.date, editing.slot); setEditing(null); } }}><Dices size={16} /> Roulette</button>
           <button onClick={() => setShowSavedRecipes((value) => !value)}><Bookmark size={16} /> Saved recipes</button>
         </div>
         {showSavedRecipes && (
@@ -615,6 +624,50 @@ export default function Meals() {
         </div>
       </Modal>
       <Modal open={clearing} onClose={()=>setClearing(false)} title="Clear the meal plan?"><p className="reset-confirm-copy">This clears planned meals. Your ideas and family members stay put.</p><div className="reset-confirm-actions"><button onClick={()=>setClearing(false)}>Cancel</button><PrimaryButton onClick={async()=>{await clearMeals();setClearing(false)}}>Clear meals</PrimaryButton></div></Modal>
+
+      {/* Roulette picker — shows up to 3 recipe options from API Ninjas */}
+      <Modal open={!!rouletteOptions} onClose={() => setRouletteOptions(null)} title={rouletteOptions ? `${SLOT_META[rouletteOptions.slot].label} roulette` : ""}>
+        <div className="roulette-picker">
+          {rouletteOptions && (
+            <>
+              <p className="roulette-picker-intro">API Ninjas found {rouletteOptions.recipes.length} recipe{rouletteOptions.recipes.length === 1 ? "" : "s"} for <strong>{rouletteOptions.cuisine}</strong>. Pick one or spin again.</p>
+              <div className="roulette-picker-list">
+                {rouletteOptions.recipes.map((recipe, index) => (
+                  <button
+                    key={`${recipe.title}-${index}`}
+                    className="roulette-picker-card"
+                    onClick={async () => {
+                      await setMealForSlot(rouletteOptions.date, rouletteOptions.slot, {
+                        title: recipe.title,
+                        notes: `${SLOT_META[rouletteOptions.slot].label} roulette · ${rouletteOptions.cuisine}`,
+                        cookIds: [],
+                      });
+                      setRouletteOptions(null);
+                    }}
+                  >
+                    <span className="roulette-picker-index">{index + 1}</span>
+                    <div className="roulette-picker-copy">
+                      <strong>{recipe.title}</strong>
+                      <small>
+                        {recipe.readyInMinutes ? `${recipe.readyInMinutes} min` : ""}
+                        {recipe.servings ? ` · Serves ${recipe.servings}` : ""}
+                      </small>
+                    </div>
+                    <ChefHat size={16} className="roulette-picker-arrow" />
+                  </button>
+                ))}
+              </div>
+              <div className="roulette-picker-actions">
+                <button className="roulette-picker-spin" disabled={rouletteBusy} onClick={() => { setRouletteOptions(null); rouletteForSlot(rouletteOptions.date, rouletteOptions.slot); }}>
+                  <Dices size={14} /> Spin again
+                </button>
+                <button className="roulette-picker-close" onClick={() => setRouletteOptions(null)}>Cancel</button>
+              </div>
+            </>
+          )}
+        </div>
+      </Modal>
+
       <Modal open={!!planningRecipe} onClose={() => setPlanningRecipe(null)} title={planningRecipe ? `Add ${planningRecipe.title}` : "Add recipe to plan"}>
         <p className="saved-plan-intro">Choose when you want to make it. Selecting an occupied meal replaces the current plan.</p>
         <div className="saved-plan-days">

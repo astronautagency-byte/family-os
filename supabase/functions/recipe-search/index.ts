@@ -21,7 +21,7 @@ const corsHeaders = {
 const API_NINJAS_URL = "https://api.api-ninjas.com/v3/recipe";
 const API_NINJAS_SOURCE = "https://api-ninjas.com/api/recipe";
 const DEFAULT_SERVINGS = 4;
-const DEFAULT_RESULT_LIMIT = 1; // Free-tier default per docs.
+const DEFAULT_RESULT_LIMIT = 3; // Free-tier default was 1; requesting 3 so the roulette picker has options to show.
 
 const cleanText = (input = "", maxLength = 200) =>
   String(input || "")
