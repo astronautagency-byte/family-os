@@ -1012,32 +1012,61 @@ export default function CalendarPage() {
                   returned empty AND has a country-specific major-city list
                   to suggest. Tapping a pill adds that city to discoverCities
                   and reruns the search so a small-town user (e.g. Newmarket)
-                  can see real events from Toronto / Markham / etc. */}
-              {Array.isArray(resultDiagnostics?.availableNearby) && resultDiagnostics.availableNearby.length > 0 && (
-                <div className="event-discovery-nearby">
-                  <span>Try a nearby major area</span>
-                  <div className="event-discovery-nearby-pills">
-                    {resultDiagnostics.availableNearby.map((nearby) => (
-                      <button
-                        type="button"
-                        key={nearby}
-                        className="event-discovery-nearby-pill"
-                        // Compute nextCities locally so we hand a stable value
-                        // straight to runSearch — don't rely on the React
-                        // setter callback alone, since the call site reads
-                        // `discoverCities` synchronously before the state
-                        // is committed.
-                        onClick={() => {
-                          const base = discoverCities.length ? discoverCities : (discoverLocation ? [discoverLocation] : []);
-                          const nextCities = base.includes(nearby) ? base : [...base, nearby];
-                          setDiscoverCities(nextCities);
-                          runSearch(nextCities);
-                        }}
-                      >+ {nearby}</button>
-                    ))}
+                  can see real events from Toronto / Markham / etc.
+
+                  Phase 2 already auto-queries the first 3 availableNearby
+                  (expandedCities). We surface those as an "already checked"
+                  small label so the user understands why each pill wasn't
+                  tried for them, and only render pills for cities the
+                  Orchestrator has NOT yet asked either provider about. Tapping
+                  a pill triggers a full refresh (not a re-paint of an
+                  already-empty Phase 2 result), so it costs one API call per
+                  pill tap and avoids wasted Phase 2 retries. */}
+              {Array.isArray(resultDiagnostics?.availableNearby) && resultDiagnostics.availableNearby.length > 0 && (() => {
+                const triedSet = new Set((resultDiagnostics.expandedCities || []).map((c) => c.toLowerCase()));
+                const untried = resultDiagnostics.availableNearby.filter((city) => !triedSet.has(city.toLowerCase()));
+                if (!untried.length) {
+                  // Every availableNearby was tried in Phase 2 — nothing to surface beyond
+                  // the "already checked" label, which still helps the user understand
+                  // why "Try again" with the same params won't help.
+                  const alreadyTriedAll = resultDiagnostics.availableNearby;
+                  return (
+                    <div className="event-discovery-nearby event-discovery-nearby-empty">
+                      <span>Nearby areas with no events today</span>
+                      <small className="event-discovery-already-checked">Already checked: {alreadyTriedAll.join(", ")}</small>
+                    </div>
+                  );
+                }
+                const alreadyTried = (resultDiagnostics.expandedCities || []).filter((city) => resultDiagnostics.availableNearby.includes(city));
+                return (
+                  <div className="event-discovery-nearby">
+                    <span>Try a nearby major area we haven’t checked yet</span>
+                    {alreadyTried.length > 0 && (
+                      <small className="event-discovery-already-checked">Already checked: {alreadyTried.join(", ")}</small>
+                    )}
+                    <div className="event-discovery-nearby-pills">
+                      {untried.map((nearby) => (
+                        <button
+                          type="button"
+                          key={nearby}
+                          className="event-discovery-nearby-pill"
+                          // Compute nextCities locally so we hand a stable value
+                          // straight to runSearch — don't rely on the React
+                          // setter callback alone, since the call site reads
+                          // `discoverCities` synchronously before the state
+                          // is committed.
+                          onClick={() => {
+                            const base = discoverCities.length ? discoverCities : (discoverLocation ? [discoverLocation] : []);
+                            const nextCities = base.includes(nearby) ? base : [...base, nearby];
+                            setDiscoverCities(nextCities);
+                            runSearch(nextCities);
+                          }}
+                        >+ {nearby}</button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
           )}
           {!discoverBusy && discoveredEvents.length > 0 && (
