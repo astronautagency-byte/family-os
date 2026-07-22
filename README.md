@@ -185,14 +185,21 @@ supabase functions deploy recipe-search
 
 API Ninjas provides recipe data for Cook Mode, the meal suggestion roulette, and grocery-based meal idea suggestions. The function sends the key as the `X-Api-Key` header. The free tier returns up to 3 recipes per query and supports both recipe-name search (`title`) and ingredient-based search (`ingredients`) independently.
 
-### Local event discovery (SerpApi)
+### Local event discovery (SerpApi + Ticketmaster, both optional)
+
+The `search-local-events` function fans out across two providers in parallel:
 
 ```bash
+#Paid — Google Events scraper (100 free searches/month, then paid tier)
 supabase secrets set SERPAPI_KEY=your_serpapi_key
+
+#Free — Ticketmaster Discovery API (5,000 calls/day, no paid tier needed)
+supabase secrets set TICKETMASTER_API_KEY=your_ticketmaster_api_key
+
 supabase functions deploy search-local-events
 ```
 
-SerpApi scrapes Google Events to find local family activities, festivals, and experiences. Results are grouped by city and merged before display. The free tier includes 100 searches/month.
+Results from both providers merge into a single deduped list. Each event carries a `provider` field (`google_events` or `ticketmaster`) so future UI can surface attribution. If only one provider is configured, the other is skipped silently — set neither and the function returns a clear error message about which key is missing. The free Ticketmaster tier covers ~5,000 family searches per day before any paid SerpApi quota is consumed.
 
 ### Weather forecasts
 

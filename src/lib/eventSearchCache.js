@@ -4,7 +4,10 @@
 // Errors are never cached (only successful responses with results).
 
 const CACHE_PREFIX_BASE = "famos_";
-const STORAGE_PREFIX = "famos_event_search:v1:";
+// v2 prefix: bumped when each event gained a `provider` field
+// (SerpApi + Ticketmaster). Old v1 entries don't share the same storage
+// prefix so reads ignore them naturally — no manual invalidation needed.
+const STORAGE_PREFIX = "famos_event_search:v2:";
 const TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
 
 const safeStorage = () => {

@@ -87,6 +87,70 @@ const GOOGLE_DOMAIN_FOR_COUNTRY: Record<string, string> = {
   jp: "google.co.jp", sg: "google.com.sg",
 };
 
+// ──── Ticketmaster Discovery API ────
+// Free read-only tier (5,000 calls/day default, ~5 req/sec). ISO 3166-1
+// alpha-2 codes map directly to Ticketmaster's `countryCode` parameter.
+// Cities filter against the venue's city field — we send the user's
+// exact city names and rely on TM's geocoder for resolution.
+const TICKETMASTER_COUNTRY: Record<string, string> = {
+  ca: "CA", us: "US", mx: "MX",
+  gb: "GB", uk: "GB",
+  au: "AU", nz: "NZ",
+  de: "DE", fr: "FR", es: "ES", it: "IT", pt: "PT",
+  nl: "NL", ie: "IE",
+};
+
+// Resolve [startDateTime, endDateTime] ISO 8601 from our `when` enum.
+// Ticketmaster's Discovery API uses absolute ISO dates (not natural
+// language), so the orchestrator converts the shared enum once and
+// SerpApi uses its htichips form separately.
+const computeTimeRange = (when: string): { startDateTime: string; endDateTime: string } => {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  switch ((when || "").toLowerCase()) {
+    case "today":
+      end.setDate(end.getDate() + 1);
+      break;
+    case "tomorrow":
+      start.setDate(start.getDate() + 1);
+      end.setDate(end.getDate() + 2);
+      break;
+    case "week":
+    case "this week":
+      end.setDate(end.getDate() + 7);
+      break;
+    case "weekend":
+    case "this weekend":
+      // Saturday → Monday morning (a weekend event could run Friday night).
+      const dayOfWeek = start.getDay();
+      const daysUntilSat = (6 - dayOfWeek + 7) % 7 || 7;
+      start.setDate(start.getDate() + daysUntilSat);
+      end.setDate(start.getDate() + 2);
+      break;
+    case "next weekend":
+      const dow = start.getDay();
+      const offset = (6 - dow + 7) % 7 || 14;
+      start.setDate(start.getDate() + offset);
+      end.setDate(start.getDate() + 2);
+      break;
+    case "month":
+    case "this month":
+      end.setMonth(end.getMonth() + 1);
+      break;
+    case "next month":
+      start.setMonth(start.getMonth() + 1);
+      end.setMonth(end.getMonth() + 2);
+      break;
+    default:
+      end.setDate(end.getDate() + 7);
+  }
+  return {
+    startDateTime: start.toISOString().slice(0, 19) + "Z",
+    endDateTime: end.toISOString().slice(0, 19) + "Z",
+  };
+};
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (request.method !== "POST") return json({ error: "Method not allowed." }, 405);
@@ -98,9 +162,14 @@ Deno.serve(async (request) => {
 
     const url = Deno.env.get("SUPABASE_URL");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const apiKey = Deno.env.get("SERPAPI_KEY");
+    const serpApiKey = Deno.env.get("SERPAPI_KEY");
+    const ticketmasterKey = Deno.env.get("TICKETMASTER_API_KEY");
     if (!url || !serviceKey) return json({ error: "FamOS event discovery is not configured." }, 503);
-    if (!apiKey) return json({ error: "Local event discovery needs its SerpApi key configured." }, 503);
+    // Both providers are independently optional. Empty results is fine —
+    // the diagnostics will surface which provider ran (or both) so the
+    // user can tell whether the empty list came from a missing key vs
+    // a genuine zero-result query.
+    if (!serpApiKey && !ticketmasterKey) return json({ error: "Local event discovery needs SerpApi or Ticketmaster configured." }, 503);
 
     const admin = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
     const token = authorization.replace(/^Bearer\s+/i, "").trim();
@@ -137,7 +206,8 @@ Deno.serve(async (request) => {
     };
     if (!cities.length) return json({ error: "Add a home address in Settings to discover events nearby." }, 400);
 
-    const mapEvent = (event: Record<string, unknown>, city: string, origin: "user" | "nearby") => {
+    // ──── SerpApi (Google Events) mapper ────
+    const mapSerpEvent = (event: Record<string, unknown>, city: string, origin: "user" | "nearby") => {
       const date = event.date && typeof event.date === "object" ? event.date as Record<string, unknown> : {};
       const venue = event.venue && typeof event.venue === "object" ? event.venue as Record<string, unknown> : {};
       const ticketInfo = Array.isArray(event.ticket_info) ? event.ticket_info : [];
@@ -167,10 +237,84 @@ Deno.serve(async (request) => {
         origin,
         fromCity: city,
         tags: [],
+        provider: "google_events" as const,
       };
     };
 
-    const fetchCity = async (city: string, origin: "user" | "nearby") => {
+    // ──── Ticketmaster Discovery API mapper ────
+    // Ticketmaster returns rich structured data: id, name, url, dates,
+    // images[], priceRanges[], and _embedded.venues[]. We map into our
+    // existing event shape so Calendar.jsx needs no UI changes. Fields
+    // we can't fill cleanly (description, dateLabel) get sensible
+    // fallbacks rather than fabricated text.
+    const mapTicketmasterEvent = (event: Record<string, unknown>, city: string, origin: "user" | "nearby") => {
+      const dates = event.dates && typeof event.dates === "object" ? event.dates as Record<string, unknown> : {};
+      const startObj = dates.start && typeof dates.start === "object" ? dates.start as Record<string, unknown> : {};
+      const images = Array.isArray(event.images) ? event.images : [];
+      const image = images[0] && typeof images[0] === "object" ? images[0] as Record<string, unknown> : {};
+      const venues = event._embedded && typeof event._embedded === "object" && Array.isArray((event._embedded as Record<string, unknown>).venues)
+        ? (event._embedded as Record<string, unknown>).venues as Array<Record<string, unknown>>
+        : [];
+      const venue = venues[0] || {};
+      const venueName = cleanText(venue.name, 160);
+      const venueAddress = venue.address && typeof venue.address === "object" ? venue.address as Record<string, unknown> : {};
+      const venueCity = venue.city && typeof venue.city === "object" ? venue.city as Record<string, unknown> : {};
+      const countryName = venueCountry && typeof venueCountry === "object" ? venueCountry as Record<string, unknown> : {};
+      const addressParts = [
+        cleanText(venueAddress.line1, 160),
+        cleanText(venueAddress.line2, 160),
+      ].filter(Boolean);
+      const startDateTime = cleanText(startObj.dateTime, 32) || cleanText(startObj.localDate, 32);
+      const startDateOnly = cleanText(startObj.localDate, 32);
+      // dateLabel prefers Ticketmaster's structured localDate + localTime
+      // which is already in the user's timezone, so we render it cleanly.
+      let dateLabel = "";
+      if (startDateOnly) {
+        const timeOnly = cleanText(startObj.localTime, 16);
+        const parsed = new Date(`${startDateOnly}T${(timeOnly || "00:00:00").slice(0, 8)}`);
+        if (!Number.isNaN(parsed.getTime())) {
+          dateLabel = parsed.toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" });
+        }
+      }
+      if (!dateLabel && startDateTime) {
+        const parsed = new Date(startDateTime);
+        if (!Number.isNaN(parsed.getTime())) dateLabel = parsed.toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" });
+      }
+      const tmId = cleanText(event.id, 80);
+      const tmUrl = cleanText(event.url, 500);
+      const name = cleanText(event.name, 180);
+      return {
+        // Prefix with provider tag so the dedupe set can never collide
+        // with a SerpApi event whose id lowercase-matches something
+        // Ticketmaster generated (paranoid but cheap).
+        id: tmId ? `tm:${tmId}` : (name ? `tm:${name}|${startDateOnly}`.toLowerCase() : crypto.randomUUID()),
+        name,
+        description: name, // Ticketmaster doesn't expose long descriptions; surface name as description so Calendar renders something legible
+        startTime: startDateTime,
+        endTime: typeof dates.end === "object" && dates.end && cleanText((dates.end as Record<string, unknown>).dateTime, 32),
+        dateLabel,
+        when: dateLabel,
+        virtual: addressParts.some((part) => /online|virtual/i.test(part)),
+        thumbnail: cleanText(image.url, 500),
+        publisher: venueName || "Ticketmaster",
+        link: tmUrl,
+        ticketSource: "Ticketmaster",
+        venue: {
+          name: venueName,
+          address: addressParts.join(", "),
+          city: cleanText(venueCity.name, 100) || city,
+          rating: null,
+        },
+        origin,
+        fromCity: city,
+        tags: cleanText(event.classifications && Array.isArray(event.classifications) && (event.classifications[0] as Record<string, unknown>)?.segment?.name, 60)
+          ? [{ label: cleanText((event.classifications[0] as Record<string, unknown>).segment.name, 60) }]
+          : [],
+        provider: "ticketmaster" as const,
+      };
+    };
+
+    const fetchSerpCity = async (city: string, origin: "user" | "nearby", apiKey: string) => {
       const endpoint = new URL("https://serpapi.com/search.json");
       endpoint.searchParams.set("engine", "google_events");
       endpoint.searchParams.set("q", category);          // q is just the category; date and city are NOT in q.
@@ -188,49 +332,67 @@ Deno.serve(async (request) => {
         throw new Error(String(payload?.error || `Event provider returned HTTP ${response.status}.`));
       }
       const results = Array.isArray(payload?.events_results) ? payload.events_results : [];
-      return results.map((event: Record<string, unknown>) => mapEvent(event, city, origin));
+      return results.map((event: Record<string, unknown>) => mapSerpEvent(event, city, origin));
     };
 
-    const runBatch = async (batch: Array<{ city: string; origin: "user" | "nearby" }>) => {
-      const settled = await Promise.allSettled(batch.map((b) => fetchCity(b.city, b.origin)));
-      const mapped: Array<{ city: string; origin: "user" | "nearby"; events: ReturnType<typeof mapEvent>[] }> = [];
-      const errors: { city: string; message: string }[] = [];
-      for (let batchIndex = 0; batchIndex < settled.length; batchIndex += 1) {
-        const result = settled[batchIndex];
-        const { city, origin } = batch[batchIndex];
-        if (result.status === "fulfilled") {
-          mapped.push({ city, origin, events: result.value });
-          console.log(JSON.stringify({
-            event: "family_local_events_fetch",
-            requestId, city, origin,
-            count: result.value.length,
-            htichips: whenChip || null,
-            gl: country,
-          }));
-        } else {
-          const message = result.reason instanceof Error ? result.reason.message : String(result.reason);
-          errors.push({ city, message });
-          console.warn(JSON.stringify({
-            event: "family_local_events_fetch_failed",
-            requestId, city, origin, message,
-          }));
+    const fetchTicketmasterCity = async (city: string, origin: "user" | "nearby", apiKey: string) => {
+      const endpoint = new URL("https://app.ticketmaster.com/discovery/v2/events.json");
+      endpoint.searchParams.set("apikey", apiKey);
+      endpoint.searchParams.set("city", city);
+      const tmCountry = TICKETMASTER_COUNTRY[country];
+      if (tmCountry) endpoint.searchParams.set("countryCode", tmCountry);
+      const { startDateTime, endDateTime } = computeTimeRange(when);
+      endpoint.searchParams.set("startDateTime", startDateTime);
+      endpoint.searchParams.set("endDateTime", endDateTime);
+      endpoint.searchParams.set("size", "20");
+      endpoint.searchParams.set("sort", "date,asc");
+      const response = await fetch(endpoint);
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || payload?.error) {
+        throw new Error(String(payload?.error?.message || payload?.error || `Ticketmaster returned HTTP ${response.status}.`));
+      }
+      const embedded = payload?._embedded;
+      const events = Array.isArray(embedded?.events) ? embedded.events : [];
+      return events.map((event: Record<string, unknown>) => mapTicketmasterEvent(event, city, origin));
+    };
+
+    const runProvider = async (
+      citiesForBatch: string[],
+      origin: "user" | "nearby",
+      fetcher: (city: string, origin: "user" | "nearby") => Promise<Array<Record<string, unknown>>>,
+      providerLabel: string,
+    ) => {
+      const mapped: Array<{ city: string; origin: "user" | "nearby"; events: ReturnType<typeof mapSerpEvent>[] }> = [];
+      const errors: { city: string; message: string; provider: string }[] = [];
+      if (!citiesForBatch.length) return { mapped, errors };
+      const batchSize = 2; // respect both providers' per-second quotas at the city-batch granularity
+      for (let index = 0; index < citiesForBatch.length; index += batchSize) {
+        const batch = citiesForBatch.slice(index, index + batchSize).map((city) => ({ city, origin }));
+        const settled = await Promise.allSettled(batch.map((b) => fetcher(b.city, b.origin)));
+        for (let batchIndex = 0; batchIndex < settled.length; batchIndex += 1) {
+          const result = settled[batchIndex];
+          const { city } = batch[batchIndex];
+          if (result.status === "fulfilled") {
+            mapped.push({ city, origin, events: result.value });
+          } else {
+            const message = result.reason instanceof Error ? result.reason.message : String(result.reason);
+            errors.push({ city, message, provider: providerLabel });
+          }
         }
       }
       return { mapped, errors };
     };
 
-    // ── Phase 1: search the user's exact cities. Rate-limited to 2 in
-    //    parallel per batch — keeps us safely under SerpApi's free-tier
-    //    per-minute ceiling.
-    const userMapped: Array<{ city: string; origin: "user" | "nearby"; events: ReturnType<typeof mapEvent>[] }> = [];
-    const userErrors: { city: string; message: string }[] = [];
-    const batchSize = Math.min(2, cities.length);
-    for (let index = 0; index < cities.length; index += batchSize) {
-      const batch = cities.slice(index, index + batchSize).map((city) => ({ city, origin: "user" as const }));
-      const { mapped, errors } = await runBatch(batch);
-      userMapped.push(...mapped);
-      userErrors.push(...errors);
-    }
+    // ── Phase 1: search the user's exact cities. Run SerpApi and
+    //    Ticketmaster in parallel — both providers hit each user city.
+    //    Rate-limited to 2 in-flight per provider per batch so we stay
+    //    safely under both SerpApi's per-minute and Ticketmaster's 5 rps.
+    const [serpApiPhase1, ticketmasterPhase1] = await Promise.all([
+      serpApiKey ? runProvider(cities, "user", (city, origin) => fetchSerpCity(city, origin, serpApiKey), "google_events") : Promise.resolve({ mapped: [], errors: [] }),
+      ticketmasterKey ? runProvider(cities, "user", (city, origin) => fetchTicketmasterCity(city, origin, ticketmasterKey), "ticketmaster") : Promise.resolve({ mapped: [], errors: [] }),
+    ]);
+    const userMapped = [...serpApiPhase1.mapped, ...ticketmasterPhase1.mapped];
+    const userErrors = [...serpApiPhase1.errors, ...ticketmasterPhase1.errors];
     // Cheap telemetry so we can measure the savings: do a single log line
     // when the client sent a muted set, even if it had no impact on this
     // particular request (cities might already be filtered by user list).
@@ -241,6 +403,14 @@ Deno.serve(async (request) => {
         mutedCities: Array.from(mutedSet),
       }));
     }
+    if (ticketmasterKey && userMapped.length === 0) {
+      console.log(JSON.stringify({
+        event: "family_local_events_tm_coverage_log",
+        requestId,
+        userMapped: serpApiPhase1.mapped.length,
+        tmMapped: ticketmasterPhase1.mapped.length,
+      }));
+    }
 
     // ── Phase 2 (conditional): auto-expand to nearby major areas when the
     //    user's own cities returned only a sparse result set. Threshold of
@@ -248,6 +418,9 @@ Deno.serve(async (request) => {
     //    return 0–3 real indexed events, while neighbouring metro areas
     //    return dozens. Auto-expansion supplements without overwhelming
     //    results when the user already had good coverage.
+    //    Per architecture decision: only SerpApi participates here. The
+    //    5 rps Ticketmaster ceiling is too tight to multiply by an
+    //    implicit "+ 3 nearby cities" without informing the user.
     const totalUserEvents = userMapped.reduce((sum, m) => sum + m.events.length, 0);
     const nearbyForCountry = NEARBY_CITIES[country] || [];
     // Two filters applied: (a) the contributing city isn't already in the
@@ -261,29 +434,27 @@ Deno.serve(async (request) => {
       .filter((nearby) => !isMuted(nearby))
       .slice(0, 8);
     const userCleanZeroCount = userMapped.filter((m) => m.events.length === 0).length;
-    const nearbyCandidates = (totalUserEvents < 4
+    const nearbyCandidates = serpApiKey && (totalUserEvents < 4
       && userCleanZeroCount > 0
       && userErrors.length < cities.length)
       ? availableNearby.slice(0, 3)
       : [];
 
-    const nearbyMapped: Array<{ city: string; origin: "user" | "nearby"; events: ReturnType<typeof mapEvent>[] }> = [];
-    const nearbyErrors: { city: string; message: string }[] = [];
-    if (nearbyCandidates.length) {
-      const nearbyBatchSize = Math.min(2, nearbyCandidates.length);
-      for (let index = 0; index < nearbyCandidates.length; index += nearbyBatchSize) {
-        const batch = nearbyCandidates.slice(index, index + nearbyBatchSize).map((city) => ({ city, origin: "nearby" as const }));
-        const { mapped, errors } = await runBatch(batch);
-        nearbyMapped.push(...mapped);
-        nearbyErrors.push(...errors);
-      }
-    }
+    const [serpApiPhase2] = await Promise.all([
+      nearbyCandidates.length && serpApiKey
+        ? runProvider(nearbyCandidates, "nearby", (city, origin) => fetchSerpCity(city, origin, serpApiKey), "google_events")
+        : Promise.resolve({ mapped: [], errors: [] }),
+    ]);
+    const nearbyMapped = serpApiPhase2.mapped;
+    const nearbyErrors = serpApiPhase2.errors;
 
     const allMapped = [...userMapped, ...nearbyMapped];
     const allErrors = [...userErrors, ...nearbyErrors];
 
     // First-seen-wins dedupe by event id; user-city entries precede nearby
-    // entries so user cities' events win on ties.
+    // entries so user cities' events win on ties. The `tm:` and `gv:` /
+    // unprefixed prefixes (SerpApi ids are title|date lowercased) prevent
+    // collisions between the two providers.
     const flatEvents = allMapped.flatMap((entry) => entry.events);
     const seen = new Set<string>();
     const events = flatEvents.filter((event: { id: string; name: string }) => {
@@ -293,10 +464,13 @@ Deno.serve(async (request) => {
       return true;
     }).slice(0, 24);
 
-    const request = { category, when, whenChip: whenChip || null, country, cities };
+    const requestPayload = { category, when, whenChip: whenChip || null, country, cities };
     const totalEvents = events.length;
     const totalCities = cities.length + nearbyCandidates.length;
     const failCount = allErrors.length;
+    // Provider status considers the union of both providers' results.
+    // A single SerpApi city failing while Ticketmaster succeeds in the
+    // same city is `partial_upstream_error`, not a hard failure.
     const deriveProviderStatus = () => {
       if (totalEvents > 0) return failCount > 0 ? "partial_upstream_error" : "ok";
       if (failCount > 0 && failCount < totalCities) return "partial_upstream_error";
@@ -304,13 +478,16 @@ Deno.serve(async (request) => {
       return "empty_results";
     };
     const providerStatus = deriveProviderStatus();
+    const serpEvents = events.filter((e: { provider?: string }) => e.provider === "google_events").length;
+    const ticketmasterEvents = events.filter((e: { provider?: string }) => e.provider === "ticketmaster").length;
     const diagnostics = {
       perCityCounts: allMapped.map((entry) => ({ city: entry.city, origin: entry.origin, count: entry.events.length })),
-      failedCities: allErrors.map((entry) => ({ city: entry.city, message: entry.message })),
+      failedCities: allErrors.map((entry) => ({ city: entry.city, message: entry.message, provider: entry.provider })),
       succeededCities: allMapped.map((entry) => entry.city),
       expanded: nearbyCandidates.length > 0,
       expandedCities: nearbyCandidates,
       availableNearby,
+      providerCounts: { google_events: serpEvents, ticketmaster: ticketmasterEvents },
     };
 
     if (events.length === 0) {
@@ -318,8 +495,13 @@ Deno.serve(async (request) => {
         return json({
           events: [],
           cities,
-          provider: "SerpApi (Google Events)",
-          country, request, providerStatus, diagnostics,
+          provider: serpApiKey && ticketmasterKey
+            ? "SerpApi + Ticketmaster"
+            : serpApiKey ? "SerpApi (Google Events)" : "Ticketmaster",
+          country,
+          request: requestPayload,
+          providerStatus,
+          diagnostics,
           error: allErrors[0]?.message || "Event provider could not be reached.",
         }, 502);
       }
@@ -328,8 +510,9 @@ Deno.serve(async (request) => {
         requestId, providerStatus,
         perCityCounts: diagnostics.perCityCounts,
         expanded: diagnostics.expanded,
+        providerCounts: diagnostics.providerCounts,
       }));
-      return json({ events: [], cities, provider: "SerpApi (Google Events)", country, request, providerStatus, diagnostics });
+      return json({ events: [], cities, provider: serpApiKey && ticketmasterKey ? "SerpApi + Ticketmaster" : serpApiKey ? "SerpApi (Google Events)" : "Ticketmaster", country, request: requestPayload, providerStatus, diagnostics });
     }
 
     if (providerStatus === "partial_upstream_error") {
@@ -343,8 +526,8 @@ Deno.serve(async (request) => {
 
     return json({
       events, cities,
-      provider: "SerpApi (Google Events)",
-      country, request, providerStatus, diagnostics,
+      provider: serpApiKey && ticketmasterKey ? "SerpApi + Ticketmaster" : serpApiKey ? "SerpApi (Google Events)" : "Ticketmaster",
+      country, request: requestPayload, providerStatus, diagnostics,
     });
   } catch (error) {
     console.error("search-local-events failed", error);
