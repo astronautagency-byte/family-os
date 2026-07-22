@@ -279,8 +279,31 @@ export function AuthProvider({ children }) {
       setMemberProfile(localMemberProfile);
 
       if (membership?.role === "owner") {
-        const localProfileComplete = localStorage.getItem(onboardingProfileKey(membership.household_id, nextSession.user.id)) === "true";
-        const profileComplete = Boolean(householdProfileData?.completed_at) || localProfileComplete;
+        const onboardingKey = onboardingProfileKey(membership.household_id, nextSession.user.id);
+        const localProfileComplete = localStorage.getItem(onboardingKey) === "true";
+        let activityInferredComplete = false;
+        // If we have no completed_at row AND no localStorage flag, see whether
+        // the household already looks "set up" by virtue of having any
+        // tasks / messages / events / meals / grocery_items. If yes, treat
+        // onboarding as done and cache via the same localStorage key the
+        // server-side write uses, so future refreshes skip the count query.
+        if (!householdProfileData?.completed_at && !localProfileComplete) {
+          const activityResults = await Promise.all([
+            supabase.from("tasks").select("id", { count: "exact", head: true }).eq("household_id", membership.household_id),
+            supabase.from("messages").select("id", { count: "exact", head: true }).eq("household_id", membership.household_id),
+            supabase.from("events").select("id", { count: "exact", head: true }).eq("household_id", membership.household_id),
+            supabase.from("meals").select("id", { count: "exact", head: true }).eq("household_id", membership.household_id),
+            supabase.from("grocery_items").select("id", { count: "exact", head: true }).eq("household_id", membership.household_id),
+          ]);
+          const activeTotal = activityResults.reduce((sum, result) => sum + (result.count || 0), 0);
+          if (activeTotal > 0) {
+            activityInferredComplete = true;
+            // Cache via the existing localStorage path so this branches once,
+            // not on every focus / token-refresh re-run of refreshAccount.
+            try { localStorage.setItem(onboardingKey, "true"); } catch { /* storage full/disabled — fine */ }
+          }
+        }
+        const profileComplete = Boolean(householdProfileData?.completed_at) || localProfileComplete || activityInferredComplete;
         if (!profileComplete) {
           setOnboardingRequired(true);
         } else {
