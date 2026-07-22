@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Bookmark, CalendarPlus, CandyOff, Check, ChefHat, Clock, Coffee, Dices, FishOff, Leaf, ListChecks, MilkOff, NutOff, ShoppingCart, Soup, Sparkles, Sprout, Trash2, Users, WheatOff, X } from "lucide-react";
+import { ArrowLeft, BarChart3, Bookmark, CalendarPlus, CandyOff, Check, ChefHat, Clock, Coffee, Dices, FishOff, Leaf, ListChecks, MilkOff, NutOff, ShoppingCart, Soup, Sparkles, Sprout, Trash2, Users, WheatOff, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { AvatarStack, Card, Modal, PrimaryButton, SecondaryButton, TextField, colorVar } from "../components/ui";
@@ -101,6 +101,8 @@ export default function Meals() {
   const [cookMode, setCookMode] = useState(false);
   const [cookStep, setCookStep] = useState(0);
   const [cookIngredientsAdded, setCookIngredientsAdded] = useState(false);
+  const [cookNutrition, setCookNutrition] = useState(null);
+  const [cookNutritionLoading, setCookNutritionLoading] = useState(false);
   const [savedRecipes, setSavedRecipes] = useState(() => readStoredJson(SAVED_RECIPES_KEY, []));
   const [planningRecipe, setPlanningRecipe] = useState(null);
   const [dietaryPreferences, setDietaryPreferences] = useState(() => {
@@ -205,6 +207,7 @@ export default function Meals() {
     setCookStep(0);
     setCookIngredientsAdded(false);
     setCookError("");
+    setCookNutrition(null);
     setCookLoading(true);
 
     if (!supabase) {
@@ -227,6 +230,15 @@ export default function Meals() {
         return;
       }
       setCookRecipe({ ...placeholderRecipe(meal.title, meal.slot), ...recipe });
+
+      // Fetch nutrition data in parallel with the recipe display.
+      setCookNutritionLoading(true);
+      supabase.functions.invoke("recipe-nutrition", {
+        body: { ingredients: recipe.ingredients },
+      }).then(({ data: nutData, error: nutError }) => {
+        if (!nutError && nutData?.totals) setCookNutrition(nutData.totals);
+        setCookNutritionLoading(false);
+      }).catch(() => setCookNutritionLoading(false));
     } catch (error) {
       setCookError(error?.message || "Recipe lookup failed.");
     } finally {
@@ -283,6 +295,18 @@ export default function Meals() {
     setCookError("");
     setCookLoading(false);
     setCookIngredientsAdded(true);
+    setCookNutrition(null);
+    setCookNutritionLoading(false);
+    // Fetch nutrition data for saved recipes that have ingredients.
+    if (saved.ingredients?.length && supabase) {
+      setCookNutritionLoading(true);
+      supabase.functions.invoke("recipe-nutrition", {
+        body: { ingredients: saved.ingredients },
+      }).then(({ data: nutData, error: nutError }) => {
+        if (!nutError && nutData?.totals) setCookNutrition(nutData.totals);
+        setCookNutritionLoading(false);
+      }).catch(() => setCookNutritionLoading(false));
+    }
   };
 
   const addSavedRecipeToPlan = async (date, slot) => {
@@ -567,6 +591,28 @@ export default function Meals() {
                           ? "✓ All groceries covered"
                           : "No ingredients to add yet"}
                   </button>
+                </Card>
+                <Card className="cook-panel cook-nutrition-card">
+                  <div className="cook-panel-head"><BarChart3 size={18} /><h3>Nutrition facts</h3></div>
+                  {cookNutrition ? (
+                    <div className="cook-nutrition-grid">
+                      <div className="cook-nutrition-main">
+                        <strong>{Math.round(cookNutrition.calories)}</strong>
+                        <span>calories</span>
+                      </div>
+                      <div className="cook-nutrition-row"><span>Protein</span><b>{cookNutrition.protein_g}g</b></div>
+                      <div className="cook-nutrition-row"><span>Carbs</span><b>{cookNutrition.carbohydrates_total_g}g</b></div>
+                      <div className="cook-nutrition-row"><span>Fat</span><b>{cookNutrition.fat_total_g}g</b></div>
+                      <div className="cook-nutrition-row"><span>Saturated</span><b>{cookNutrition.fat_saturated_g}g</b></div>
+                      <div className="cook-nutrition-row"><span>Fiber</span><b>{cookNutrition.fiber_g}g</b></div>
+                      <div className="cook-nutrition-row"><span>Sugar</span><b>{cookNutrition.sugar_g}g</b></div>
+                      <div className="cook-nutrition-row"><span>Sodium</span><b>{Math.round(cookNutrition.sodium_mg)}mg</b></div>
+                    </div>
+                  ) : cookNutritionLoading ? (
+                    <p className="cook-nutrition-loading">Looking up nutrition data…</p>
+                  ) : (
+                    <p className="cook-panel-note">Nutrition facts load from API Ninjas when ingredients are available.</p>
+                  )}
                 </Card>
                 <Card className="cook-panel">
                   <div className="cook-panel-head"><ChefHat size={18} /><h3>Steps ahead</h3></div>

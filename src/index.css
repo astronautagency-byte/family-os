@@ -926,6 +926,18 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .cook-photo-card img{width:100%;height:100%;min-height:220px;object-fit:cover}
 .cook-status{display:flex;align-items:center;gap:8px;margin:0 0 14px;padding:11px 13px;border-radius:15px;background:#fff;border:1px solid var(--color-border);color:var(--color-ink-soft);font-size:12px;font-weight:800}.cook-status.subtle{background:#fff;color:var(--color-ink-soft)}
 .cook-focus-layout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.cook-panel{padding:18px!important;background:#fff!important}.cook-panel-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}.cook-panel-head h3{margin:0;font:780 20px/1.05 var(--font-display);letter-spacing:-.035em}.cook-panel-head svg{color:var(--color-accent)}
+
+/* Recipe nutrition card */
+.cook-nutrition-card{grid-column:1/-1}
+.cook-nutrition-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:6px 0 2px}
+.cook-nutrition-main{grid-column:1/-1;display:flex;align-items:baseline;gap:8px;padding:12px 14px;border:1px solid var(--color-border);border-radius:var(--radius-control);background:var(--color-accent-soft)}
+.cook-nutrition-main strong{font:840 36px/1 var(--font-display);letter-spacing:-.055em;color:var(--color-accent-strong)}
+.cook-nutrition-main span{color:var(--color-accent-strong);font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+.cook-nutrition-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--color-border);border-radius:var(--radius-pill-sm);background:var(--color-surface-sunken)}
+.cook-nutrition-row span{font-size:11.5px;font-weight:650;color:var(--color-ink-soft)}
+.cook-nutrition-row b{font-size:13px;font-weight:800;color:var(--color-ink)}
+.cook-nutrition-loading{padding:16px 12px;color:var(--color-ink-faint);font-size:13px}
+@media(max-width:600px){.cook-nutrition-grid{grid-template-columns:repeat(2,1fr)}}
 .cook-panel-note{margin:0 0 14px;color:var(--color-ink-soft);font-size:13px;line-height:1.4}
 .cook-plain-list{display:grid;gap:8px;margin:0;padding:0;list-style:none;color:var(--color-ink-soft);font-size:14px;line-height:1.4}.cook-plain-list li{padding:10px 12px;border-radius:var(--radius-pill-sm);background:var(--color-surface-sunken);border:1px solid var(--color-border)}.cook-plain-list.ordered{counter-reset:cook-step}.cook-plain-list.ordered li{position:relative;padding-left:42px}.cook-plain-list.ordered li::before{counter-increment:cook-step;content:counter(cook-step);position:absolute;left:11px;top:10px;width:22px;height:22px;display:grid;place-items:center;border-radius:50%;background:var(--color-accent);color:#fff;font-size:11px;font-weight:900}
 .cook-secondary-action,.cook-source-link{display:flex;align-items:center;justify-content:center;width:100%;margin-top:14px;padding:12px 14px;border-radius:15px;background:var(--color-accent-soft);color:var(--color-accent);font-size:13px;font-weight:850;text-align:center}
