@@ -49,16 +49,27 @@ const dayLabel = (date) => {
 };
 const roundTemp = (value) => (Number.isFinite(Number(value)) ? Math.round(Number(value)) : "—");
 
-// Quick-start chips shown above the composer when it's empty. Tap one to fill the
-// input with a friendly starter line — turns the empty composer into a tiny
-// guide ("choose a starter or write your own").
-const PROMPT_CHIPS = [
-  { emoji: "👋", label: "Quick hello", text: "Hey fam, just checking in 👋" },
-  { emoji: "🍝", label: "Dinner?", text: "Dinner tonight: " },
-  { emoji: "⚡", label: "Heads up", text: "Heads up — " },
-  { emoji: "❤️", label: "Love you", text: "Love you all ❤️" },
-  { emoji: "🎉", label: "Big news", text: "Big news — " },
+// Tap-to-prepend emoji "stickers" that live INSIDE the input box. Each tap
+// drops the emoji + space at the start of whatever the user is typing so the
+// caret stays where they're working — keeps the composer playful without
+// adding a separate row of buttons below.
+const EMOJI_STICKERS = ["👋", "🍝", "⚡", "❤️", "🎉"];
+
+// Friendly rotating placeholders shown when the input is empty and unfocused.
+// Mirrors the spirit of the deleted Quick-start chips but stays inline as a
+// single line of hint copy. Cycles every 4.5s; pauses on focus / typed text.
+const BROADCAST_PLACEHOLDERS = [
+  "Say hi to the fam 👋",
+  "What's happening tonight? 🍝",
+  "Big news — share it 🎉",
+  "Heads up, family ⚡",
+  "Tell everyone you're thinking of them ❤️",
 ];
+
+// Drifting decorative emoji halos behind the composer. Pure CSS animation —
+// blurred, sparse, intentionally tiny so they register as ambient confetti,
+// not noise. aria-hidden so they never reach assistive tech.
+const DRIFT_BUBBLES = ["✨", "❤️", "🎉", "🌟"];
 
 // Confetti palette matches the daypart sunrise gradient (kept in CSS vars so the
 // day/morning/evening variants pick up automatically).
@@ -168,6 +179,19 @@ export default function Today({ goTo }) {
   const [broadcastError, setBroadcastError] = useState("");
   const [broadcastFocused, setBroadcastFocused] = useState(false);
   const composeContainerRef = useRef(null);
+  const composerInputRef = useRef(null);
+  const [placeholderIdx, setPlaceholderIdx] = useState(0);
+
+  // Cycle through friendly placeholders while the composer is "true empty"
+  // (no focus, no text). The moment a user touches it, the cycling stops so
+  // the placeholder never competes with what they're typing.
+  useEffect(() => {
+    if (broadcastFocused || broadcastText.length > 0) return undefined;
+    const id = setInterval(() => {
+      setPlaceholderIdx((prev) => (prev + 1) % BROADCAST_PLACEHOLDERS.length);
+    }, 4500);
+    return () => clearInterval(id);
+  }, [broadcastFocused, broadcastText]);
 
   // Tiny DOM confetti burst on successful broadcast. Pure CSS keyframe — no
   // dependency, micro-cost, removed after one play. The CSS rules also honour
@@ -193,13 +217,22 @@ export default function Today({ goTo }) {
     }
   };
 
-  const applyPrompt = (text) => {
-    setBroadcastText(text);
-    const input = composeContainerRef.current?.querySelector(".broadcast-compose input");
-    if (input) {
-      input.focus();
-      input.setSelectionRange(text.length, text.length);
-    }
+  const applySticker = (emoji) => {
+    // Prepend emoji + space; never clobber existing text. Caret jumps to the
+    // very end so the user can keep typing their message immediately.
+    const prefix = `${emoji} `;
+    setBroadcastText((prev) => {
+      const next = prev.startsWith(prefix) ? prev : `${prefix}${prev}`;
+      return next;
+    });
+    requestAnimationFrame(() => {
+      const input = composerInputRef.current;
+      if (input) {
+        input.focus();
+        const newValue = input.value;
+        input.setSelectionRange(newValue.length, newValue.length);
+      }
+    });
   };
 
   const postBroadcast = async (event) => {
@@ -219,7 +252,6 @@ export default function Today({ goTo }) {
   // focused, or actively sending a message. CSS owns the wiggle keyframe; we
   // just flip the `is-idle` class.
   const composerIdle = !broadcastReady && !broadcastFocused && !broadcasting;
-  const showPrompts = composerIdle;
   const today = todayISO();
   const weekDays = Array.from({ length: 7 }, (_, index) => addDays(today, index));
   const weekEnd = weekDays[weekDays.length - 1];
@@ -380,6 +412,11 @@ export default function Today({ goTo }) {
       <div className="px-5 space-y-6 mt-2">
         <section className="broadcast-home" aria-label="Family broadcast">
           <div className="broadcast-confetti-host" ref={composeContainerRef}>
+            <div className="broadcast-deco-bubbles" aria-hidden="true">
+              {DRIFT_BUBBLES.map((emoji, index) => (
+                <span key={emoji} className={`broadcast-deco-bubble broadcast-deco-bubble-${index + 1}`}>{emoji}</span>
+              ))}
+            </div>
             <form
               className="broadcast-compose"
               onSubmit={postBroadcast}
@@ -387,38 +424,36 @@ export default function Today({ goTo }) {
               <span
                 className={`broadcast-compose-icon ${composerIdle ? "is-idle" : ""}`}
                 aria-hidden="true"
-              ><Megaphone size={18} /></span>
+              ><Megaphone size={20} /></span>
+              <div className="broadcast-stickers" role="group" aria-label="Quick emoji starters">
+                {EMOJI_STICKERS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    tabIndex={-1}
+                    className="broadcast-sticker"
+                    onClick={() => applySticker(emoji)}
+                    aria-label={`Start with ${emoji}`}
+                  >
+                    <span aria-hidden="true">{emoji}</span>
+                  </button>
+                ))}
+              </div>
               <input
+                ref={composerInputRef}
                 value={broadcastText}
                 onChange={(event) => setBroadcastText(event.target.value)}
                 onFocus={() => setBroadcastFocused(true)}
                 onBlur={() => setBroadcastFocused(false)}
-                placeholder="Broadcast a note to everyone’s home screen…"
+                placeholder={BROADCAST_PLACEHOLDERS[placeholderIdx]}
                 aria-label="Broadcast a message to the family"
                 maxLength={4000}
               />
-              <button type="submit" className={broadcastReady ? "is-ready" : ""} disabled={!broadcastReady || broadcasting} aria-live="polite">
+              <button type="submit" className={`broadcast-submit ${broadcastReady ? "is-ready" : ""}`} disabled={!broadcastReady || broadcasting} aria-live="polite">
                 {broadcasting ? <LoaderCircle className="broadcast-spin" size={14} aria-hidden="true" /> : <PartyPopper size={14} aria-hidden="true" />}
                 {broadcasting ? "Sending…" : "Broadcast"}
               </button>
             </form>
-            {showPrompts && (
-              <div className="broadcast-chips" role="list" aria-label="Quick broadcast starters">
-                {PROMPT_CHIPS.map((chip) => (
-                  <button
-                    key={chip.emoji}
-                    type="button"
-                    role="listitem"
-                    className="broadcast-chip"
-                    onClick={() => applyPrompt(chip.text)}
-                    aria-label={`Start a broadcast: ${chip.text}`}
-                  >
-                    <span aria-hidden="true" className="broadcast-chip-emoji">{chip.emoji}</span>
-                    <span className="broadcast-chip-label">{chip.label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
           {broadcastError && <p className="broadcast-compose-error">{broadcastError}</p>}
           {broadcasts.length > 0 && (
