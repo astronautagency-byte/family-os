@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertCircle, Bell, Bot, CalendarDays, CheckCircle2, ExternalLink, Eye, EyeOff, ImagePlus, Info, Link2, MapPin, Pencil, Plus, RefreshCw, RotateCcw, ShieldCheck, Trash2, Upload, Users, Utensils } from "lucide-react";
+import { AlertCircle, Bell, Bot, CalendarDays, CheckCircle2, ExternalLink, Eye, EyeOff, ImagePlus, Info, Link2, MapPin, Pencil, Plus, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Trash2, Upload, Users, Utensils } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, Card, Modal, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
@@ -642,7 +642,7 @@ export default function Settings() {
                 <Users size={18} color="var(--color-accent)" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="font-medium text-[14.5px] text-[var(--color-ink)]">FamOS family plan</p>
+                <p className="font-medium text-[14.5px] text-[var(--color-ink)]">FamOS Core plan</p>
                 <p className="text-[12.5px] text-[var(--color-ink-soft)] mt-0.5">
                   {formatMoney(PRICING_PLAN.basePlan.price.monthly)}/month or {formatMoney(PRICING_PLAN.basePlan.price.yearly)}/year · {includedMembers} members included
                 </p>
@@ -662,12 +662,16 @@ export default function Settings() {
                 <strong className="text-[var(--color-ink)]">{extraMembers} × {formatMoney(PRICING_PLAN.basePlan.additionalMemberPrice.monthly)}/mo</strong>
               </div>
               <div className="flex items-center justify-between gap-3 rounded-xl bg-[var(--color-surface-sunken)] px-3 py-2">
-                <span className="inline-flex items-center gap-1.5"><Bot size={14} /> Fam AI add-on</span>
-                <strong className="text-[var(--color-ink)]">{formatMoney(PRICING_PLAN.addOns[0].price.monthly)}/mo · {PRICING_PLAN.addOns[0].queryCapPerMonth} queries</strong>
+                <span className="inline-flex items-center gap-1.5"><Sparkles size={14} /> Smart Family Bundle</span>
+                <strong className="text-[var(--color-ink)]">{formatMoney(9.99)}/mo</strong>
+              </div>
+              <div className="flex items-center justify-between gap-3 rounded-xl bg-[var(--color-surface-sunken)] px-3 py-2">
+                <span className="inline-flex items-center gap-1.5"><Bot size={14} /> Fam AI</span>
+                <strong className="text-[var(--color-ink)]">{formatMoney(5.99)}/mo · 100 queries</strong>
               </div>
               <div className="flex items-start gap-2 rounded-xl bg-[var(--color-good-soft)] px-3 py-2 text-[var(--color-good)]">
                 <ShieldCheck size={14} className="mt-0.5 shrink-0" />
-                <span>{PRICING_PLAN.trial.days}-day trial includes the full base plan and Fam AI turned on. Card required.</span>
+                <span>{PRICING_PLAN.trial.days}-day trial includes everything — Core, Smart Family Bundle, and Fam AI. Card required.</span>
               </div>
             </div>
             <SecondaryButton onClick={() => { window.location.hash = "pricing"; }} className="mt-3">View pricing page</SecondaryButton>

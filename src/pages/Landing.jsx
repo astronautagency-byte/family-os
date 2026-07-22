@@ -97,13 +97,14 @@ const comparisonRows = [
 ];
 
 const pricingAddOns = [
-  { id: "fam_ai", label: "Fam AI", copy: `100 helper requests a month. Included during the ${PRICING_PLAN.trial.days}-day trial.`, price: PRICING_PLAN.addOns[0].price.monthly, icon: Bot },
+  { id: "smart_bundle", label: "Smart Family Bundle", copy: `Local events · product scanner · extra calendar. Save vs. adding separately.`, price: 9.99, icon: Sparkles },
+  { id: "fam_ai", label: "Fam AI", copy: `100 smart requests a month. Included during the ${PRICING_PLAN.trial.days}-day trial.`, price: 5.99, icon: Bot },
 ];
 
 function PricingSection({ signedIn }) {
   const [billing, setBilling] = useState("monthly");
   const [members, setMembers] = useState(PRICING_PLAN.basePlan.membersIncluded);
-  const [addOns, setAddOns] = useState({ fam_ai: PRICING_PLAN.trial.famAiPretoggled });
+  const [addOns, setAddOns] = useState({ smart_bundle: false, fam_ai: PRICING_PLAN.trial.famAiPretoggled });
   const extraMembers = Math.max(0, members - PRICING_PLAN.basePlan.membersIncluded);
   const monthlyBase = PRICING_PLAN.basePlan.price.monthly;
   const annualBase = PRICING_PLAN.basePlan.price.yearly;
@@ -112,18 +113,16 @@ function PricingSection({ signedIn }) {
   const addOnCost = pricingAddOns.reduce((sum, item) => sum + (addOns[item.id] ? item.price : 0), 0);
   const monthlySubtotal = monthlyBase + memberCost + addOnCost;
   const annualMemberCost = memberCost * 12 * annualDiscount;
-  const annualAddOnCost = addOnCost * 12 * annualDiscount;
+  const annualAddOnCost = addOnCost * 12;
   const annualTotal = annualBase + annualMemberCost + annualAddOnCost;
   const annualMonthlyEquivalent = annualTotal / 12;
   const displayedTotal = billing === "annual" ? annualTotal : monthlySubtotal;
   const savings = monthlySubtotal * 12 - annualTotal;
-  const annualizeMonthly = (value) => value * 12 * annualDiscount;
-  // Re-keying on the computed values remounts the figure so Framer replays the
-  // little pop whenever billing frequency or member count changes.
+  const annualizeMonthly = (value) => value * 12;
   const pulseKey = `${billing}-${displayedTotal}`;
 
   return <section className="landing-pricing" id="pricing">
-    <SectionHead eyebrow="Simple pricing" note={`Try FamOS free for ${PRICING_PLAN.trial.days} days. ${PRICING_PLAN.basePlan.membersIncluded} people are included, then each extra member is ${formatMoney(PRICING_PLAN.basePlan.additionalMemberPrice.monthly)}/month.`}>Start small.<br/>Invite the whole crew.</SectionHead>
+    <SectionHead eyebrow="Simple pricing" note={`Try FamOS free for ${PRICING_PLAN.trial.days} days. ${PRICING_PLAN.basePlan.membersIncluded} people are included in Core, then each extra member is ${formatMoney(PRICING_PLAN.basePlan.additionalMemberPrice.monthly)}/month. Add-ons stack on top.`}>Pick what fits.<br/>Add more as you grow.</SectionHead>
     <motion.div className="pricing-shell" {...revealBlock}>
       <div className="pricing-main">
         <div className="pricing-toggle" role="tablist" aria-label="Billing frequency">
@@ -133,9 +132,9 @@ function PricingSection({ signedIn }) {
         <article className="pricing-card">
           <div className="pricing-card-head">
             <span><Users/></span>
-            <div><p>Family plan</p><motion.h3 key={pulseKey} initial={{ scale: 0.94, opacity: 0.72 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.38, ease: BACK }}><span>{formatMoney(displayedTotal)}</span><small>{billing === "annual" ? "per year" : "per month"}</small></motion.h3></div>
+            <div><p>Your plan</p><motion.h3 key={pulseKey} initial={{ scale: 0.94, opacity: 0.72 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.38, ease: BACK }}><span>{formatMoney(displayedTotal)}</span><small>{billing === "annual" ? "per year" : "per month"}</small></motion.h3></div>
           </div>
-          <p className="pricing-note">{billing === "annual" ? `${formatMoney(annualTotal)} billed yearly after your ${PRICING_PLAN.trial.days}-day free trial — about ${formatMoney(annualMonthlyEquivalent)}/month.` : `Billed monthly after your ${PRICING_PLAN.trial.days}-day free trial. Card required.`}</p>
+          <p className="pricing-note">{billing === "annual" ? `${formatMoney(annualBase)} billed yearly for Core, plus add-ons monthly. ${PRICING_PLAN.trial.days}-day free trial first.` : `Billed monthly after your ${PRICING_PLAN.trial.days}-day free trial. Card required.`}</p>
           <div className="family-size-control">
             <div><strong>People in your home</strong><small>{PRICING_PLAN.basePlan.membersIncluded} included, then {formatMoney(PRICING_PLAN.basePlan.additionalMemberPrice.monthly)}/month each</small></div>
             <div>
@@ -145,12 +144,16 @@ function PricingSection({ signedIn }) {
             </div>
           </div>
           <ul className="pricing-includes">
-            <li><Check/> Calendar, meals, recipes, groceries, tasks, chat, and rewards</li>
-            <li><Check/> A private home base with secure family invitations</li>
-            <li><Check/> Google Calendar sync, roles, dietary preferences, and Fam AI when you want backup</li>
+            <li><Check/> Shared calendar with Google sync</li>
+            <li><Check/> Meal planning, recipes & cook mode</li>
+            <li><Check/> Grocery lists & favourites</li>
+            <li><Check/> Task assignment & rewards</li>
+            <li><Check/> Family chat</li>
+            <li><Check/> Finance tracking & budgets</li>
+            <li><Check/> Roles & dietary preferences</li>
           </ul>
         </article>
-        <div className={`pricing-addons ${pricingAddOns.length === 1 ? "single" : ""}`}>
+        <div className="pricing-addons">
           <p>Add-ons</p>
           {pricingAddOns.map(({ id, label, copy, price, icon: Icon }) => <button className={addOns[id] ? "selected" : ""} onClick={() => setAddOns((current) => ({ ...current, [id]: !current[id] }))} key={id}>
             <span><Icon/></span>
@@ -161,9 +164,10 @@ function PricingSection({ signedIn }) {
       </div>
       <aside className="pricing-side">
         <div className="pricing-summary">
-          <div><span>Base plan</span><b>{billing === "annual" ? `${formatMoney(annualBase)}/yr` : formatMoney(monthlyBase)}</b></div>
-          <div><span>{extraMembers} extra member{extraMembers === 1 ? "" : "s"}</span><b>{billing === "annual" ? `${formatMoney(annualMemberCost)}/yr` : formatMoney(memberCost)}</b></div>
-          <div><span>Fam AI add-on</span><b>{billing === "annual" ? `${formatMoney(annualAddOnCost)}/yr` : formatMoney(addOnCost)}</b></div>
+          <div><span>Core plan</span><b>{billing === "annual" ? `${formatMoney(annualBase)}/yr` : formatMoney(monthlyBase)}</b></div>
+          {extraMembers > 0 && <div><span>{extraMembers} extra member{extraMembers === 1 ? "" : "s"}</span><b>{billing === "annual" ? `${formatMoney(annualMemberCost)}/yr` : formatMoney(memberCost)}</b></div>}
+          {addOns.smart_bundle && <div><span>Smart Family Bundle</span><b>{formatMoney(9.99)}/mo</b></div>}
+          {addOns.fam_ai && <div><span>Fam AI</span><b>{formatMoney(5.99)}/mo</b></div>}
           {billing === "annual" && <div className="annual-savings"><span>Yearly savings</span><b>{formatMoney(savings)}</b></div>}
           <div className="pricing-total"><span>Total after trial</span><motion.b key={pulseKey} initial={{ y: 7, opacity: 0.55 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.34, ease: EASE }}>{formatMoney(displayedTotal)}<small>{billing === "annual" ? "/yr" : "/mo"}</small></motion.b></div>
           <button onClick={() => go(signedIn ? "today" : "signup")}>Start free for {PRICING_PLAN.trial.days} days <ArrowRight/></button>
