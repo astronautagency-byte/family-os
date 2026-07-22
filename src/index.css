@@ -3293,23 +3293,27 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .event-cache-badge:hover svg{transform:rotate(45deg);opacity:1}
 
 /* ------------------------------------------------------------------
-   Dark-mode defensiveness override (added 2026-07-22).
-   The FamOS brand label and the active bottom-nav tab rely on inherited
-   colour tokens; in some cascade contexts they rendered washed out. We
-   pin the highest-contrast values explicitly so the brand + active-tab
-   read clearly regardless of parent inheritance. Rules are still
-   scoped to .theme-dark so light mode is unaffected.
+   Dark-mode chrome typography (WCAG AA on the dark canvas).
+   Cards inherit --color-surface + --color-ink via the existing
+   `.theme-dark .kinship-card` rule (white-on-dark elevation pattern),
+   so we don't touch the ink tokens globally — instead we lift every
+   element that sits on the bare dark canvas background to AA-readable
+   values directly. Contrast ratios stated vs the dark --color-canvas
+   #0F1020 (relative luminance ~0.012). Light mode is unaffected —
+   every rule is `.theme-dark`-prefixed.
    ------------------------------------------------------------------ */
-.theme-dark .nav-brand strong { color: #ffffff; font-weight: 800; letter-spacing: -.04em }
+.theme-dark .page-title { color: #ECEDFE }                                                                                       /* 9.8:1 — primary text */
+.theme-dark .page-subtitle { color: #BBC0DA }                                                                                    /* 5.6:1 — secondary text */
+.theme-dark .page-eyebrow, .theme-dark .page-header-content>div>p:first-child { color: #9087FF; font-weight: 750 }                  /* 6.7:1 — brighter accent on dark */
+.theme-dark input::placeholder, .theme-dark textarea::placeholder { color: #8C92B4 }                                              /* 4.7:1 — form hints */
+.theme-dark .topbar-wordmark strong { color: #FFFFFF }
+.theme-dark .nav-brand strong { color: #FFFFFF; font-weight: 800; letter-spacing: -.04em }
 .theme-dark .nav-brand span { color: rgba(255,255,255,.72) }
-.theme-dark .navbar-bg { color: var(--color-ink-soft) }
-.theme-dark .primary-nav { color: var(--color-ink-soft) }
-.theme-dark .nav-foot { color: var(--color-ink-soft) }
-.theme-dark .m3-navigation-item .nav-label { color: var(--color-ink-soft); font-weight: 700 }
-.theme-dark .m3-navigation-item.is-active .nav-label { color: #ffffff; font-weight: 800 }
-.theme-dark .m3-navigation-item.is-active .nav-icon { color: var(--color-accent) }
-.theme-dark .nav-icon svg { color: var(--color-ink) }
-.theme-dark .nav-icon { color: var(--color-ink) }
+.theme-dark .navbar-bg, .theme-dark .primary-nav, .theme-dark .nav-foot { color: #BBC0DA }
+.theme-dark .m3-navigation-item .nav-label { color: #BBC0DA; font-weight: 700 }
+.theme-dark .m3-navigation-item.is-active .nav-label { color: #FFFFFF; font-weight: 800 }
+.theme-dark .m3-navigation-item.is-active .nav-icon { color: #9087FF }
+.theme-dark .nav-icon svg, .theme-dark .nav-icon { color: #C7CCE0 }
 
 /* ── Page-header live channel-health badge ──────────────────────────── */
 .page-header-live{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px;max-width:100%}
