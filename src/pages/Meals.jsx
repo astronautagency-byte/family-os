@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, BarChart3, Bookmark, CalendarPlus, CandyOff, Check, ChefHat, Clock, Coffee, Dices, FishOff, Leaf, ListChecks, MilkOff, NutOff, ShoppingCart, Soup, Sparkles, Sprout, Trash2, Users, WheatOff, X } from "lucide-react";
+import { ArrowLeft, BarChart3, Bookmark, CalendarPlus, CandyOff, Check, ChefHat, Clock, Coffee, Dices, FishOff, Leaf, ListChecks, LoaderCircle, MilkOff, NutOff, ShoppingCart, Soup, Sparkles, Sprout, Trash2, Users, WheatOff, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { AvatarStack, Card, Modal, PrimaryButton, SecondaryButton, TextField, colorVar } from "../components/ui";
@@ -136,6 +136,11 @@ export default function Meals() {
   const [rouletteBusy, setRouletteBusy] = useState(false);
   const [savedRecipes, setSavedRecipes] = useState(() => readStoredJson(SAVED_RECIPES_KEY, []));
   const [planningRecipe, setPlanningRecipe] = useState(null);
+  // Ingredient-based recipe search in the editor modal.
+  const [recipeSearchQuery, setRecipeSearchQuery] = useState("");
+  const [recipeSearchResults, setRecipeSearchResults] = useState([]);
+  const [recipeSearchBusy, setRecipeSearchBusy] = useState(false);
+  const [recipeSearchError, setRecipeSearchError] = useState("");
   const [dietaryPreferences, setDietaryPreferences] = useState(() => {
     const onboardingPreferences = householdProfileExtra ? {
       restrictions: householdProfileExtra.dietaryRestrictions || [],
@@ -156,6 +161,49 @@ export default function Meals() {
   useEffect(() => {
     if (typeof window !== "undefined") window.localStorage.setItem(DIETARY_PREFERENCES_KEY, JSON.stringify(dietaryPreferences));
   }, [dietaryPreferences]);
+
+  // Debounced recipe search by ingredient. When the user types an ingredient
+  // in the meal editor, API Ninjas searches for matching recipes and shows
+  // results as a picker. Selecting one fills in the title and caches the
+  // ingredients so the grocery badge works immediately.
+  useEffect(() => {
+    const query = recipeSearchQuery.trim();
+    if (query.length < 2) {
+      setRecipeSearchResults([]);
+      setRecipeSearchError("");
+      return undefined;
+    }
+    let cancelled = false;
+    setRecipeSearchBusy(true);
+    setRecipeSearchError("");
+    const timer = setTimeout(async () => {
+      if (!supabase) {
+        if (!cancelled) setRecipeSearchError("Recipe search is not configured.");
+        if (!cancelled) setRecipeSearchBusy(false);
+        return;
+      }
+      try {
+        // Pass only ingredients — the user is searching by ingredient, not recipe name.
+        const { data, error } = await supabase.functions.invoke("recipe-search", { body: { ingredients: query } }).catch(() => ({ data: null, error: new Error("offline") }));
+        if (cancelled) return;
+        const err = data?.error || error?.message;
+        if (err) { setRecipeSearchError(err); setRecipeSearchResults([]); return; }
+        const list = recipesFromSearch(data);
+        setRecipeSearchResults(list);
+        if (!list.length) setRecipeSearchError("API Ninjas found no recipes for that ingredient. Try a broader term.");
+      } catch {
+        if (!cancelled) setRecipeSearchError("Recipe search failed.");
+      } finally {
+        if (!cancelled) setRecipeSearchBusy(false);
+      }
+    }, 350);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [recipeSearchQuery]);
+
+  // Reset search state when the editor opens/closes
+  useEffect(() => {
+    if (!editing) { setRecipeSearchQuery(""); setRecipeSearchResults([]); setRecipeSearchError(""); }
+  }, [editing]);
 
   // For each meal with cached ingredients, compute how many are missing from the
   // grocery list. Returns { missing, total } or null when no cache entry exists.
@@ -570,6 +618,47 @@ export default function Meals() {
           onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
           autoFocus
         />
+
+        {/* Ingredient-based recipe search */}
+        <div className="meal-search-ingredient">
+          <input
+            className="meal-search-ingredient-input"
+            value={recipeSearchQuery}
+            onChange={(e) => setRecipeSearchQuery(e.target.value)}
+            placeholder="Or type an ingredient to find a recipe…"
+            aria-label="Search recipes by ingredient"
+          />
+          {recipeSearchBusy && (
+            <span className="meal-search-ingredient-spinner">
+              <LoaderCircle size={12} className="animate-spin" />
+            </span>
+          )}
+          {recipeSearchResults.length > 0 && (
+            <div className="meal-search-ingredient-results">
+              {recipeSearchResults.map((recipe, index) => (
+                <button
+                  key={`${recipe.title}-${index}`}
+                  className="meal-search-ingredient-result"
+                  onClick={() => {
+                    setDraft((d) => ({ ...d, title: recipe.title }));
+                    setRecipeSearchResults([]);
+                    setRecipeSearchQuery("");
+                    // Ingredients cache when Cook Mode opens — standard flow.
+                  }}
+                >
+                  <span className="meal-search-result-title">{recipe.title}</span>
+                  <span className="meal-search-result-meta">
+                    {recipe.readyInMinutes ? `${recipe.readyInMinutes} min` : ""}
+                    {recipe.servings ? ` · Serves ${recipe.servings}` : ""}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+          {recipeSearchError && !recipeSearchBusy && (
+            <p className="meal-search-ingredient-error">{recipeSearchError}</p>
+          )}
+        </div>
         <TextField
           label="Notes (optional)"
           placeholder="Prep notes, sides, reminders..."
