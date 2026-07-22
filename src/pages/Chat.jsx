@@ -34,21 +34,23 @@ function intentIcon(intent) {
   return Plus;
 }
 
+function capitalize(s) {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : "";
+}
+
 function intentLabel(intent) {
   if (intent.kind === "grocery") {
     const count = (intent.items || []).length;
-    return count === 1
-      ? `Add ${intent.items[0]} to groceries`
-      : `Add ${count} items to groceries`;
+    return `Add to Groceries${count > 1 ? ` (${count})` : ""}`;
   }
   if (intent.kind === "task") {
-    return intent.due ? `Add task for ${formatDue(intent.due)}` : "Add to tasks";
+    return intent.due ? `Add task · ${formatDue(intent.due)}` : "Add to Tasks";
   }
   if (intent.kind === "meal") {
-    return `Add to ${intent.slot}${intent.when ? ` (${intent.when})` : ""}`;
+    return `Add to ${capitalize(intent.slot)}`;
   }
   if (intent.kind === "event") {
-    return "Add to calendar";
+    return "Add to Calendar";
   }
   return "Add to list";
 }
@@ -67,10 +69,14 @@ function formatDue(iso) {
 
 function IntentChip({ intent, onAccept, onDismiss, status }) {
   const Icon = intentIcon(intent);
+  const detail = status !== "added" ? intentDetail(intent) : "";
   return (
     <div className={`chat-intent-chip chat-intent-chip-${intent.kind}${status === "added" ? " added" : ""}`}>
       <span className="chat-intent-icon"><Icon size={12} /></span>
-      <span className="chat-intent-copy">{intentLabel(intent)}{status !== "added" && <small>{intentDetail(intent)}</small>}</span>
+      <span className="chat-intent-copy">
+        <span className="chat-intent-label">{intentLabel(intent)}</span>
+        {detail && <span className="chat-intent-detail">{detail}</span>}
+      </span>
       {status !== "added" ? (
         <>
           <button type="button" className="chat-intent-add" onClick={onAccept}>Add</button>
