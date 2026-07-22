@@ -2297,3 +2297,30 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 /* Lazy-route loading fallback */
 .app-page-fallback{min-height:60vh;display:grid;place-items:center;color:var(--color-accent)}
 .app-page-fallback-spin{animation:spin 1s linear infinite}
+
+/* Pull-to-refresh: light overlay the user drags down from the top of any page
+   wrapped by `<PullToRefresh>`. The host stretch-during-drag is set inline via
+   transform: translate3d, so the wrapper's transition suppresses the spring
+   when the user is actively dragging and re-engages once they release. */
+.pull-to-refresh-host {
+  position: relative;
+  touch-action: pan-y;
+  transition: transform 220ms cubic-bezier(.18,.86,.32,1);
+}
+.pull-to-refresh-host[style*="translate3d"] {
+  transition: none;
+}
+.pull-to-refresh-indicator {
+  position: absolute;
+  top: -28px;
+  left: 0;
+  right: 0;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  color: var(--color-accent);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pull-to-refresh-host { transition-duration: 0ms; }
+}

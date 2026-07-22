@@ -3,6 +3,7 @@ import { Baby, Bone, Carrot, Clipboard, Coffee, Cookie, Croissant, CupSoda, Down
 import { useFamily } from "../context/FamilyContext";
 import { Card, Checkbox, EmptyState, Modal, PrimaryButton, SecondaryButton, Stepper, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
+import PullToRefresh from "../components/PullToRefresh";
 import { GROCERY_CATEGORIES } from "../data/mockData";
 
 const emptyDraft = { name: "", category: GROCERY_CATEGORIES[0], quantity: 1, unit: "" };
@@ -180,7 +181,7 @@ function categoryFromItemName(name = "", fallback = GROCERY_CATEGORIES[0]) {
 }
 
 export default function Groceries() {
-  const { groceries, addGrocery, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries, clearGroceries, memberById } = useFamily();
+  const { groceries, addGrocery, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries, clearGroceries, memberById, refreshData } = useFamily();
   const [editingId, setEditingId] = useState(null); // null closed, "new" for add, or item id
   const [draft, setDraft] = useState(emptyDraft);
   const [staples, setStaples] = useState(loadStaples);
@@ -556,7 +557,7 @@ export default function Groceries() {
   };
 
   return (
-    <div className="pb-24 reference-groceries">
+    <PullToRefresh onRefresh={refreshData}><div className="pb-24 reference-groceries">
       <PageHeader
         title="Groceries"
         illustration="groceries"
@@ -927,6 +928,6 @@ export default function Groceries() {
           <button className="focus-shopping-done" onClick={() => setFocusMode(false)}>Done shopping</button>
         </div>
       )}
-    </div>
+    </div></PullToRefresh>
   );
 }

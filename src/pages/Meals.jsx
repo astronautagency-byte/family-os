@@ -4,6 +4,7 @@ import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { AvatarStack, Card, Modal, PrimaryButton, SecondaryButton, TextField, colorVar } from "../components/ui";
 import PageHeader from "../components/PageHeader";
+import PullToRefresh from "../components/PullToRefresh";
 import { MEAL_SLOTS } from "../data/mockData";
 import { recipeSearchProfileForMeal } from "../data/recipeBox";
 import { addDays, formatDayLabel, todayISO } from "../lib/dates";
@@ -86,7 +87,7 @@ const placeholderRecipe = (title, slot) => ({
 const titleFromMeal = (meal) => String(meal?.title || "").trim();
 
 export default function Meals() {
-  const { members, memberById, meals, groceries, addGrocery, setMealForSlot, removeMeal, clearMeals } = useFamily();
+  const { members, memberById, meals, groceries, addGrocery, setMealForSlot, removeMeal, clearMeals, refreshData } = useFamily();
   const { householdProfileExtra } = useAuth();
   const [horizon, setHorizon] = useState(7);
   const [clearing, setClearing] = useState(false);
@@ -295,7 +296,7 @@ export default function Meals() {
   };
 
   return (
-    <div className="pb-24 reference-meals">
+    <PullToRefresh onRefresh={refreshData}><div className="pb-24 reference-meals">
       <PageHeader eyebrow="Nourish & connect" title="Meal planner" illustration="meals" subtitle="Plan meals, save recipes, and start cook mode." action={meals.length?<button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button>:null} />
 
       <div className="meal-range-toggle px-5" aria-label="Meal planning range"><button className={horizon===7?"selected":""} onClick={()=>setHorizon(7)}>1 week</button><button className={horizon===14?"selected":""} onClick={()=>setHorizon(14)}>2 weeks</button></div>
@@ -611,6 +612,6 @@ export default function Meals() {
           </div>
         </div>
       )}
-    </div>
+    </div></PullToRefresh>
   );
 }

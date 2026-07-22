@@ -4,6 +4,7 @@ import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { AvatarStack, DateField, Modal, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
+import PullToRefresh from "../components/PullToRefresh";
 import { formatTime, todayISO } from "../lib/dates";
 import { fetchGooglePlaceSuggestions, googleMapsApiKey, loadGooglePlaces } from "../lib/googleMapsPlaces";
 import { invokeEdgeFunction } from "../lib/supabase";
@@ -190,7 +191,7 @@ function LocationAutocompleteField({ value, onChange }) {
 }
 
 export default function CalendarPage() {
-  const { members, memberById, events, googleEvents, feedEvents, calendarFeeds, googleConnected, googleCalendars, selectedGoogleCalendarIds, sharedGoogleCalendarIds, addEvent, addGoogleCalendarEvent, removeEvent, clearEvents } = useFamily();
+  const { members, memberById, events, googleEvents, feedEvents, calendarFeeds, googleConnected, googleCalendars, selectedGoogleCalendarIds, sharedGoogleCalendarIds, addEvent, addGoogleCalendarEvent, removeEvent, clearEvents, refreshData, syncGoogleCalendarNow } = useFamily();
   const { householdProfileExtra } = useAuth();
   const [selectedDate,setSelectedDate]=useState(todayISO());
   const selected=new Date(`${selectedDate}T12:00:00`);
@@ -280,7 +281,12 @@ export default function CalendarPage() {
   const save=async()=>{if(!draft.title.trim())return;setSaving(true);setSaveError("");const payload={title:draft.title.trim(),start:new Date(`${draft.date}T${draft.start}:00`).toISOString(),end:new Date(`${draft.date}T${draft.end}:00`).toISOString(),location:draft.location,memberIds:draft.memberIds,eventType:draft.eventType};try{if(draft.destination.startsWith("google:"))await addGoogleCalendarEvent({...payload,calendarId:draft.destination.slice(7)});else await addEvent(payload);setAdding(false);}catch(error){setSaveError(error.message||"Could not save this event.");}finally{setSaving(false);}};
   const confirmDelete=async()=>{if(!deleteTarget)return;await removeEvent(deleteTarget.id);setDeleteTarget(null);if(selectedEvent?.id===deleteTarget.id)setSelectedEvent(null);};
 
-  return <div className="pb-28 reference-calendar">
+  const refreshAll = async () => {
+    await refreshData();
+    if (googleConnected) await syncGoogleCalendarNow();
+  };
+
+  return <PullToRefresh onRefresh={refreshAll}><div className="pb-28 reference-calendar">
     <PageHeader title="Everyone’s where, when." illustration="calendar" subtitle={`${dayEvents.length} thing${dayEvents.length===1?"":"s"} on deck for this day.`} action={events.length?<button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button>:null} />
     <div className="px-5">
       <div className="calendar-tools-row"><div className="calendar-source-filters" aria-label="Calendars">{sources.map(source=><button key={source.id} className={sourceFilter===source.id?"selected":""} onClick={()=>setSourceFilter(source.id)}>{source.color&&<i style={{backgroundColor:source.color}}/>}{source.label}</button>)}</div><button className="discover-events-button" onClick={()=>{setDiscovering(true);setDiscoverCities((current)=>current.length?current:(discoverLocation?[discoverLocation]:[]));if(!discoveredEvents.length)window.setTimeout(searchLocalEvents,0);}}><Ticket/> Discover local events</button></div>
@@ -339,5 +345,5 @@ export default function CalendarPage() {
     </Modal>
     <Modal open={!!deleteTarget} onClose={()=>setDeleteTarget(null)} title="Delete event?"><p className="reset-confirm-copy">This removes “{deleteTarget?.title}” from the FamOS calendar.</p><div className="reset-confirm-actions"><button onClick={()=>setDeleteTarget(null)}>Cancel</button><PrimaryButton onClick={confirmDelete}>Delete event</PrimaryButton></div></Modal>
     <Modal open={clearing} onClose={()=>setClearing(false)} title="Reset FamOS calendar?"><p className="reset-confirm-copy">This removes FamOS events only. Connected Google and imported calendars are not changed.</p><div className="reset-confirm-actions"><button onClick={()=>setClearing(false)}>Cancel</button><PrimaryButton onClick={async()=>{await clearEvents();setClearing(false)}}>Clear FamOS events</PrimaryButton></div></Modal>
-  </div>;
+  </div></PullToRefresh>;
 }

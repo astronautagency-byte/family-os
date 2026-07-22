@@ -6,6 +6,7 @@ import { BROADCAST_REACTIONS, useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, AvatarStack, Card, Checkbox, EmptyState, Tag, colorVar } from "../components/ui";
 import PageHeader from "../components/PageHeader";
+import PullToRefresh from "../components/PullToRefresh";
 import { supabase } from "../lib/supabase";
 import { addDays, dailyEncouragement, formatDayLabel, formatTime, fullDateLabel, greetingInfo, todayISO } from "../lib/dates";
 
@@ -158,7 +159,7 @@ function ProgressLine({ label, value, total, color = "var(--color-accent)" }) {
 }
 
 export default function Today({ goTo }) {
-  const { members, memberById, events, googleEvents, feedEvents, meals, tasks, groceries, toggleTask, tabletMode, broadcasts, broadcastMessage, clearBroadcast, reactionsByMessage, reactToBroadcast, currentUserId } = useFamily();
+  const { members, memberById, events, googleEvents, feedEvents, meals, tasks, groceries, toggleTask, tabletMode, broadcasts, broadcastMessage, clearBroadcast, reactionsByMessage, reactToBroadcast, currentUserId, refreshData, syncGoogleCalendarNow, googleConnected } = useFamily();
   const { profile, user, householdProfileExtra } = useAuth();
   const [weather, setWeather] = useState(null);
   const [weatherError, setWeatherError] = useState("");
@@ -361,7 +362,13 @@ export default function Today({ goTo }) {
   const weatherRisk = weatherNow && (weatherNow.rainChance >= 50 || weatherNow.windKph >= 40);
   const disruptedEvents = weatherRisk ? todaysEvents.filter((event) => event.location) : [];
 
+  const refreshAll = async () => {
+    await refreshData();
+    if (googleConnected) await syncGoogleCalendarNow();
+  };
+
   return (
+    <PullToRefresh onRefresh={refreshAll}>
     <div className="pb-24 reference-dashboard">
       <PageHeader
         eyebrow={fullDateLabel(today)}
@@ -685,5 +692,6 @@ export default function Today({ goTo }) {
         </section>
       </div>
     </div>
+    </PullToRefresh>
   );
 }
