@@ -172,6 +172,64 @@ If Google Calendar auth is limited to selected accounts, the Google Cloud projec
 5. In **Data Access**, request only the minimum Google Calendar scopes needed by the app. Calendar scopes may require Google verification before the app is broadly available.
 6. In **Clients**, keep `https://fam-os.app` listed as an authorized JavaScript origin and keep the Supabase callback URL listed as an authorized redirect URI if Supabase Google Auth is enabled.
 
+## API-key-backed Supabase Edge Functions
+
+The following functions require a third-party API key set as a Supabase secret before deployment. Deploy each **after** setting its secrets.
+
+### Recipe search (API Ninjas)
+
+```bash
+supabase secrets set RECIPE_API_NINJAS_KEY=your_api_ninjas_key
+supabase functions deploy recipe-search
+```
+
+API Ninjas provides recipe data for Cook Mode, the meal suggestion roulette, and grocery-based meal idea suggestions. The function sends the key as the `X-Api-Key` header. The free tier returns up to 3 recipes per query and supports both recipe-name search (`title`) and ingredient-based search (`ingredients`) independently.
+
+### Local event discovery (SerpApi)
+
+```bash
+supabase secrets set SERPAPI_KEY=your_serpapi_key
+supabase functions deploy search-local-events
+```
+
+SerpApi scrapes Google Events to find local family activities, festivals, and experiences. Results are grouped by city and merged before display. The free tier includes 100 searches/month.
+
+### Weather forecasts
+
+```bash
+supabase secrets set WEATHERAPI_KEY=your_weatherapi_key
+supabase functions deploy weather
+```
+
+Weather data powers the Today dashboard's weather card, including current conditions, alerts, and the 7-day forecast.
+
+### Meal suggestions (Fam AI alternative)
+
+```bash
+supabase functions deploy meal-suggestions
+```
+
+A lightweight alternative to Fam AI that suggests meals based on available ingredients. Does not require a third-party API key.
+
+### Recipe nutrition (API Ninjas)
+
+```bash
+supabase secrets set RECIPE_API_NINJAS_KEY=your_api_ninjas_key
+supabase functions deploy recipe-nutrition
+```
+
+Uses the same API Ninjas key as `recipe-search`. Populates the cook mode nutrition panel with per-recipe calorie, protein, carb, and fat breakdowns. If the function source doesn't exist yet, create `supabase/functions/recipe-nutrition/index.ts` with the same Deno Edge Function pattern as the other functions, calling `https://api.api-ninjas.com/v1/nutrition` with the `X-Api-Key` header.
+
+### Redeploy after secret changes
+
+Whenever you update a secret, you **must** redeploy the function that uses it for the change to take effect:
+
+```bash
+supabase functions deploy recipe-search
+supabase functions deploy search-local-events
+supabase functions deploy weather
+```
+
 # Fam AI (Grok)
 
 Fam AI uses a Supabase Edge Function so the xAI API key never ships to the browser. Configure and deploy it with:
