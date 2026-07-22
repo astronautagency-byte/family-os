@@ -106,56 +106,55 @@
   </head>
   <body>
     <div id="root">
-    <main style="font-family: Inter, Arial, sans-serif; max-width: 980px; margin: 0 auto; padding: 44px 24px 64px; color: #17172f;">
-      <header style="display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 54px;">
-        <a href="/" style="display: inline-flex; align-items: center; gap: 10px; color: #17172f; text-decoration: none;">
-          <img src="/brand/famos-icon-transparent.png" alt="FamOS logo" width="58" height="58" style="object-fit: contain;" />
-          <strong style="font-size: 28px; letter-spacing: -0.06em; line-height: 1;">Fam<span style="color: #7952e8;">OS</span></strong>
-        </a>
-        <nav style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-          <a href="/sign-in" style="display: inline-flex; min-height: 44px; align-items: center; justify-content: center; padding: 0 18px; border: 1px solid #ddd8ff; border-radius: 999px; color: #17172f; font-weight: 700; text-decoration: none;">Sign in</a>
-          <a href="/sign-up" style="display: inline-flex; min-height: 44px; align-items: center; justify-content: center; padding: 0 20px; border-radius: 999px; background: #6d5ce7; color: white; font-weight: 800; text-decoration: none;">Get started</a>
-        </nav>
-      </header>
-
-      <p style="margin: 0 0 14px; color: #6d5ce7; font-size: 13px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;">Meet FamOS</p>
-      <h1 style="max-width: 720px; margin: 0 0 18px; font-size: clamp(40px, 8vw, 72px); line-height: 0.98; letter-spacing: -0.06em;">Families run better on FamOS.</h1>
-      <p style="max-width: 760px; margin: 0; color: #555264; font-size: 20px; line-height: 1.55;">
-        FamOS keeps calendars, meals, groceries, tasks, chat, recipes, and Fam AI in sync for your household.
-      </p>
-
-      <div style="margin: 30px 0 40px; padding: 18px 20px; border: 1px solid #ddd8ff; border-radius: 22px; background: #faf8ff; color: #514f62; font-size: 15px; line-height: 1.55;">
-        Sign in or create your family space to start coordinating calendars, meals, groceries, tasks, and family chat in one private place.
+      <div id="app-loading">
+        <style>
+          #app-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 24px;
+            font-family: Inter, Arial, sans-serif;
+            background: #fdfcfa;
+          }
+          #app-loading img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            border-radius: 16px;
+            background: #fff5e9;
+            padding: 5px;
+            box-shadow: 0 4px 12px rgba(23,23,31,.06);
+            margin-bottom: 18px;
+          }
+          #app-loading strong {
+            font-size: 22px;
+            letter-spacing: -.06em;
+            color: #17172f;
+          }
+          #app-loading strong span { color: #7952e8; }
+          #app-loading .load-spinner {
+            width: 20px;
+            height: 20px;
+            margin-top: 22px;
+            border: 2px solid #e5e0f2;
+            border-top-color: #7952e8;
+            border-radius: 50%;
+            animation: loadSpin .8s linear infinite;
+          }
+          @keyframes loadSpin {
+            to { transform: rotate(360deg); }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            #app-loading .load-spinner { animation: none; opacity: .35; }
+          }
+        </style>
+        <img src="/brand/famos-icon-transparent.png" alt="" width="60" height="60" />
+        <strong>Fam<span>OS</span></strong>
+        <div class="load-spinner" aria-hidden="true"></div>
       </div>
-
-      <p style="margin: 0 0 40px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
-        <a href="/sign-in" style="display: inline-flex; min-height: 46px; align-items: center; justify-content: center; padding: 0 22px; border: 1px solid #ddd8ff; border-radius: 999px; color: #17172f; font-weight: 800; text-decoration: none;">Sign in</a>
-        <a href="/sign-up" style="display: inline-flex; min-height: 46px; align-items: center; justify-content: center; padding: 0 24px; border-radius: 999px; background: #6d5ce7; color: white; font-weight: 850; text-decoration: none;">Start free trial</a>
-      </p>
-
-      <section style="display: grid; gap: 26px; margin-top: 34px;">
-        <article>
-          <h2 style="margin: 0 0 8px; font-size: 26px; letter-spacing: -0.03em;">Purpose of the app</h2>
-          <p style="margin: 0; color: #555264; font-size: 17px; line-height: 1.6;">FamOS gives invited household members one private place to coordinate schedules, responsibilities, meals, shopping, messages, and household planning.</p>
-        </article>
-        <article>
-          <h2 style="margin: 0 0 8px; font-size: 26px; letter-spacing: -0.03em;">Why FamOS uses Google Calendar</h2>
-          <p style="margin: 0; color: #555264; font-size: 17px; line-height: 1.6;">When a user chooses to connect Google Calendar, FamOS requests calendar access so selected Google Calendar events can appear in the shared family calendar and new family events can be added back to writable connected calendars.</p>
-        </article>
-        <article>
-          <h2 style="margin: 0 0 8px; font-size: 26px; letter-spacing: -0.03em;">Privacy and control</h2>
-          <p style="margin: 0; color: #555264; font-size: 17px; line-height: 1.6;">Household data is visible only to invited members of the same FamOS home. Users can disconnect calendar access from Settings.</p>
-        </article>
-      </section>
-
-      <p style="margin-top: 34px; display: flex; gap: 14px; flex-wrap: wrap; align-items: center;">
-        <a href="/sign-in" style="color: #6d5ce7; font-weight: 800;">Sign in</a>
-        <a href="/sign-up" style="color: #6d5ce7; font-weight: 800;">Get started</a>
-        <a href="/privacy" style="color: #6d5ce7; font-weight: 700;">Privacy Policy</a>
-        <a href="/terms" style="color: #6d5ce7; font-weight: 700;">Terms of Service</a>
-      </p>
-    </main>
-  </div>
+    </div>
 
   <script type="module" src="/src/main.jsx"></script>
   </body>
