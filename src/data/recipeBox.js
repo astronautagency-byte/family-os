@@ -11,14 +11,15 @@
 
 const normalizeRestriction = (entry) => String(entry || "").trim();
 
-export function normaliseDietaryPreferences(preferences = {}) {
-  const restrictions = Array.isArray(preferences.restrictions)
+export function normaliseDietaryPreferences(preferences) {
+  const safe = preferences && typeof preferences === "object" ? preferences : {};
+  const restrictions = Array.isArray(safe.restrictions)
     ? preferences.restrictions.map(normalizeRestriction).filter(Boolean)
     : [];
   return {
     restrictions: [...new Set(restrictions)],
-    avoidIngredients: String(preferences.avoidIngredients || preferences.avoid || "").trim(),
-    notes: String(preferences.notes || preferences.dietaryNotes || "").trim(),
+    avoidIngredients: String(safe.avoidIngredients || safe.avoid || "").trim(),
+    notes: String(safe.notes || safe.dietaryNotes || "").trim(),
   };
 }
 
@@ -41,7 +42,7 @@ export function recipeSearchProfileForMeal(mealOrTitle = "", fallbackSlot = "din
     query: cleanTitle,
     ingredients,
     mealType: slot,
-    dietary,
+    dietary: diet.restrictions.join(" "),
     dietaryRestrictions: diet.restrictions,
     avoidIngredients: diet.avoidIngredients,
     dietaryNotes: diet.notes,
