@@ -374,7 +374,7 @@ export default function CalendarPage() {
         <button onClick={searchLocalEvents} disabled={discoverBusy}><Search/>{discoverBusy?"Looking nearby…":"Search"}</button>
       </div>
       {discoverBusy&&<div className="event-discovery-loading"><LoaderCircle/> Finding ideas near your family…</div>}
-      {discoverError&&<div className="event-discovery-error">{discoverError}{!discoverLocation&&<button onClick={()=>{setDiscovering(false);window.location.hash="settings";}}>Open Settings</button>}</div>}
+      {discoverError&&<div className="event-discovery-error">{discoverError}{!discoverLocation&&<button onClick={()=>{setDiscovering(false);window.location.hash="settings";}}>Open Settings</button>}<button className="event-discovery-retry" onClick={searchLocalEvents}>{discoverBusy?"Retrying…":"Try again"}</button></div>}
       {!discoverBusy&&discoveredEvents.length>0&&<>
         {resultDiagnostics?.failedCities?.length>0&&(
           <div className="event-discovery-partial-warning" role="status">

@@ -32,7 +32,7 @@ export async function invokeEdgeFunction(name, body) {
     });
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
-    throw new Error(`Could not reach the invitation service${detail && detail !== "[object Object]" ? `: ${detail}` : ""}.`);
+    throw new Error(`Could not reach the ${name} function${detail && detail !== "[object Object]" ? `: ${detail}` : ""}.`);
   }
   const text = await response.text();
   let payload = null;
@@ -44,7 +44,7 @@ export async function invokeEdgeFunction(name, body) {
   if (!response.ok) {
     const message = typeof payload?.error === "string"
       ? payload.error
-      : payload?.error?.message || payload?.message || (typeof payload === "string" ? payload : "") || `Invitation service returned HTTP ${response.status}.`;
+      : payload?.error?.message || payload?.message || (typeof payload === "string" ? payload : "") || `${name} returned HTTP ${response.status}.`;
     throw new Error(message);
   }
   return payload;
