@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, ChefHat, LoaderCircle, Sparkles, WandSparkles } from "lucide-react";
+import { Check, ChefHat, ChevronDown, LoaderCircle, ShoppingBasket, Sparkles, WandSparkles } from "lucide-react";
 import { normaliseDietaryPreferences } from "../data/recipeBox";
+import { useFamily } from "../context/FamilyContext";
 import { invokeEdgeFunction, supabase } from "../lib/supabase";
+import { cookableRecipes } from "../lib/cookableTonight";
 
 const MEAL_TYPES = ["breakfast", "lunch", "dinner"];
 const ROULETTE_QUERIES = [
@@ -57,6 +59,16 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType, dieta
   ].filter(Boolean).join(" · ");
   const hasDietPrefs = Boolean(dietSummary);
   const lastQueryRef = useRef("");
+
+  // Soft tier: split results into "needs ingredients" (active list) and
+  // "you can make this tonight" (collapsed accordion below). Mirrors the
+  // muted-events pattern from Calendar.jsx — hard-filter preserves the
+  // active list's quietness while letting the user peek at cookable meals
+  // without committing up front.
+  const { groceries } = useFamily();
+  const cookableList = cookableRecipes(recipes, groceries);
+  const cookableIds = new Set(cookableList.map((recipe) => recipe.title));
+  const activeRecipes = recipes.filter((recipe) => !cookableIds.has(recipe.title));
 
   // Run a recipe-search whenever the ingredient input has stable text. Debounce
   // so each keystroke isn't an API call; cancel the previous request so an
@@ -202,9 +214,9 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType, dieta
       {!error && recipes.length === 0 && !busy && ingredientInput.trim() === "" && (
         <p className="text-[12px] text-[var(--color-ink-faint)] px-1">Type a few ingredients and we'll find a way through dinner.</p>
       )}
-      {recipes.length > 0 && (
+      {activeRecipes.length > 0 && (
         <ul className="space-y-1">
-          {recipes.map((recipe) => (
+          {activeRecipes.map((recipe) => (
             <li key={`${recipe.title}-${recipe.cuisine}`}>
               <button
                 onClick={() => onPick(recipe.title, [recipe.cuisine, recipe.readyInMinutes ? `${recipe.readyInMinutes} min` : ""].filter(Boolean).join(" · "))}
@@ -218,6 +230,38 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType, dieta
             </li>
           ))}
         </ul>
+      )}
+      {/* Soft tier — meals the user has full pantry coverage for. Collapsed
+          by default so the active list stays the primary surface; chevron +
+          dashed-border treatment matches the muted-events soft tier. Adds
+          nothing when no cookable meals exist (empty-state guard). */}
+      {cookableList.length > 0 && (
+        <details className="meal-soft-tier">
+          <summary>
+            <ChevronDown aria-hidden="true" size={14} />
+            <div>
+              <strong>
+                <ShoppingBasket aria-hidden="true" size={13} /> {cookableList.length} you can cook tonight
+              </strong>
+              <small>tap to peek — every ingredient is already in your pantry</small>
+            </div>
+          </summary>
+          <ul className="space-y-1 mt-2">
+            {cookableList.map((recipe) => (
+              <li key={`cook-${recipe.title}`}>
+                <button
+                  onClick={() => onPick(recipe.title, [recipe.cuisine, recipe.readyInMinutes ? `${recipe.readyInMinutes} min` : ""].filter(Boolean).join(" · "))}
+                  className="w-full flex items-center justify-between gap-2 rounded-xl bg-[var(--color-accent-soft)] px-3 py-2 text-left border border-dashed border-[var(--color-accent)] active:scale-[0.99] transition-transform"
+                >
+                  <span className="text-[13.5px] font-medium text-[var(--color-accent-strong)] truncate">{recipe.title}</span>
+                  <span className="inline-flex items-center gap-4 text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-accent)] shrink-0">
+                    <Check aria-hidden="true" size={12} /> ready
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </details>
       )}
 
       <div className="mt-3 pt-3 border-t border-[var(--color-border)]">

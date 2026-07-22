@@ -2,15 +2,19 @@ import { useEffect, useRef, useState } from "react";
 import {
   Bot,
   CalendarDays,
+  Check,
   CheckSquare,
   ChefHat,
+  ChevronDown,
   Send,
+  ShoppingBasket,
   ShoppingCart,
   Sparkles,
   X,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
+import { isCookableTonight } from "../lib/cookableTonight";
 import { addDays, formatDayLabel, todayISO } from "../lib/dates";
 import { invokeEdgeFunction, supabase } from "../lib/supabase";
 
@@ -261,6 +265,10 @@ async function mealActionsFromGroceries(groceryList = [], existingMeals = []) {
         title: recipe.title,
         notes: `Suggested from groceries · ${recipe.cuisine || "Family favourite"}`,
         cook_names: [],
+        // Soft-tier fields — let the renderer decide cookability from
+        // ingredients + checked groceries without a second fetch.
+        ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : [],
+        readyInMinutes: recipe.readyInMinutes || 35,
       },
     }));
   } catch {
@@ -774,6 +782,22 @@ export default function FamAI() {
     }
   };
 
+  // Soft-tier fanout for plan_meal actions in the review panel —
+  // meal proposals whose ingredients are all in the user's checked
+  // groceries (pantry-ready) belong in a quiet collapsible section so
+  // the primary review list stays scannable. Non-meal actions
+  // (grocery / task / event) have no ingredient signal and stay in
+  // the primary list regardless of pantry state. `groceries` comes
+  // from the useFamily() destructure further up; no second hook call
+  // (Rules of Hooks).
+  const cookablePlanMealActions = pending.filter((action) =>
+    action.type === "plan_meal"
+    && Array.isArray(action.args?.ingredients)
+    && isCookableTonight({ ingredients: action.args.ingredients }, groceries)
+  );
+  const cookablePlanMealIds = new Set(cookablePlanMealActions.map((action) => action.id));
+  const primaryPending = pending.filter((action) => !cookablePlanMealIds.has(action.id));
+
   return (
     <div className="fam-ai-page">
       {/* Minimal header */}
@@ -858,21 +882,52 @@ export default function FamAI() {
             <button className="fam-ai-review-close" onClick={() => setPending([])} aria-label="Dismiss"><X size={14} /></button>
           </div>
           <p className="fam-ai-review-note">Nothing changes until you approve.</p>
-          <div className="fam-ai-review-list">
-            {pending.map((action) => {
-              const meta = actionMeta[action.type] || actionMeta.add_task;
-              const Icon = meta.Icon;
-              return (
-                <div className="fam-ai-review-item" key={action.id}>
-                  <span className="fam-ai-review-item-icon"><Icon size={14} /></span>
-                  <div className="fam-ai-review-item-text">
-                    <strong>{meta.label}</strong>
-                    <small>{actionSummary(action)}</small>
+          <>
+            <div className="fam-ai-review-list">
+              {primaryPending.map((action) => {
+                const meta = actionMeta[action.type] || actionMeta.add_task;
+                const Icon = meta.Icon;
+                return (
+                  <div className="fam-ai-review-item" key={action.id}>
+                    <span className="fam-ai-review-item-icon"><Icon size={14} /></span>
+                    <div className="fam-ai-review-item-text">
+                      <strong>{meta.label}</strong>
+                      <small>{actionSummary(action)}</small>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+            {cookablePlanMealActions.length > 0 && (
+              <details className="famos-soft-tier meal-soft-tier">
+                <summary>
+                  <ChevronDown aria-hidden="true" size={14} />
+                  <div>
+                    <strong>
+                      <ShoppingBasket aria-hidden="true" size={13} /> {cookablePlanMealActions.length} you can cook tonight
+                    </strong>
+                    <small>tap to peek — every ingredient is already in your pantry</small>
+                  </div>
+                </summary>
+                <ul className="fam-ai-review-list fam-ai-meal-list mt-2">
+                  {cookablePlanMealActions.map((action) => {
+                    const Icon = (actionMeta[action.type] || actionMeta.add_task).Icon;
+                    return (
+                      <li className="fam-ai-review-item" key={action.id}>
+                        <span className="fam-ai-review-item-icon"><Icon size={14} /></span>
+                        <div className="fam-ai-review-item-text">
+                          <strong>
+                            Plan meal <Check aria-hidden="true" size={11} />
+                          </strong>
+                          <small>{actionSummary(action)}</small>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </details>
+            )}
+          </>
           <div className="fam-ai-review-actions">
             <button className="fam-ai-review-cancel" onClick={() => setPending([])}>Cancel</button>
             <button className="fam-ai-review-approve" onClick={execute} disabled={busy}>
