@@ -3129,3 +3129,12 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   .calendar-quick-input{font-size:15px}
 }
 @media(min-width:720px){.calendar-quick-capture{right:24px;bottom:90px}}
+
+/* Cache badge for the discover-events modal. Faded pill in the corner
+   telling the user results are showing from cache (with age) and offering
+   a one-tap refresh that bypasses the cache entirely. */
+.event-cache-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;background:color-mix(in srgb,var(--color-accent-soft) 70%,var(--color-surface));border:1px solid color-mix(in srgb,var(--color-accent) 18%,var(--color-border));color:var(--color-ink-soft);font-size:11px;font-weight:600;letter-spacing:.01em;cursor:pointer;align-self:flex-start;margin:0 0 10px;transition:all var(--motion-fast) cubic-bezier(.2,.8,.2,1)}
+.event-cache-badge:hover{background:var(--color-accent-soft);color:var(--color-accent-strong);border-color:var(--color-accent);transform:translateY(-1px)}
+.event-cache-badge:active{transform:translateY(0) scale(.97)}
+.event-cache-badge svg{opacity:.65;transition:transform .6s var(--motion-fast) ease}
+.event-cache-badge:hover svg{transform:rotate(45deg);opacity:1}

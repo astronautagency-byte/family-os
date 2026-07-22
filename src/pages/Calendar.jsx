@@ -12,6 +12,7 @@ import { formatDuration, formatTime, todayISO } from "../lib/dates";
 import { fetchGooglePlaceSuggestions, googleMapsApiKey, loadGooglePlaces } from "../lib/googleMapsPlaces";
 import { invokeEdgeFunction } from "../lib/supabase";
 import { parseQuickAdd } from "../lib/quickCapture";
+import { eventCacheKey, readEventCache, writeEventCache, clearEventCache, formatEventCacheAge } from "../lib/eventSearchCache";
 
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const EVENT_TYPES = {
@@ -204,6 +205,7 @@ export default function CalendarPage() {
   const [quickText, setQuickText] = useState("");
   const quickRef = useRef(null);
   const quickInputRef = useRef(null);
+  const [cacheMeta, setCacheMeta] = useState(null); // { cachedAt: number, payload } | null
 
   // Weather: only relevant to TODAY's agenda header. Lat/lng come from the
   // household's saved address; the edge function is preferred, Open-Meteo is
@@ -420,14 +422,38 @@ export default function CalendarPage() {
     return `${failures.slice(0, -1).map((entry) => `${entry.city}`).join(", ")} and ${failures.at(-1).city} couldn't be reached`;
   };
 
+  // Bypass the cache + force a fresh request. Drops the badge immediately
+  // so the UI doesn't show stale "cached" state during the network refresh.
+  const refreshFromNetwork = async (citiesForRequest) => {
+    const key = eventCacheKey({
+      category: discoverCategory,
+      when: discoverWhen,
+      country: String(householdProfileExtra?.country || "ca").toLowerCase().slice(0, 2),
+      cities: citiesForRequest,
+    });
+    clearEventCache(key);
+    setCacheMeta(null);
+    await runSearch(citiesForRequest);
+  };
   const runSearch = async (citiesForRequest) => {
-    if (!citiesForRequest.length) { setDiscoverError("Add your home address in Settings, or add a city below, to discover nearby events."); setResultDiagnostics(null); return; }
+    if (!citiesForRequest.length) { setDiscoverError("Add your home address in Settings, or add a city below, to discover nearby events."); setResultDiagnostics(null); setCacheMeta(null); return; }
     setDiscoverBusy(true); setDiscoverError("");
     const country = String(householdProfileExtra?.country || "ca").toLowerCase().slice(0, 2);
     try {
       const result = await invokeEdgeFunction("search-local-events", { location: citiesForRequest[0], cities: citiesForRequest, category: discoverCategory, when: discoverWhen, country });
       setDiscoveredEvents(Array.isArray(result?.events) ? result.events : []);
       setResultDiagnostics(result?.diagnostics || null);
+      // Persist successful responses (incl. empty-but-no-error) for the 4h TTL
+      // window. upstream_error is intentionally skipped so transient failures
+      // don't poison the next modal open.
+      const key = eventCacheKey({ category: discoverCategory, when: discoverWhen, country, cities: citiesForRequest });
+      const writeAt = Date.now();
+      writeEventCache(key, result, writeAt);
+      if (result?.providerStatus !== "upstream_error") {
+        setCacheMeta({ cachedAt: writeAt, payload: result });
+      } else {
+        setCacheMeta(null);
+      }
       if (!Array.isArray(result?.events) || !result.events.length) {
         if (result?.error) {
           const cityNote = Array.isArray(result?.diagnostics?.perCityCounts) && result.diagnostics.perCityCounts.length ? ` (${result.diagnostics.perCityCounts.map((entry) => `${entry.city}: ${entry.count}`).join(", ")})` : "";
@@ -444,7 +470,7 @@ export default function CalendarPage() {
   };
 
   const searchLocalEvents = async () => { const cities = discoverCities.length ? discoverCities : (discoverLocation ? [discoverLocation] : []); await runSearch(cities); };
-  const retryFailedCities = async () => { const failures = Array.isArray(resultDiagnostics?.failedCities) ? resultDiagnostics.failedCities.map((entry) => entry.city).filter(Boolean) : []; if (!failures.length) return; await runSearch(failures); };
+  const retryFailedCities = async () => { const failures = Array.isArray(resultDiagnostics?.failedCities) ? resultDiagnostics.failedCities.map((entry) => entry.city).filter(Boolean) : []; if (!failures.length) return; await refreshFromNetwork(failures); };
 
   const addDiscoveredEvent = (event) => {
     const start = new Date((event.startTime || "").replace(" ", "T"));
@@ -528,7 +554,25 @@ export default function CalendarPage() {
             <span className="calendar-hero-month">{monthDayLabel} · {dayEventCount} event{dayEventCount === 1 ? "" : "s"}</span>
           </div>
           <div className="calendar-hero-actions">
-            <button className="calendar-hero-action calendar-hero-action-settings" onClick={() => { setDiscovering(true); setDiscoverCities((current) => current.length ? current : (discoverLocation ? [discoverLocation] : [])); if (!discoveredEvents.length) { const cities = discoverLocation ? [discoverLocation] : []; window.setTimeout(() => runSearch(cities), 0); } }} aria-label="Discover local events">
+            <button className="calendar-hero-action calendar-hero-action-settings" onClick={() => {
+              setDiscovering(true);
+              const initialCities = discoverCities.length ? discoverCities : (discoverLocation ? [discoverLocation] : []);
+              // User might already have multi-city state preserved from a previous open;
+              // setDiscoverCities fires next tick. Compute key + check cache using the
+              // value we're about to apply so the cache lookup matches the eventual state.
+              setDiscoverCities(initialCities);
+              const countryKey = String(householdProfileExtra?.country || "ca").toLowerCase().slice(0, 2);
+              const key = eventCacheKey({ category: discoverCategory, when: discoverWhen, country: countryKey, cities: initialCities });
+              const entry = readEventCache(key);
+              if (entry) {
+                setCacheMeta(entry);
+                setDiscoveredEvents(Array.isArray(entry.payload?.events) ? entry.payload.events : []);
+                setResultDiagnostics(entry.payload?.diagnostics || null);
+                setDiscoverError("");
+              } else if (!discoveredEvents.length) {
+                window.setTimeout(() => runSearch(initialCities), 0);
+              }
+            }} aria-label="Discover local events">
               <Sparkles size={16} />
             </button>
             <button className="calendar-hero-action" onClick={() => setCalendarManagerOpen(true)} aria-label="Manage calendars">
@@ -766,6 +810,21 @@ export default function CalendarPage() {
         </Modal>
 
         <Modal open={discovering} onClose={() => setDiscovering(false)} title="Find something fun nearby">
+          {!discoverBusy && cacheMeta && (
+            <button
+              type="button"
+              className="event-cache-badge"
+              onClick={() => {
+                const cities = discoverCities.length ? discoverCities : (discoverLocation ? [discoverLocation] : []);
+                refreshFromNetwork(cities);
+              }}
+              title={`Results loaded from cache ${formatEventCacheAge(cacheMeta.cachedAt)} · tap to refresh`}
+              aria-label={`Cached results from ${formatEventCacheAge(cacheMeta.cachedAt)} — tap to refresh`}
+            >
+              <RefreshCw aria-hidden="true" size={11} />
+              Cached · {formatEventCacheAge(cacheMeta.cachedAt)} · refresh
+            </button>
+          )}
           <div className="event-discovery-intro">
             <span><Sparkles /></span>
             <div>
@@ -802,7 +861,10 @@ export default function CalendarPage() {
             <div className="event-discovery-error">
               {discoverError}
               {!discoverLocation && <button onClick={() => { setDiscovering(false); window.location.hash = "settings"; }}>Open Settings</button>}
-              <button className="event-discovery-retry" onClick={searchLocalEvents}>{discoverBusy ? "Retrying…" : "Try again"}</button>
+              <button className="event-discovery-retry" onClick={() => {
+                const cities = discoverCities.length ? discoverCities : (discoverLocation ? [discoverLocation] : []);
+                refreshFromNetwork(cities);
+              }}>{discoverBusy ? "Retrying…" : "Try again"}</button>
               {/* Nearby-cities fallback — surfaces when the edge function
                   returned empty AND has a country-specific major-city list
                   to suggest. Tapping a pill adds that city to discoverCities
