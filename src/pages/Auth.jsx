@@ -305,6 +305,7 @@ export function HouseholdOnboarding() {
     acceptInvitation,
     invitePartner,
     skipOnboardingInvites,
+    markOnboardingComplete,
     signOut,
     refreshAccount,
     session,
@@ -545,6 +546,7 @@ export function HouseholdOnboarding() {
             busy={busy}
             run={run}
             onSave={saveOwnerProfile}
+            onSkipSetup={() => run(async () => { markOnboardingComplete(); })}
             step={ownerStep}
             setStep={setOwnerStep}
           />
@@ -712,6 +714,11 @@ function OwnerProfileStep(props) {
         onFinish={props.onSave}
         finishLabel="Finish setup"
       />
+      {props.onSkipSetup && (
+        <SecondaryButton type="button" className="onboarding-skip-button onboarding-skip-setup" disabled={props.busy} onClick={props.onSkipSetup} title="Mark onboarding complete without filling the wizard — your existing home is fine.">
+          Skip the rest — my home is ready
+        </SecondaryButton>
+      )}
     </div>
   );
 }

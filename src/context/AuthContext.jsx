@@ -875,6 +875,30 @@ export function AuthProvider({ children }) {
     setOnboardingRequired(false);
   }, [household?.id, session?.user?.id]);
 
+  // Escape hatch for owners whose household is already set up and who don't
+  // want to walk through the full OwnerProfileStep wizard on the next login.
+  // Sets the SAME localStorage key `saveHouseholdProfile` sets — the gate
+  // short-circuits on this on the next refreshAccount() even if the user is
+  // offline or the server write later fails. The server `completed_at` bump
+  // is best-effort so other devices see the same flag without local state.
+  const markOnboardingComplete = useCallback(() => {
+    if (!household?.id || !session?.user?.id) return;
+    try {
+      localStorage.setItem(onboardingProfileKey(household.id, session.user.id), "true");
+    } catch {
+      /* localStorage disabled — silently no-op; activity inference can still rescue the user */
+    }
+    const completedAt = new Date().toISOString();
+    supabase
+      .from("household_profiles")
+      .update({ completed_at: completedAt })
+      .eq("household_id", household.id)
+      .then(({ error }) => {
+        if (!error) setHouseholdProfile((current) => ({ ...(current || {}), completed_at: completedAt }));
+      });
+    setOnboardingRequired(false);
+  }, [household?.id, session?.user?.id]);
+
   const value = {
     configured: isSupabaseConfigured,
     session,
@@ -907,6 +931,7 @@ export function AuthProvider({ children }) {
     acceptInvitation,
     invitePartner,
     skipOnboardingInvites,
+    markOnboardingComplete,
     refreshAccount,
   };
 
