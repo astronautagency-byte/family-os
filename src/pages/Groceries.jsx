@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Baby, Bone, Carrot, Clipboard, Coffee, Cookie, Croissant, CupSoda, Download, Drumstick, ExternalLink, FlaskConical, Globe2, GripVertical, HeartPulse, Maximize2, Milk, Package, Pencil, Plus, Sandwich, ScanLine, ScrollText, Share2, ShoppingBag, Snowflake, Soup, SprayCan, Star, Store, Trash2, Truck, Wheat, Wine, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
-import { Card, Checkbox, EmptyState, Modal, PrimaryButton, SecondaryButton, Stepper, TextField } from "../components/ui";
+import { Avatar, Card, Checkbox, EmptyState, Modal, PrimaryButton, SecondaryButton, Stepper, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import PullToRefresh from "../components/PullToRefresh";
 import { GROCERY_CATEGORIES } from "../data/mockData";

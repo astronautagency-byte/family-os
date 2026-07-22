@@ -3081,3 +3081,31 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 @media (prefers-reduced-motion: reduce) {
   .pull-to-refresh-host { transition-duration: 0ms; }
 }
+
+/* ── iOS-style Calendar page (replaces day-strip + view-toggle) ── */
+
+/* Agenda header: section label + inline weather pill */
+.calendar-agenda-header{display:flex;align-items:center;justify-content:space-between;padding:14px 4px 10px;color:var(--color-ink-faint);border-top:1px solid var(--color-border);margin-top:10px}
+.calendar-agenda-header .calendar-agenda-label{font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--color-accent-strong);text-transform:uppercase}
+.calendar-agenda-weather{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--color-ink);padding:4px 9px;border-radius:999px;background:color-mix(in srgb,var(--color-accent) 10%,var(--color-surface));border:1px solid color-mix(in srgb,var(--color-accent) 22%,var(--color-border))}
+
+/* Pill list rows */
+.calendar-list{display:flex;flex-direction:column;gap:0;padding-bottom:88px}
+.calendar-list-row{display:grid;grid-template-columns:54px 14px 1fr auto;gap:11px;align-items:flex-start;padding:11px 4px;border-bottom:1px solid color-mix(in srgb,var(--color-border) 70%,transparent);cursor:pointer;transition:background var(--motion-fast) ease}
+.calendar-list-row:hover{background:color-mix(in srgb,var(--color-accent) 5%,transparent)}
+.calendar-list-time{display:flex;flex-direction:column;align-items:flex-end}
+.calendar-list-time>span{font:700 13px/1.1 var(--font-sans);color:var(--color-ink);letter-spacing:-.005em}
+.calendar-list-time>em{font-style:normal;font-size:10.5px;color:var(--color-ink-faint);margin-top:2px;font-weight:600}
+.calendar-list-dot{width:9px;height:9px;border-radius:50%;margin-top:5px;box-shadow:0 0 0 2px color-mix(in srgb,var(--color-surface) 96%,transparent)}
+.calendar-list-body{min-width:0;display:flex;flex-direction:column;gap:2px}
+.calendar-list-body>strong{font-size:14px;font-weight:600;color:var(--color-ink);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.3}
+.calendar-list-location{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--color-ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.calendar-list-location svg{flex:none;opacity:.7}
+.calendar-list-delete{display:grid;place-items:center;width:24px;height:24px;border-radius:8px;border:0;background:transparent;color:var(--color-ink-faint);cursor:pointer;transition:background var(--motion-fast) ease,color var(--motion-fast) ease;align-self:center}
+.calendar-list-delete:hover{background:var(--color-warn-soft);color:var(--color-warn)}
+
+/* FAB: floating round add button bottom-right of page area */
+.calendar-fab{position:fixed;right:18px;bottom:84px;width:54px;height:54px;border-radius:50%;background:var(--color-accent);color:#fff;border:0;display:grid;place-items:center;box-shadow:0 8px 24px color-mix(in srgb,var(--color-accent) 36%,transparent);z-index:30;cursor:pointer;transition:transform var(--motion-fast) cubic-bezier(.2,.8,.2,1),box-shadow var(--motion-fast) ease,background var(--motion-fast) ease}
+.calendar-fab:hover{transform:translateY(-2px);background:var(--color-accent-strong);box-shadow:0 12px 28px color-mix(in srgb,var(--color-accent) 42%,transparent)}
+.calendar-fab:active{transform:translateY(0) scale(.96)}
+@media(min-width:720px){.calendar-fab{right:24px;bottom:24px}}

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, BarChart3, Bookmark, CalendarPlus, CandyOff, Check, ChefHat, Clock, Coffee, Dices, FishOff, Leaf, ListChecks, LoaderCircle, MilkOff, NutOff, ShoppingCart, Soup, Sparkles, Sprout, Trash2, Users, WheatOff, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
-import { AvatarStack, Card, Modal, PrimaryButton, SecondaryButton, TextField, colorVar } from "../components/ui";
+import { Avatar, AvatarStack, Card, Modal, PrimaryButton, SecondaryButton, TextField, colorVar } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import PullToRefresh from "../components/PullToRefresh";
 import { MEAL_SLOTS } from "../data/mockData";

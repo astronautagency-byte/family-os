@@ -1,9 +1,10 @@
 import { useEffect, useRef, useMemo, useState } from "react";
-import { CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, ExternalLink, EyeOff, LoaderCircle, MapPin, Plus, RefreshCw, Search, Settings2, Sparkles, Ticket, Trash2, TriangleAlert, Users, X } from "lucide-react";
+import { CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, ExternalLink, EyeOff, LoaderCircle, MapPin, Moon, Plus, RefreshCw, Search, Settings2, Sparkles, Sun, Ticket, Trash2, TriangleAlert, Users, X } from "lucide-react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
+import { supabase } from "../lib/supabase";
 import { AvatarStack, DateField, Modal, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import PullToRefresh from "../components/PullToRefresh";
@@ -37,6 +38,40 @@ const isoWeek = (d) => {
   date.setUTCDate(date.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
   return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+};
+
+// Compact weather mapping used only for the small TODAY-badge inline with the agenda.
+const WEATHER_KIND = {
+  clear: { day: Sun, night: Moon, label: "Clear" },
+  "partly-cloudy": { day: CloudSun, night: CloudMoon, label: "Partly cloudy" },
+  cloudy: { day: Cloud, night: Cloud, label: "Cloudy" },
+  fog: { day: CloudFog, night: CloudFog, label: "Fog" },
+  drizzle: { day: CloudDrizzle, night: CloudDrizzle, label: "Drizzle" },
+  rain: { day: CloudRain, night: CloudRain, label: "Rain" },
+  snow: { day: CloudSnow, night: CloudSnow, label: "Snow" },
+  thunder: { day: CloudLightning, night: CloudLightning, label: "Storms" },
+};
+const weatherKind = (kind) => WEATHER_KIND[kind] || WEATHER_KIND.cloudy;
+function WeatherGlyph({ kind, isDay = true, size = 14 }) {
+  const meta = weatherKind(kind);
+  const Icon = isDay ? meta.day : meta.night;
+  return <Icon size={size} />;
+}
+const conditionLabel = (entry) => entry?.conditionText || weatherKind(entry?.kind).label;
+const roundTemp = (value) => (Number.isFinite(Number(value)) ? Math.round(Number(value)) : "—");
+
+// WMO weather code -> our kind vocabulary (keyless fallback path).
+const wmoToKind = (code) => {
+  const c = Number(code);
+  if (c === 0) return "clear";
+  if (c === 1 || c === 2) return "partly-cloudy";
+  if (c === 3) return "cloudy";
+  if (c === 45 || c === 48) return "fog";
+  if (c >= 51 && c <= 57) return "drizzle";
+  if ((c >= 61 && c <= 67) || (c >= 80 && c <= 82)) return "rain";
+  if ((c >= 71 && c <= 77) || c === 85 || c === 86) return "snow";
+  if (c >= 95) return "thunder";
+  return "cloudy";
 };
 
 function LocationAutocompleteField({ value, onChange }) {
@@ -146,6 +181,8 @@ export default function CalendarPage() {
   const selected = new Date(`${selectedDate}T12:00:00`);
   const [month, setMonth] = useState(new Date(selected.getFullYear(), selected.getMonth(), 1));
   const [sourceFilter, setSourceFilter] = useState("all");
+  const [weather, setWeather] = useState(null);
+  const [weatherError, setWeatherError] = useState("");
   const [adding, setAdding] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -162,7 +199,66 @@ export default function CalendarPage() {
   const [cityDraft, setCityDraft] = useState("");
   const [calendarManagerOpen, setCalendarManagerOpen] = useState(false);
   const [draft, setDraft] = useState({ title: "", date: selectedDate, start: "18:00", end: "19:00", location: "", memberIds: [], eventType: "family", destination: "family" });
-  const [calendarView, setCalendarView] = useState("list"); // "list" | "calendar"
+
+  // Weather: only relevant to TODAY's agenda header. Lat/lng come from the
+  // household's saved address; the edge function is preferred, Open-Meteo is
+  // the keyless fallback that mirrors Today.jsx's behaviour.
+  const storedLatitude = householdProfileExtra?.latitude;
+  const storedLongitude = householdProfileExtra?.longitude;
+  const latitude = storedLatitude === null || storedLatitude === undefined || storedLatitude === "" ? NaN : Number(storedLatitude);
+  const longitude = storedLongitude === null || storedLongitude === undefined || storedLongitude === "" ? NaN : Number(storedLongitude);
+  const hasWeatherLocation = Number.isFinite(latitude) && Number.isFinite(longitude);
+
+  useEffect(() => {
+    if (!hasWeatherLocation) {
+      setWeather(null);
+      setWeatherError("");
+      return undefined;
+    }
+    const controller = new AbortController();
+    let cancelled = false;
+    const fromOpenMeteo = async () => {
+      const url = new URL("https://api.open-meteo.com/v1/forecast");
+      url.search = new URLSearchParams({
+        latitude: String(latitude),
+        longitude: String(longitude),
+        current: "temperature_2m,weather_code,is_day",
+        timezone: "auto",
+      });
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) throw new Error("Weather is unavailable.");
+      const data = await response.json();
+      const cur = data.current || {};
+      return { temperature: cur.temperature_2m, kind: wmoToKind(cur.weather_code), isDay: cur.is_day === 1, conditionText: "", unit: "\u00b0C" };
+    };
+    (async () => {
+      try {
+        if (supabase) {
+          const { data, error } = await supabase.functions.invoke("weather", { body: { latitude, longitude, days: 1 } });
+          if (!error && data && !data.error && data.current) {
+            const cur = data.current;
+            if (!cancelled) {
+              setWeather({ temperature: cur.tempC ?? cur.temperature_2m, kind: wmoToKind(cur.weather_code || cur.kind), isDay: cur.isDay !== false, conditionText: cur.conditionText || "", unit: "\u00b0C" });
+              setWeatherError("");
+            }
+            return;
+          }
+        }
+        const fallback = await fromOpenMeteo();
+        if (!cancelled) { setWeather(fallback); setWeatherError(""); }
+      } catch (error) {
+        if (cancelled || error?.name === "AbortError") return;
+        try {
+          const fallback = await fromOpenMeteo();
+          if (!cancelled) { setWeather(fallback); setWeatherError(""); }
+        } catch (fallbackError) {
+          if (!cancelled && fallbackError?.name !== "AbortError") setWeatherError(fallbackError.message || "Weather is unavailable.");
+        }
+      }
+    })();
+    return () => { cancelled = true; controller.abort(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasWeatherLocation, latitude, longitude]);
 
   const allEvents = useMemo(() => [
     ...events,
@@ -313,28 +409,19 @@ export default function CalendarPage() {
 
   const refreshAll = async () => { await refreshData(); if (googleConnected) await syncGoogleCalendarNow(); };
 
-  const daystripRef = useRef(null);
   const agendaRef = useRef(null);
   const heroNumRef = useRef(null);
 
-  // Stagger day strip items in on mount
+  // Animate agenda rows sliding in when the date or filter changes.
   useGSAP(() => {
-    gsap.fromTo(".calendar-daystrip-item",
-      { y: -12, opacity: 0 },
-      { y: 0, opacity: 1, duration: 0.4, stagger: 0.04, ease: "back.out(1.2)" }
-    );
-  }, { scope: daystripRef });
-
-  // Animate event cards sliding in when agenda changes
-  useGSAP(() => {
-    if (dayEvents.length === 0) return;
-    gsap.fromTo(".calendar-event",
+    if (!dayEvents.length) return;
+    gsap.fromTo(".calendar-list-row",
       { y: 16, opacity: 0, scale: 0.97 },
       { y: 0, opacity: 1, scale: 1, duration: 0.35, stagger: 0.05, ease: "power2.out" }
     );
   }, { dependencies: [selectedDate, sourceFilter], scope: agendaRef });
 
-  // Cross-fade the day number when the selected date changes
+  // Cross-fade the day number when the selected date changes.
   useEffect(() => {
     if (!heroNumRef.current) return;
     gsap.fromTo(heroNumRef.current,
@@ -343,18 +430,18 @@ export default function CalendarPage() {
     );
   }, [selectedDate]);
 
-  // Animate month grid cells when toggled open
+  // Animate month grid cells when the visible month changes.
   useGSAP(() => {
-    if (calendarView !== "calendar") return;
     gsap.fromTo(".calendar-month-grid button",
-      { scale: 0.8, opacity: 0 },
-      { scale: 1, opacity: 1, duration: 0.25, stagger: 0.01, ease: "back.out(1.3)" }
+      { scale: 0.92, opacity: 0 },
+      { scale: 1, opacity: 1, duration: 0.22, stagger: 0.005, ease: "back.out(1.4)" }
     );
-  }, { dependencies: [calendarView], scope: daystripRef });
+  }, { dependencies: [month] });
 
   const dayEventCount = visibleEvents.filter(e => e.start.slice(0, 10) === selectedDate).length;
 
   return (
+    <>
     <PullToRefresh onRefresh={refreshAll}>
       <div className="pb-28 calendar-page">
         {/* ── Header with prominent date ── */}
@@ -378,51 +465,10 @@ export default function CalendarPage() {
         </div>
 
         <div className="px-5">
-          {/* ── Day strip — only rendered in List view. In Calendar view the
-                full month grid replaces it, so showing both was redundant. */}
-          {calendarView === "list" && (
-          <div className="calendar-daystrip" ref={daystripRef}>
-            {dayStrip.map((d) => {
-              const key = iso(d);
-              const isToday = key === todayStr;
-              const isSelected = key === selectedDate;
-              const hasEvents = visibleEvents.some(e => e.start.slice(0, 10) === key);
-              return (
-                <button
-                  key={key}
-                  className={`calendar-daystrip-item ${isSelected ? "selected" : ""} ${isToday ? "today" : ""}`}
-                  onClick={() => setSelectedDate(key)}
-                >
-                  <span className="calendar-daystrip-dow">{d.toLocaleDateString("en-CA", { weekday: "short" }).toUpperCase()}</span>
-                  <span className="calendar-daystrip-num">{d.getDate()}</span>
-                  {hasEvents && <span className="calendar-daystrip-dot" />}
-                </button>
-              );
-            })}
-          </div>
-          )}
+          {/* ── Month grid (always shown — the grid IS the date picker now) ── */}
 
-          {/* ── View toggle: List / Calendar ── */}
-          <div className="calendar-view-toggle">
-            <button
-              className={`calendar-view-btn ${calendarView === "list" ? "active" : ""}`}
-              onClick={() => setCalendarView("list")}
-            >
-              <CalendarDays size={14} />
-              <span>List</span>
-            </button>
-            <button
-              className={`calendar-view-btn ${calendarView === "calendar" ? "active" : ""}`}
-              onClick={() => setCalendarView("calendar")}
-            >
-              <CalendarDays size={13} />
-              <span>Calendar</span>
-            </button>
-          </div>
-
-          {/* ── Month grid (calendar view) ── */}
-          {calendarView === "calendar" && (
-            <div className="calendar-month">
+          {/* ── Month grid ── */}
+          <div className="calendar-month">
               <div className="calendar-month-header">
                 <button onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}><ChevronLeft size={16} /></button>
                 <strong>{monthLabel}</strong>
@@ -461,7 +507,6 @@ export default function CalendarPage() {
                 </div>
               </div>
             </div>
-          )}
 
           {/* ── Source filter pills ── */}
           {sources.length > 1 && (
@@ -486,10 +531,16 @@ export default function CalendarPage() {
             </div>
           )}
 
-          {/* ── Day agenda (list view only) ── */}
-          {calendarView === "list" && (
+          {/* ── Agenda below the grid — iOS-style list with section header + inline weather ── */}
           <div className="calendar-agenda-section" ref={agendaRef}>
-            <div className="calendar-agenda-label">{selectedLabel}</div>
+            <div className="calendar-agenda-header">
+              <span className="calendar-agenda-label">{selectedLabel}</span>
+              {selectedDate === todayStr && weather && (
+                <span className="calendar-agenda-weather" aria-label={`Today ${conditionLabel(weather)}`}>
+                  <WeatherGlyph kind={weather.kind} isDay={weather.isDay !== false} size={14} /> {roundTemp(weather.temperature)}{weather.unit || "\u00b0"}
+                </span>
+              )}
+            </div>
             {dayEvents.length === 0 ? (
               <div className="calendar-empty">
                 <div className="calendar-empty-icon"><CalendarDays size={28} /></div>
@@ -497,51 +548,38 @@ export default function CalendarPage() {
                 <p>Enjoy the quiet, or tap + to add something.</p>
               </div>
             ) : (
-              <div className="calendar-agenda">
+              <div className="calendar-list">
                 {dayEvents.map((ev) => {
-                  const people = (ev.memberIds || []).map(id => memberById[id]).filter(Boolean);
                   const type = EVENT_TYPES[eventType(ev)];
                   const deletable = canDeleteEvent(ev);
                   return (
                     <div
-                      className="calendar-event"
+                      className="calendar-list-row"
                       key={ev.id}
                       onClick={() => setSelectedEvent(ev)}
                     >
-                      <div className="calendar-event-time">
-                        <span className="calendar-event-start">{formatTime(ev.start)}</span>
-                        {ev.end && <span className="calendar-event-end">{formatTime(ev.end)}</span>}
-                        {ev.end && <span className="calendar-event-duration">{formatDuration(ev.start, ev.end)}</span>}
+                      <div className="calendar-list-time">
+                        <span>{formatTime(ev.start)}</span>
+                        {ev.end && <em>{formatDuration(ev.start, ev.end)}</em>}
                       </div>
-                      <div className="calendar-event-line" style={{ backgroundColor: type.color }} />
-                      <div className="calendar-event-body">
+                      <span className="calendar-list-dot" style={{ backgroundColor: type.color }} aria-hidden="true" />
+                      <div className="calendar-list-body">
                         <strong>{ev.title}</strong>
-                        <div className="calendar-event-meta">
-                          <span className="calendar-event-type" style={{ color: type.color }}>{type.label}</span>
-                          {ev.location && (
-                            <span className="calendar-event-location">
-                              <MapPin size={11} />
-                              {ev.location}
-                            </span>
-                          )}
-                          {people.length > 0 && (
-                            <span className="calendar-event-people">{people.map(p => p.name).join(", ")}</span>
-                          )}
-                        </div>
-                        {deletable && (
-                          <button
-                            className="calendar-event-delete"
-                            onClick={(event) => { event.stopPropagation(); setDeleteTarget(ev); }}
-                            aria-label="Delete event"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                        {ev.location && (
+                          <span className="calendar-list-location">
+                            <MapPin size={11} />
+                            {ev.location}
+                          </span>
                         )}
                       </div>
-                      {people.length > 0 && (
-                        <div className="calendar-event-avatars">
-                          <AvatarStack members={people} />
-                        </div>
+                      {deletable && (
+                        <button
+                          className="calendar-list-delete"
+                          onClick={(event) => { event.stopPropagation(); setDeleteTarget(ev); }}
+                          aria-label={`Delete ${ev.title}`}
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       )}
                     </div>
                   );
@@ -549,7 +587,6 @@ export default function CalendarPage() {
               </div>
             )}
           </div>
-          )}
         </div>
 
         {/* ── Modals (all preserved from original) ── */}
@@ -807,5 +844,9 @@ export default function CalendarPage() {
         </Modal>
       </div>
     </PullToRefresh>
+    <button className="calendar-fab" onClick={openAdd} aria-label="Add event">
+      <Plus size={26} />
+    </button>
+    </>
   );
 }
