@@ -653,7 +653,7 @@ export default function Groceries() {
   return (
     <PullToRefresh onRefresh={refreshData}><div className="pb-24 reference-groceries">
       <PageHeader
-        title="Groceries"
+        title="Shopping list"
         illustration="groceries"
         subtitle="One shared list for staples, favourites, and store runs."
         action={<div className="grocery-mode-actions">

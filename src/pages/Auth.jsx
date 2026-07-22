@@ -494,7 +494,7 @@ export function HouseholdOnboarding() {
         {invitation && !household ? (
           <InvitationStep invitation={invitation} busy={busy} onAccept={() => run(acceptInvitation)} />
         ) : !household ? (
-          <HouseholdNameStep name={name} setName={setName} busy={busy} onContinue={() => run(() => createHousehold(name))} />
+          <HouseholdNameStep name={name} setName={setName} busy={busy} refreshAccount={refreshAccount} session={session} onContinue={() => run(() => createHousehold(name))} />
         ) : ownerProfileStep ? (
           <OwnerProfileStep
             familySize={familySize}
@@ -593,11 +593,24 @@ function InvitationStep({ invitation, busy, onAccept }) {
   );
 }
 
-function HouseholdNameStep({ name, setName, busy, onContinue }) {
+function HouseholdNameStep({ name, setName, busy, refreshAccount, session, onContinue }) {
   return (
     <>
+      {/* Esc key + Enter work natively on the TextField. */}
       <TextField label="Household name" placeholder="e.g. The Miller Family" value={name} onChange={(e) => setName(e.target.value)} required />
       <PrimaryButton disabled={busy || !name.trim()} onClick={onContinue}>{busy ? "Creating…" : "Continue"}</PrimaryButton>
+      {/* Escape hatch: arriving on this screen usually means the membership
+          lookup failed transiently on the previous refresh. Give the user a
+          one-tap re-fetch before they consider signing out entirely. */}
+      <button
+        type="button"
+        className="onboarding-retry-button"
+        disabled={busy || !refreshAccount || !session}
+        onClick={() => refreshAccount?.(session)}
+        title="Re-check whether we're missing a household you're already a member of"
+      >
+        I already set up my home — check again
+      </button>
     </>
   );
 }
@@ -607,7 +620,7 @@ function OwnerProfileStep(props) {
     ["Vegetarian", Leaf], ["Vegan", Salad], ["Gluten-free", WheatOff], ["Dairy-free", ChefHat],
     ["Nut-free", HeartHandshake], ["Shellfish-free", ShieldCheck], ["Low sugar", Sparkles],
   ];
-  const steps = ["Household", "Address", "Priorities", "Food", "Groceries", "Connect"];
+  const steps = ["Household", "Address", "Priorities", "Food", "Shopping", "Connect"];
   const next = () => {
     if (props.step === 0 && props.adultCount + props.childCount !== props.familySize) return;
     props.setStep((step) => Math.min(step + 1, steps.length - 1));
@@ -666,7 +679,7 @@ function OwnerProfileStep(props) {
 
         {props.step === 2 && <div className="onboarding-choice-group onboarding-priority-grid">
           <span><Sparkles size={15} /> Choose all that apply</span>
-          <div>{[["calendar", "Schedules", CalendarDays], ["meals", "Meal planning", ChefHat], ["groceries", "Groceries", ShoppingCart], ["tasks", "Chores & tasks", CheckSquare], ["finance", "Budgeting", WalletCards], ["chat", "Family chat", MessageCircle]].map(([value, label, Icon]) => <button type="button" key={value} className={props.planningPriorities.includes(value) ? "selected" : ""} onClick={() => props.togglePriority(value)}><Icon size={16} />{label}{props.planningPriorities.includes(value) && <Check className="onboarding-pill-check" size={13} />}</button>)}</div>
+          <div>{[["calendar", "Schedules", CalendarDays], ["meals", "Meal planning", ChefHat], ["groceries", "Shopping list", ShoppingCart], ["tasks", "Chores & tasks", CheckSquare], ["finance", "Budgeting", WalletCards], ["chat", "Family chat", MessageCircle]].map(([value, label, Icon]) => <button type="button" key={value} className={props.planningPriorities.includes(value) ? "selected" : ""} onClick={() => props.togglePriority(value)}><Icon size={16} />{label}{props.planningPriorities.includes(value) && <Check className="onboarding-pill-check" size={13} />}</button>)}</div>
         </div>}
 
         {props.step === 3 && <>
@@ -680,7 +693,7 @@ function OwnerProfileStep(props) {
           </div>
         </>}
 
-        {props.step === 4 && <label className="onboarding-field onboarding-full onboarding-grocery-import"><span><ShoppingCart size={15} /> Paste your current grocery list</span><textarea placeholder={"Milk\nEggs\nBananas x6\nGreek yogurt"} value={props.groceryImportText} onChange={(e) => props.setGroceryImportText(e.target.value)} /><small>One item per line works best. We’ll add them to Groceries and remember them as staples.</small></label>}
+        {props.step === 4 && <label className="onboarding-field onboarding-full onboarding-grocery-import"><span><ShoppingCart size={15} /> Paste your current shopping list</span><textarea placeholder={"Milk\nEggs\nBananas x6\nGreek yogurt"} value={props.groceryImportText} onChange={(e) => props.setGroceryImportText(e.target.value)} /><small>One item per line works best. We’ll add them to your shopping list and remember them as staples.</small></label>}
 
         {props.step === 5 && <>
           <GoogleCalendarStep signInWithGoogle={props.signInWithGoogle} googleProviderToken={props.googleProviderToken} busy={props.busy} run={props.run} />

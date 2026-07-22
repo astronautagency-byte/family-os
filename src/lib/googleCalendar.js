@@ -39,27 +39,65 @@ export function loadGoogleIdentityScript() {
   return scriptPromise;
 }
 
-export async function requestGoogleAccessToken(clientId, { silent = false } = {}) {
+export async function requestGoogleAccessToken(clientId, { silent = false, timeoutMs = 90_000 } = {}) {
   await loadGoogleIdentityScript();
   return new Promise((resolve, reject) => {
     if (!clientId || !clientId.trim()) {
       reject(new Error("Missing Google OAuth Client ID"));
       return;
     }
+    // GIS token-client callbacks are NOT guaranteed to fire on popup
+    // dismissal: if the user closes the consent window without completing
+    // the flow, neither `callback` nor `error_callback` runs and the
+    // promise hangs forever — leaving the UI stuck on "Connecting…".
+    // Two safety nets rescue us:
+    //   1. visibilitychange — focus returning to the page (popup gone)
+    //      is treated as "user cancelled" after a brief grace period
+    //      that lets a racing success callback win.
+    //   2. A 90-second overall timeout, after which we reject.
+    let settled = false;
+    const cleanup = () => {
+      if (timer) clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisChange);
+    };
+    const settle = (handler, value) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      handler(value);
+    };
+    const timer = setTimeout(
+      () => settle(reject, new Error("Google sign-in timed out. Close any popups and try again.")),
+      timeoutMs
+    );
+    const onVisChange = () => {
+      if (settled || document.visibilityState !== "visible") return;
+      // Give the callback a beat to fire after focus returns (success path
+      // can land here first). If it doesn't, treat as cancellation.
+      setTimeout(() => settle(reject, new Error("Google sign-in was cancelled.")), 600);
+    };
+    document.addEventListener("visibilitychange", onVisChange);
     try {
       const client = window.google.accounts.oauth2.initTokenClient({
         client_id: clientId.trim(),
         scope: SCOPE,
         prompt: silent ? "" : "consent",
         callback: (resp) => {
-          if (resp.error) reject(new Error(resp.error));
-          else resolve({ accessToken: resp.access_token, expiresIn: Number(resp.expires_in || 3600) });
+          if (resp?.error) settle(reject, new Error(resp.error));
+          else settle(resolve, { accessToken: resp.access_token, expiresIn: Number(resp.expires_in || 3600) });
         },
-        error_callback: (err) => reject(new Error(err?.message || "Google sign-in was cancelled")),
+        error_callback: (err) => settle(reject, new Error(err?.message || "Google sign-in was cancelled")),
       });
-      client.requestAccessToken();
+      // requestAccessToken throws synchronously when the popup is blocked
+      // by the browser, so the outer catch here handles that without
+      // waiting on the visibility race above.
+      try {
+        client.requestAccessToken();
+      } catch (popupError) {
+        settle(reject, popupError);
+      }
     } catch (e) {
-      reject(e);
+      settle(reject, e);
     }
   });
 }

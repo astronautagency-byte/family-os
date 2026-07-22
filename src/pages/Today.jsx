@@ -689,7 +689,7 @@ export default function Today({ goTo }) {
           <Card className="today-groceries-card p-4">
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Groceries</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Shopping list</p>
                 <h2 className="ui-section-title">Grocery list</h2>
               </div>
               <button onClick={() => goTo("groceries")} className="text-[13px] font-semibold text-[var(--color-accent)] flex items-center gap-0.5">

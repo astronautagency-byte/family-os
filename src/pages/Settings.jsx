@@ -708,7 +708,7 @@ export default function Settings() {
         <section>
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">Notifications</h2>
           <Card className="p-4">
-            <div className="flex items-start gap-3 mb-4"><div className="w-10 h-10 rounded-xl bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0"><Bell size={18} color="var(--color-accent)" /></div><div><p className="font-medium text-[14.5px]">Household notifications</p><p className="text-[12.5px] text-[var(--color-ink-soft)] mt-0.5">Get notified about assigned tasks and meals, chat messages, groceries, and family calendar updates on every enabled device.</p></div></div>
+            <div className="flex items-start gap-3 mb-4"><div className="w-10 h-10 rounded-xl bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0"><Bell size={18} color="var(--color-accent)" /></div><div><p className="font-medium text-[14.5px]">Household notifications</p><p className="text-[12.5px] text-[var(--color-ink-soft)] mt-0.5">Get notified about assigned tasks and meals, chat messages, shopping list updates, and family calendar updates on every enabled device.</p></div></div>
             <PrimaryButton onClick={requestNotifications} disabled={notificationPermission === "granted" || notificationPermission === "unsupported"}>{notificationPermission === "granted" ? "Browser notifications allowed" : notificationPermission === "denied" ? "Blocked in browser settings" : notificationPermission === "unsupported" ? "Not supported on this device" : "Enable browser notifications"}</PrimaryButton>
             {notificationPermission === "denied" && <SecondaryButton className="mt-2" onClick={openNotificationSettings}><ExternalLink size={15} /> Open notification settings</SecondaryButton>}
             {notificationPermission === "granted" && <SecondaryButton className="mt-2" onClick={testNotifications} disabled={testingNotification}>{testingNotification ? "Sending test…" : "Send a test notification"}</SecondaryButton>}
@@ -911,7 +911,7 @@ export default function Settings() {
         copy={
           removeMemberError
             ? removeMemberError
-            : `They will immediately lose access to ${household?.name || "this household"} and its calendar, tasks, meals, groceries and chat. Their FamOS login will not be deleted. You can invite them back later.`
+            : `They will immediately lose access to ${household?.name || "this household"} and its calendar, tasks, meals, shopping list and chat. Their FamOS login will not be deleted. You can invite them back later.`
         }
         confirmLabel={removingMember ? "Removing…" : "Remove member"}
         tier="type-to-confirm"
@@ -927,7 +927,7 @@ export default function Settings() {
           setConfirmingReset(false);
         }}
         title="Reset to demo data?"
-        copy="This replaces your current family members, calendar, meals, groceries, and tasks with the original demo data. This can't be undone — every action the family has taken will be erased."
+        copy="This replaces your current family members, calendar, meals, shopping list, and tasks with the original demo data. This can't be undone — every action the family has taken will be erased."
         confirmLabel="Reset to demo data"
         tier="type-to-confirm"
         word="RESET"
@@ -1003,7 +1003,7 @@ export default function Settings() {
 
       <Modal open={confirmingDelete} onClose={() => { if (!deleting) setConfirmingDelete(false); }} title={isMasterOwner ? "Permanently delete this household?" : "Leave this household?"}>
         <div className="w-11 h-11 rounded-xl bg-[var(--color-warn-soft)] flex items-center justify-center mb-4"><Trash2 size={19} color="var(--color-warn)" /></div>
-        <p className="text-[13.5px] text-[var(--color-ink-soft)] leading-relaxed mb-4">{isMasterOwner ? "As the master owner, this permanently deletes the entire household—including tasks, expenses, meals, groceries, calendar events, chat, and memberships. Other members keep their personal FamOS logins." : "Your login and membership will be removed. The household and its shared data remain under the master owner."}</p>
+        <p className="text-[13.5px] text-[var(--color-ink-soft)] leading-relaxed mb-4">{isMasterOwner ? "As the master owner, this permanently deletes the entire household—including tasks, expenses, meals, shopping list, calendar events, chat, and memberships. Other members keep their personal FamOS logins." : "Your login and membership will be removed. The household and its shared data remain under the master owner."}</p>
         <TextField label="Type DELETE to confirm" value={deleteConfirmation} onChange={(event) => setDeleteConfirmation(event.target.value)} autoComplete="off" />
         {deleteError && <p className="text-[12.5px] text-[var(--color-warn)] mb-3">{deleteError}</p>}
         <div className="flex gap-2">

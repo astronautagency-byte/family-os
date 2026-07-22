@@ -116,5 +116,5 @@ export const initialTasks = [
 
 export const initialMessages = [
   { id: "msg1", senderId: "partner", text: "Can you grab milk on the way home?", sentAt: iso(0, 9, 12) },
-  { id: "msg2", senderId: "me", text: "Yep — I added it to groceries.", sentAt: iso(0, 9, 14) },
+  { id: "msg2", senderId: "me", text: "Yep — I added it to the shopping list.", sentAt: iso(0, 9, 14) },
 ];

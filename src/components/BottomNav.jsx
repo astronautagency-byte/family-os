@@ -6,7 +6,7 @@ const TABS = [
   { id: "calendar", label: "Calendar", icon: CalendarDays, hint: "Family events" },
   { id: "meals", label: "Meals", icon: CookingPot, hint: "This week's plan" },
   { id: "tasks", label: "Tasks", icon: CheckSquare, hint: "Open tasks" },
-  { id: "groceries", label: "Groceries", icon: ShoppingCart, hint: "Shared shopping list" },
+  { id: "groceries", label: "Shopping list", icon: ShoppingCart, hint: "Shared shopping list" },
   { id: "chat", label: "Chat", icon: MessageCircle, hint: "Family messages" },
   { id: "famai", label: "Fam AI", icon: Bot, hint: "Ask anything — meal, grocery, task help" },
 ];

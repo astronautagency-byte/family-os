@@ -254,6 +254,16 @@ export function AuthProvider({ children }) {
         } : localMemberFallback;
       }
 
+      // Commit the household state up front. The profile / activity queries
+      // below can throw transient PostgREST errors that bail us out of the
+      // try-block before we ever set state. If we waited until the bottom
+      // of the try to setHousehold, a returning user would land on the
+      // "What should we call home?" gate (HouseholdNameStep) purely because
+      // a single count(*) timed out. Commit membership-aware household
+      // first; profile/extras will catch up once those queries resolve.
+      const committedHousehold = membership && householdData ? { ...householdData, role: membership.role } : null;
+      setHousehold(committedHousehold);
+
       const metadata = nextSession.user.user_metadata || {};
       const providerName = metadata.display_name || metadata.full_name || metadata.name || "";
       const googleAvatar = metadata.avatar_url || metadata.picture || "";
@@ -273,7 +283,6 @@ export function AuthProvider({ children }) {
       }
 
       setProfile(accountProfile);
-      setHousehold(membership && householdData ? { ...householdData, role: membership.role } : null);
       setHouseholdProfile(householdProfileData);
       setHouseholdProfileExtra(householdProfileExtraData);
       setMemberProfile(localMemberProfile);
@@ -287,20 +296,52 @@ export function AuthProvider({ children }) {
         // tasks / messages / events / meals / grocery_items. If yes, treat
         // onboarding as done and cache via the same localStorage key the
         // server-side write uses, so future refreshes skip the count query.
+        //
+        // Also infer completion when the household has a real name (anything
+        // other than the "Home" placeholder we use when the households row
+        // couldn't be loaded). A returning user who renamed their home implicitly
+        // finished the name step of onboarding, so we shouldn't trap them in
+        // the wizard again just because `completed_at` was lost on a deploy or
+        // never written on a legacy device.
+        const householdHasRealName = Boolean(householdData?.name) && householdData.name !== "Home";
         if (!householdProfileData?.completed_at && !localProfileComplete) {
-          const activityResults = await Promise.all([
-            supabase.from("tasks").select("id", { count: "exact", head: true }).eq("household_id", membership.household_id),
-            supabase.from("messages").select("id", { count: "exact", head: true }).eq("household_id", membership.household_id),
-            supabase.from("events").select("id", { count: "exact", head: true }).eq("household_id", membership.household_id),
-            supabase.from("meals").select("id", { count: "exact", head: true }).eq("household_id", membership.household_id),
-            supabase.from("grocery_items").select("id", { count: "exact", head: true }).eq("household_id", membership.household_id),
-          ]);
-          const activeTotal = activityResults.reduce((sum, result) => sum + (result.count || 0), 0);
-          if (activeTotal > 0) {
+          if (householdHasRealName) {
             activityInferredComplete = true;
-            // Cache via the existing localStorage path so this branches once,
-            // not on every focus / token-refresh re-run of refreshAccount.
             try { localStorage.setItem(onboardingKey, "true"); } catch { /* storage full/disabled — fine */ }
+            // Backfill completed_at on the server so future devices / sign-ins
+            // skip this branch entirely. Best-effort: a Supabase failure here
+            // MUST NOT bubble up; localStorage is the durable cache.
+            supabase
+              .from("household_profiles")
+              .update({ completed_at: new Date().toISOString() })
+              .eq("household_id", membership.household_id)
+              .then(({ error }) => {
+                if (!error) setHouseholdProfile((current) => ({ ...(current || {}), completed_at: new Date().toISOString() }));
+              });
+          } else {
+            // Wrap the count queries in their own try/catch so a single
+            // PostgREST timeout or table-permission hiccup doesn't bounce the
+            // whole refreshAccount — we already have membership and household
+            // state set above, so this branch is best-effort only.
+            try {
+              const activityResults = await Promise.all([
+                supabase.from("tasks").select("id", { count: "exact", head: true }).eq("household_id", membership.household_id),
+                supabase.from("messages").select("id", { count: "exact", head: true }).eq("household_id", membership.household_id),
+                supabase.from("events").select("id", { count: "exact", head: true }).eq("household_id", membership.household_id),
+                supabase.from("meals").select("id", { count: "exact", head: true }).eq("household_id", membership.household_id),
+                supabase.from("grocery_items").select("id", { count: "exact", head: true }).eq("household_id", membership.household_id),
+              ]);
+              const activeTotal = activityResults.reduce((sum, result) => sum + (result.count || 0), 0);
+              if (activeTotal > 0) {
+                activityInferredComplete = true;
+                try { localStorage.setItem(onboardingKey, "true"); } catch { /* storage full/disabled — fine */ }
+              }
+            } catch {
+              // Activity inference is best-effort. The early setHousehold +
+              // real-name inference above already keeps the user out of the
+              // gate in the common case; transient count errors here just
+              // fall through to the normal gate evaluation.
+            }
           }
         }
         const profileComplete = Boolean(householdProfileData?.completed_at) || localProfileComplete || activityInferredComplete;
@@ -337,6 +378,13 @@ export function AuthProvider({ children }) {
       }
     } catch (e) {
       setError(e.message || "Could not load your account.");
+      // If a transient Supabase error bailed us out before the early
+      // setHousehold() at the top of the wizard block had a chance to run
+      // (e.g. on the very first login after a bad migration deploy), keep
+      // what we DO know about the membership committed. This way the
+      // "What should we call home?" gate won't fire on the next refresh
+      // just because the profile tables were temporarily unreadable.
+      if (membershipData?.household_id && committedHousehold) setHousehold(committedHousehold);
     } finally {
       setLoading(false);
       hasLoadedOnce.current = true;
