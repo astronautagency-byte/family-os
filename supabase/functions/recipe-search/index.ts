@@ -157,21 +157,17 @@ const normaliseRecipe = (payload) => {
   };
 };
 
-// API Ninjas only accepts a single free-text `title` parameter (the API docs
-// explicitly call it a "name search"). Family callers want richer context
-// (dietary restrictions, ingredients on hand, meal type, cuisine hint) —
-// stitch all of that into the title the API sees. The endpoint also accepts
-// a comma-separated `ingredients` list (premium-only), which we set
-// opportunistically as a fallback so a household with premium access can
-// filter on actual ingredients.
-const buildSearchParams = ({ query = "", ingredients = "", mealType = "", cuisine = "", dietary = "" } = {}) => {
-  const title = [mealType, cuisine, dietary, ingredients, query]
-    .map((field) => cleanText(field, 80))
-    .filter(Boolean)
-    .join(" ")
-    .trim()
-    .slice(0, 200);
+// API Ninjas accepts a single free-text `title` parameter (the API docs call
+// it a "name search") and an optional `ingredients` filter (premium-only).
+// Free tier searches by title only — passing "dinner Italian Vegetarian chicken"
+// as the title almost never matches a real recipe name. Use only the raw
+// `query` (the meal title the person typed) as the search term. Dietary
+// restrictions, meal type, and cuisine are NOT sent to API Ninjas — they are
+// applied client-side after results arrive (or not at all, since the free tier
+// returns one recipe and there's nothing to filter).
+const buildSearchParams = ({ query = "", ingredients = "" } = {}) => {
   const params = new URLSearchParams();
+  const title = cleanText(query, 200);
   if (title) params.set("title", title);
   if (ingredients) params.set("ingredients", cleanText(ingredients, 180));
   params.set("limit", String(DEFAULT_RESULT_LIMIT));

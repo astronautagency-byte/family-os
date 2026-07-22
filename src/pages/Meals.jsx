@@ -177,10 +177,12 @@ export default function Meals() {
     const choices = ["Italian", "Mexican", "Indian", "Japanese", "Chinese", "Thai", "Mediterranean", "American Comfort"];
     const cuisine = choices[Math.floor(Math.random() * choices.length)];
     const ingredientsPool = ["chicken", "rice", "pasta", "tofu", "salmon", "beef", "eggs", "lentils"];
-    const ingredients = ingredientsPool[Math.floor(Math.random() * ingredientsPool.length)];
-    const profile = recipeSearchProfileForMeal("", slot, { ...dietaryPreferences, cuisine });
-    const bodyPayload = { ...profile, cuisine, ingredients };
-    const { data, error } = await supabase.functions.invoke("recipe-search", { body: bodyPayload }).catch(() => ({ data: null, error: new Error("offline") }));
+    const ingredient = ingredientsPool[Math.floor(Math.random() * ingredientsPool.length)];
+    // Build a real recipe-name search: the API Ninjas free tier searches by
+    // title only, so we need a phrase like "Italian chicken pasta" instead of
+    // passing mealType/dietary metadata that no recipe title contains.
+    const query = `${cuisine} ${ingredient}`.trim().slice(0, 120);
+    const { data, error } = await supabase.functions.invoke("recipe-search", { body: { query } }).catch(() => ({ data: null, error: new Error("offline") }));
     const recipeErr = data?.error || error?.message;
     const recipe = !recipeErr ? recipeFromSearch(data) : null;
     if (!recipe?.title) {
@@ -193,7 +195,7 @@ export default function Meals() {
     }
     await setMealForSlot(date, slot, {
       title: recipe.title,
-      notes: `${SLOT_META[slot].label} roulette · ${recipe.cuisine || cuisine}`,
+      notes: `${SLOT_META[slot].label} roulette · ${cuisine}`,
       cookIds: [],
     });
   };
