@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Bot,
   CalendarDays,
@@ -9,8 +9,6 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import PageHeader from "../components/PageHeader";
-import { Avatar, Card, PrimaryButton, SecondaryButton } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
 import { addDays, formatDayLabel, todayISO } from "../lib/dates";
@@ -320,6 +318,14 @@ export default function FamAI() {
       content: "Hi, I’m Fam AI. Tell me what you need and I’ll suggest the next step.",
     },
   ]);
+  const chatRef = useRef(null);
+
+  // Auto-scroll chat to bottom when new messages arrive
+  useEffect(() => {
+    if (chatRef.current) {
+      chatRef.current.scrollTop = chatRef.current.scrollHeight;
+    }
+  }, [messages, busy]);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -676,121 +682,131 @@ export default function FamAI() {
   };
 
   return (
-    <div className="pb-20 fam-ai-page">
-      <PageHeader
-        eyebrow="Your family assistant"
-        title="Fam AI"
-        illustration="famai"
-        subtitle="Get help planning meals, groceries, tasks, and schedules."
-      />
-      <div className="px-5">
-        <div className="fam-ai-use-cases">
-          <div className="fam-ai-shortcut-title">
-            <span>
-              <Sparkles />
-              Ask Fam AI
-            </span>
+    <div className="fam-ai-page">
+      {/* Minimal header */}
+      <div className="fam-ai-header">
+        <div className="fam-ai-header-inner">
+          <div className="fam-ai-brand">
+            <span className="fam-ai-brand-icon"><Sparkles size={16} /></span>
+            <strong>Fam AI</strong>
             <em>Beta</em>
           </div>
-          <div className="fam-ai-chips">
+          <p className="fam-ai-header-tagline">Your assistant for meals, groceries, tasks, and schedules.</p>
+        </div>
+      </div>
+
+      {/* Chat area — scrollable */}
+      <div className="fam-ai-chat" ref={chatRef}>
+        {messages.map((message, index) => (
+          <div key={index} className={`fam-ai-msg ${message.role}`}>
+            <div className="fam-ai-msg-row">
+              {message.role === "assistant" ? (
+                <span className="fam-ai-msg-avatar">
+                  <Bot size={15} />
+                </span>
+              ) : (
+                <span className="fam-ai-msg-avatar user">
+                  {members[0]?.name?.charAt(0) || "Y"}
+                </span>
+              )}
+              <div className="fam-ai-msg-body">
+                <p>{message.content}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {busy && (
+          <div className="fam-ai-msg assistant">
+            <div className="fam-ai-msg-row">
+              <span className="fam-ai-msg-avatar"><Bot size={15} /></span>
+              <div className="fam-ai-msg-body">
+                <div className="fam-ai-thinking">
+                  <i /><i /><i />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Prompt suggestion cards — shown when chat is short */}
+      {messages.length <= 2 && !busy && (
+        <div className="fam-ai-suggestions">
+          <p className="fam-ai-suggestions-label">Try asking about</p>
+          <div className="fam-ai-suggestion-grid">
             {prompts.map((prompt) => {
               const Icon = prompt.Icon;
               return (
                 <button
-                  className={prompt.tone}
+                  className={`fam-ai-suggestion ${prompt.tone}`}
                   key={prompt.text}
                   onClick={() => sendText(prompt.prompt, prompt.text)}
                   disabled={busy}
                   type="button"
                 >
-                  <i>
-                    <Icon />
-                  </i>
-                  <span>{prompt.text}</span>
+                  <span className="fam-ai-suggestion-icon"><Icon size={16} /></span>
+                  <span className="fam-ai-suggestion-text">{prompt.text}</span>
                 </button>
               );
             })}
           </div>
         </div>
+      )}
 
-        <Card className="fam-ai-thread">
-          {messages.map((message, index) => (
-            <div key={index} className={`fam-ai-message ${message.role}`}>
-              {message.role === "assistant" ? (
-                <span className="fam-ai-avatar">
-                  <Bot />
-                </span>
-              ) : (
-                <Avatar member={members[0]} />
-              )}
-              <p>{message.content}</p>
-            </div>
-          ))}
-          {busy && (
-            <div className="fam-ai-thinking">
-              <i />
-              <i />
-              <i />
-            </div>
-          )}
-        </Card>
-
-        {pending.length > 0 && (
-          <Card className="fam-ai-review">
-            <div className="fam-ai-review-title">
-              <div>
-                <Sparkles />
-                <span>
-                  <strong>Review actions</strong>
-                  <small>Nothing changes until you approve.</small>
-                </span>
-              </div>
-              <button onClick={() => setPending([])} aria-label="Dismiss actions">
-                <X />
-              </button>
-            </div>
+      {/* Review actions panel */}
+      {pending.length > 0 && (
+        <div className="fam-ai-review">
+          <div className="fam-ai-review-head">
+            <span className="fam-ai-review-head-label">
+              <Sparkles size={14} />
+              <strong>Review actions</strong>
+            </span>
+            <button className="fam-ai-review-close" onClick={() => setPending([])} aria-label="Dismiss"><X size={14} /></button>
+          </div>
+          <p className="fam-ai-review-note">Nothing changes until you approve.</p>
+          <div className="fam-ai-review-list">
             {pending.map((action) => {
               const meta = actionMeta[action.type] || actionMeta.add_task;
               const Icon = meta.Icon;
               return (
-                <div className="fam-ai-action" key={action.id}>
-                  <span>
-                    <Icon />
-                  </span>
-                  <div>
+                <div className="fam-ai-review-item" key={action.id}>
+                  <span className="fam-ai-review-item-icon"><Icon size={14} /></span>
+                  <div className="fam-ai-review-item-text">
                     <strong>{meta.label}</strong>
                     <small>{actionSummary(action)}</small>
                   </div>
                 </div>
               );
             })}
-            <div className="fam-ai-review-buttons">
-              <SecondaryButton onClick={() => setPending([])}>Cancel</SecondaryButton>
-              <PrimaryButton onClick={execute} disabled={busy}>
-                Approve & run
-              </PrimaryButton>
-            </div>
-          </Card>
-        )}
+          </div>
+          <div className="fam-ai-review-actions">
+            <button className="fam-ai-review-cancel" onClick={() => setPending([])}>Cancel</button>
+            <button className="fam-ai-review-approve" onClick={execute} disabled={busy}>
+              Approve & run
+            </button>
+          </div>
+        </div>
+      )}
 
-        {error && <p className="fam-ai-error">{error}</p>}
+      {error && <p className="fam-ai-error">{error}</p>}
 
-        <form className="fam-ai-compose" onSubmit={send}>
+      {/* Composer — fixed at bottom */}
+      <form className="fam-ai-composer" onSubmit={send}>
+        <div className="fam-ai-composer-inner">
           <textarea
             value={input}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={handleComposerKeyDown}
-            placeholder="Paste the messy thought here…"
-            rows="2"
+            placeholder="Ask Fam AI…"
+            rows="1"
           />
-          <button disabled={!input.trim() || busy} aria-label="Send">
-            <Send />
+          <button disabled={!input.trim() || busy} aria-label="Send message">
+            <Send size={17} />
           </button>
-        </form>
-        <p className="fam-ai-privacy">
-          Fam AI suggests actions and asks before changing FamOS.
-        </p>
-      </div>
+        </div>
+        <p className="fam-ai-composer-legal">AI uses household data from FamOS to create suggestions. No real-time external access.</p>
+      </form>
     </div>
   );
 }
