@@ -1,0 +1,134 @@
+/* ─────────────────────────────────────────────────────────────────────────
+ * FamOS design tokens (single source of truth)
+ *
+ *   - All colors / fonts / sizes / radii / motion durations that are read
+ *     from more than one place in src/index.css + src/components/* live here.
+ *   - Daypart overrides (morning / day / evening) ship in this file too so
+ *     App.jsx's data-daypart switching has exactly one place to look.
+ *   - This file is plain CSS — no @vibe, no monday-com cascade layer — so a
+ *     reset to a single hex literal swap is a one-line edit, not a fork.
+ *
+ *   Cascade order, loaded from src/index.css:
+ *     1. tailwindcss foundation
+ *     2. @font-face declarations
+ *     3. this file  ← @theme tokens + daypart overrides
+ *     4. component CSS that reads the tokens
+ *   ─────────────────────────────────────────────────────────────────── */
+
+@theme {
+  /* ── Type ─────────────────────────────────────────────────────── */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "General Sans", "Inter Tight", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* ── Surfaces ─────────────────────────────────────────────────── */
+  --color-canvas: #FBF8FF;
+  --color-surface: #FFFFFF;
+  --color-surface-sunken: #F0EDFF;
+  --color-border: #E1DDFC;
+  --color-border-strong: #CFC9E6;
+
+  /* ── Ink ──────────────────────────────────────────────────────── */
+  --color-ink: #17172F;
+  --color-ink-soft: #565568;
+  --color-ink-faint: #9A99AA;
+
+  /* ── Accent + sunrise gradient ────────────────────────────────── */
+  --color-accent: #6759D9;
+  --color-accent-soft: #ECE9FF;
+  --color-accent-strong: #4E42B0;
+  --sunrise-gradient: linear-gradient(120deg, #B8D8FF 0%, #8F82FF 32%, #D75EAA 60%, #FF5239 80%, #F2A08D 100%);
+
+  /* ── Status ───────────────────────────────────────────────────── */
+  --color-warn: #D55A2A;
+  --color-warn-soft: #FFF0D4;
+  --color-good: #228766;
+  --color-good-soft: #DDF7E9;
+
+  /* ── Family colour palette (members, pastels, accents) ───────── */
+  --color-fam-coral: #FF5239;
+  --color-fam-marigold: #F2A08D;
+  --color-fam-moss: #63A5E8;
+  --color-fam-sky: #7988F5;
+  --color-fam-plum: #A463D8;
+  --color-fam-rose: #DC5B9E;
+  --pastel-pink: #FFDDE8;
+  --pastel-peach: #FFE4CE;
+  --pastel-yellow: #FFF1AE;
+  --pastel-mint: #D9F4E8;
+  --pastel-blue: #DDEEFF;
+  --pastel-lilac: #E8E2FF;
+
+  /* ── Type scale ───────────────────────────────────────────────── */
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-body: 15px;
+  --text-section: 18px;
+  --text-page: 30px;
+
+  /* ── Radius scale (deduplicated from 46+30+25+15+11+11 sites) ── */
+  --radius-pill: 999px;          /* pill buttons, status chips              */
+  --radius-card: 24px;           /* main cards, modal corners              */
+  --radius-section: 18px;        /* section card corner (calendar etc.)    */
+  --radius-control: 16px;        /* form controls, surface cards           */
+  --radius-md: 14px;             /* tile, daypicker, broadcast chip        */
+  --radius-pill-sm: 13px;        /* small chip / pill-sm variant           */
+  --radius-sm: 12px;             /* micro tile / icon tile                 */
+  --radius-xs: 11px;             /* date-grid cell, micro inner            */
+
+  /* ── Motion durations ─────────────────────────────────────────── */
+  --motion-fast: 160ms;          /* hover / focus / colour transitions      */
+  --motion-normal: 200ms;        /* mid-paced width / opacity changes       */
+  --motion-base: 240ms;          /* layout-level transforms / shadows      */
+}
+
+/* ── Daypart overrides ─────────────────────────────────────────────────────
+ *   App.jsx writes document.documentElement.dataset.daypart so this CSS picks
+ *   up the right sunrise-gradient by hour-of-day. The "day" value matches the
+ *   @theme default exactly so SSR / first-paint doesn't flash pink.
+ *   ─────────────────────────────────────────────────────────────────── */
+
+:root[data-daypart="morning"] {
+  --sunrise-gradient: linear-gradient(120deg, #C8E2FF 0%, #A99BFF 35%, #E878AD 64%, #FF745D 83%, #F4B09E 100%);
+}
+
+:root[data-daypart="day"] {
+  --sunrise-gradient: linear-gradient(120deg, #B8D8FF 0%, #8F82FF 32%, #D75EAA 60%, #FF5239 80%, #F2A08D 100%);
+}
+
+:root[data-daypart="evening"] {
+  --sunrise-gradient: linear-gradient(120deg, #879CEB 0%, #8D6ADB 34%, #C851A5 60%, #F44336 82%, #DE8B83 100%);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Migration notes (2026-07-21)
+ *   - Radius scale additions are a pure refactor: every previous raw
+ *     `border-radius: <px>` declaration now reads `var(--radius-*)`.
+ *     Visual output is byte-identical — swapping tokens never changes a px
+ *     value.
+ *   - --motion-normal was previously referenced (`.cook-focus-screen` entry
+ *     animation + `.cook-progress-track` width transition in src/index.css)
+ *     but never declared; the dangling read silently fell back to 0s,
+ *     removing the intended cook-mode fade-in. We've introduced 200ms as
+ *     the natural midpoint between --motion-fast (160ms) and --motion-base
+ *     (240ms) — this restores the original animation intent.
+ *
+ * Scope of the audit:
+ *   - In scope: src/index.css (the live app chrome).
+ *   - Out of scope (intentional):
+ *       · src/landing.css + src/landing-theme.css — the public marketing
+ *         landing page runs on a separate visual identity (clay/cream
+ *         palette, framer-motion card stack) that lives in landing-theme
+ *         and doesn't share values with the app chrome. Sweeping it
+ *         would conflate two brands.
+ *       · src/admin.css — admin console ships its own dense data-table
+ *         styles; not user-facing.
+ *       · src/components/*.jsx inline style props — JSX style={{...}}
+ *         are JS objects, not CSS, and would require a different theme
+ *         bridge (probably a useThemeTokens() hook).
+ *   - Mileage: ~155 radius literals were swept to var() readers. The
+ *     ~30 raw literals that remain post-sweep (10px, 22px, 20px, 15px,
+ *     9px, 28px, 8px, 7px, 30px, 17px) each appear <8 times and were
+ *     judged not to earn their own token — promoting them would be
+ *     additive, not deduplicative (per the user constraint "no new
+ *     design system").
+ *   ─────────────────────────────────────────────────────────────────── */
