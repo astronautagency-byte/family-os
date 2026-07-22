@@ -46,6 +46,44 @@ const escapeHtml = (value = "") => value
   .replaceAll('"', "&quot;")
   .replaceAll("'", "&#039;");
 
+// SES in sandbox mode (or with a non-production-access account) can still hand
+// us back `MessageRejected` with reason "Email address is not verified" for
+// recipients it has not been told about. We treat that as a permanent
+// `sandbox_blocked` outcome rather than bumping the fallback chain, which
+// would otherwise hammer Supabase's per-account 60-second OTP cooldown on
+// every resend. The regex MUST stay in sync with tests/invitation-status.test.js.
+function isSandboxRecipientError(message = "") {
+  if (!message) return false;
+  return /Email address is not verified|MailFromDomainNotVerified|MailFromDomainNotVerifiedException/i.test(message);
+}
+
+// Supabase's signInWithOtp / inviteUserByEmail respond with a `429`-style
+// message that includes the remaining cooldown (e.g. "you can only request
+// this after 59 seconds"). Returns the seconds parsed, or `null` if the
+// message doesn't look like a rate-limit response. The regex MUST stay in sync
+// with tests/invitation-status.test.js.
+function parseRateLimitSeconds(message = "") {
+  if (!message) return null;
+  const match = /after\s+(\d+)\s+second/i.exec(message);
+  if (!match) return null;
+  const seconds = Number(match[1]);
+  return Number.isFinite(seconds) && seconds >= 0 && seconds <= 600 ? seconds : null;
+}
+
+// Sleep helpers can't be exposed cleanly inside Supabase's edge runtime
+// without risking a shutdown, so we cap the wait to 70 seconds.
+async function retryAfterRateLimit(fn, maxWaitSeconds = 60) {
+  try {
+    await fn();
+  } catch (error) {
+    const detail = errorMessage(error);
+    const wait = parseRateLimitSeconds(detail);
+    if (wait === null || wait > maxWaitSeconds) throw error;
+    await new Promise((resolve) => setTimeout(resolve, (wait + 1) * 1000));
+    await fn(); // single retry; if this throws, the caller decides what to do.
+  }
+}
+
 async function findAuthUserByEmail(admin: ReturnType<typeof createClient>, email: string) {
   // `profiles` can briefly lag behind Auth (or contain a legacy/orphaned row),
   // so it is not a reliable way to decide between an invite and a magic link.
@@ -325,17 +363,52 @@ Deno.serve(async (request) => {
     // Supabase sends either an invite for a new Auth account or a sign-in OTP
     // for an existing account. Once RESEND_API_KEY is present, the branded
     // FamOS template below becomes the delivery path automatically.
-    if (!resendKey && !hasAwsMessaging) {
+    //
+    // Skip SES entirely when the AWS account is sandboxed (ProductionAccess off
+    // OR sending disabled) — every recipient will be rejected with
+    // "Email address is not verified". Routing those attempts through
+    // Supabase SMTP avoids AWS errors and keeps the household queues working
+    // while production access is being approved.
+    if (!resendKey && (!hasAwsMessaging || !awsEmailEnabled)) {
       stage = "sending the Supabase invitation email";
-      await sendSupabaseEmail();
-      console.log(JSON.stringify({ event: "family_invitation_email", requestId, provider: "supabase_smtp", sent: true }));
-      return json({
-        sent: true,
-        existingAccount: Boolean(existingAuthUser),
-        pending: true,
-        provider: "supabase",
-        sms,
-      });
+      try {
+        await retryAfterRateLimit(sendSupabaseEmail);
+        console.log(JSON.stringify({ event: "family_invitation_email", requestId, provider: "supabase_smtp", sent: true, emailStatus: "delivered" }));
+        return json({
+          sent: true,
+          existingAccount: Boolean(existingAuthUser),
+          pending: true,
+          provider: "supabase",
+          emailStatus: "delivered",
+          emailErrorKind: null,
+          sms,
+        });
+      } catch (supabaseError) {
+        const detail = errorMessage(supabaseError);
+        const rateLimited = parseRateLimitSeconds(detail) !== null;
+        console.warn(JSON.stringify({
+          event: "family_invitation_email_blocked",
+          requestId,
+          provider: "supabase",
+          emailStatus: rateLimited ? "rate_limited" : "no_email_provider",
+          emailErrorKind: rateLimited ? "rate-limited" : "unknown",
+          message: detail,
+        }));
+        if (invitationSaved) {
+          return json({
+            sent: false,
+            pending: true,
+            emailError: detail,
+            emailErrorKind: rateLimited ? "rate-limited" : "unknown",
+            emailStatus: rateLimited ? "rate_limited" : "no_email_provider",
+            provider: "supabase",
+            existingAccount: Boolean(existingAuthUser),
+            sms,
+            requestId,
+          });
+        }
+        throw supabaseError;
+      }
     }
 
     const linkType = existingAuthUser ? "magiclink" : "invite";
@@ -397,19 +470,66 @@ Deno.serve(async (request) => {
         if (!emailId) throw new Error("Amazon SES did not return a message ID.");
       } catch (sesError) {
         const sesMessage = errorMessage(sesError);
+        if (isSandboxRecipientError(sesMessage)) {
+          console.warn(JSON.stringify({
+            event: "family_invitation_email_blocked",
+            requestId,
+            provider: "aws_ses",
+            emailStatus: "sandbox_blocked",
+            emailErrorKind: "sandbox-recipient-unverified",
+            message: sesMessage,
+          }));
+          return json({
+            sent: Boolean(sms?.sent),
+            pending: true,
+            emailError: sesMessage,
+            emailErrorKind: "sandbox-recipient-unverified",
+            emailStatus: "sandbox_blocked",
+            provider: "aws_ses",
+            existingAccount: Boolean(existingAuthUser),
+            sms,
+            requestId,
+          });
+        }
         console.warn(JSON.stringify({ event: "family_invitation_ses_fallback", requestId, message: sesMessage }));
         try {
-          await sendSupabaseEmail();
+          await retryAfterRateLimit(sendSupabaseEmail);
         } catch (fallbackError) {
-          throw new Error(`Amazon SES: ${sesMessage}. Supabase email fallback: ${errorMessage(fallbackError)}`);
+          const fallbackDetail = errorMessage(fallbackError);
+          const rateLimited = parseRateLimitSeconds(fallbackDetail) !== null;
+          console.warn(JSON.stringify({
+            event: "family_invitation_email_blocked",
+            requestId,
+            provider: "supabase_fallback",
+            emailStatus: rateLimited ? "rate_limited" : "no_email_provider",
+            emailErrorKind: rateLimited ? "rate-limited" : "unknown",
+            message: fallbackDetail,
+          }));
+          if (invitationSaved) {
+            return json({
+              sent: Boolean(sms?.sent),
+              pending: true,
+              emailError: fallbackDetail,
+              emailErrorKind: rateLimited ? "rate-limited" : "unknown",
+              emailStatus: rateLimited ? "rate_limited" : "no_email_provider",
+              provider: "supabase_fallback",
+              existingAccount: Boolean(existingAuthUser),
+              sms,
+              requestId,
+            });
+          }
+          throw new Error(`Amazon SES: ${sesMessage}. Supabase email fallback: ${fallbackDetail}`);
         }
         return json({
           sent: true,
           existingAccount: Boolean(existingAuthUser),
           pending: true,
           provider: "supabase_fallback",
+          emailStatus: "supabase_fallback_delivered",
+          emailErrorKind: null,
           providerWarning: sesMessage,
           sms,
+          requestId,
         });
       }
     }
@@ -421,7 +541,10 @@ Deno.serve(async (request) => {
       pending: true,
       emailId,
       provider,
+      emailStatus: "delivered",
+      emailErrorKind: null,
       sms,
+      requestId,
     });
   } catch (error) {
     const detail = errorMessage(error);

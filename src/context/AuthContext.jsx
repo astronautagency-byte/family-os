@@ -826,15 +826,52 @@ export function AuthProvider({ children }) {
     }
     if (!inviteError) {
       const sent = Boolean(inviteData?.sent);
+      const provider = inviteData?.provider;
+      const providerName = provider === "resend" ? "FamOS email"
+        : provider === "aws_ses" ? "Amazon SES"
+        : provider === "supabase_fallback" ? "Supabase (fallback)"
+        : provider === "supabase" ? "Supabase"
+        : null;
+      const status = inviteData?.emailStatus;
+      const sms = inviteData?.sms || null;
+
+      // New structured delivery status — branches on emailStatus rather than
+      // concatenating raw emailProvider / SESError text. The legacy strings
+      // remain as the fallback for any unsigned pre-migration toolchain.
+      let message;
+      if (status === "delivered" || status === "supabase_fallback_delivered") {
+        const prefix = providerName ? `Invitation email delivered through ${providerName}.` : "Invitation email delivered.";
+        message = sms?.sent
+          ? `${prefix} SMS invitation sent too. You’ll remain listed as Pending until they join.`
+          : `${prefix} They’ll remain listed as Pending until they join.`;
+      } else if (status === "sandbox_blocked") {
+        message = sms?.sent
+          ? "Invitation sent to your family member by SMS — the email is paused while AWS reviews production access for this app, so the SMS is doing the work for now."
+          : "Invitation saved. Branded email delivery is paused while AWS reviews this app’s production email access — your invitee will show as a pending row in your household until email is re-enabled.";
+      } else if (status === "rate_limited") {
+        message = sms?.sent
+          ? "Invitation saved. Supabase’s invite email is rate-limited for ~60 seconds — SMS invitation sent successfully and you can resend the email after that window."
+          : "Invitation saved. Supabase’s invite email is rate-limited for the next ~60 seconds. Try resending after that window.";
+      } else if (status === "no_email_provider") {
+        message = sms?.sent
+          ? "Invitation saved, but the email provider isn’t fully configured yet — SMS invitation sent successfully."
+          : "Invitation saved, but no email provider is currently accepting invites for this household.";
+      } else if (sent) {
+        message = `Invitation email sent${providerName ? ` through ${providerName}` : ""}.${sms?.sent ? " SMS invitation sent too." : sms?.requested ? ` SMS was not sent: ${sms.message || "provider unavailable"}.` : ""} You’ll remain listed as Pending until they join.`;
+      } else if (inviteData?.existingAccount) {
+        message = "Invitation saved. They already have a FamOS login and will see this home when they sign in.";
+      } else {
+        message = `Invitation saved, but email was not sent: ${inviteData?.emailError || "the email provider did not confirm delivery"}.${sms?.sent ? " SMS invitation sent successfully." : sms?.requested ? ` SMS was not sent: ${sms.message || "provider unavailable"}.` : ""}`;
+      }
+
       return {
         sent,
         pending: true,
-        sms: inviteData?.sms || null,
-        message: sent
-          ? `Invitation email sent${inviteData?.provider ? ` through ${inviteData.provider === "resend" ? "FamOS email" : "Supabase"}` : ""}.${inviteData?.sms?.sent ? " SMS invitation sent too." : inviteData?.sms?.requested ? ` SMS was not sent: ${inviteData.sms.message || "provider unavailable"}.` : ""} They’ll remain listed as Pending until they join.`
-          : inviteData?.existingAccount
-            ? "Invitation saved. They already have a FamOS login and will see this home when they sign in."
-            : `Invitation saved, but email was not sent: ${inviteData?.emailError || "the email provider did not confirm delivery"}.${inviteData?.sms?.sent ? " SMS invitation sent successfully." : inviteData?.sms?.requested ? ` SMS was not sent: ${inviteData.sms.message || "provider unavailable"}.` : ""}`,
+        emailStatus: inviteData?.emailStatus || null,
+        emailErrorKind: inviteData?.emailErrorKind || null,
+        provider,
+        sms,
+        message,
       };
     }
 
