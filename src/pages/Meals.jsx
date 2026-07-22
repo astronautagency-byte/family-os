@@ -84,6 +84,19 @@ const placeholderRecipe = (title, slot) => ({
   slot,
 });
 
+const INGREDIENT_CACHE_KEY = "famos:meal-ingredients:v1";
+
+const loadIngredientCache = () => {
+  try {
+    const raw = window.localStorage.getItem(INGREDIENT_CACHE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+};
+
+const saveIngredientCache = (cache) => {
+  try { window.localStorage.setItem(INGREDIENT_CACHE_KEY, JSON.stringify(cache)); } catch { /* storage unavailable */ }
+};
+
 const titleFromMeal = (meal) => String(meal?.title || "").trim();
 
 export default function Meals() {
@@ -103,6 +116,9 @@ export default function Meals() {
   const [cookIngredientsAdded, setCookIngredientsAdded] = useState(false);
   const [cookNutrition, setCookNutrition] = useState(null);
   const [cookNutritionLoading, setCookNutritionLoading] = useState(false);
+  // Cached ingredient names per meal ID — populated once a recipe has been
+  // looked up, persists across sessions so the grocery badge works immediately.
+  const [mealIngredientsCache, setMealIngredientsCache] = useState(() => loadIngredientCache());
   const [savedRecipes, setSavedRecipes] = useState(() => readStoredJson(SAVED_RECIPES_KEY, []));
   const [planningRecipe, setPlanningRecipe] = useState(null);
   const [dietaryPreferences, setDietaryPreferences] = useState(() => {
@@ -125,6 +141,18 @@ export default function Meals() {
   useEffect(() => {
     if (typeof window !== "undefined") window.localStorage.setItem(DIETARY_PREFERENCES_KEY, JSON.stringify(dietaryPreferences));
   }, [dietaryPreferences]);
+
+  // For each meal with cached ingredients, compute how many are missing from the
+  // grocery list. Returns { missing, total } or null when no cache entry exists.
+  const mealMissingCount = useMemo(() => {
+    const result = {};
+    for (const [mealId, names] of Object.entries(mealIngredientsCache)) {
+      const namesList = Array.isArray(names) ? names : [];
+      const missing = namesList.filter((name) => !groceries.some((grocery) => grocery.name.toLowerCase() === name));
+      result[mealId] = { missing: missing.length, total: namesList.length };
+    }
+    return result;
+  }, [mealIngredientsCache, groceries]);
 
   const weekDays = useMemo(() => Array.from({ length: horizon }, (_, i) => addDays(todayISO(), i)), [horizon]);
 
@@ -231,6 +259,18 @@ export default function Meals() {
       }
       setCookRecipe({ ...placeholderRecipe(meal.title, meal.slot), ...recipe });
 
+      // Cache ingredient names for the grocery badge on the meal card.
+      const ingredientNames = recipe.ingredients
+        .map((item) => typeof item === "string" ? item.trim().toLowerCase() : (item?.name || "").trim().toLowerCase())
+        .filter(Boolean);
+      if (ingredientNames.length && meal?.id) {
+        setMealIngredientsCache((current) => {
+          const next = { ...current, [meal.id]: ingredientNames };
+          saveIngredientCache(next);
+          return next;
+        });
+      }
+
       // Fetch nutrition data in parallel with the recipe display.
       setCookNutritionLoading(true);
       supabase.functions.invoke("recipe-nutrition", {
@@ -297,6 +337,17 @@ export default function Meals() {
     setCookIngredientsAdded(true);
     setCookNutrition(null);
     setCookNutritionLoading(false);
+    // Cache ingredient names for the grocery badge on the meal card.
+    const ingredientNames = saved.ingredients
+      .map((item) => typeof item === "string" ? item.trim().toLowerCase() : (item?.name || "").trim().toLowerCase())
+      .filter(Boolean);
+    if (ingredientNames.length) {
+      setMealIngredientsCache((current) => {
+        const next = { ...current, [cookMeal?.id || `saved-${saved.id}`]: ingredientNames };
+        saveIngredientCache(next);
+        return next;
+      });
+    }
     // Fetch nutrition data for saved recipes that have ingredients.
     if (saved.ingredients?.length && supabase) {
       setCookNutritionLoading(true);
@@ -425,6 +476,17 @@ export default function Meals() {
                             {meal?.title || "Add a meal"}
                           </p>
                           {meal?.title && <span className="meal-cook-hint"><ChefHat size={12} /> Cook</span>}
+                          {(() => {
+                            const badge = meal?.id && mealMissingCount[meal.id];
+                            if (!badge) return null;
+                            const allCovered = badge.missing === 0;
+                            return (
+                              <span className={`meal-grocery-badge ${allCovered ? "covered" : "needs"}`}>
+                                <ShoppingCart size={10} />
+                                {allCovered ? "✓" : badge.missing}
+                              </span>
+                            );
+                          })()}
                         </div>
                         {cooks.length > 0 && <AvatarStack members={cooks} size="sm" />}
                       </button>
