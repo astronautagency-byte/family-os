@@ -49,11 +49,10 @@ const dayLabel = (date) => {
 };
 const roundTemp = (value) => (Number.isFinite(Number(value)) ? Math.round(Number(value)) : "—");
 
-// Tap-to-prepend emoji "stickers" that live INSIDE the input box. Each tap
-// drops the emoji + space at the start of whatever the user is typing so the
-// caret stays where they're working — keeps the composer playful without
-// adding a separate row of buttons below.
-const EMOJI_STICKERS = ["👋", "🍝", "⚡", "❤️", "🎉"];
+// Tap-to-prepend emoji "stickers" used to live INSIDE the input box but the
+// family-feedback round flagged them as noisy — replaced with a single
+// announcement icon that matches the rest of the site's icon vocabulary
+// (40×40 rounded-12 accent-soft tile + accent-colored lucide icon).
 
 // Friendly rotating placeholders shown when the input is empty and unfocused.
 // Mirrors the spirit of the deleted Quick-start chips but stays inline as a
@@ -179,7 +178,6 @@ export default function Today({ goTo }) {
   const [broadcastError, setBroadcastError] = useState("");
   const [broadcastFocused, setBroadcastFocused] = useState(false);
   const composeContainerRef = useRef(null);
-  const composerInputRef = useRef(null);
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
 
   // Cycle through friendly placeholders while the composer is "true empty"
@@ -217,23 +215,7 @@ export default function Today({ goTo }) {
     }
   };
 
-  const applySticker = (emoji) => {
-    // Prepend emoji + space; never clobber existing text. Caret jumps to the
-    // very end so the user can keep typing their message immediately.
-    const prefix = `${emoji} `;
-    setBroadcastText((prev) => {
-      const next = prev.startsWith(prefix) ? prev : `${prefix}${prev}`;
-      return next;
-    });
-    requestAnimationFrame(() => {
-      const input = composerInputRef.current;
-      if (input) {
-        input.focus();
-        const newValue = input.value;
-        input.setSelectionRange(newValue.length, newValue.length);
-      }
-    });
-  };
+
 
   const postBroadcast = async (event) => {
     event.preventDefault();
@@ -424,23 +406,8 @@ export default function Today({ goTo }) {
               <span
                 className={`broadcast-compose-icon ${composerIdle ? "is-idle" : ""}`}
                 aria-hidden="true"
-              ><Megaphone size={20} /></span>
-              <div className="broadcast-stickers" role="group" aria-label="Quick emoji starters">
-                {EMOJI_STICKERS.map((emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    tabIndex={-1}
-                    className="broadcast-sticker"
-                    onClick={() => applySticker(emoji)}
-                    aria-label={`Start with ${emoji}`}
-                  >
-                    <span aria-hidden="true">{emoji}</span>
-                  </button>
-                ))}
-              </div>
+              ><Megaphone size={18} color="var(--color-accent)" /></span>
               <input
-                ref={composerInputRef}
                 value={broadcastText}
                 onChange={(event) => setBroadcastText(event.target.value)}
                 onFocus={() => setBroadcastFocused(true)}

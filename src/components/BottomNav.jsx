@@ -43,7 +43,7 @@ export default function BottomNav({ active, onChange, features = {}, tabletMode 
             >
               <span className="nav-icon">
                 <Icon size={20} strokeWidth={isActive ? 2.25 : 1.8} />
-                {badge > 0 && <span className="nav-badge">{badge > 9 ? "9+" : badge}</span>}
+                {badge > 0 && <span className="nav-badge" aria-live="polite">{badge > 9 ? "9+" : badge}</span>}
               </span>
               <span className="nav-label">
                 {tab.label}

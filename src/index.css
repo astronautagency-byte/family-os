@@ -217,7 +217,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .nav-brand,.nav-foot { display: none; }
 .nav-items { display: grid; grid-template-columns: repeat(8,minmax(0,1fr)); }
 .nav-item { display:flex; min-width:0; flex-direction:column; align-items:center; justify-content:center; gap:4px; padding:5px 0 3px; border-radius:0; color:var(--color-ink-faint); }
-.nav-icon { width:34px; height:28px; border-radius:11px; display:flex; align-items:center; justify-content:center; transition:all 180ms ease; }
+.nav-icon { position:relative; width:34px; height:28px; border-radius:11px; display:flex; align-items:center; justify-content:center; transition:background-color 180ms ease,color 180ms ease,border-color 180ms ease,transform 180ms ease; }
 .nav-label { max-width:100%; overflow:hidden; text-overflow:ellipsis; font-size:9px; line-height:1.1; font-weight:600; }
 .nav-item.is-active { color:var(--color-accent); }
 .nav-item.is-active .nav-icon { background:transparent; transform:none; border-top:3px solid var(--color-accent); border-radius:0; }
@@ -504,7 +504,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   .nav-brand span { font-size:11px; color:var(--color-ink-faint); margin-top:1px; }
   .nav-items { display:flex; flex-direction:column; gap:6px; }
   .nav-item { flex-direction:row; justify-content:flex-start; gap:10px; padding:10px 11px; border-radius:14px; }
-  .nav-icon { width:32px; height:32px; border-radius:11px; }
+  .nav-icon { position:relative; width:32px; height:32px; border-radius:11px; }
   .nav-label { font-size:13px; font-weight:750; }
   .nav-item.is-active { background:var(--color-accent-soft); color:var(--color-accent-strong); }
   .nav-item.is-active .nav-icon { border-top:0; border-radius:11px; background:#fff; box-shadow:0 3px 10px rgba(81,72,200,.10); }
@@ -759,7 +759,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
     padding:7px 8px;
     border-radius:13px;
   }
-  .nav-icon { width:30px; height:30px; }
+  .nav-icon { position:relative; width:30px; height:30px; }
   .nav-label { font-size:12px; }
   .nav-foot { padding:8px 5px 2px; font-size:9px; }
   .app-topbar { height:60px; padding-inline:16px; }
@@ -2255,7 +2255,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 
 /* ── Chat unread badges (bottom nav) ── */
 .nav-item .nav-icon{position:relative}
-.nav-badge{position:absolute;top:-5px;right:-8px;min-width:16px;height:16px;padding:0 4px;display:grid;place-items:center;border-radius:999px;background:var(--color-fam-coral);color:#fff;font-size:9px;font-weight:800;font-style:normal;line-height:1;box-shadow:0 0 0 2px var(--color-surface)}
+.nav-badge{position:absolute;top:-5px;right:-8px;min-width:16px;height:16px;padding:0 4px;display:grid;place-items:center;border-radius:999px;background:var(--color-fam-coral);color:#fff;font-size:9px;font-weight:800;font-style:normal;line-height:1;box-shadow:0 0 0 2px var(--color-surface-sunken)}
 
 /* ── Broadcast composer (home screen) — fun, alive input pill ── */
 .broadcast-home{display:grid;gap:10px}
@@ -2263,15 +2263,10 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .broadcast-compose{position:relative;display:flex;align-items:center;gap:6px;padding:8px 8px 8px 12px;border-radius:22px;border:1px solid color-mix(in srgb,var(--color-accent) 22%,var(--color-border));background:linear-gradient(120deg,color-mix(in srgb,var(--color-accent) 9%,var(--color-surface)) 0%,color-mix(in srgb,var(--color-fam-rose) 11%,var(--color-surface)) 35%,color-mix(in srgb,var(--color-fam-marigold) 10%,var(--color-surface)) 70%,color-mix(in srgb,var(--color-fam-plum) 9%,var(--color-surface)) 100%);background-size:260% 260%;animation:broadcast-compose-shift 14s ease-in-out infinite;box-shadow:0 1px 2px rgba(16,24,40,.04),0 6px 18px color-mix(in srgb,var(--color-accent) 12%,transparent);transition:border-color var(--motion-base) ease,box-shadow var(--motion-base) ease,transform var(--motion-base) ease;z-index:1}
 @keyframes broadcast-compose-shift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
 .broadcast-compose:focus-within{border-color:color-mix(in srgb,var(--color-accent) 55%,var(--color-fam-rose));box-shadow:0 0 0 4px color-mix(in srgb,var(--color-accent) 18%,transparent),0 14px 34px color-mix(in srgb,var(--color-accent) 30%,transparent);transform:translateY(-1px)}
-.broadcast-compose-icon{flex:0 0 auto;width:40px;height:40px;display:grid;place-items:center;border-radius:14px;background:linear-gradient(135deg,var(--color-accent),color-mix(in srgb,var(--color-fam-rose) 60%,var(--color-accent)));color:#fff;box-shadow:0 6px 16px color-mix(in srgb,var(--color-accent) 36%,transparent);transform-origin:65% 50%;transition:transform var(--motion-base) cubic-bezier(.34,1.56,.64,1),box-shadow var(--motion-base) ease}
-.broadcast-compose:focus-within .broadcast-compose-icon{transform:rotate(-10deg) scale(1.06);box-shadow:0 8px 22px color-mix(in srgb,var(--color-fam-rose) 48%,transparent)}
+.broadcast-compose-icon{flex:0 0 auto;width:40px;height:40px;display:grid;place-items:center;border-radius:12px;background:var(--color-accent-soft);color:var(--color-accent);transition:background var(--motion-base) ease,color var(--motion-base) ease}
+.broadcast-compose:focus-within .broadcast-compose-icon{background:color-mix(in srgb,var(--color-accent) 26%,var(--color-accent-soft));color:var(--color-accent-strong)}
 .broadcast-compose-icon.is-idle svg{animation:broadcast-megaphone-wiggle 4.6s ease-in-out infinite;transform-origin:50% 65%}
 @keyframes broadcast-megaphone-wiggle{0%,86%,100%{transform:rotate(0) scale(1)}90%{transform:rotate(-12deg) scale(.94)}94%{transform:rotate(8deg) scale(1.06)}97%{transform:rotate(-3deg) scale(1.01)}}
-.broadcast-stickers{display:flex;align-items:center;gap:2px;flex:0 0 auto;padding:0 2px 0 4px}
-.broadcast-sticker{appearance:none;border:0;background:transparent;cursor:pointer;padding:0;width:34px;height:34px;border-radius:12px;display:grid;place-items:center;font-size:18px;line-height:1;filter:saturate(1.05);transition:transform var(--motion-fast) ease,background var(--motion-fast) ease,box-shadow var(--motion-fast) ease}
-.broadcast-sticker:hover{transform:translateY(-2px) scale(1.18);background:color-mix(in srgb,#fff 70%,transparent);box-shadow:0 4px 12px color-mix(in srgb,var(--color-accent) 22%,transparent)}
-.broadcast-sticker:active{transform:translateY(0) scale(.95)}
-.broadcast-sticker:focus-visible{outline:none;background:color-mix(in srgb,var(--color-accent) 18%,transparent)}
 .broadcast-compose input{flex:1;min-width:0;border:0;background:transparent;color:var(--color-ink);font-size:15px;font-weight:500;outline:none;padding:6px 4px;line-height:1.4}
 .broadcast-compose input::placeholder{color:var(--color-ink-faint);font-weight:500;opacity:.85;transition:opacity var(--motion-base) ease}
 .broadcast-compose:focus-within input::placeholder{opacity:.6}
