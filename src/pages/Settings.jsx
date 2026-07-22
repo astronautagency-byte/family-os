@@ -335,6 +335,31 @@ function DeliveryTestCard() {
     return "var(--color-ink)";
   };
 
+  // Per-channel "Fix it" deep links — turn the red status pill into a one-tap
+  // jump into the right console for that channel + region. Returns null when
+  // the status is "sent" (nothing to fix) or "skipped" (input not given).
+  const fixLinkFor = (channel, status, region) => {
+    if (!status || status === "sent" || status === "skipped") return null;
+    const safeRegion = region || "ca-central-1";
+    switch (channel) {
+      case "aws_ses":
+        if (status === "blocked") return { url: `https://console.aws.amazon.com/ses/home?region=${safeRegion}#/verified-identities`, label: "Verify recipient in SES" };
+        if (status === "paused") return { url: `https://console.aws.amazon.com/ses/home?region=${safeRegion}#/account`, label: "Re-enable SES sending" };
+        return { url: `https://console.aws.amazon.com/ses/home?region=${safeRegion}`, label: "Open SES console" };
+      case "aws_sns":
+        return { url: `https://console.aws.amazon.com/pinpoint/home?region=${safeRegion}#/end-user-messaging/sms`, label: "Verify SMS in End User Messaging" };
+      case "resend":
+        if (status === "not_configured") return { url: "https://resend.com/api-keys", label: "Add RESEND_API_KEY" };
+        return { url: "https://resend.com/dashboard", label: "Open Resend dashboard" };
+      case "supabase_smtp":
+        return { url: "https://supabase.com/dashboard/project/_/auth/users", label: "Open Supabase Auth" };
+      case "textbelt":
+        return { url: "https://textbelt.com/", label: "Check Textbelt quota" };
+      default:
+        return null;
+    }
+  };
+
   return (
     <Card className="p-4 mt-3">
       <div className="flex items-center gap-3 mb-3">
@@ -385,6 +410,19 @@ function DeliveryTestCard() {
                     {result.latency_ms !== undefined ? `${result.latency_ms} ms` : ""}
                   </small>
                 )}
+                {(() => {
+                  const fixLink = fixLinkFor(result.channel, result.status, result.region);
+                  return fixLink ? (
+                    <a
+                      href={fixLink.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] font-semibold text-[var(--color-accent)] underline mt-1.5 inline-block"
+                    >
+                      {fixLink.label} →
+                    </a>
+                  ) : null;
+                })()}
               </div>
             </li>
           ))}
