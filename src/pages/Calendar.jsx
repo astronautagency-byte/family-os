@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo, useState } from "react";
-import { CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, ExternalLink, EyeOff, LoaderCircle, MapPin, Moon, Plus, RefreshCw, Search, Settings2, Sparkles, Sun, Ticket, Trash2, TriangleAlert, Users, X } from "lucide-react";
+import { CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, ExternalLink, Eye, EyeOff, LoaderCircle, MapPin, Moon, Plus, RefreshCw, Search, Settings2, Sparkles, Sun, Ticket, Trash2, TriangleAlert, Users, X } from "lucide-react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useFamily } from "../context/FamilyContext";
@@ -202,6 +202,7 @@ export default function CalendarPage() {
   const [discoverBusy, setDiscoverBusy] = useState(false);
   const [discoverError, setDiscoverError] = useState("");
   const [discoveredEvents, setDiscoveredEvents] = useState([]);
+  const [coverageLocalOnly, setCoverageLocalOnly] = useState(false);
   const [discoverWhen, setDiscoverWhen] = useState("this weekend");
   const [discoverCities, setDiscoverCities] = useState([]);
   const [cityDraft, setCityDraft] = useState("");
@@ -444,6 +445,9 @@ export default function CalendarPage() {
   const runSearch = async (citiesForRequest) => {
     if (!citiesForRequest.length) { setDiscoverError("Add your home address in Settings, or add a city below, to discover nearby events."); setResultDiagnostics(null); setCacheMeta(null); return; }
     setDiscoverBusy(true); setDiscoverError("");
+    // Reset the local-area filter so the new result set isn't pre-filtered
+    // behind the toggle the user just changed out of.
+    setCoverageLocalOnly(false);
     const country = String(householdProfileExtra?.country || "ca").toLowerCase().slice(0, 2);
     try {
       const result = await invokeEdgeFunction("search-local-events", { location: citiesForRequest[0], cities: citiesForRequest, category: CATEGORY_FOR_DISCOVERY, when: discoverWhen, country });
@@ -548,6 +552,34 @@ export default function CalendarPage() {
 
   const dayEventCount = visibleEvents.filter(e => e.start.slice(0, 10) === selectedDate).length;
 
+  // Coverage transparency: when nearby-cities expansion fired, show a
+  // strip under the event list letting the user see what's from their
+  // areas vs nearby, and toggle off the nearby slice if they want only
+  // local events. Per the user's exact spec: "Showing N from {city}
+  // + M from nearby (A, B)" with a [Hide nearby events] toggle.
+  const userAreaEvents = discoveredEvents.filter((event) => event.origin !== "nearby");
+  const nearbyEventsArr = discoveredEvents.filter((event) => event.origin === "nearby");
+  const displayedEvents = coverageLocalOnly ? userAreaEvents : discoveredEvents;
+  const nearbyCities = Array.isArray(resultDiagnostics?.perCityCounts)
+    ? resultDiagnostics.perCityCounts.filter((entry) => entry.origin === "nearby").map((entry) => entry.city)
+    : [];
+  const userCityLabel = searchCities.length === 1
+    ? searchCities[0]
+    : searchCities.length > 1
+      ? "your areas"
+      : "your area";
+  const nearbyLabel = nearbyCities.length <= 3
+    ? nearbyCities.join(", ")
+    : `${nearbyCities.slice(0, 2).join(", ")} +${nearbyCities.length - 2} more`;
+  const coverageSummary = coverageLocalOnly
+    ? nearbyEventsArr.length === 0
+      ? `Showing ${userAreaEvents.length} from ${userCityLabel}.`
+      : `Showing ${userAreaEvents.length} from ${userCityLabel}. ${nearbyEventsArr.length} nearby events hidden.`
+    : userAreaEvents.length === 0
+      ? `Showing 0 from ${userCityLabel} + ${nearbyEventsArr.length} from nearby (${nearbyLabel}).`
+      : `Showing ${userAreaEvents.length} from ${userCityLabel} + ${nearbyEventsArr.length} from nearby (${nearbyLabel}).`;
+  const coverageToggleDisabled = !coverageLocalOnly && userAreaEvents.length === 0;
+
   return (
     <>
     <PullToRefresh onRefresh={refreshAll}>
@@ -575,6 +607,11 @@ export default function CalendarPage() {
                 setDiscoveredEvents(Array.isArray(entry.payload?.events) ? entry.payload.events : []);
                 setResultDiagnostics(entry.payload?.diagnostics || null);
                 setDiscoverError("");
+                // Coverage strip relies on toggled state to filter the
+                // rendered list — reset on cache-hit re-open so the user
+                // doesn't come back to a silently-filtered cached view
+                // from a previous session.
+                setCoverageLocalOnly(false);
               } else if (!discoveredEvents.length) {
                 window.setTimeout(() => runSearch(initialCities), 0);
               }
@@ -916,7 +953,7 @@ export default function CalendarPage() {
                 </div>
               )}
               <div className="discovered-event-list">
-                {discoveredEvents.map(event => (
+                {displayedEvents.map(event => (
                   <article key={event.id}>
                     <div className="discovered-event-thumb">
                       {event.thumbnail ? <img src={event.thumbnail} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <Ticket aria-hidden="true" />}
@@ -939,14 +976,26 @@ export default function CalendarPage() {
                 ))}
               </div>
               {resultDiagnostics?.expanded && (
-                <div className="event-discovery-source-breakdown">
-                  <strong>Showing events from nearby areas:</strong>
-                  {Array.isArray(resultDiagnostics.perCityCounts) && resultDiagnostics.perCityCounts.map((entry, index) => (
-                    <span key={`${entry.city}-${entry.origin}`}>
-                      {index > 0 && " · "}
-                      {entry.count} from {entry.city}{entry.origin === "nearby" ? "" : ""}
-                    </span>
-                  ))}
+                <div className="event-coverage-strip" role="status" aria-live="polite">
+                  <span aria-hidden="true"><TriangleAlert size={15} /></span>
+                  <div>
+                    <strong>Coverage</strong>
+                    <small>{coverageSummary}</small>
+                  </div>
+                  <button
+                    type="button"
+                    className="event-coverage-toggle"
+                    onClick={() => setCoverageLocalOnly((value) => !value)}
+                    disabled={coverageToggleDisabled}
+                    aria-pressed={coverageLocalOnly}
+                    title={coverageLocalOnly
+                      ? "Show all events including nearby ones"
+                      : "Show only events from your home areas"}
+                  >
+                    {coverageLocalOnly
+                      ? <><Eye size={13} /> Show all (incl. nearby)</>
+                      : <><EyeOff size={13} /> Hide nearby events</>}
+                  </button>
                 </div>
               )}
             </>
