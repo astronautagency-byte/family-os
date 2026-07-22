@@ -576,15 +576,35 @@ export function FamilyProvider({ children, tabletMode = false }) {
 
   // ---- Chat unread tracking (per-device via a last-read timestamp) ----
   const currentUserId = user?.id || members[0]?.id;
-  const chatReadKey = `familyos:chat-last-read:${user?.id || "local"}`;
-  const [chatLastRead, setChatLastRead] = useState(0);
+  // The key is scoped to the current user so different people on the same
+  // device don't share one timestamp (which would suppress the initial badge
+  // for the second person). Crucially this key is read ONCE via a synchronous
+  // useState initializer — NOT via a useEffect that depends on user?.id — so
+  // the race condition where the key changes mid-load is eliminated.
+  const CHAT_READ_BASE = "familyos:chat-last-read";
+  const [chatLastRead, setChatLastRead] = useState(() => {
+    try {
+      // user is stable on first render if session is persisted; if null,
+      // fall back to the shared key (safe, same-device scenario).
+      const key = user?.id ? `${CHAT_READ_BASE}:${user.id}` : CHAT_READ_BASE;
+      return Number(localStorage.getItem(key)) || 0;
+    } catch { return 0; }
+  });
+  // Mount-time sync: re-reads the stored value so StrictMode double-mount
+  // doesn't leave a stale initial render. No dependencies, runs once.
   useEffect(() => {
-    setChatLastRead(Number(localStorage.getItem(chatReadKey)) || 0);
-  }, [chatReadKey]);
+    try {
+      const key = user?.id ? `${CHAT_READ_BASE}:${user.id}` : CHAT_READ_BASE;
+      setChatLastRead(Number(localStorage.getItem(key)) || 0);
+    } catch {}
+  }, []);
   const markChatRead = () => {
     const now = Date.now();
     setChatLastRead(now);
-    try { localStorage.setItem(chatReadKey, String(now)); } catch { /* storage unavailable */ }
+    try {
+      const key = user?.id ? `${CHAT_READ_BASE}:${user.id}` : CHAT_READ_BASE;
+      localStorage.setItem(key, String(now));
+    } catch {}
   };
   // Unread = messages newer than last-read, not sent by me, in a thread I can see
   // (the household thread or a DM addressed to me). Computed from the full list.
