@@ -103,6 +103,41 @@
     </script>
 
     <title>FamOS - Families Run Better on FamOS</title>
+
+    <!-- Force PWA service worker update on stale cache. This inline script runs
+         before any external module loads, so it can unregister a stale service
+         worker from a previous deploy that might be serving cached HTML. If the
+         current SW version (derived from today's date, matching vite-plugin-pwa's
+         version option) doesn't match the cached version, the old SW is
+         unregistered and the page reloads to pick up fresh assets. -->
+    <script>
+      (function(){
+        var d = new Date();
+        var FAMOS_BUILD = d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+        var swKey = "famos:sw-version";
+        try {
+          var cachedVersion = localStorage.getItem(swKey);
+          if (cachedVersion && cachedVersion !== FAMOS_BUILD) {
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(function(regs) {
+                return Promise.all(regs.map(function(r) { return r.unregister(); }));
+              }).then(function() {
+                localStorage.setItem(swKey, FAMOS_BUILD);
+                window.location.reload();
+              }).catch(function() {
+                localStorage.setItem(swKey, FAMOS_BUILD);
+              });
+            } else {
+              localStorage.setItem(swKey, FAMOS_BUILD);
+            }
+          } else if (!cachedVersion) {
+            localStorage.setItem(swKey, FAMOS_BUILD);
+          }
+        } catch(e) {
+          // localStorage disabled — SW version tracking not available
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root">

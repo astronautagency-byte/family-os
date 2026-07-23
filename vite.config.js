@@ -33,6 +33,11 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Version-bust the SW URL on every build so the browser treats the new
+      // service worker as a fresh registration rather than waiting for the old
+      // one to detect an update. This prevents the stale-SW white screen where
+      // an old SW serves cached HTML referencing old asset hashes.
+      version: new Date().toISOString().slice(0, 10).replace(/-/g, ''),
       includeAssets: ['icons/icon-192.png', 'icons/icon-512.png'],
       manifest: {
         id: 'https://fam-os.app/',
