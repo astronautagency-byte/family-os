@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertCircle, Bell, Bot, CalendarDays, CheckCircle2, ExternalLink, Eye, EyeOff, ImagePlus, Info, Link2, MapPin, Megaphone, Pencil, Phone, Plus, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Trash2, Upload, Users, Utensils } from "lucide-react";
+import { AlertCircle, Bell, Bot, Bug, CalendarDays, CheckCircle2, ExternalLink, Eye, EyeOff, ImagePlus, Info, Link2, Mail, MapPin, Megaphone, Pencil, Phone, Plus, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Ticket, Trash2, Upload, Users, Utensils } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, Card, Modal, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
@@ -748,6 +748,53 @@ export default function Settings() {
             <button onClick={() => { setDeleteConfirmation(""); setDeleteError(""); setConfirmingDelete(true); }} className="w-full rounded-xl border border-[var(--color-warn)] text-[var(--color-warn)] font-semibold text-[14px] py-3 active:scale-[0.98] transition-transform">Delete account</button>
           </Card>
         </section>}
+
+        <section>
+          <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">Support</h2>
+          <Card className="p-4">
+            <div className="space-y-2">
+              <a
+                href="mailto:support@fam-os.app?subject=FamOS%20support%20request"
+                className="flex items-center gap-3 rounded-xl px-3 py-3 hover:bg-[var(--color-surface-sunken)] transition-colors -mx-1"
+              >
+                <span className="w-10 h-10 rounded-xl bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0">
+                  <Mail size={18} color="var(--color-accent)" />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-[14px] text-[var(--color-ink)]">Email us</p>
+                  <p className="text-[12px] text-[var(--color-ink-soft)]">Send us a message and we'll get back to you</p>
+                </div>
+                <ExternalLink size={14} color="var(--color-ink-faint)" />
+              </a>
+              <a
+                href="mailto:support@fam-os.app?subject=FamOS%20bug%20report&body=Describe%20what%20went%20wrong%20and%20what%20you%20were%20doing%20when%20it%20happened.%20If%20possible%2C%20include%20a%20screenshot%20or%20screen%20recording."
+                className="flex items-center gap-3 rounded-xl px-3 py-3 hover:bg-[var(--color-surface-sunken)] transition-colors -mx-1"
+              >
+                <span className="w-10 h-10 rounded-xl bg-[var(--color-warn-soft)] flex items-center justify-center shrink-0">
+                  <Bug size={18} color="var(--color-warn)" />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-[14px] text-[var(--color-ink)]">Report a bug</p>
+                  <p className="text-[12px] text-[var(--color-ink-soft)]">Found something off? Let us know what happened</p>
+                </div>
+                <ExternalLink size={14} color="var(--color-ink-faint)" />
+              </a>
+              <a
+                href="mailto:support@fam-os.app?subject=FamOS%20support%20ticket&body=Tell%20us%20how%20we%20can%20help.%20Include%20your%20household%20name%20and%20a%20brief%20description%20of%20what%20you%20need."
+                className="flex items-center gap-3 rounded-xl px-3 py-3 hover:bg-[var(--color-surface-sunken)] transition-colors -mx-1"
+              >
+                <span className="w-10 h-10 rounded-xl bg-[var(--color-surface-sunken)] border border-[var(--color-border)] flex items-center justify-center shrink-0">
+                  <Ticket size={18} color="var(--color-fam-sky)" />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-[14px] text-[var(--color-ink)]">Submit a support ticket</p>
+                  <p className="text-[12px] text-[var(--color-ink-soft)]">Open a ticket and our team will follow up</p>
+                </div>
+                <ExternalLink size={14} color="var(--color-ink-faint)" />
+              </a>
+            </div>
+          </Card>
+        </section>
 
         <section>
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">About</h2>
