@@ -438,119 +438,10 @@ function DeliveryTestCard() {
   );
 }
 
-// ── Channel-health summary for the PageHeader badge ──────────────────
-// Promoted out of DeliveryTestCard so the header shows the same state
-// without the user opening the card. Reads from the same localStorage
-// keys DeliveryTestCard writes to, and re-reads whenever it dispatches
-// `famos:delivery-test-updated` (or any storage event fires).
-const DELIVERY_HEALTH_EVENT = "famos:delivery-test-updated";
-const DELIVERY_STORAGE_RUN_KEY = "famos-delivery-test:last-run";
-const DELIVERY_STORAGE_RESULTS_KEY = "famos-delivery-test:last-results";
-const DELIVERY_FAILURE_STATUSES = new Set(["failed", "blocked", "paused", "unreachable", "rate_limited", "not_configured"]);
-
-function formatRelativeShort(date) {
-  const t = new Date(date).getTime();
-  if (!Number.isFinite(t)) return "";
-  const diff = Date.now() - t;
-  if (diff < 5_000) return "just now";
-  if (diff < 60_000) return `${Math.floor(diff / 1000)}s ago`;
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
-
-function readDeliveryHealth() {
-  if (typeof window === "undefined") return { state: "unknown" };
-  try {
-    const lastRun = window.localStorage.getItem(DELIVERY_STORAGE_RUN_KEY);
-    const resultsRaw = window.localStorage.getItem(DELIVERY_STORAGE_RESULTS_KEY);
-    if (!lastRun || !resultsRaw) return { state: "unknown" };
-    const parsed = JSON.parse(resultsRaw);
-    if (!Array.isArray(parsed) || parsed.length === 0) return { state: "unknown", lastRun };
-    const failing = parsed.filter((row) => !row || !row.status || DELIVERY_FAILURE_STATUSES.has(row.status));
-    if (failing.length === 0) return { state: "good", lastRun, totalChannels: parsed.length };
-    return { state: "failing", lastRun, totalChannels: parsed.length, failingCount: failing.length };
-  } catch {
-    return { state: "unknown" };
-  }
-}
-
-function useDeliveryHealth() {
-  const [health, setHealth] = useState(readDeliveryHealth);
-  useEffect(() => {
-    const refresh = () => setHealth(readDeliveryHealth());
-    window.addEventListener(DELIVERY_HEALTH_EVENT, refresh);
-    window.addEventListener("storage", refresh);
-    // Re-tick so the "last run Xm ago" string stays fresh while the user
-    // lingers on Settings without retesting.
-    const tick = window.setInterval(refresh, 30_000);
-    return () => {
-      window.removeEventListener(DELIVERY_HEALTH_EVENT, refresh);
-      window.removeEventListener("storage", refresh);
-      window.clearInterval(tick);
-    };
-  }, []);
-  return health;
-}
-
-function DeliveryHealthBadge({ health }) {
-  if (!health) return null;
-  if (health.state === "good") {
-    const total = health.totalChannels || 0;
-    return (
-      <span
-        className="page-header-health"
-        data-state="good"
-        role="status"
-        aria-live="polite"
-        title={`Every delivery channel sent the last test. Last run: ${new Date(health.lastRun).toLocaleString()}`}
-      >
-        <span className="ph-dot" aria-hidden="true" />
-        <strong>Delivery OK</strong>
-        {total > 0 && <small>· all {total} channel{total === 1 ? "" : "s"}</small>}
-        {health.lastRun && <small>· last run {formatRelativeShort(health.lastRun)}</small>}
-      </span>
-    );
-  }
-  if (health.state === "failing") {
-    const total = health.totalChannels || 0;
-    const failing = health.failingCount || 0;
-    return (
-      <span
-        className="page-header-health"
-        data-state="failing"
-        role="status"
-        aria-live="polite"
-        title={`Last test failed for ${failing} of ${total} delivery channels. Last run: ${new Date(health.lastRun).toLocaleString()}`}
-      >
-        <span className="ph-dot" aria-hidden="true" />
-        <strong>{failing} of {total} channel{total === 1 ? "" : "s"} failing</strong>
-        {health.lastRun && <small>· last run {formatRelativeShort(health.lastRun)}</small>}
-      </span>
-    );
-  }
-  return (
-    <span
-      className="page-header-health"
-      data-state="unknown"
-      role="status"
-      aria-live="polite"
-      title="Run the in-app delivery self-test to validate every channel."
-    >
-      <span className="ph-dot" aria-hidden="true" />
-      <strong>Delivery health</strong>
-      <small>· run the test below to validate</small>
-    </span>
-  );
-}
 
 export default function Settings() {
   const { members, addMember, updateMember, removeMember, resetToDemoData, notificationPermission, requestNotifications, sendTestNotification } = useFamily();
   const { configured, user, household, householdProfileExtra, memberProfile, updateHouseholdSettings, updateHouseholdProfile, invitePartner, updatePassword, signOut, deleteAccount } = useAuth();
-  const deliveryHealth = useDeliveryHealth();
   const [editingMember, setEditingMember] = useState(null); // member object or "new"
   const [name, setName] = useState("");
   const [role, setRole] = useState("Kid");
@@ -828,7 +719,7 @@ export default function Settings() {
 
   return (
     <div className="pb-24 reference-settings">
-      <PageHeader eyebrow="Household" title="Settings" illustration="settings" subtitle="Tweak the home base without making it a whole thing." liveHealth={<DeliveryHealthBadge health={deliveryHealth} />} />
+      <PageHeader eyebrow="Household" title="Settings" illustration="settings" subtitle="Tweak the home base without making it a whole thing." />
 
       <div className="px-5 space-y-6 mt-2">
         <section>
