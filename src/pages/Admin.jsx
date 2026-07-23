@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Activity, ArrowLeft, BadgeDollarSign, Building2, CalendarDays, CheckCircle2, ChevronRight,
+  Activity, Archive, ArrowLeft, BadgeDollarSign, Building2, CalendarDays, CheckCircle2, ChevronRight,
   CircleDollarSign, CreditCard, Flag, LayoutDashboard, ListChecks, LogOut, Mail, MessageCircle,
-  Search, Settings2, ShieldCheck, ShoppingCart, Trash2, TrendingUp, UserPlus, Users, Utensils,
+  Search, Send, Settings2, ShieldCheck, ShoppingCart, Tag, Trash2, TrendingUp, UserPlus, Users, Utensils,
   WalletCards, XCircle,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
@@ -187,12 +187,111 @@ function TopFamilies({ families = [], onOpen }) {
   return <Card className="admin-panel admin-top-families"><PanelHead eyebrow="Engagement" title="Top families" icon={TrendingUp} /><div>{families.map((family, index) => <button key={family.id} onClick={() => onOpen(family.id)}><span>{index + 1}</span><div><strong>{family.name}</strong><small>{family.plan} · {money(family.mrr_cents)} MRR</small><i><em style={{ width: `${Number(family.activity_count || 0) / max * 100}%` }} /></i></div><b>{number(family.activity_count)}</b></button>)}{!families.length && <p className="admin-empty">Activity will appear as families use FamOS.</p>}</div></Card>;
 }
 
+function SupportMessagesTable({ messages, onOpen, categoryFilter, setCategoryFilter, statusFilter, setStatusFilter, search, setSearch }) {
+  return <Card className="admin-table-card">
+    <div className="admin-table-tools">
+      <div><small>Inbox</small><h2>Support messages</h2></div>
+      <div className="admin-support-filters">
+        <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
+          <option value="">All categories</option>
+          <option value="email">Email</option>
+          <option value="bug">Bug reports</option>
+          <option value="ticket">Support tickets</option>
+        </select>
+        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+          <option value="">All statuses</option>
+          <option value="new">New</option>
+          <option value="read">Read</option>
+          <option value="replied">Replied</option>
+          <option value="closed">Closed</option>
+        </select>
+        <label><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search messages…" /></label>
+      </div>
+    </div>
+    <div className="admin-table-scroll"><table><thead><tr><th>Subject</th><th>Category</th><th>From</th><th>Household</th><th>Priority</th><th>Status</th><th>Date</th><th /></tr></thead><tbody>
+      {messages.map((message) => <tr key={message.id} onClick={() => onOpen(message.id)}>
+        <td><strong>{message.subject}</strong></td>
+        <td><span className={`admin-support-cat admin-cat-${message.category}`}>{message.category === "bug" ? "Bug" : message.category === "ticket" ? "Ticket" : "Email"}</span></td>
+        <td><small>{message.sender_email || (message.user_id ? "Signed in" : "Anonymous")}</small></td>
+        <td><small>{message.household_name || "—"}</small></td>
+        <td>{message.priority !== "normal" ? <span className={`admin-priority p-${message.priority}`}>{message.priority}</span> : <small className="text-[var(--color-ink-faint)]">Normal</small>}</td>
+        <td><span className={`admin-support-status ss-${message.status}`}>{message.status}</span></td>
+        <td><small>{date(message.created_at)}</small></td>
+        <td><ChevronRight size={17} /></td>
+      </tr>)}{!messages.length && <tr><td colSpan="8" className="admin-empty">No support messages match these filters.</td></tr>}
+    </tbody></table></div>
+  </Card>;
+}
+
+function SupportMessageDetail({ id, onClose, onChanged }) {
+  const [message, setMessage] = useState(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState("");
+  const load = async () => {
+    const { data, error: detailError } = await supabase.rpc("admin_get_support_message", { target_id: id });
+    if (detailError) setError(detailError.message); else setMessage(data);
+  };
+  useEffect(() => { load(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const updateStatus = async (nextStatus) => {
+    setBusy("status"); setError("");
+    const { error: actionError } = await supabase.rpc("admin_update_support_message_status", { target_id: id, next_status: nextStatus });
+    if (actionError) setError(actionError.message); else { await load(); onChanged(); }
+    setBusy("");
+  };
+  if (!message) return <div className="admin-detail-loading">Loading message…</div>;
+  const categoryIcon = message.category === "bug" ? Bug : message.category === "ticket" ? Ticket : Mail;
+  return <div className="admin-detail"><header>
+    <button onClick={onClose}><ArrowLeft size={18} /> Support messages</button>
+    <div className="admin-support-detail-status">
+      <span className={`admin-support-status ss-${message.status}`}>{message.status}</span>
+      {message.status !== "read" && <button disabled={!!busy} onClick={() => updateStatus("read")}><CheckCircle2 size={14} /> {busy === "status" ? "…" : "Mark read"}</button>}
+      {message.status !== "replied" && <button disabled={!!busy} onClick={() => updateStatus("replied")}><Send size={14} /> {busy === "status" ? "…" : "Mark replied"}</button>}
+      {message.status !== "closed" && <button disabled={!!busy} onClick={() => updateStatus("closed")}><Archive size={14} /> {busy === "status" ? "…" : "Close"}</button>}
+    </div>
+  </header>
+    {error && <div className="admin-error">{error}</div>}
+    <Card className="admin-panel admin-support-detail-card">
+      <div className="admin-support-detail-head">
+        <span className="admin-support-detail-icon">{categoryIcon ? <categoryIcon size={22} /> : <Mail size={22} />}</span>
+        <div>
+          <div className="admin-support-detail-meta">
+            <span className={`admin-support-cat admin-cat-${message.category}`}>{message.category === "bug" ? "Bug report" : message.category === "ticket" ? "Support ticket" : "Email"}</span>
+            {message.priority !== "normal" && <span className={`admin-priority p-${message.priority}`}>{message.priority} priority</span>}
+          </div>
+          <h1 style={{ fontSize: "clamp(1.3rem,2vw,1.8rem)", margin: "6px 0", font: "700 clamp(1.3rem,2vw,1.8rem)/1.2 var(--font-display)" }}>{message.subject}</h1>
+        </div>
+      </div>
+      <div className="admin-support-detail-info">
+        <div><small>From</small><span>{message.sender_email || "Not provided"}</span></div>
+        <div><small>Household</small><span>{message.household_name || "—"}</span></div>
+        <div><small>Date</small><span>{new Date(message.created_at).toLocaleString("en-CA", { year: "numeric", month: "long", day: "numeric", hour: "numeric", minute: "2-digit" })}</span></div>
+        <div><small>App version</small><span>{message.app_version || "1.0"}</span></div>
+      </div>
+      <div className="admin-support-detail-body">
+        <p>{message.message}</p>
+      </div>
+      {message.steps && (
+        <div className="admin-support-detail-steps">
+          <small>Steps to reproduce</small>
+          <p>{message.steps}</p>
+        </div>
+      )}
+    </Card>
+  </div>;
+}
+
 export default function Admin() {
   const [checking, setChecking] = useState(true); const [session, setSession] = useState(null); const [allowed, setAllowed] = useState(false);
   const [section, setSection] = useState("overview"); const [overview, setOverview] = useState({}); const [analytics, setAnalytics] = useState({});
   const [households, setHouseholds] = useState([]); const [users, setUsers] = useState([]); const [audit, setAudit] = useState([]);
   const [search, setSearch] = useState(""); const [userSearch, setUserSearch] = useState(""); const [selected, setSelected] = useState(null);
   const [range, setRange] = useState(90); const [error, setError] = useState(""); const [deleteTarget, setDeleteTarget] = useState(null); const [deleteBusy, setDeleteBusy] = useState(false); const [deleteError, setDeleteError] = useState("");
+  const [supportMessages, setSupportMessages] = useState([]);
+  const [supportSearch, setSupportSearch] = useState("");
+  const [supportCategoryFilter, setSupportCategoryFilter] = useState("");
+  const [supportStatusFilter, setSupportStatusFilter] = useState("");
+  const [supportSelected, setSupportSelected] = useState(null);
+  const [supportRefreshKey, setSupportRefreshKey] = useState(0);
   const check = async () => {
     const { data: { session: activeSession } } = await supabase.auth.getSession(); setSession(activeSession);
     if (!activeSession) { setAllowed(false); setChecking(false); return; }
@@ -211,6 +310,18 @@ export default function Admin() {
   };
   useEffect(() => { check(); }, []);
   useEffect(() => { if (allowed) load(); }, [allowed, search, userSearch, range]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!allowed || section !== "support") return;
+    const loadSupport = async () => {
+      const { data, error: supportError } = await supabase.rpc("admin_list_support_messages", {
+        category_filter: supportCategoryFilter, status_filter: supportStatusFilter, search_text: supportSearch, page_limit: 200, page_offset: 0,
+      });
+      if (supportError) setError(supportError.message);
+      else setSupportMessages(data || []);
+    };
+    loadSupport();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allowed, section, supportCategoryFilter, supportStatusFilter, supportSearch, supportRefreshKey]);
   const confirmDelete = async (confirmation) => {
     setDeleteBusy(true); setDeleteError("");
     const promise = deleteTarget.kind === "household"
@@ -224,8 +335,9 @@ export default function Admin() {
   if (checking) return <main className="admin-loading">Checking admin access…</main>;
   if (!session) return <AdminLogin onSignedIn={check} />;
   if (!allowed) return <main className="admin-denied"><XCircle /><h1>Admin access required</h1><p>{error}</p><button onClick={async () => { await supabase.auth.signOut(); setSession(null); }}>Use another account</button></main>;
+  if (supportSelected) return <main className="admin-shell admin-detail-shell"><SupportMessageDetail id={supportSelected} onClose={() => setSupportSelected(null)} onChanged={() => setSupportRefreshKey((prev) => prev + 1)} /></main>;
   if (selected) return <main className="admin-shell admin-detail-shell"><HouseholdDetail id={selected} onClose={() => setSelected(null)} onChanged={load} onDelete={setDeleteTarget} /><ConfirmDelete target={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={confirmDelete} busy={deleteBusy} error={deleteError} /></main>;
-  const nav = [["overview", "Overview", LayoutDashboard], ["families", "Families", Building2], ["users", "Users", Users], ["revenue", "Revenue", BadgeDollarSign], ["flags", "Feature flags", Flag], ["audit", "Audit log", ShieldCheck], ["account", "Admin account", Settings2]];
+  const nav = [["overview", "Overview", LayoutDashboard], ["families", "Families", Building2], ["users", "Users", Users], ["revenue", "Revenue", BadgeDollarSign], ["support", "Support", MessageCircle], ["flags", "Feature flags", Flag], ["audit", "Audit log", ShieldCheck], ["account", "Admin account", Settings2]];
   const activePercent = overview.households ? Math.round(Number(analytics.activeHouseholds30d || 0) / Number(overview.households) * 100) : 0;
   return <div className="admin-shell"><aside><div className="admin-brand"><span className="admin-brand-icon"><img src="/brand/famos-icon.png" alt="FamOS" /></span><strong>Fam<span>OS</span></strong><small>Admin</small></div><nav>{nav.map(([key, label, Icon]) => <button key={key} className={section === key ? "active" : ""} onClick={() => setSection(key)}><Icon size={18} />{label}</button>)}</nav><button className="admin-signout" onClick={async () => { await supabase.auth.signOut(); setSession(null); }}><LogOut size={17} /> Sign out</button></aside>
     <main><header className="admin-topbar"><div><span className="admin-kicker"><ShieldCheck size={13} /> Operations center</span><h1>{nav.find(([key]) => key === section)?.[1]}</h1></div><div className="admin-topbar-actions">{["overview", "revenue"].includes(section) && <select value={range} onChange={(event) => setRange(Number(event.target.value))}><option value="30">30 days</option><option value="90">90 days</option><option value="365">12 months</option></select>}<div className="admin-operator"><span>{session.user.email?.[0]?.toUpperCase()}</span><small>{session.user.email}</small></div></div></header>
@@ -244,10 +356,11 @@ export default function Admin() {
       {section === "revenue" && <><section className="admin-metrics-grid"><Metric icon={CircleDollarSign} label="MRR" value={money(overview.mrrCents, overview.currency)} detail="Active subscriptions" /><Metric icon={WalletCards} label="Collected" value={money(analytics.revenueCollectedCents, overview.currency)} detail={`Net in ${range} days`} tone="mint" /><Metric icon={Users} label="ARPA" value={money(overview.payingHouseholds ? overview.mrrCents / overview.payingHouseholds : 0, overview.currency)} detail={`${overview.payingHouseholds || 0} paying families`} tone="yellow" /><Metric icon={CreditCard} label="Past due" value={overview.pastDueHouseholds || 0} detail={`${analytics.failedPayments || 0} failed payments`} tone="rose" /></section>
         <section className="admin-revenue-grid"><Card className="admin-panel admin-main-chart"><PanelHead eyebrow="Cash intelligence" title="Net revenue collected" icon={BadgeDollarSign} /><div className="admin-chart-summary"><strong>{money(analytics.revenueCollectedCents, overview.currency)}</strong><span>payments less refunds</span></div><TrendChart series={analytics.series} valueKey="revenueCents" currency /></Card><Card className="admin-panel admin-plan-mix"><PanelHead eyebrow="Subscriptions" title="Plan mix" icon={CreditCard} /><div>{(analytics.plans || []).map((plan) => <article key={`${plan.plan}-${plan.status}`}><span><i className={`status-${plan.status}`} />{plan.plan}</span><strong>{plan.accounts}</strong><small>{plan.status} · {money(plan.mrrCents)} MRR</small></article>)}{!analytics.plans?.length && <p className="admin-empty">No subscriptions recorded yet.</p>}</div></Card></section>
         <TopFamilies families={analytics.topFamilies} onOpen={setSelected} /><HouseholdTable households={households} onOpen={setSelected} search={search} setSearch={setSearch} title="Revenue by family" /></>}
+      {section === "support" && <SupportMessagesTable messages={supportMessages} onOpen={setSupportSelected} categoryFilter={supportCategoryFilter} setCategoryFilter={setSupportCategoryFilter} statusFilter={supportStatusFilter} setStatusFilter={setSupportStatusFilter} search={supportSearch} setSearch={setSupportSearch} />}
       {section === "flags" && <Card className="admin-panel"><PanelHead eyebrow="Per-family controls" title="Feature management" icon={Settings2} /><p className="admin-section-copy">Open a family to configure calendars, meals, groceries, tasks, chat, Fam AI, finance, and communication entitlements.</p><HouseholdTable households={households} onOpen={setSelected} search={search} setSearch={setSearch} /></Card>}
       {section === "audit" && <Card className="admin-table-card"><div className="admin-table-tools"><div><small>Security</small><h2>Admin activity</h2></div></div><div className="admin-audit-list">{audit.map((entry) => <article key={entry.id}><span><ShieldCheck size={15} /></span><div><strong>{entry.action.replaceAll("_", " ")}</strong><small>{entry.admin_email} · {entry.target_type} {entry.target_id}</small></div><time>{date(entry.created_at)}</time></article>)}{!audit.length && <div className="admin-empty">No admin actions yet.</div>}</div></Card>}
       {section === "account" && <AdminAccount session={session} onSessionChanged={async () => { const { data } = await supabase.auth.getSession(); setSession(data.session); }} />}
-    </main><nav className="admin-mobile-nav">{[nav[0], nav[1], nav[2], nav[3], nav[6]].map(([key, label, Icon]) => <button key={key} className={section === key ? "active" : ""} onClick={() => setSection(key)}><Icon /><small>{label}</small></button>)}</nav>
+    </main><nav className="admin-mobile-nav">{[nav[0], nav[1], nav[2], nav[3], nav[4], nav[6]].map(([key, label, Icon]) => <button key={key} className={section === key ? "active" : ""} onClick={() => setSection(key)}><Icon /><small>{label}</small></button>)}</nav>
     <ConfirmDelete target={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={confirmDelete} busy={deleteBusy} error={deleteError} />
   </div>;
 }
