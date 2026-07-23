@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertCircle, Bell, Bot, Bug, CalendarDays, CheckCircle2, ExternalLink, Eye, EyeOff, ImagePlus, Info, Link2, Mail, MapPin, Megaphone, Pencil, Phone, Plus, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Ticket, Trash2, Upload, Users, Utensils } from "lucide-react";
+import { AlertCircle, Bell, Bot, Bug, CalendarDays, CheckCircle2, ChevronRight, Eye, EyeOff, ExternalLink, ImagePlus, Info, Link2, Mail, MapPin, Megaphone, Pencil, Phone, Plus, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Ticket, Trash2, Upload, Users, Utensils } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, Card, Modal, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
@@ -291,6 +291,14 @@ export default function Settings() {
   const [deleting, setDeleting] = useState(false);
   const [notificationTestStatus, setNotificationTestStatus] = useState("");
   const [testingNotification, setTestingNotification] = useState(false);
+  const [supportForm, setSupportForm] = useState(null); // null | "email" | "bug" | "ticket"
+  const [supportSubject, setSupportSubject] = useState("");
+  const [supportMessage, setSupportMessage] = useState("");
+  const [supportEmail, setSupportEmail] = useState(user?.email || "");
+  const [supportPriority, setSupportPriority] = useState("normal");
+  const [supportSteps, setSupportSteps] = useState("");
+  const [supportSending, setSupportSending] = useState(false);
+  const [supportSent, setSupportSent] = useState(false);
   const [editingHousehold, setEditingHousehold] = useState(false);
   const [householdName, setHouseholdName] = useState("");
   const [householdCity, setHouseholdCity] = useState("");
@@ -753,9 +761,9 @@ export default function Settings() {
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">Support</h2>
           <Card className="p-4">
             <div className="space-y-2">
-              <a
-                href="mailto:support@fam-os.app?subject=FamOS%20support%20request"
-                className="flex items-center gap-3 rounded-xl px-3 py-3 hover:bg-[var(--color-surface-sunken)] transition-colors -mx-1"
+              <button
+                onClick={() => { setSupportSubject("FamOS support request"); setSupportMessage(""); setSupportSent(false); setSupportForm("email"); }}
+                className="flex items-center gap-3 rounded-xl w-full px-3 py-3 hover:bg-[var(--color-surface-sunken)] transition-colors -mx-1 text-left"
               >
                 <span className="w-10 h-10 rounded-xl bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0">
                   <Mail size={18} color="var(--color-accent)" />
@@ -764,11 +772,11 @@ export default function Settings() {
                   <p className="font-medium text-[14px] text-[var(--color-ink)]">Email us</p>
                   <p className="text-[12px] text-[var(--color-ink-soft)]">Send us a message and we'll get back to you</p>
                 </div>
-                <ExternalLink size={14} color="var(--color-ink-faint)" />
-              </a>
-              <a
-                href="mailto:support@fam-os.app?subject=FamOS%20bug%20report&body=Describe%20what%20went%20wrong%20and%20what%20you%20were%20doing%20when%20it%20happened.%20If%20possible%2C%20include%20a%20screenshot%20or%20screen%20recording."
-                className="flex items-center gap-3 rounded-xl px-3 py-3 hover:bg-[var(--color-surface-sunken)] transition-colors -mx-1"
+                <ChevronRight size={16} color="var(--color-ink-faint)" />
+              </button>
+              <button
+                onClick={() => { setSupportSubject(""); setSupportMessage(""); setSupportSteps(""); setSupportSent(false); setSupportForm("bug"); }}
+                className="flex items-center gap-3 rounded-xl w-full px-3 py-3 hover:bg-[var(--color-surface-sunken)] transition-colors -mx-1 text-left"
               >
                 <span className="w-10 h-10 rounded-xl bg-[var(--color-warn-soft)] flex items-center justify-center shrink-0">
                   <Bug size={18} color="var(--color-warn)" />
@@ -777,11 +785,11 @@ export default function Settings() {
                   <p className="font-medium text-[14px] text-[var(--color-ink)]">Report a bug</p>
                   <p className="text-[12px] text-[var(--color-ink-soft)]">Found something off? Let us know what happened</p>
                 </div>
-                <ExternalLink size={14} color="var(--color-ink-faint)" />
-              </a>
-              <a
-                href="mailto:support@fam-os.app?subject=FamOS%20support%20ticket&body=Tell%20us%20how%20we%20can%20help.%20Include%20your%20household%20name%20and%20a%20brief%20description%20of%20what%20you%20need."
-                className="flex items-center gap-3 rounded-xl px-3 py-3 hover:bg-[var(--color-surface-sunken)] transition-colors -mx-1"
+                <ChevronRight size={16} color="var(--color-ink-faint)" />
+              </button>
+              <button
+                onClick={() => { setSupportSubject(""); setSupportMessage(""); setSupportPriority("normal"); setSupportSent(false); setSupportForm("ticket"); }}
+                className="flex items-center gap-3 rounded-xl w-full px-3 py-3 hover:bg-[var(--color-surface-sunken)] transition-colors -mx-1 text-left"
               >
                 <span className="w-10 h-10 rounded-xl bg-[var(--color-surface-sunken)] border border-[var(--color-border)] flex items-center justify-center shrink-0">
                   <Ticket size={18} color="var(--color-fam-sky)" />
@@ -790,8 +798,8 @@ export default function Settings() {
                   <p className="font-medium text-[14px] text-[var(--color-ink)]">Submit a support ticket</p>
                   <p className="text-[12px] text-[var(--color-ink-soft)]">Open a ticket and our team will follow up</p>
                 </div>
-                <ExternalLink size={14} color="var(--color-ink-faint)" />
-              </a>
+                <ChevronRight size={16} color="var(--color-ink-faint)" />
+              </button>
             </div>
           </Card>
         </section>
@@ -1008,6 +1016,157 @@ export default function Settings() {
         <div className="flex gap-2">
           <SecondaryButton disabled={deleting} onClick={() => setConfirmingDelete(false)}>Cancel</SecondaryButton>
           <button disabled={deleting || deleteConfirmation !== "DELETE"} onClick={async () => { setDeleting(true); setDeleteError(""); try { await deleteAccount(); } catch (error) { setDeleteError(error.message || "Could not delete account."); setDeleting(false); } }} className="w-full rounded-xl bg-[var(--color-warn)] text-white font-semibold text-[14px] py-3 disabled:opacity-40 active:scale-[0.98] transition-transform">{deleting ? "Deleting…" : "Delete forever"}</button>
+        </div>
+      </Modal>
+
+      {/* ── Support: Email us ── */}
+      <Modal open={supportForm === "email"} onClose={() => { if (!supportSending) setSupportForm(null); }} title="Email us">
+        <div className="w-11 h-11 rounded-xl bg-[var(--color-accent-soft)] flex items-center justify-center mb-4"><Mail size={19} color="var(--color-accent)" /></div>
+        <TextField label="Subject" value={supportSubject} onChange={(e) => setSupportSubject(e.target.value)} placeholder="What's this about?" />
+        <div className="mb-4">
+          <label className="block text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-1.5">Message</label>
+          <textarea
+            value={supportMessage}
+            onChange={(e) => setSupportMessage(e.target.value)}
+            placeholder="Tell us how we can help…"
+            rows={5}
+            className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 text-[14px] resize-none focus:outline-none focus:border-[var(--color-accent)]"
+          />
+        </div>
+        {supportSent ? (
+          <div className="rounded-xl bg-[var(--color-good-soft)] px-3 py-3 mb-4 text-[13px] text-[var(--color-good)] leading-snug">
+            <CheckCircle2 size={16} className="inline-block mr-1.5 -mt-0.5" />
+            Message ready to send — your email app will open now.
+          </div>
+        ) : null}
+        <div className="flex gap-2">
+          <SecondaryButton disabled={supportSending} onClick={() => setSupportForm(null)}>Cancel</SecondaryButton>
+          <PrimaryButton
+            disabled={supportSending || !supportMessage.trim()}
+            onClick={() => {
+              setSupportSending(true);
+              const body = encodeURIComponent(supportMessage.trim());
+              window.open(`mailto:support@fam-os.app?subject=${encodeURIComponent(supportSubject)}&body=${body}`, "_blank");
+              setSupportSent(true);
+              setSupportSending(false);
+            }}
+          >
+            {supportSending ? "Opening…" : "Send message"}
+          </PrimaryButton>
+        </div>
+      </Modal>
+
+      {/* ── Support: Report a bug ── */}
+      <Modal open={supportForm === "bug"} onClose={() => { if (!supportSending) setSupportForm(null); }} title="Report a bug">
+        <div className="w-11 h-11 rounded-xl bg-[var(--color-warn-soft)] flex items-center justify-center mb-4"><Bug size={19} color="var(--color-warn)" /></div>
+        <TextField label="Summary" value={supportSubject} onChange={(e) => setSupportSubject(e.target.value)} placeholder="Briefly describe the issue" />
+        <div className="mb-4">
+          <label className="block text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-1.5">What happened?</label>
+          <textarea
+            value={supportMessage}
+            onChange={(e) => setSupportMessage(e.target.value)}
+            placeholder="Describe what went wrong and what you were doing when it happened…"
+            rows={4}
+            className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 text-[14px] resize-none focus:outline-none focus:border-[var(--color-accent)]"
+          />
+        </div>
+        <div className="mb-4">
+          <label className="block text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-1.5">Steps to reproduce (optional)</label>
+          <textarea
+            value={supportSteps}
+            onChange={(e) => setSupportSteps(e.target.value)}
+            placeholder="1. Go to...\n2. Click on...\n3. See error..."
+            rows={3}
+            className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 text-[14px] resize-none focus:outline-none focus:border-[var(--color-accent)]"
+          />
+        </div>
+        {supportSent ? (
+          <div className="rounded-xl bg-[var(--color-good-soft)] px-3 py-3 mb-4 text-[13px] text-[var(--color-good)] leading-snug">
+            <CheckCircle2 size={16} className="inline-block mr-1.5 -mt-0.5" />
+            Bug report ready to send — your email app will open now.
+          </div>
+        ) : null}
+        <div className="flex gap-2">
+          <SecondaryButton disabled={supportSending} onClick={() => setSupportForm(null)}>Cancel</SecondaryButton>
+          <PrimaryButton
+            disabled={supportSending || !supportSubject.trim() || !supportMessage.trim()}
+            onClick={() => {
+              setSupportSending(true);
+              const parts = [
+                `What happened: ${supportMessage.trim()}`,
+                supportSteps.trim() ? `Steps to reproduce:\n${supportSteps.trim()}` : "",
+                `\n---\nSent from FamOS Settings`,
+              ].filter(Boolean).join("\n\n");
+              window.open(`mailto:support@fam-os.app?subject=${encodeURIComponent(`Bug: ${supportSubject.trim()}`)}&body=${encodeURIComponent(parts)}`, "_blank");
+              setSupportSent(true);
+              setSupportSending(false);
+            }}
+          >
+            {supportSending ? "Opening…" : "Send bug report"}
+          </PrimaryButton>
+        </div>
+      </Modal>
+
+      {/* ── Support: Submit a ticket ── */}
+      <Modal open={supportForm === "ticket"} onClose={() => { if (!supportSending) setSupportForm(null); }} title="Submit a support ticket">
+        <div className="w-11 h-11 rounded-xl bg-[var(--color-surface-sunken)] border border-[var(--color-border)] flex items-center justify-center mb-4"><Ticket size={19} color="var(--color-fam-sky)" /></div>
+        <TextField label="Subject" value={supportSubject} onChange={(e) => setSupportSubject(e.target.value)} placeholder="What do you need help with?" />
+        <TextField label="Your email" value={supportEmail} onChange={(e) => setSupportEmail(e.target.value)} placeholder="you@example.com" type="email" />
+        <div className="mb-4">
+          <label className="block text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-1.5">Priority</label>
+          <div className="flex gap-2">
+            {["low", "normal", "high"].map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setSupportPriority(p)}
+                className="flex-1 rounded-xl px-3 py-2 text-[13px] font-medium border transition-colors capitalize"
+                style={{
+                  borderColor: supportPriority === p ? "var(--color-accent)" : "var(--color-border)",
+                  backgroundColor: supportPriority === p ? "var(--color-accent-soft)" : "transparent",
+                  color: supportPriority === p ? "var(--color-accent-strong)" : "var(--color-ink-soft)",
+                }}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="mb-4">
+          <label className="block text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-1.5">Description</label>
+          <textarea
+            value={supportMessage}
+            onChange={(e) => setSupportMessage(e.target.value)}
+            placeholder="Tell us how we can help. Include your household name and what you need."
+            rows={5}
+            className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 text-[14px] resize-none focus:outline-none focus:border-[var(--color-accent)]"
+          />
+        </div>
+        {supportSent ? (
+          <div className="rounded-xl bg-[var(--color-good-soft)] px-3 py-3 mb-4 text-[13px] text-[var(--color-good)] leading-snug">
+            <CheckCircle2 size={16} className="inline-block mr-1.5 -mt-0.5" />
+            Support ticket ready to send — your email app will open now.
+          </div>
+        ) : null}
+        <div className="flex gap-2">
+          <SecondaryButton disabled={supportSending} onClick={() => setSupportForm(null)}>Cancel</SecondaryButton>
+          <PrimaryButton
+            disabled={supportSending || !supportSubject.trim() || !supportMessage.trim() || !supportEmail.trim()}
+            onClick={() => {
+              setSupportSending(true);
+              const body = [
+                `Description: ${supportMessage.trim()}`,
+                `Priority: ${supportPriority}`,
+                `Email: ${supportEmail.trim()}`,
+                `\n---\nSent from FamOS Settings`,
+              ].join("\n");
+              window.open(`mailto:support@fam-os.app?subject=${encodeURIComponent(`[${supportPriority.toUpperCase()}] ${supportSubject.trim()}`)}&body=${encodeURIComponent(body)}`, "_blank");
+              setSupportSent(true);
+              setSupportSending(false);
+            }}
+          >
+            {supportSending ? "Opening…" : "Send ticket"}
+          </PrimaryButton>
         </div>
       </Modal>
     </div>
