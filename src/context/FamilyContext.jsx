@@ -327,22 +327,51 @@ export function FamilyProvider({ children, tabletMode = false }) {
   };
 
   useEffect(() => { loadRemoteData(); }, [remote, household?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Apply a single postgres_changes payload to the matching state setter,
+  // avoiding a full loadRemoteData() re-fetch on every incremental change.
+  const applyChange = useCallback((table, payload) => {
+    const { eventType, new: row } = payload;
+    if (!row?.id && eventType !== "DELETE") return;
+    const insert = (setter, mapper) => setter((prev) => prev.some((item) => item.id === row.id) ? prev : [...prev, mapper(row)]);
+    const update = (setter, mapper) => setter((prev) => prev.map((item) => item.id === row.id ? mapper(row) : item));
+    const remove = (setter) => setter((prev) => prev.filter((item) => item.id !== payload.old?.id));
+    const handle = (setter, mapper) => {
+      if (eventType === "DELETE") remove(setter);
+      else if (eventType === "UPDATE") update(setter, mapper);
+      else insert(setter, mapper);
+    };
+    switch (table) {
+      case "tasks": handle(setTasks, mapTask); break;
+      case "grocery_items": handle(setGroceries, mapGrocery); break;
+      case "events": handle(setEvents, (r) => ({ ...mapEvent(r), memberIds: r.event_participants?.map?.((p) => p.user_id) || [] })); break;
+      case "meals": handle(setMeals, mapMeal); break;
+      case "messages": handle(setMessages, mapMessage); break;
+      case "message_reactions": handle(setMessageReactions, mapReaction); break;
+      case "expenses": handle(setExpenses, mapExpense); break;
+    }
+  }, []); // map*/set* identities are stable across renders
+
   useEffect(() => {
     if (!remote) return undefined;
     const channel = supabase.channel(`household:${household.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "tasks", filter: `household_id=eq.${household.id}` }, (payload) => { notifyFromChange("tasks", payload); loadRemoteData(); })
-      .on("postgres_changes", { event: "*", schema: "public", table: "grocery_items", filter: `household_id=eq.${household.id}` }, (payload) => { notifyFromChange("grocery_items", payload); loadRemoteData(); })
-      .on("postgres_changes", { event: "*", schema: "public", table: "events", filter: `household_id=eq.${household.id}` }, loadRemoteData)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "events", filter: `household_id=eq.${household.id}` }, (payload) => notifyFromChange("events", payload))
-      .on("postgres_changes", { event: "*", schema: "public", table: "meals", filter: `household_id=eq.${household.id}` }, (payload) => { notifyFromChange("meals", payload); loadRemoteData(); })
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `household_id=eq.${household.id}` }, (payload) => { notifyFromChange("messages", payload); loadRemoteData(); })
-      .on("postgres_changes", { event: "*", schema: "public", table: "message_reactions", filter: `household_id=eq.${household.id}` }, loadRemoteData)
-      .on("postgres_changes", { event: "*", schema: "public", table: "expenses", filter: `household_id=eq.${household.id}` }, loadRemoteData)
+      .on("postgres_changes", { event: "*", schema: "public", table: "tasks", filter: `household_id=eq.${household.id}` }, (payload) => { notifyFromChange("tasks", payload); applyChange("tasks", payload); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "grocery_items", filter: `household_id=eq.${household.id}` }, (payload) => { notifyFromChange("grocery_items", payload); applyChange("grocery_items", payload); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "events", filter: `household_id=eq.${household.id}` }, (payload) => { if (payload.eventType === "INSERT") notifyFromChange("events", payload); applyChange("events", payload); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "meals", filter: `household_id=eq.${household.id}` }, (payload) => { notifyFromChange("meals", payload); applyChange("meals", payload); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "messages", filter: `household_id=eq.${household.id}` }, (payload) => { if (payload.eventType === "INSERT") notifyFromChange("messages", payload); applyChange("messages", payload); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "message_reactions", filter: `household_id=eq.${household.id}` }, (payload) => applyChange("message_reactions", payload))
+      .on("postgres_changes", { event: "*", schema: "public", table: "expenses", filter: `household_id=eq.${household.id}` }, (payload) => applyChange("expenses", payload))
+      // household_members and finance_settings use the full reload since they
+      // involve joins / side tables that are hard to reconstruct from a single
+      // postgres_changes row, and they change infrequently.
       .on("postgres_changes", { event: "*", schema: "public", table: "household_members", filter: `household_id=eq.${household.id}` }, loadRemoteData)
       .on("postgres_changes", { event: "*", schema: "public", table: "household_finance_settings", filter: `household_id=eq.${household.id}` }, loadRemoteData)
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [remote, household?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [remote, household?.id]); // eslint-disable-line react-hooks/exhaustive-deps // eslint-disable-line react-hooks/exhaustive-deps
 
   const runRemote = async (query) => { const { error } = await query; if (error) { setDataError(error.message); throw error; } };
 
