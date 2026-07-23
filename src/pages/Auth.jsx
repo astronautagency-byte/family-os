@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { Baby, BriefcaseBusiness, CalendarDays, Check, CheckSquare, ChefHat, ChevronLeft, Eye, EyeOff, HeartHandshake, House, ImagePlus, Leaf, LoaderCircle, LockKeyhole, Mail, MessageCircle, Palette, Plus, Salad, ShieldCheck, ShoppingCart, Sparkles, Trash2, UserRound, UsersRound, WalletCards, WheatOff } from "lucide-react";
+import { Baby, Bell, BellRing, BriefcaseBusiness, CalendarDays, Check, CheckSquare, ChefHat, ChevronLeft, Eye, EyeOff, HeartHandshake, House, ImagePlus, Leaf, LoaderCircle, LockKeyhole, Mail, MessageCircle, Palette, Plus, Salad, ShieldCheck, ShoppingCart, Sparkles, Trash2, UserRound, UsersRound, WalletCards, WheatOff } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { Card, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
+import { supabase } from "../lib/supabase";
+
+const VAPID_PUBLIC_KEY = "BK4WksXI5RRZqDhurNH8v2VbinrSKrBLzOA6xni__siwCbKjhtJ1T0N3GOSVKKQPNAnENCacYtdlLW553fadxHQ";
+
+function base64UrlToUint8Array(value) {
+  const padding = "=".repeat((4 - value.length % 4) % 4);
+  const raw = atob((value + padding).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from([...raw].map((character) => character.charCodeAt(0)));
+}
 import { FAMILY_COLORS } from "../data/mockData";
 import { AVATAR_PRESETS } from "../data/avatarLibrary";
 import AddressAutocomplete from "../components/AddressAutocomplete";
@@ -339,6 +348,7 @@ export function HouseholdOnboarding() {
   const [avatarStatus, setAvatarStatus] = useState("");
   const [ownerStep, setOwnerStep] = useState(0);
   const [memberStep, setMemberStep] = useState(0);
+  const [notificationsSkipped, setNotificationsSkipped] = useState(false);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -380,8 +390,9 @@ export function HouseholdOnboarding() {
         } else if (draft.inviteEmails) {
           setInviteMembers(draft.inviteEmails.split(/[\n,;]+/).filter(Boolean).map((email) => ({ ...newInviteMember(), email: email.trim() })));
         }
-        setOwnerStep(Math.max(0, Math.min(Number(draft.ownerStep) || 0, 5)));
-        setMemberStep(Math.max(0, Math.min(Number(draft.memberStep) || 0, 1)));
+        setNotificationsSkipped(Boolean(draft.notificationsSkipped));
+        setOwnerStep(Math.max(0, Math.min(Number(draft.ownerStep) || 0, 6)));
+        setMemberStep(Math.max(0, Math.min(Number(draft.memberStep) || 0, 2)));
       }
     } catch {
       localStorage.removeItem(draftKey);
@@ -396,20 +407,20 @@ export function HouseholdOnboarding() {
       primaryColor, profileType, calendarPreference, dietaryRestrictions, avoidIngredients,
       mealNotes, groceryImportText, partnerPersonalizationOptIn, avatarUrl, inviteMembers,
       city, region, postalCode, country, address, latitude, longitude,
-      ownerStep, memberStep,
+      ownerStep, memberStep, notificationsSkipped,
     }));
   }, [
     draftKey, draftLoaded, familySize, adultCount, childCount, familyDynamic, lifeStage,
     planningPriorities, primaryColor, profileType, calendarPreference, dietaryRestrictions,
     avoidIngredients, mealNotes, groceryImportText, partnerPersonalizationOptIn, avatarUrl,
-    inviteMembers, city, region, postalCode, country, address, latitude, longitude, ownerStep, memberStep,
+    inviteMembers, city, region, postalCode, country, address, latitude, longitude, ownerStep, memberStep, notificationsSkipped,
   ]);
 
   const title = useMemo(() => {
     if (invitation && !household) return "Come on in";
     if (!household) return "What should we call home?";
-    if (ownerProfileStep) return ["Who’s at home?", "Where is home? (optional)", "What matters most?", "Make meals easier", "Bring your grocery list", "One last thing"][ownerStep];
-    if (memberProfileStep) return ["How should we set you up?", "Choose your calendar view"][memberStep];
+    if (ownerProfileStep) return ["Who’s at home?", "Where is home? (optional)", "What matters most?", "Make meals easier", "Bring your grocery list", "One last thing", "Never miss an update"][ownerStep];
+    if (memberProfileStep) return ["How should we set you up?", "Choose your calendar view", "Never miss an update"][memberStep];
     return "Invite your people";
   }, [household, invitation, memberProfileStep, memberStep, ownerProfileStep, ownerStep]);
 
@@ -423,10 +434,12 @@ export function HouseholdOnboarding() {
       "Optional details that make meal ideas more useful.",
       "Optional. Paste what you already buy and we’ll organize it.",
       "Connect your calendar now or come back to it anytime.",
+      "Get notified about tasks, meals, messages, and calendar updates from your household.",
     ][ownerStep];
     if (memberProfileStep) return [
       `You’re joining ${household.name}. First, choose your profile type.`,
       "Choose what you want to see first. You can always switch views later.",
+      "Get notified about tasks, meals, messages, and calendar updates from your household.",
     ][memberStep];
     return `Invite people to ${household.name} now, or skip and add them later from Settings.`;
   }, [household, invitation, memberProfileStep, memberStep, ownerProfileStep, ownerStep]);
@@ -546,9 +559,10 @@ export function HouseholdOnboarding() {
             busy={busy}
             run={run}
             onSave={saveOwnerProfile}
-            onSkipSetup={() => run(async () => { markOnboardingComplete(); })}
+            onSkipSetup={() => { setNotificationsSkipped(true); run(async () => { markOnboardingComplete(); }); }}
             step={ownerStep}
             setStep={setOwnerStep}
+            session={session}
           />
         ) : memberProfileStep ? (
           <MemberProfileStep
@@ -567,6 +581,7 @@ export function HouseholdOnboarding() {
             setAvatarUrl={setAvatarUrl}
             avatarStatus={avatarStatus}
             setAvatarStatus={setAvatarStatus}
+            session={session}
           />
         ) : (
           <InviteStep inviteMembers={inviteMembers} setInviteMembers={setInviteMembers} busy={busy} invitePartner={invitePartner} run={run} skipOnboardingInvites={skipOnboardingInvites} />
@@ -620,7 +635,7 @@ function OwnerProfileStep(props) {
     ["Vegetarian", Leaf], ["Vegan", Salad], ["Gluten-free", WheatOff], ["Dairy-free", ChefHat],
     ["Nut-free", HeartHandshake], ["Shellfish-free", ShieldCheck], ["Low sugar", Sparkles],
   ];
-  const steps = ["Household", "Address", "Priorities", "Food", "Shopping", "Connect"];
+  const steps = ["Household", "Address", "Priorities", "Food", "Shopping", "Connect", "Notifications"];
   const next = () => {
     if (props.step === 0 && props.adultCount + props.childCount !== props.familySize) return;
     props.setStep((step) => Math.min(step + 1, steps.length - 1));
@@ -709,6 +724,8 @@ function OwnerProfileStep(props) {
             <span><strong>Personalize suggestions for my household</strong><small>Optional. Uses the preferences you entered to improve meal and grocery suggestions.</small></span>
           </label>
         </>}
+
+        {props.step === 6 && <NotificationStep user={props.session?.user} busy={props.busy} run={props.run} />}
       </div>
       <OnboardingActions
         step={props.step}
@@ -736,8 +753,8 @@ function OwnerProfileStep(props) {
   );
 }
 
-function MemberProfileStep({ profileType, setProfileType, calendarPreference, setCalendarPreference, signInWithGoogle, googleProviderToken, busy, run, onSave, step, setStep, avatarUrl, setAvatarUrl, avatarStatus, setAvatarStatus }) {
-  const steps = ["Profile", "Calendar"];
+function MemberProfileStep({ profileType, setProfileType, calendarPreference, setCalendarPreference, signInWithGoogle, googleProviderToken, busy, run, onSave, step, setStep, avatarUrl, setAvatarUrl, avatarStatus, setAvatarStatus, session }) {
+  const steps = ["Profile", "Calendar", "Notifications"];
   return (
     <div className="guided-onboarding">
       <OnboardingProgress steps={steps} current={step} />
@@ -750,8 +767,9 @@ function MemberProfileStep({ profileType, setProfileType, calendarPreference, se
           <OnboardingChoiceGroup icon={<CalendarDays size={15} />} label="Default calendar view" value={calendarPreference} onChange={setCalendarPreference} options={[["family", "Shared family calendar", UsersRound], ["personal", "My calendar first", UserRound]]} />
           <GoogleCalendarStep signInWithGoogle={signInWithGoogle} googleProviderToken={googleProviderToken} busy={busy} run={run} />
         </>}
+        {step === 2 && <NotificationStep user={session?.user} busy={busy} run={run} />}
       </div>
-      <OnboardingActions step={step} lastStep={1} busy={busy} onBack={() => setStep(0)} onNext={() => setStep(1)} onFinish={onSave} finishLabel="Enter shared home" />
+      <OnboardingActions step={step} lastStep={2} busy={busy} onBack={() => setStep((prev) => Math.max(0, prev - 1))} onNext={() => setStep((prev) => Math.min(prev + 1, 2))} onFinish={onSave} finishLabel="Enter shared home" />
     </div>
   );
 }
@@ -856,6 +874,98 @@ function GoogleCalendarStep({ signInWithGoogle, googleProviderToken, busy, run }
         <small>{googleProviderToken ? "Your progress was saved. Continue setup when you’re ready." : "Optional. Choose which calendars to import after your account is set up."}</small>
       </div>
       <SecondaryButton type="button" className="onboarding-connect-button" disabled={busy || Boolean(googleProviderToken)} onClick={() => run(signInWithGoogle)}>{googleProviderToken ? "Connected" : "Connect Google"}</SecondaryButton>
+    </div>
+  );
+}
+
+function NotificationStep({ user, busy, run }) {
+  const [status, setStatus] = useState(() => typeof Notification === "undefined" ? "unsupported" : Notification.permission);
+  const [notifBusy, setNotifBusy] = useState(false);
+  const [enabled, setEnabled] = useState(() => Notification.permission === "granted");
+
+  const enableNotifications = async () => {
+    if (typeof Notification === "undefined") return;
+    setNotifBusy(true);
+    try {
+      const permission = await Notification.requestPermission();
+      setStatus(permission);
+      if (permission === "granted") {
+        setEnabled(true);
+        // Register the push subscription if user is signed in.
+        if (user?.id && "PushManager" in window) {
+          try {
+            const registration = await navigator.serviceWorker.ready;
+            let subscription = await registration.pushManager.getSubscription();
+            if (!subscription) {
+              subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: base64UrlToUint8Array(VAPID_PUBLIC_KEY),
+              });
+            }
+            const deviceLabel = [
+              navigator.userAgentData?.platform || navigator.platform,
+              /iPhone|iPad/.test(navigator.userAgent) ? "iOS Home Screen" : "",
+            ].filter(Boolean).join(" · ");
+            const { error } = await supabase.from("push_subscriptions").upsert({
+              user_id: user.id,
+              endpoint: subscription.endpoint,
+              subscription: subscription.toJSON(),
+              device_label: deviceLabel,
+            }, { onConflict: "user_id,endpoint" });
+            if (error) throw error;
+          } catch (pushError) {
+            console.warn("Could not register for push.", pushError);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Could not request notification permission.", e);
+    } finally {
+      setNotifBusy(false);
+    }
+  };
+
+  return (
+    <div className="onboarding-notification-step">
+      <div className="onboarding-notification-hero">
+        <BellRing size={32} />
+      </div>
+      <p className="onboarding-notification-intro">
+        Stay in the loop with household notifications on every device.
+      </p>
+      <div className="onboarding-notification-features">
+        <div><Bell size={16} /><span>New task assignments</span></div>
+        <div><MessageCircle size={16} /><span>Chat messages from the family</span></div>
+        <div><ShoppingCart size={16} /><span>Shopping list updates</span></div>
+        <div><ChefHat size={16} /><span>Meal reminders & cooking assignments</span></div>
+        <div><CalendarDays size={16} /><span>Calendar event notifications</span></div>
+      </div>
+      {status === "denied" && (
+        <div className="onboarding-notification-blocked">
+          <span>Notifications are blocked in your browser settings. You can enable them later in Settings → Notifications.</span>
+        </div>
+      )}
+      {status === "unsupported" && (
+        <div className="onboarding-notification-blocked">
+          <span>Notifications aren't supported on this browser. Install FamOS to your home screen to enable them.</span>
+        </div>
+      )}
+      <div className="onboarding-notification-action">
+        {status === "granted" || enabled ? (
+          <div className="onboarding-notification-enabled">
+            <BellRing size={18} />
+            <span>Notifications are enabled</span>
+          </div>
+        ) : status !== "denied" && status !== "unsupported" ? (
+          <PrimaryButton
+            type="button"
+            disabled={notifBusy || busy}
+            onClick={enableNotifications}
+          >
+            {notifBusy ? "Enabling…" : "Enable notifications"}
+          </PrimaryButton>
+        ) : null}
+      </div>
     </div>
   );
 }

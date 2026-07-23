@@ -2293,6 +2293,19 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .onboarding-address-preview>div{min-width:0;padding:10px 12px;border-radius:var(--radius-sm);background:var(--color-surface)}
 .onboarding-address-preview>div.wide{grid-column:1/-1}.onboarding-address-preview span,.onboarding-address-preview strong{display:block}.onboarding-address-preview span{margin-bottom:4px;color:var(--color-ink-faint);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.onboarding-address-preview strong{overflow:hidden;color:var(--color-ink);font-size:12.5px;font-weight:650;text-overflow:ellipsis;white-space:nowrap}.onboarding-address-preview strong:only-child{color:var(--color-ink-faint)}
 .onboarding-location-note{padding:12px 14px;border-radius:var(--radius-md);background:var(--pastel-blue);color:var(--color-ink-soft);font-size:11.5px;line-height:1.5}
+
+/* Notification onboarding step */
+.onboarding-notification-step{display:flex;flex-direction:column;align-items:center;gap:20px;padding:20px 0 12px;text-align:center}
+.onboarding-notification-hero{width:72px;height:72px;display:grid;place-items:center;border-radius:50%;background:var(--color-accent-soft);color:var(--color-accent)}
+.onboarding-notification-intro{color:var(--color-ink-soft);font-size:14px;line-height:1.5;max-width:340px}
+.onboarding-notification-features{display:grid;gap:12px;width:100%;max-width:320px;text-align:left}
+.onboarding-notification-features>div{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);background:var(--color-surface-sunken);font-size:13px;color:var(--color-ink-soft)}
+.onboarding-notification-features svg{flex:0 0 auto;color:var(--color-accent)}
+.onboarding-notification-blocked{padding:10px 14px;border-radius:var(--radius-sm);background:var(--color-warn-soft);color:var(--color-warn);font-size:12px;line-height:1.45}
+.onboarding-notification-action{width:100%;display:flex;justify-content:center}
+.onboarding-notification-enabled{display:flex;align-items:center;gap:8px;padding:10px 18px;border-radius:var(--radius-pill);background:var(--color-good-soft);color:var(--color-good);font-size:14px;font-weight:700}
+.onboarding-notification-enabled svg{color:var(--color-good)}
+
 .settings-address-preview{margin-bottom:14px}
 @media(max-width:520px){.onboarding-address-preview{grid-template-columns:1fr}.onboarding-address-preview>div.wide{grid-column:auto}.onboarding-address-preview strong{white-space:normal;overflow-wrap:anywhere}}
 .onboarding-grid.onboarding-grid-two{grid-template-columns:repeat(2,minmax(0,1fr))}
