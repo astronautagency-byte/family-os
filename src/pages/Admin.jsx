@@ -293,6 +293,7 @@ export default function Admin() {
   const [supportSelected, setSupportSelected] = useState(null);
   const [supportRefreshKey, setSupportRefreshKey] = useState(0);
   const [supportCounts, setSupportCounts] = useState({});
+  const [latestSupportMessages, setLatestSupportMessages] = useState([]);
   const check = async () => {
     const { data: { session: activeSession } } = await supabase.auth.getSession(); setSession(activeSession);
     if (!activeSession) { setAllowed(false); setChecking(false); return; }
@@ -315,6 +316,9 @@ export default function Admin() {
     if (!allowed) return;
     supabase.rpc("admin_support_message_counts").then(({ data }) => {
       if (data) setSupportCounts(data);
+    });
+    supabase.rpc("admin_list_support_messages", { category_filter: "", status_filter: "", search_text: "", page_limit: 5, page_offset: 0 }).then(({ data }) => {
+      if (data) setLatestSupportMessages(data);
     });
   }, [allowed, supportRefreshKey]);
   useEffect(() => {
@@ -354,9 +358,21 @@ export default function Admin() {
         <Metric icon={Users} label="Total users" value={number(overview.users)} detail={`${overview.activeUsers30d || 0} signed in recently`} tone="mint" />
         <Metric icon={CircleDollarSign} label="MRR" value={money(overview.mrrCents, overview.currency)} detail={`${money(overview.arrCents, overview.currency)} ARR`} tone="yellow" />
         <Metric icon={Activity} label="Engagement" value={`${activePercent}%`} detail={`${analytics.activeHouseholds7d || 0} active families this week`} tone="rose" />
+        <Metric icon={MessageCircle} label="Support tickets" value={number(Number(supportCounts.new || 0) + Number(supportCounts.read || 0))} detail={`${supportCounts.new || 0} new · ${supportCounts.replied || 0} replied`} tone="fam" />
       </section>
       <section className="admin-analytics-grid"><Card className="admin-panel admin-main-chart"><PanelHead eyebrow={`${range}-day intelligence`} title="Product engagement" icon={TrendingUp} /><div className="admin-chart-summary"><strong>{number((analytics.series || []).reduce((sum, item) => sum + ["tasks", "chats", "events", "groceries", "meals"].reduce((inner, key) => inner + Number(item[key] || 0), 0), 0))}</strong><span>actions across FamOS</span></div><TrendChart series={analytics.series} /></Card><TopFamilies families={analytics.topFamilies} onOpen={setSelected} /></section>
-      <section className="admin-three-grid"><UsageBars overview={overview} /><Adoption analytics={analytics} households={overview.households} /><Card className="admin-panel admin-health"><PanelHead eyebrow="Account health" title="Signals that matter" icon={ShieldCheck} /><div><span><CheckCircle2 /> Task completion</span><strong>{analytics.taskCompletionRate || 0}%</strong></div><div><span><Activity /> Active families</span><strong>{activePercent}%</strong></div><div><span><Mail /> Pending invites</span><strong>{overview.pendingInvites || 0}</strong></div><div><span><CreditCard /> Failed payments</span><strong>{analytics.failedPayments || 0}</strong></div></Card></section>
+      <section className="admin-three-grid"><UsageBars overview={overview} /><Adoption analytics={analytics} households={overview.households} /><Card className="admin-panel admin-health"><PanelHead eyebrow="Account health" title="Signals that matter" icon={ShieldCheck} /><div><span><CheckCircle2 /> Task completion</span><strong>{analytics.taskCompletionRate || 0}%</strong></div><div><span><Activity /> Active families</span><strong>{activePercent}%</strong></div><div><span><Mail /> Pending invites</span><strong>{overview.pendingInvites || 0}</strong></div><div><span><CreditCard /> Failed payments</span><strong>{analytics.failedPayments || 0}</strong></div></Card><Card className="admin-panel admin-latest-feed"><PanelHead eyebrow="Inbox" title="Latest messages" icon={MessageCircle} action={<button className="admin-feed-all" onClick={() => setSection("support")}>View all</button>} />
+        {latestSupportMessages.length > 0 ? latestSupportMessages.slice(0, 4).map((message) => (
+          <article key={message.id} className="admin-feed-row" onClick={() => { setSupportSelected(message.id); setSupportRefreshKey((prev) => prev + 1); }}>
+            <span className={`admin-feed-cat-dot admin-cat-${message.category}`} />
+            <div className="admin-feed-body">
+              <strong>{message.subject}</strong>
+              <small>{message.sender_email || "Anonymous"} · {message.household_name || "No family"}</small>
+            </div>
+            <span className={`admin-support-status ss-${message.status}`}>{message.status}</span>
+          </article>
+        )) : <p className="admin-empty">No support messages yet.</p>}
+      </Card></section>
       <HouseholdTable households={households.slice(0, 8)} onOpen={setSelected} search={search} setSearch={setSearch} title="Recently created families" /></>}
       {section === "families" && <HouseholdTable households={households} onOpen={setSelected} search={search} setSearch={setSearch} />}
       {section === "users" && <UsersTable users={users} search={userSearch} setSearch={setUserSearch} onDelete={(user) => setDeleteTarget({ kind: "user", id: user.user_id, email: user.email })} />}
