@@ -235,6 +235,23 @@ export default function Today({ goTo }) {
   // focused, or actively sending a message. CSS owns the wiggle keyframe; we
   // just flip the `is-idle` class.
   const composerIdle = !broadcastReady && !broadcastFocused && !broadcasting;
+  const WEATHER_CACHE_KEY = "famos:weather-cache:v1";
+  const loadWeatherCache = () => {
+    try {
+      const raw = typeof window !== "undefined" && window.localStorage.getItem(WEATHER_CACHE_KEY);
+      if (!raw) return null;
+      const cached = JSON.parse(raw);
+      if (cached.latitude !== latitude || cached.longitude !== longitude) return null;
+      if (Date.now() - cached.cachedAt > 15 * 60 * 1000) return null;
+      return cached.data;
+    } catch { return null; }
+  };
+  const saveWeatherCache = (data) => {
+    try {
+      localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify({ latitude, longitude, data, cachedAt: Date.now() }));
+    } catch { /* storage full */ }
+  };
+
   const today = todayISO();
   const weekDays = Array.from({ length: 7 }, (_, index) => addDays(today, index));
   const weekEnd = weekDays[weekDays.length - 1];
@@ -362,6 +379,10 @@ export default function Today({ goTo }) {
   const longitude = storedLongitude === null || storedLongitude === undefined || storedLongitude === "" ? NaN : Number(storedLongitude);
   const hasWeatherLocation = Number.isFinite(latitude) && Number.isFinite(longitude);
 
+  // Load cached weather instantly on mount, then refresh in the background.
+  // Fire both the edge function and Open-Meteo in parallel — use whichever
+  // returns first and prefer the edge function for richer data (alerts, name).
+  const [weatherRefreshing, setWeatherRefreshing] = useState(false);
   useEffect(() => {
     if (!hasWeatherLocation) {
       setWeather(null);
@@ -370,8 +391,11 @@ export default function Today({ goTo }) {
     const controller = new AbortController();
     let cancelled = false;
 
-    // Keyless fallback (Open-Meteo) — used when the weatherapi edge function isn't
-    // deployed or fails. Normalised to the same shape as the edge function payload.
+    // Show cached weather immediately so the card never sits empty.
+    const cached = loadWeatherCache();
+    if (cached) setWeather(cached);
+
+    // Open-Meteo — fast public API used as baseline, no cold start.
     const fromOpenMeteo = async () => {
       const url = new URL("https://api.open-meteo.com/v1/forecast");
       url.search = new URLSearchParams({
@@ -401,26 +425,38 @@ export default function Today({ goTo }) {
       };
     };
 
+    setWeatherRefreshing(true);
     const run = async () => {
-      try {
-        if (supabase) {
+      // Fire both in parallel — Open-Meteo is fast (no cold start) and edge has richer data.
+      const results = await Promise.allSettled([
+        // Edge function (preferred for alerts + location name)
+        (async () => {
+          if (!supabase) throw new Error("Supabase not configured");
           const { data, error } = await supabase.functions.invoke("weather", { body: { latitude, longitude, days: 3 } });
-          if (!error && data && !data.error && data.current) {
-            if (!cancelled) { setWeather(data); setWeatherError(""); }
-            return;
-          }
-        }
-        const fallback = await fromOpenMeteo();
-        if (!cancelled) { setWeather(fallback); setWeatherError(""); }
-      } catch (error) {
-        if (cancelled || error?.name === "AbortError") return;
-        try {
-          const fallback = await fromOpenMeteo();
-          if (!cancelled) { setWeather(fallback); setWeatherError(""); }
-        } catch (fallbackError) {
-          if (!cancelled && fallbackError?.name !== "AbortError") setWeatherError(fallbackError.message || "Weather is unavailable.");
-        }
+          if (error || !data || data.error || !data.current) throw error || new Error("No weather data");
+          return { source: "edge", ...data };
+        })(),
+        // Open-Meteo (fast fallback)
+        fromOpenMeteo(),
+      ]);
+
+      if (cancelled) return;
+
+      // Prefer edge function result (richer data), otherwise use Open-Meteo.
+      let best = null;
+      if (results[0].status === "fulfilled" && results[0].value.current) best = results[0].value;
+      else if (results[1].status === "fulfilled" && results[1].value.current) best = results[1].value;
+
+      if (best) {
+        setWeather(best);
+        setWeatherError("");
+        saveWeatherCache(best);
+      } else if (!cached) {
+        // Both failed and no cache to fall back on.
+        const reason = results[0].reason || results[1].reason;
+        setWeatherError(reason?.message || "Weather is unavailable.");
       }
+      if (!cancelled) setWeatherRefreshing(false);
     };
     run();
     return () => { cancelled = true; controller.abort(); };
@@ -499,13 +535,15 @@ export default function Today({ goTo }) {
               ))}
             </div>
           )}
-          <div className="weather-now-main">
-            <span className={`weather-now-glyph ${weatherRisk ? "risk" : ""}`}>{weatherNow ? <WeatherGlyph kind={weatherNow.kind} isDay={weatherNow.isDay} size={24} /> : <Sun size={24} />}</span>
+          <div className={`weather-now-main ${!weatherNow ? "weather-skeleton" : ""} ${weatherRefreshing && weatherNow ? "weather-refreshing" : ""}`}>
+            <span className={`weather-now-glyph ${weatherRisk ? "risk" : ""}`}>
+              {weatherNow ? <WeatherGlyph kind={weatherNow.kind} isDay={weatherNow.isDay} size={24} /> : <div className="weather-skeleton-icon" />}
+            </span>
             <div>
-              <strong>{weatherNow ? `${roundTemp(weatherNow.tempC)}°` : "Local weather"}</strong>
-              <small>{weatherNow ? `${conditionLabel(weatherNow)} · ${weather?.location?.name || householdProfileExtra?.city || householdProfileExtra?.address || "Your area"}` : householdProfileExtra?.city || householdProfileExtra?.address || "Add your home address"}</small>
+              <strong>{weatherNow ? `${roundTemp(weatherNow.tempC)}°` : <span className="weather-skeleton-line weather-skeleton-line-temp" />}</strong>
+              <small>{weatherNow ? `${conditionLabel(weatherNow)} · ${weather?.location?.name || householdProfileExtra?.city || householdProfileExtra?.address || "Your area"}` : <span className="weather-skeleton-line weather-skeleton-line-loc" />}</small>
             </div>
-            {weatherNow && <p><Droplets size={13} /> {weatherNow.rainChance}% · Feels {roundTemp(weatherNow.feelsLikeC)}° · <Wind size={13} /> {Math.round(weatherNow.windKph)} km/h</p>}
+            {weatherNow && <p>{weatherRefreshing && <span className="weather-refresh-dot" />}<Droplets size={13} /> {weatherNow.rainChance}% · Feels {roundTemp(weatherNow.feelsLikeC)}° · <Wind size={13} /> {Math.round(weatherNow.windKph)} km/h</p>}
           </div>
           {weather?.daily?.length > 0 && (
             <div className="weather-daily" aria-label="3-day forecast">

@@ -2583,6 +2583,15 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .weather-now-glyph.risk{color:#c26a1b}
 .weather-now-main>p{display:inline-flex;align-items:center;gap:5px}
 .weather-now-main>p svg{opacity:.7}
+.weather-refresh-dot{display:inline-block;width:6px;height:6px;margin-right:2px;border-radius:50%;background:var(--color-accent);animation:weather-pulse 1.4s ease-in-out infinite}
+@keyframes weather-pulse{0%,100%{opacity:.3;transform:scale(.7)}50%{opacity:1;transform:scale(1.1)}}
+.weather-skeleton .weather-now-glyph .weather-skeleton-icon{width:24px;height:24px;border-radius:8px;background:color-mix(in srgb,var(--color-accent) 20%,var(--color-border));animation:weather-shimmer 1.5s ease-in-out infinite}
+.weather-skeleton-line{display:inline-block;height:12px;border-radius:6px;background:color-mix(in srgb,var(--color-accent) 18%,var(--color-border));animation:weather-shimmer 1.5s ease-in-out infinite}
+.weather-skeleton-line-temp{width:68px;margin-top:4px}
+.weather-skeleton-line-loc{width:140px;margin-top:8px}
+@keyframes weather-shimmer{0%,100%{opacity:.5}50%{opacity:1}}
+.weather-refreshing{transition:opacity .3s ease}
+.weather-refreshing .weather-now-glyph{animation:weather-shimmer 1.2s ease-in-out infinite}
 .weather-alerts{display:grid;gap:8px;margin-bottom:12px}
 .weather-alert{display:flex;align-items:flex-start;gap:9px;padding:10px 12px;border-radius:var(--radius-pill-sm);background:#fde7d6;color:#9a5b18;border:1px solid color-mix(in srgb,#c26a1b 26%,transparent)}
 .weather-alert span{display:grid;min-width:0}
