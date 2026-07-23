@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Baby, Bell, BellRing, BriefcaseBusiness, CalendarDays, Check, CheckSquare, ChefHat, ChevronLeft, Eye, EyeOff, HeartHandshake, House, ImagePlus, Leaf, LoaderCircle, LockKeyhole, Mail, MessageCircle, Palette, Plus, Salad, ShieldCheck, ShoppingCart, Sparkles, Trash2, UserRound, UsersRound, WalletCards, WheatOff } from "lucide-react";
+import { Baby, Bell, BellRing, BriefcaseBusiness, CalendarDays, Check, CheckSquare, ChefHat, ChevronLeft, Eye, EyeOff, HeartHandshake, House, ImagePlus, Leaf, LoaderCircle, LockKeyhole, Mail, MessageCircle, Palette, Phone, Plus, Salad, Send, ShieldCheck, ShoppingCart, Smartphone, Sparkles, Trash2, UserRound, UsersRound, WalletCards, WheatOff } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { Card, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
 import { supabase } from "../lib/supabase";
@@ -320,6 +320,8 @@ export function HouseholdOnboarding() {
     session,
     signInWithGoogle,
     googleProviderToken,
+    memberDeliveryChannel,
+    updateDeliveryChannel,
   } = useAuth();
   const [name, setName] = useState("Our family");
   const [inviteMembers, setInviteMembers] = useState([newInviteMember()]);
@@ -584,7 +586,16 @@ export function HouseholdOnboarding() {
             session={session}
           />
         ) : (
-          <InviteStep inviteMembers={inviteMembers} setInviteMembers={setInviteMembers} busy={busy} invitePartner={invitePartner} run={run} skipOnboardingInvites={skipOnboardingInvites} />
+          <InviteStep
+            inviteMembers={inviteMembers}
+            setInviteMembers={setInviteMembers}
+            busy={busy}
+            invitePartner={invitePartner}
+            run={run}
+            skipOnboardingInvites={skipOnboardingInvites}
+            memberDeliveryChannel={memberDeliveryChannel}
+            updateDeliveryChannel={updateDeliveryChannel}
+          />
         )}
         {error && <div className="onboarding-recovery"><p>{error}</p>{/already belong to a household/i.test(error) && <button disabled={busy} onClick={() => run(() => refreshAccount(session))}>Open my existing household</button>}</div>}
       </Card>
@@ -796,7 +807,8 @@ function OnboardingActions({ step, lastStep, busy, nextDisabled, nextLabel, onBa
   );
 }
 
-function InviteStep({ inviteMembers, setInviteMembers, busy, invitePartner, run, skipOnboardingInvites }) {
+function InviteStep({ inviteMembers, setInviteMembers, busy, invitePartner, run, skipOnboardingInvites, memberDeliveryChannel, updateDeliveryChannel }) {
+  const [deliveryChannel, setDeliveryChannel] = useState(memberDeliveryChannel || "both");
   const updateInvite = (index, field, value) => {
     setInviteMembers((members) => members.map((member, memberIndex) => memberIndex === index ? { ...member, [field]: value } : member));
   };
@@ -822,12 +834,24 @@ function InviteStep({ inviteMembers, setInviteMembers, busy, invitePartner, run,
     if (duplicateEmail) throw new Error(`${duplicateEmail.email} is listed more than once.`);
     const results = [];
     for (const member of invitations) {
-      results.push(await invitePartner(member.email, member.phone, member.name));
+      results.push(await invitePartner(member.email, member.phone, member.name, deliveryChannel));
     }
     const failed = results.find((result) => !result?.sent && !result?.pending);
     if (failed) throw new Error(failed.message || "The invitation was saved, but delivery could not be confirmed.");
+    // Persist the inviter's choice on their household_members row so future
+    // invitations from Settings → Family / quick-invite uses the same
+    // channel automatically — no need to re-pick next time.
+    if (updateDeliveryChannel && deliveryChannel && deliveryChannel !== memberDeliveryChannel) {
+      try { await updateDeliveryChannel(deliveryChannel); } catch { /* best-effort */ }
+    }
     skipOnboardingInvites();
   });
+
+  const channelHint = {
+    email: "Each invite goes out as a branded email. SMS numbers are skipped.",
+    sms: "Each invite goes out as one transactional SMS. Email addresses are skipped.",
+    both: "Each invite goes out by email AND a one-time SMS — the most reliable option.",
+  }[deliveryChannel] || "";
 
   return (
     <>
@@ -855,9 +879,47 @@ function InviteStep({ inviteMembers, setInviteMembers, busy, invitePartner, run,
       </div>
       <button type="button" className="onboarding-add-invite" onClick={() => setInviteMembers((members) => [...members, newInviteMember()])}><Plus size={16} /> Add another family member</button>
       <p className="onboarding-hint">Each person receives a secure email invitation and a one-time SMS invitation.</p>
+      <DeliveryPreferencePicker value={deliveryChannel} onChange={setDeliveryChannel} disabled={busy} />
+      <p className="onboarding-hint onboarding-hint-channel">{channelHint}</p>
       <PrimaryButton disabled={busy || !inviteMembers.some((member) => member.name.trim() || member.email.trim() || member.phone.trim())} onClick={sendInvites}>{busy ? "Sending invites…" : "Send invites & continue"}</PrimaryButton>
       <SecondaryButton type="button" className="mt-2 onboarding-skip-button" disabled={busy} onClick={skipOnboardingInvites}>Skip for now</SecondaryButton>
     </>
+  );
+}
+
+function DeliveryPreferencePicker({ value, onChange, disabled }) {
+  const options = [
+    { id: "email", label: "Email only", sublabel: "Branded invitations by inbox.", Icon: Mail },
+    { id: "sms", label: "SMS only", sublabel: "One transactional text per invite.", Icon: Smartphone },
+    { id: "both", label: "Email + SMS", sublabel: "Both channels for max reach.", Icon: Send },
+  ];
+  return (
+    <div className="onboarding-choice-group onboarding-channel-picker" role="radiogroup" aria-label="Delivery channel for invitations">
+      <span><Mail size={15} /> Delivery preferences</span>
+      <div>
+        {options.map(({ id, label, sublabel, Icon }) => {
+          const selected = value === id;
+          return (
+            <button
+              type="button"
+              key={id}
+              role="radio"
+              aria-checked={selected}
+              disabled={disabled}
+              className={selected ? "selected onboarding-channel-card" : "onboarding-channel-card"}
+              onClick={() => onChange(id)}
+            >
+              <span className="onboarding-channel-icon"><Icon size={16} /></span>
+              <span className="onboarding-channel-copy">
+                <strong>{label}</strong>
+                <small>{sublabel}</small>
+              </span>
+              {selected && <Check size={15} className="onboarding-channel-check" />}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

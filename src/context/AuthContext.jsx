@@ -142,6 +142,7 @@ export function AuthProvider({ children }) {
   const [householdProfile, setHouseholdProfile] = useState(null);
   const [householdProfileExtra, setHouseholdProfileExtra] = useState(null);
   const [memberProfile, setMemberProfile] = useState(null);
+  const [memberDeliveryChannel, setMemberDeliveryChannel] = useState("both");
   const [invitation, setInvitation] = useState(null);
   const [loading, setLoading] = useState(isSupabaseConfigured);
   // The full-screen loader should only show on the FIRST account load. Later
@@ -164,6 +165,7 @@ export function AuthProvider({ children }) {
       setHouseholdProfile(null);
       setHouseholdProfileExtra(null);
       setMemberProfile(null);
+      setMemberDeliveryChannel("both");
       setInvitation(null);
       setLoading(false);
       hasLoadedOnce.current = true;
@@ -183,7 +185,7 @@ export function AuthProvider({ children }) {
       }
       const [{ data: profileData, error: profileError }, { data: membershipData, error: membershipError }] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", nextSession.user.id).maybeSingle(),
-        supabase.from("household_members").select("household_id, role").eq("user_id", nextSession.user.id).order("joined_at", { ascending: true }).limit(1).maybeSingle(),
+        supabase.from("household_members").select("household_id, role, default_delivery_channel").eq("user_id", nextSession.user.id).order("joined_at", { ascending: true }).limit(1).maybeSingle(),
       ]);
       if (profileError && profileError.code !== "PGRST116") throw profileError;
       if (membershipError) throw membershipError;
@@ -201,6 +203,11 @@ export function AuthProvider({ children }) {
       };
       const accountProfile = profileData || fallbackProfile;
       let membership = membershipData;
+      // Track the inviter's chosen delivery-channel preference so future
+      // flows (Settings → Family, "Invite" CTA) use the same routing the
+      // onboarding step committed to. Defaults to "both" so a member who
+      // hasn't opened onboarding yet still gets the current behaviour.
+      setMemberDeliveryChannel(membership?.default_delivery_channel || "both");
 
       let householdData = null;
       let householdProfileData = null;
@@ -286,6 +293,7 @@ export function AuthProvider({ children }) {
       setHouseholdProfile(householdProfileData);
       setHouseholdProfileExtra(householdProfileExtraData);
       setMemberProfile(localMemberProfile);
+      setMemberDeliveryChannel(membership?.default_delivery_channel || "both");
 
       if (membership?.role === "owner") {
         const onboardingKey = onboardingProfileKey(membership.household_id, nextSession.user.id);
@@ -375,8 +383,7 @@ export function AuthProvider({ children }) {
         setInvitation(inviteData);
       } else {
         setInvitation(null);
-      }
-    } catch (e) {
+      }      } catch (e) {
       setError(e.message || "Could not load your account.");
       // If a transient Supabase error bailed us out before the early
       // setHousehold() at the top of the wizard block had a chance to run
@@ -385,6 +392,7 @@ export function AuthProvider({ children }) {
       // "What should we call home?" gate won't fire on the next refresh
       // just because the profile tables were temporarily unreadable.
       if (membershipData?.household_id && committedHousehold) setHousehold(committedHousehold);
+      if (membershipData?.default_delivery_channel) setMemberDeliveryChannel(membershipData.default_delivery_channel);
     } finally {
       setLoading(false);
       hasLoadedOnce.current = true;
@@ -861,8 +869,33 @@ export function AuthProvider({ children }) {
     await refreshAccount(session);
   };
 
-  const invitePartner = async (email, phone = "", name = "") => {
+  const updateDeliveryChannel = useCallback(async (channel) => {
+    const normalized = String(channel || "").toLowerCase().trim();
+    if (!["email", "sms", "both"].includes(normalized)) {
+      throw new Error("Pick Email, SMS, or Both as your delivery channel.");
+    }
+    if (!session?.user?.id) return normalized;
+    // Snapshot previous value at call-start so two rapid clicks each roll
+    // back to their own pre-call value, not both to a stale closure capture.
+    const previous = memberDeliveryChannel;
+    // Optimistic — flip local state immediately so the UI picker reflects
+    // the choice without waiting for the round-trip.
+    setMemberDeliveryChannel(normalized);
+    try {
+      const { error } = await supabase.rpc("set_own_delivery_channel", { channel: normalized });
+      if (error && error.code !== "PGRST202" && !/does not exist|schema cache/i.test(error.message || "")) {
+        throw error;
+      }
+    } catch (error) {
+      setMemberDeliveryChannel(previous);
+      throw error;
+    }
+    return normalized;
+  }, [session?.user?.id, memberDeliveryChannel]);
+
+  const invitePartner = async (email, phone = "", name = "", deliveryChannel = "") => {
     const normalizedEmail = email.trim().toLowerCase();
+    const resolvedChannel = String(deliveryChannel || memberDeliveryChannel || "both").toLowerCase();
     let inviteData = null;
     let inviteError = null;
     try {
@@ -870,6 +903,7 @@ export function AuthProvider({ children }) {
         email: normalizedEmail,
         phone: phone.trim(),
         name: name.trim(),
+        delivery_channel: resolvedChannel,
         householdId: household.id,
         redirectTo: `${window.location.origin}/signin?invite=1`,
       });
@@ -925,6 +959,7 @@ export function AuthProvider({ children }) {
         emailErrorKind: inviteData?.emailErrorKind || null,
         provider,
         sms,
+        deliveryChannel: inviteData?.deliveryChannel || resolvedChannel,
         message,
       };
     }
@@ -989,6 +1024,7 @@ export function AuthProvider({ children }) {
     return {
       sent: false,
       pending: true,
+      deliveryChannel: resolvedChannel,
       message: `Invite saved, but delivery failed: ${emailServiceMessage}`,
     };
   };
@@ -1059,6 +1095,8 @@ export function AuthProvider({ children }) {
     skipOnboardingInvites,
     markOnboardingComplete,
     refreshAccount,
+    memberDeliveryChannel,
+    updateDeliveryChannel,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

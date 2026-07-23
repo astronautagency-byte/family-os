@@ -173,7 +173,13 @@ Deno.serve(async (request) => {
     const { data: { user }, error: userError } = await admin.auth.getUser(accessToken);
     if (userError || !user) throw new Error("Your session has expired. Please sign in again.");
 
-    const { email, phone, name, householdId, redirectTo } = await request.json();
+    const { email, phone, name, delivery_channel, householdId, redirectTo } = await request.json();
+    const requestedChannel = String(delivery_channel || "").toLowerCase();
+    // Declared up-front so the catch handler can safely reference it even
+    // when an early branch (channel validation, "Only members" check, missing
+    // email/phone for the resolved channel, etc.) throws before the resolver
+    // below has run. Without this the catch would hit a TDZ ReferenceError.
+    let resolvedChannel: "email" | "sms" | "both" = "both";
     if (!email?.trim() || !householdId) throw new Error("Email and household are required.");
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedPhone = String(phone || "").replace(/[^\d+]/g, "");
@@ -183,11 +189,37 @@ Deno.serve(async (request) => {
 
     stage = "household authorization";
     const [{ data: membership }, { data: household }, { data: inviterProfile }] = await Promise.all([
-      admin.from("household_members").select("role").eq("household_id", householdId).eq("user_id", user.id).maybeSingle(),
+      admin.from("household_members").select("role, default_delivery_channel").eq("household_id", householdId).eq("user_id", user.id).maybeSingle(),
       admin.from("households").select("name").eq("id", householdId).maybeSingle(),
       admin.from("profiles").select("display_name").eq("id", user.id).maybeSingle(),
     ]);
     if (!membership) throw new Error("Only members of this home can send invitations.");
+
+    // Resolve which channels actually fire for this invite. Order of precedence:
+    //   1. The caller's explicit `delivery_channel` argument (onboarding picker value)
+    //   2. The inviter's stored default_delivery_channel on household_members
+    //   3. Fallback: "both" so a household without the column behaves as before
+    const storedChannel = String(membership.default_delivery_channel || "").toLowerCase();
+    if (requestedChannel === "email" || requestedChannel === "sms" || requestedChannel === "both") {
+      resolvedChannel = requestedChannel;
+    } else if (storedChannel === "email" || storedChannel === "sms" || storedChannel === "both") {
+      resolvedChannel = storedChannel;
+    } else {
+      resolvedChannel = "both";
+    }
+    // Apply channel-driven data requirements before persisting the invitation.
+    const wantsEmail = resolvedChannel !== "sms";
+    const wantsSms = resolvedChannel !== "email";
+    const sendEmail = wantsEmail && Boolean(normalizedEmail);
+    const sendSms = wantsSms && Boolean(normalizedPhone);
+    if (!sendEmail && !sendSms) {
+      const reason = !normalizedEmail && !normalizedPhone
+        ? "an email address and a mobile number"
+        : !normalizedEmail
+          ? (wantsEmail ? `an email address (channel: ${resolvedChannel})` : "an email address")
+          : `a mobile number with country code (channel: ${resolvedChannel})`;
+      throw new Error(`Add ${reason} to send the invitation.`);
+    }
 
     const expiresAt = new Date(Date.now() + 7 * 86400000).toISOString();
     const { data: activeInvite, error: activeInviteError } = await admin
@@ -233,7 +265,7 @@ Deno.serve(async (request) => {
       emailProvider: resendKey ? "resend" : "supabase_smtp",
       smsRequested: Boolean(normalizedPhone),
     }));
-    const sms = { requested: Boolean(normalizedPhone), sent: false, message: "" };
+    const sms = { requested: Boolean(normalizedPhone) && wantsSms, sent: false, message: "" };
     partialSms = sms;
 
     const sendSupabaseEmail = async () => {
@@ -311,10 +343,29 @@ Deno.serve(async (request) => {
       }
     }
 
+    // Persist the inviter's resolved channel on their household_members row so
+    // subsequent invitations reuse it automatically. Best-effort — a failure
+    // here MUST NOT block delivery.
+    stage = "remembering delivery channel";
+    if (storedChannel !== resolvedChannel) {
+      admin
+        .from("household_members")
+        .update({ default_delivery_channel: resolvedChannel })
+        .eq("household_id", householdId)
+        .eq("user_id", user.id)
+        .then(({ error }) => {
+          if (error) console.warn(JSON.stringify({
+            event: "family_invitation_channel_persist_failed",
+            requestId,
+            error: error.message,
+          }));
+        });
+    }
+
     // Email delivery — try Resend first, fall back to Supabase SMTP.
     // AWS SES has been removed in favour of Resend's simpler verified-domains
     // model that doesn't require production-access approval per recipient.
-    if (resendKey) {
+    if (resendKey && sendEmail) {
       stage = "creating the secure invitation link";
       const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
         type: existingAuthUser ? "magiclink" : "invite",
@@ -355,6 +406,22 @@ Deno.serve(async (request) => {
         provider: "resend",
         emailStatus: "delivered",
         emailErrorKind: null,
+        deliveryChannel: resolvedChannel,
+        sms,
+        requestId,
+      });
+    }
+    if (resendKey && !sendEmail && sendSms) {
+      // Email was skipped by channel choice — jump straight to SMS reporting.
+      console.log(JSON.stringify({ event: "family_invitation_email_skipped", requestId, channel: resolvedChannel }));
+      return json({
+        sent: sms.sent,
+        existingAccount: Boolean(existingAuthUser),
+        pending: true,
+        emailStatus: resolvedChannel === "sms" ? "channel_skipped" : "no_contact",
+        emailErrorKind: "channel_skipped",
+        provider: "channel_routing",
+        deliveryChannel: resolvedChannel,
         sms,
         requestId,
       });
@@ -362,6 +429,20 @@ Deno.serve(async (request) => {
 
     // No Resend — fall back to Supabase Auth's built-in SMTP.
     stage = "sending the Supabase invitation email";
+    if (!sendEmail) {
+      // Channel preference says don't send email — jump to the SMS branch result.
+      return json({
+        sent: sms.sent,
+        existingAccount: Boolean(existingAuthUser),
+        pending: true,
+        emailStatus: resolvedChannel === "sms" ? "channel_skipped" : "no_email_provider",
+        emailErrorKind: "channel_skipped",
+        provider: "channel_routing",
+        deliveryChannel: resolvedChannel,
+        sms,
+        requestId,
+      });
+    }
     try {
       await retryAfterRateLimit(sendSupabaseEmail);
       console.log(JSON.stringify({ event: "family_invitation_email", requestId, provider: "supabase_smtp", sent: true, emailStatus: "delivered" }));
@@ -372,6 +453,7 @@ Deno.serve(async (request) => {
         provider: "supabase",
         emailStatus: "delivered",
         emailErrorKind: null,
+        deliveryChannel: resolvedChannel,
         sms,
       });
     } catch (supabaseError) {
@@ -394,6 +476,7 @@ Deno.serve(async (request) => {
           emailStatus: rateLimited ? "rate_limited" : "no_email_provider",
           provider: "supabase",
           existingAccount: Boolean(existingAuthUser),
+          deliveryChannel: resolvedChannel,
           sms,
           requestId,
         });
@@ -414,6 +497,7 @@ Deno.serve(async (request) => {
         sent: false,
         pending: true,
         emailError: message,
+        deliveryChannel: resolvedChannel,
         sms: partialSms,
         requestId,
       });
