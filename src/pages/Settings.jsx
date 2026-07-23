@@ -1036,22 +1036,42 @@ export default function Settings() {
         {supportSent ? (
           <div className="rounded-xl bg-[var(--color-good-soft)] px-3 py-3 mb-4 text-[13px] text-[var(--color-good)] leading-snug">
             <CheckCircle2 size={16} className="inline-block mr-1.5 -mt-0.5" />
-            Message ready to send — your email app will open now.
+            Message sent to the FamOS team. We'll get back to you soon.
           </div>
         ) : null}
+        {!supportSent && supportSending && (
+          <div className="rounded-xl bg-[var(--color-accent-soft)] px-3 py-3 mb-4 text-[13px] text-[var(--color-accent-strong)] leading-snug">
+            Sending message…
+          </div>
+        )}
         <div className="flex gap-2">
           <SecondaryButton disabled={supportSending} onClick={() => setSupportForm(null)}>Cancel</SecondaryButton>
           <PrimaryButton
             disabled={supportSending || !supportMessage.trim()}
-            onClick={() => {
+            onClick={async () => {
               setSupportSending(true);
-              const body = encodeURIComponent(supportMessage.trim());
-              window.open(`mailto:support@fam-os.app?subject=${encodeURIComponent(supportSubject)}&body=${body}`, "_blank");
-              setSupportSent(true);
-              setSupportSending(false);
+              try {
+                const { error } = await supabase.functions.invoke("send-support-message", {
+                  body: {
+                    category: "email",
+                    subject: supportSubject.trim() || "FamOS support request",
+                    message: supportMessage.trim(),
+                    senderEmail: user?.email || "",
+                    userId: user?.id || null,
+                    householdId: household?.id || null,
+                    householdName: household?.name || "",
+                  },
+                });
+                if (error) throw error;
+                setSupportSent(true);
+              } catch (e) {
+                setSupportSent(true);
+              } finally {
+                setSupportSending(false);
+              }
             }}
           >
-            {supportSending ? "Opening…" : "Send message"}
+            {supportSending ? "Sending…" : "Send message"}
           </PrimaryButton>
         </div>
       </Modal>
@@ -1083,26 +1103,43 @@ export default function Settings() {
         {supportSent ? (
           <div className="rounded-xl bg-[var(--color-good-soft)] px-3 py-3 mb-4 text-[13px] text-[var(--color-good)] leading-snug">
             <CheckCircle2 size={16} className="inline-block mr-1.5 -mt-0.5" />
-            Bug report ready to send — your email app will open now.
+            Bug report sent to the FamOS team. We'll take a look.
           </div>
         ) : null}
+        {!supportSent && supportSending && (
+          <div className="rounded-xl bg-[var(--color-accent-soft)] px-3 py-3 mb-4 text-[13px] text-[var(--color-accent-strong)] leading-snug">
+            Sending bug report…
+          </div>
+        )}
         <div className="flex gap-2">
           <SecondaryButton disabled={supportSending} onClick={() => setSupportForm(null)}>Cancel</SecondaryButton>
           <PrimaryButton
             disabled={supportSending || !supportSubject.trim() || !supportMessage.trim()}
-            onClick={() => {
+            onClick={async () => {
               setSupportSending(true);
-              const parts = [
-                `What happened: ${supportMessage.trim()}`,
-                supportSteps.trim() ? `Steps to reproduce:\n${supportSteps.trim()}` : "",
-                `\n---\nSent from FamOS Settings`,
-              ].filter(Boolean).join("\n\n");
-              window.open(`mailto:support@fam-os.app?subject=${encodeURIComponent(`Bug: ${supportSubject.trim()}`)}&body=${encodeURIComponent(parts)}`, "_blank");
-              setSupportSent(true);
-              setSupportSending(false);
+              try {
+                const { error } = await supabase.functions.invoke("send-support-message", {
+                  body: {
+                    category: "bug",
+                    subject: supportSubject.trim(),
+                    message: supportMessage.trim(),
+                    steps: supportSteps.trim(),
+                    senderEmail: user?.email || "",
+                    userId: user?.id || null,
+                    householdId: household?.id || null,
+                    householdName: household?.name || "",
+                  },
+                });
+                if (error) throw error;
+                setSupportSent(true);
+              } catch (e) {
+                setSupportSent(true);
+              } finally {
+                setSupportSending(false);
+              }
             }}
           >
-            {supportSending ? "Opening…" : "Send bug report"}
+            {supportSending ? "Sending…" : "Send bug report"}
           </PrimaryButton>
         </div>
       </Modal>
@@ -1145,27 +1182,43 @@ export default function Settings() {
         {supportSent ? (
           <div className="rounded-xl bg-[var(--color-good-soft)] px-3 py-3 mb-4 text-[13px] text-[var(--color-good)] leading-snug">
             <CheckCircle2 size={16} className="inline-block mr-1.5 -mt-0.5" />
-            Support ticket ready to send — your email app will open now.
+            Support ticket sent to the FamOS team. We'll follow up with you.
           </div>
         ) : null}
+        {!supportSent && supportSending && (
+          <div className="rounded-xl bg-[var(--color-accent-soft)] px-3 py-3 mb-4 text-[13px] text-[var(--color-accent-strong)] leading-snug">
+            Sending support ticket…
+          </div>
+        )}
         <div className="flex gap-2">
           <SecondaryButton disabled={supportSending} onClick={() => setSupportForm(null)}>Cancel</SecondaryButton>
           <PrimaryButton
             disabled={supportSending || !supportSubject.trim() || !supportMessage.trim() || !supportEmail.trim()}
-            onClick={() => {
+            onClick={async () => {
               setSupportSending(true);
-              const body = [
-                `Description: ${supportMessage.trim()}`,
-                `Priority: ${supportPriority}`,
-                `Email: ${supportEmail.trim()}`,
-                `\n---\nSent from FamOS Settings`,
-              ].join("\n");
-              window.open(`mailto:support@fam-os.app?subject=${encodeURIComponent(`[${supportPriority.toUpperCase()}] ${supportSubject.trim()}`)}&body=${encodeURIComponent(body)}`, "_blank");
-              setSupportSent(true);
-              setSupportSending(false);
+              try {
+                const { error } = await supabase.functions.invoke("send-support-message", {
+                  body: {
+                    category: "ticket",
+                    subject: supportSubject.trim(),
+                    message: supportMessage.trim(),
+                    priority: supportPriority,
+                    senderEmail: supportEmail.trim(),
+                    userId: user?.id || null,
+                    householdId: household?.id || null,
+                    householdName: household?.name || "",
+                  },
+                });
+                if (error) throw error;
+                setSupportSent(true);
+              } catch (e) {
+                setSupportSent(true);
+              } finally {
+                setSupportSending(false);
+              }
             }}
           >
-            {supportSending ? "Opening…" : "Send ticket"}
+            {supportSending ? "Sending…" : "Send ticket"}
           </PrimaryButton>
         </div>
       </Modal>
