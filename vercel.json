@@ -1,4 +1,6 @@
 {
+  "buildCommand": "vite build",
+  "outputDirectory": "dist",
   "rewrites": [
     { "source": "/((?!assets/|icons/|marketing/|illustrations/|brand/|fonts/|manifest\\.webmanifest|registerSW\\.js|notification-sw\\.js|robots\\.txt|sitemap\\.xml|favicon\\.ico|sw\\.js|workbox-).*)", "destination": "/" }
   ]
