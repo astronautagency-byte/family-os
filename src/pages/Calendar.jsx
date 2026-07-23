@@ -493,9 +493,9 @@ export default function CalendarPage() {
     setCacheMeta(null);
     await runSearch(citiesForRequest);
   };
-  const runSearch = async (citiesForRequest) => {
+  const runSearch = async (citiesForRequest, { silent } = {}) => {
     if (!citiesForRequest.length) { setDiscoverError("Add your home address in Settings, or add a city below, to discover nearby events."); setResultDiagnostics(null); setCacheMeta(null); return; }
-    setDiscoverBusy(true); setDiscoverError("");
+    if (!silent) setDiscoverBusy(true); setDiscoverError("");
     const country = String(householdProfileExtra?.country || "ca").toLowerCase().slice(0, 2);
     try {
       const result = await invokeEdgeFunction("search-local-events", { location: citiesForRequest[0], cities: citiesForRequest, category: CATEGORY_FOR_DISCOVERY, when: discoverWhen, country, mutedNearbyCities: Array.from(excludedNearbyCities) });
@@ -518,7 +518,7 @@ export default function CalendarPage() {
         setDiscoverError(deriveDiscoverError(result, citiesForRequest, discoverWhen));
       }
     } catch (error) { setDiscoveredEvents([]); setDiscoverError(error.message || "Could not load local events."); setResultDiagnostics(null); }
-    finally { setDiscoverBusy(false); }
+    finally { if (!silent) setDiscoverBusy(false); }
   };
 
   const searchLocalEvents = async () => { const cities = discoverCities.length ? discoverCities : (discoverLocation ? [discoverLocation] : []); await runSearch(cities); };
@@ -700,24 +700,21 @@ export default function CalendarPage() {
             <button className="calendar-hero-action calendar-hero-action-settings" onClick={() => {
               setDiscovering(true);
               const initialCities = discoverCities.length ? discoverCities : (discoverLocation ? [discoverLocation] : []);
-              // User might already have multi-city state preserved from a previous open;
-              // setDiscoverCities fires next tick. Compute key + check cache using the
-              // value we're about to apply so the cache lookup matches the eventual state.
               setDiscoverCities(initialCities);
               const countryKey = String(householdProfileExtra?.country || "ca").toLowerCase().slice(0, 2);
               const key = eventCacheKey({ category: CATEGORY_FOR_DISCOVERY, when: discoverWhen, country: countryKey, cities: initialCities, mutedNearbyCities: Array.from(excludedNearbyCities) });
               const entry = readEventCache(key);
               if (entry) {
+                // Hydrate from cache so the modal shows results immediately.
                 setCacheMeta(entry);
                 setDiscoveredEvents(Array.isArray(entry.payload?.events) ? entry.payload.events : []);
                 setResultDiagnostics(entry.payload?.diagnostics || null);
-                // The fresh runSearch path runs through the same helper, so
-                // cache replay + a fresh call produce identical wording.
-                // Returning "" here is correct for partial_upstream_error +
-                // populated-list results (the partial-warning strip is
-                // rendered below the list independently of discoverError).
                 setDiscoverError(deriveDiscoverError(entry.payload, initialCities, discoverWhen));
-              } else if (!discoveredEvents.length) {
+                // Background refresh: fetch silently so cached data stays visible.
+                // eslint-disable-next-line react-hooks/exhaustive-deps
+                window.setTimeout(() => runSearch(initialCities, { silent: true }), 0);
+              } else {
+                // No cache — fire a visible search with loading spinner.
                 window.setTimeout(() => runSearch(initialCities), 0);
               }
             }} aria-label="Discover local events">
