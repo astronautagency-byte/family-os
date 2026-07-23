@@ -1167,7 +1167,8 @@ export function FamilyProvider({ children, tabletMode = false }) {
     [tabletMode, tasks],
   );
   const visibleMessages = useMemo(
-    () => tabletMode ? messages.filter((message) => !message.recipientId) : messages,
+    () => (tabletMode ? messages.filter((message) => !message.recipientId) : messages)
+      .filter((message) => !message.broadcast),
     [tabletMode, messages],
   );
 

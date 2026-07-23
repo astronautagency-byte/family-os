@@ -82,13 +82,17 @@ function BroadcastBanner({ item, sender, reactions, currentUserId, onReact, onCl
     if (!ref.current) return undefined;
     const media = gsap.matchMedia();
     media.add("(prefers-reduced-motion: no-preference)", () => {
-      gsap.fromTo(ref.current, { autoAlpha: 0, y: -16, scale: 0.94 }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.55, ease: "back.out(1.7)" });
+      gsap.fromTo(ref.current, { autoAlpha: 0, y: -20, scale: 0.92 }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.6, ease: "back.out(1.7)" });
+      // Stagger reaction buttons in after the banner lands
+      const buttons = ref.current.querySelectorAll(".broadcast-reaction");
+      gsap.fromTo(buttons, { autoAlpha: 0, scale: 0.6 }, { autoAlpha: 1, scale: 1, duration: 0.35, stagger: 0.08, ease: "back.out(2)", delay: 0.3 });
     });
     return () => media.revert();
   }, { scope: ref });
 
   return (
     <div className="broadcast-banner" ref={ref}>
+      <div className="broadcast-banner-accent" />
       {sender ? <Avatar member={sender} size="md" /> : <span className="broadcast-banner-icon"><Megaphone size={18} /></span>}
       <div className="broadcast-banner-body">
         <div className="broadcast-banner-meta">

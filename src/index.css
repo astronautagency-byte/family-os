@@ -3111,7 +3111,8 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 @media (prefers-reduced-motion: reduce){.broadcast-compose-icon.is-idle svg,.broadcast-compose{animation:none!important}.broadcast-compose:focus-within{transform:none}.broadcast-compose-icon,.broadcast-submit{transition:none}}
 /* ── Broadcast banners (home screen) — clean notification card ── */
 .broadcast-banner-list{display:grid;gap:10px}
-.broadcast-banner{position:relative;display:flex;align-items:flex-start;gap:12px;padding:15px 44px 15px 15px;border-radius:var(--radius-control);border:1px solid color-mix(in srgb,var(--color-accent) 20%,var(--color-border));background:color-mix(in srgb,var(--color-accent) 6%,var(--color-surface));box-shadow:0 1px 2px rgba(16,24,40,.04)}
+.broadcast-banner{position:relative;display:flex;align-items:flex-start;gap:12px;padding:16px 44px 16px 16px;border-radius:var(--radius-control);border:1px solid color-mix(in srgb,var(--color-accent) 20%,var(--color-border));background:color-mix(in srgb,var(--color-accent) 6%,var(--color-surface));box-shadow:0 1px 2px rgba(16,24,40,.04),0 6px 18px color-mix(in srgb,var(--color-accent) 8%,transparent);overflow:hidden}
+.broadcast-banner-accent{position:absolute;inset:0;width:4px;background:linear-gradient(180deg,var(--color-accent),color-mix(in srgb,var(--color-fam-rose) 60%,var(--color-accent)));border-radius:4px 0 0 4px;pointer-events:none}
 .broadcast-banner-icon{flex:0 0 auto;width:38px;height:38px;display:grid;place-items:center;border-radius:var(--radius-sm);background:var(--color-accent-soft);color:var(--color-accent)}
 .broadcast-banner-body{min-width:0;flex:1}
 .broadcast-banner-meta{display:flex;flex-wrap:wrap;align-items:baseline;gap:7px}
@@ -3122,12 +3123,13 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .broadcast-banner-clear:hover{background:var(--color-surface-sunken);color:var(--color-ink)}
 
 /* Reactions — tap an emoji back on a broadcast */
-.broadcast-reactions{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
-.broadcast-reaction{display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:var(--radius-pill);border:1px solid var(--color-border);background:var(--color-surface);font-size:13px;line-height:1;transition:transform .12s ease}
-.broadcast-reaction em{font-style:normal;font-size:11px;font-weight:700;color:var(--color-ink-soft)}
-.broadcast-reaction.empty{opacity:.5}
-.broadcast-reaction:active{transform:scale(.9)}
-.broadcast-reaction.reacted{border-color:var(--color-accent);background:var(--color-accent-soft)}
+.broadcast-reactions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.broadcast-reaction{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius-pill);border:1px solid color-mix(in srgb,var(--color-accent) 18%,var(--color-border));background:var(--color-surface);font-size:16px;line-height:1;cursor:pointer;transition:transform .15s cubic-bezier(.34,1.56,.64,1),border-color .2s ease,background .2s ease,box-shadow .2s ease}
+.broadcast-reaction:hover{transform:scale(1.12);border-color:color-mix(in srgb,var(--color-accent) 40%,var(--color-border));box-shadow:0 3px 10px color-mix(in srgb,var(--color-accent) 14%,transparent)}
+.broadcast-reaction em{font-style:normal;font-size:12px;font-weight:700;color:var(--color-ink-soft);padding-left:1px}
+.broadcast-reaction.empty{opacity:.55;filter:grayscale(.4)}
+.broadcast-reaction:active{transform:scale(.88)}
+.broadcast-reaction.reacted{border-color:var(--color-accent);background:var(--color-accent-soft);box-shadow:0 2px 8px color-mix(in srgb,var(--color-accent) 18%,transparent)}
 .broadcast-reaction.reacted em{color:var(--color-accent-strong)}
 
 .settings-household-note{color:var(--color-ink-soft);font-size:13px;line-height:1.5;margin-bottom:6px}
