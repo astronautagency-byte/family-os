@@ -124,6 +124,7 @@ Deno.serve(async (request) => {
 
     // Send via Resend (free tier, 100/day).
     let emailSent = false;
+    let autoReplySent = false;
     if (resendKey) {
       try {
         const emailResponse = await fetch("https://api.resend.com/emails", {
@@ -153,6 +154,58 @@ Deno.serve(async (request) => {
           resendId: emailResult.id,
           dbId: loggedId,
         }));
+
+        // Auto-reply: send a brief confirmation to the sender when they provided an email.
+        if (senderEmail) {
+          try {
+            const autoReplyBody = `Hi there,\n\nThanks for reaching out to FamOS support.\n\nWe've received your ${category === "bug" ? "bug report" : category === "ticket" ? "support ticket" : "message"}${loggedId ? ` (#${loggedId})` : ""}.\n\nOur team will review it and get back to you as soon as possible.\n\n— The FamOS team`;
+            const autoReplySubject = category === "bug"
+              ? `Re: [Bug Report] ${subject.trim()}`
+              : category === "ticket"
+                ? `Re: [${priority.toUpperCase()}] ${subject.trim()}`
+                : `Re: [FamOS] ${subject.trim()}`;
+            const autoReplyResponse = await fetch("https://api.resend.com/emails", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${resendKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                from: fromEmail,
+                to: [senderEmail],
+                subject: autoReplySubject,
+                text: autoReplyBody,
+                tags: [
+                  { name: "category", value: category },
+                  { name: "source", value: "famos-auto-reply" },
+                  { name: "ticketId", value: String(loggedId || "") },
+                ],
+              }),
+            });
+            const autoReplyResult = await autoReplyResponse.json();
+            if (autoReplyResponse.ok) {
+              autoReplySent = true;
+              console.log(JSON.stringify({
+                event: "support_auto_reply_sent",
+                to: senderEmail,
+                resendId: autoReplyResult.id,
+                dbId: loggedId,
+              }));
+            } else {
+              console.warn(JSON.stringify({
+                event: "support_auto_reply_failed",
+                to: senderEmail,
+                message: autoReplyResult?.message || "Auto-reply Resend failed",
+              }));
+            }
+          } catch (autoReplyError) {
+            console.warn(JSON.stringify({
+              event: "support_auto_reply_exception",
+              to: senderEmail,
+              message: errorMessage(autoReplyError),
+            }));
+          }
+        }
       } catch (resendError) {
         console.warn(JSON.stringify({
           event: "support_email_resend_failed",
