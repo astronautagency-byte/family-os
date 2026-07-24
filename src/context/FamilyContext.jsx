@@ -80,6 +80,22 @@ function makeId(prefix) {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
+// Capitalise every word in a shopping list name so entries read consistently
+// ("sourdough bread" → "Sourdough Bread"). Preserves common brand-style
+// casing (e.g. "McCormick" stays as-is). Applied centrally in addGrocery so
+// every call site — manual add, staple add, ingredient cross-reference,
+// barcode scan — inherits the rule without code duplication.
+const titleCaseGrocery = (name) => {
+  const raw = String(name || "").trim();
+  if (!raw) return raw;
+  return raw.replace(/\b(\w)(\w*)\b/g, (_, first, rest) => {
+    // Skip words that look like brands with internal caps (McCormick, O'Brien)
+    // — they already have intentional casing.
+    if (/[A-Z]/.test(rest)) return first + rest;
+    return first.toUpperCase() + rest.toLowerCase();
+  });
+};
+
 // Emoji reactions a family member can tap on a broadcast.
 export const BROADCAST_REACTIONS = ["❤️", "👍", "😄", "🎉"];
 
@@ -327,6 +343,28 @@ export function FamilyProvider({ children, tabletMode = false }) {
   };
 
   useEffect(() => { loadRemoteData(); }, [remote, household?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Realtime channel is the primary data path — it delivers every INSERT,
+  // UPDATE, and DELETE as they happen. The visibility-change handler only
+  // does a full re-fetch when the channel was disconnected while the tab was
+  // hidden (browsers throttle background WebSocket frames), so returning to
+  // a healthy channel costs zero network requests. The hasFocus gate prevents
+  // spurious reloads on internal tab switches.
+  useEffect(() => {
+    if (!remote) return undefined;
+    const refreshOnReturn = () => {
+      if (document.visibilityState !== "visible") return;
+      if (typeof document.hasFocus === "function" && !document.hasFocus()) return;
+      // Only do a full reload if the realtime channel was disconnected.
+      if (!channelHealthyRef.current) loadRemoteData();
+    };
+    document.addEventListener("visibilitychange", refreshOnReturn);
+    window.addEventListener("focus", refreshOnReturn);
+    return () => {
+      document.removeEventListener("visibilitychange", refreshOnReturn);
+      window.removeEventListener("focus", refreshOnReturn);
+    };
+  }, [remote, household?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   // Apply a single postgres_changes payload to the matching state setter,
   // avoiding a full loadRemoteData() re-fetch on every incremental change.
   const applyChange = useCallback((table, payload) => {
@@ -351,9 +389,13 @@ export function FamilyProvider({ children, tabletMode = false }) {
     }
   }, []); // map*/set* identities are stable across renders
 
-  useEffect(() => {
-    if (!remote) return undefined;
-    const channel = supabase.channel(`household:${household.id}`)
+  // Tracks realtime channel health so the visibility-change handler can
+  // skip a full reload when the channel has been delivering events normally.
+  const channelHealthyRef = useRef(true);
+  // Stable channel-setup helper that can be re-invoked on reconnect.
+  const setupChannel = useCallback(() => {
+    if (!supabase) return null;
+    const ch = supabase.channel(`household:${household.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks", filter: `household_id=eq.${household.id}` }, (payload) => { notifyFromChange("tasks", payload); applyChange("tasks", payload); })
       .on("postgres_changes", { event: "*", schema: "public", table: "grocery_items", filter: `household_id=eq.${household.id}` }, (payload) => { notifyFromChange("grocery_items", payload); applyChange("grocery_items", payload); })
       .on("postgres_changes", { event: "*", schema: "public", table: "events", filter: `household_id=eq.${household.id}` }, (payload) => { if (payload.eventType === "INSERT") notifyFromChange("events", payload); applyChange("events", payload); })
@@ -361,17 +403,35 @@ export function FamilyProvider({ children, tabletMode = false }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "messages", filter: `household_id=eq.${household.id}` }, (payload) => { if (payload.eventType === "INSERT") notifyFromChange("messages", payload); applyChange("messages", payload); })
       .on("postgres_changes", { event: "*", schema: "public", table: "message_reactions", filter: `household_id=eq.${household.id}` }, (payload) => applyChange("message_reactions", payload))
       .on("postgres_changes", { event: "*", schema: "public", table: "expenses", filter: `household_id=eq.${household.id}` }, (payload) => applyChange("expenses", payload))
-      // household_members and finance_settings use the full reload since they
-      // involve joins / side tables that are hard to reconstruct from a single
-      // postgres_changes row, and they change infrequently.
       .on("postgres_changes", { event: "*", schema: "public", table: "household_members", filter: `household_id=eq.${household.id}` }, loadRemoteData)
       .on("postgres_changes", { event: "*", schema: "public", table: "household_finance_settings", filter: `household_id=eq.${household.id}` }, loadRemoteData)
-      .subscribe();
+      .subscribe((status, error) => {
+        if (status === "SUBSCRIBED") { channelHealthyRef.current = true; }
+        else if (status === "CHANNEL_ERROR") { console.warn("[realtime] channel error", error); channelHealthyRef.current = false; }
+        else if (status === "TIMED_OUT") { console.warn("[realtime] subscription timed out"); channelHealthyRef.current = false; }
+        else if (status === "CLOSED") {
+          console.warn("[realtime] channel closed — reconnecting in 2s");
+          channelHealthyRef.current = false;
+          // Auto-reconnect after a short delay.
+          setTimeout(() => {
+            if (channelRef.current) supabase.removeChannel(channelRef.current);
+            channelRef.current = setupChannel();
+          }, 2000);
+        }
+      });
+    return ch;
+  }, []); // Dependencies are captured via refs — don't re-create the channel on every render.
+  const channelRef = useRef(null);
 
+  useEffect(() => {
+    if (!remote) return undefined;
+    channelRef.current = setupChannel();
     return () => {
-      supabase.removeChannel(channel);
+      if (channelRef.current) supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+      channelHealthyRef.current = false;
     };
-  }, [remote, household?.id]); // eslint-disable-line react-hooks/exhaustive-deps // eslint-disable-line react-hooks/exhaustive-deps
+  }, [remote, household?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const runRemote = async (query) => { const { error } = await query; if (error) { setDataError(error.message); throw error; } };
 
@@ -439,8 +499,20 @@ export function FamilyProvider({ children, tabletMode = false }) {
   };
 
   // ---- Tasks ----
-  const toggleTask = async (id) => { const task = tasks.find((item) => item.id === id); if (remote) await runRemote(supabase.from("tasks").update({ is_done: !task.done }).eq("id", id)); setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t))); };
+  const toggleTask = async (id) => {
+    const task = tasks.find((item) => item.id === id);
+    if (!task) return;
+    // Optimistic: flip local state immediately.
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
+    if (remote) {
+      try { const { error } = await supabase.from("tasks").update({ is_done: !task.done }).eq("id", id); if (error) throw error; }
+      catch { /* realtime will re-sync when healthy */ }
+    }
+  };
   const addTask = async (task) => {
+    const tempId = makeId("task");
+    // Optimistic: show the task instantly in all views.
+    setTasks((prev) => [...prev, { id: tempId, done: false, taskType: "home", ...task }]);
     if (remote) {
       const row = { household_id: household.id, title: task.title, assignee_id: task.assigneeId || null, due_date: task.due || null, recurrence: task.recurring || "", task_type: task.taskType || "home", created_by: user.id };
       let result = await supabase.from("tasks").insert(row).select().single();
@@ -448,10 +520,16 @@ export function FamilyProvider({ children, tabletMode = false }) {
         const { task_type: _taskType, ...compatibleRow } = row;
         result = await supabase.from("tasks").insert(compatibleRow).select().single();
       }
-      if (result.error) throw result.error;
-      setTasks((prev) => [...prev, mapTask(result.data)]);
+      if (result.error) {
+        // Rollback: remove the optimistic item and surface the error.
+        setTasks((prev) => prev.filter((item) => item.id !== tempId));
+        setDataError(result.error.message);
+        throw result.error;
+      }
+      // Replace optimistic item with server-confirmed data.
+      setTasks((prev) => prev.map((item) => item.id === tempId ? mapTask(result.data) : item));
       sendHouseholdPush({ title: "New task assigned", body: task.title, tag: `task-${result.data.id}`, url: "/#tasks" }, task.assigneeId ? [task.assigneeId] : []);
-    } else setTasks((prev) => [...prev, { id: makeId("task"), done: false, taskType: "home", ...task }]);
+    }
   };
   const updateTask = async (id, patch) => {
     const dbPatch = {};
@@ -465,16 +543,44 @@ export function FamilyProvider({ children, tabletMode = false }) {
     if (remote && patch.assigneeId) sendHouseholdPush({ title: "Task assigned to you", body: patch.title || tasks.find((task) => task.id === id)?.title || "A household task", tag: `task-${id}`, url: "/#tasks" }, [patch.assigneeId]);
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
   };
-  const removeTask = async (id) => { if (remote) await runRemote(supabase.from("tasks").delete().eq("id", id)); setTasks((prev) => prev.filter((t) => t.id !== id)); };
-  const clearTasks = async () => { if (remote) await runRemote(supabase.from("tasks").delete().eq("household_id", household.id)); setTasks([]); };
+  const removeTask = async (id) => {
+    // Optimistic: remove from local state immediately.
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+    if (remote) {
+      try { const { error } = await supabase.from("tasks").delete().eq("id", id); if (error) throw error; }
+      catch { /* realtime will re-sync */ }
+    }
+  };
+  const clearTasks = async () => {
+    const snapshot = tasks;
+    // Optimistic: clear instantly.
+    setTasks([]);
+    if (remote) {
+      const { error } = await supabase.from("tasks").delete().eq("household_id", household.id);
+      if (error) { setTasks(snapshot); setDataError(error.message); throw error; }
+    }
+  };
 
   // ---- Groceries ----
-  const toggleGrocery = async (id) => { const item = groceries.find((g) => g.id === id); if (remote) await runRemote(supabase.from("grocery_items").update({ is_checked: !item.checked }).eq("id", id)); setGroceries((prev) => prev.map((g) => (g.id === id ? { ...g, checked: !g.checked } : g))); };
+  const toggleGrocery = async (id) => {
+    // Optimistic: flip local state immediately.
+    setGroceries((prev) => prev.map((g) => (g.id === id ? { ...g, checked: !g.checked } : g)));
+    if (remote) {
+      const item = groceries.find((g) => g.id === id);
+      if (!item) return;
+      try { const { error } = await supabase.from("grocery_items").update({ is_checked: !item.checked }).eq("id", id); if (error) throw error; }
+      catch { /* realtime will re-sync */ }
+    }
+  };
   const addGrocery = async (item) => {
+    const capitalized = titleCaseGrocery(item.name);
+    const tempId = makeId("gro");
+    // Optimistic: show the item instantly.
+    setGroceries((prev) => [...prev, { id: tempId, checked: false, quantity: 1, unit: "", ...item, name: capitalized }]);
     if (remote) {
       const row = {
         household_id: household.id,
-        name: item.name,
+        name: capitalized,
         category: item.category,
         quantity: item.quantity || 1,
         unit: item.unit || "",
@@ -485,54 +591,161 @@ export function FamilyProvider({ children, tabletMode = false }) {
         image_url: item.imageUrl || "",
       };
       const { data, error } = await supabase.from("grocery_items").insert(row).select().single();
-      if (error) throw error;
-      setGroceries((prev) => [...prev, mapGrocery(data)]);
+      if (error) {
+        // Rollback: remove optimistic item.
+        setGroceries((prev) => prev.filter((item) => item.id !== tempId));
+        setDataError(error.message);
+        throw error;
+      }
+      // Replace optimistic item with server-confirmed data.
+      setGroceries((prev) => prev.map((item) => item.id === tempId ? mapGrocery(data) : item));
       sendHouseholdPush({ title: "Grocery added", body: item.name, tag: `grocery-${data.id}`, url: "/#groceries" });
-    } else {
-      setGroceries((prev) => [...prev, { id: makeId("gro"), checked: false, quantity: 1, unit: "", ...item }]);
     }
   };
   const updateGrocery = async (id, patch) => {
-    if (remote) await runRemote(supabase.from("grocery_items").update({ name: patch.name, category: patch.category, quantity: patch.quantity, unit: patch.unit, is_checked: patch.checked }).eq("id", id));
+    if (patch.name) patch = { ...patch, name: titleCaseGrocery(patch.name) };
+    // Optimistic: update local state immediately.
     setGroceries((prev) => prev.map((g) => (g.id === id ? { ...g, ...patch } : g)));
+    if (remote) {
+      try { const { error } = await supabase.from("grocery_items").update({ name: patch.name, category: patch.category, quantity: patch.quantity, unit: patch.unit, is_checked: patch.checked }).eq("id", id); if (error) throw error; }
+      catch { /* realtime will re-sync */ }
+    }
   };
-  const removeGrocery = async (id) => { if (remote) await runRemote(supabase.from("grocery_items").delete().eq("id", id)); setGroceries((prev) => prev.filter((g) => g.id !== id)); };
-  const clearCheckedGroceries = async () => { if (remote) await runRemote(supabase.from("grocery_items").delete().eq("household_id", household.id).eq("is_checked", true)); setGroceries((prev) => prev.filter((g) => !g.checked)); };
-  const clearGroceries = async () => { if (remote) await runRemote(supabase.from("grocery_items").delete().eq("household_id", household.id)); setGroceries([]); };
+  const removeGrocery = async (id) => {
+    // Optimistic: remove from local state immediately.
+    setGroceries((prev) => prev.filter((g) => g.id !== id));
+    if (remote) {
+      try { const { error } = await supabase.from("grocery_items").delete().eq("id", id); if (error) throw error; }
+      catch { /* realtime will re-sync */ }
+    }
+  };
+  const clearCheckedGroceries = async () => {
+    const snapshot = groceries;
+    // Optimistic: remove checked items instantly.
+    setGroceries((prev) => prev.filter((g) => !g.checked));
+    if (remote) {
+      const { error } = await supabase.from("grocery_items").delete().eq("household_id", household.id).eq("is_checked", true);
+      if (error) { setGroceries(snapshot); setDataError(error.message); throw error; }
+    }
+  };
+  const clearGroceries = async () => {
+    const snapshot = groceries;
+    // Optimistic: clear instantly.
+    setGroceries([]);
+    if (remote) {
+      const { error } = await supabase.from("grocery_items").delete().eq("household_id", household.id);
+      if (error) { setGroceries(snapshot); setDataError(error.message); throw error; }
+    }
+  };
 
   // ---- Meals ----
   const setMealForSlot = async (date, slot, patch) => {
-    if (remote) { const { data, error } = await supabase.from("meals").upsert({ household_id: household.id, meal_date: date, slot, title: patch.title || "", notes: patch.notes || "", cook_ids: patch.cookIds || [], created_by: user.id }, { onConflict: "household_id,meal_date,slot" }).select().single(); if (error) throw error; setMeals((prev) => [...prev.filter((m) => !(m.date === date && m.slot === slot)), mapMeal(data)]); sendHouseholdPush({ title: patch.cookIds?.length ? "Meal assigned" : "Meal plan updated", body: `${patch.title || "Meal"} · ${date} ${slot}`, tag: `meal-${data.id}`, url: "/#meals" }, patch.cookIds || []); return; }
+    const tempId = makeId("meal");
+    // Optimistic: show the meal instantly.
     setMeals((prev) => {
       const existing = prev.find((m) => m.date === date && m.slot === slot);
-      if (existing) {
-        return prev.map((m) => (m.id === existing.id ? { ...m, ...patch } : m));
-      }
-      return [...prev, { id: makeId("meal"), date, slot, title: "", notes: "", cookIds: [], ...patch }];
+      if (existing) return prev.map((m) => (m.id === existing.id ? { ...m, ...patch, date, slot } : m));
+      return [...prev, { id: tempId, date, slot, title: "", notes: "", cookIds: [], ...patch }];
     });
+    if (remote) {
+      try {
+        const { data, error } = await supabase.from("meals").upsert({ household_id: household.id, meal_date: date, slot, title: patch.title || "", notes: patch.notes || "", cook_ids: patch.cookIds || [], created_by: user.id }, { onConflict: "household_id,meal_date,slot" }).select().single();
+        if (error) throw error;
+        setMeals((prev) => prev.map((m) => (m.date === date && m.slot === slot) ? mapMeal(data) : m));
+        sendHouseholdPush({ title: patch.cookIds?.length ? "Meal assigned" : "Meal plan updated", body: `${patch.title || "Meal"} · ${date} ${slot}`, tag: `meal-${data.id}`, url: "/#meals" }, patch.cookIds || []);
+      } catch (error) {
+        setMeals((prev) => prev.filter((m) => m.id !== tempId));
+        setDataError(error.message);
+        throw error;
+      }
+    }
   };
-  const removeMeal = async (id) => { if (remote) await runRemote(supabase.from("meals").delete().eq("id", id)); setMeals((prev) => prev.filter((m) => m.id !== id)); };
-  const clearMeals = async () => { if (remote) await runRemote(supabase.from("meals").delete().eq("household_id", household.id)); setMeals([]); };
+  const removeMeal = async (id) => {
+    // Optimistic: remove from local state immediately.
+    setMeals((prev) => prev.filter((m) => m.id !== id));
+    if (remote) {
+      try { const { error } = await supabase.from("meals").delete().eq("id", id); if (error) throw error; }
+      catch { /* realtime will re-sync */ }
+    }
+  };
+  const clearMeals = async () => {
+    const snapshot = meals;
+    // Optimistic: clear instantly.
+    setMeals([]);
+    if (remote) {
+      const { error } = await supabase.from("meals").delete().eq("household_id", household.id);
+      if (error) { setMeals(snapshot); setDataError(error.message); throw error; }
+    }
+  };
 
   // ---- Events ----
-  const addEvent = async (event) => { if (remote) { const { data, error } = await supabase.from("events").insert({ household_id: household.id, title: event.title, starts_at: event.start, ends_at: event.end, location: event.location || "", created_by: user.id }).select().single(); if (error) throw error; if (event.memberIds?.length) await runRemote(supabase.from("event_participants").insert(event.memberIds.map((userId) => ({ event_id: data.id, user_id: userId })))); setEvents((prev) => [...prev, { ...mapEvent(data), memberIds: event.memberIds || [] }]); sendHouseholdPush({ title: "Family calendar updated", body: event.title, tag: `event-${data.id}`, url: "/#calendar" }, event.memberIds || []); } else setEvents((prev) => [...prev, { id: makeId("evt"), source: "local", ...event }]); };
-  const updateEvent = async (id, patch) => { if (remote) await runRemote(supabase.from("events").update({ title: patch.title, starts_at: patch.start, ends_at: patch.end, location: patch.location }).eq("id", id)); setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e))); };
-  const removeEvent = async (id) => { if (remote) await runRemote(supabase.from("events").delete().eq("id", id)); setEvents((prev) => prev.filter((e) => e.id !== id)); };
-  const clearEvents = async () => { if (remote) await runRemote(supabase.from("events").delete().eq("household_id", household.id)); setEvents([]); };
+  const addEvent = async (event) => {
+    const tempId = makeId("evt");
+    // Optimistic: show the event instantly.
+    setEvents((prev) => [...prev, { id: tempId, source: "local", ...event }]);
+    if (remote) {
+      try {
+        const { data, error } = await supabase.from("events").insert({ household_id: household.id, title: event.title, starts_at: event.start, ends_at: event.end, location: event.location || "", created_by: user.id }).select().single();
+        if (error) throw error;
+        if (event.memberIds?.length) await supabase.from("event_participants").insert(event.memberIds.map((userId) => ({ event_id: data.id, user_id: userId })));
+        // Replace optimistic item with server-confirmed data.
+        setEvents((prev) => prev.map((item) => item.id === tempId ? { ...mapEvent(data), memberIds: event.memberIds || [] } : item));
+        sendHouseholdPush({ title: "Family calendar updated", body: event.title, tag: `event-${data.id}`, url: "/#calendar" }, event.memberIds || []);
+      } catch (error) {
+        setEvents((prev) => prev.filter((item) => item.id !== tempId));
+        setDataError(error.message);
+        throw error;
+      }
+    }
+  };
+  const updateEvent = async (id, patch) => {
+    // Optimistic: update local state immediately.
+    setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+    if (remote) {
+      try { const { error } = await supabase.from("events").update({ title: patch.title, starts_at: patch.start, ends_at: patch.end, location: patch.location }).eq("id", id); if (error) throw error; }
+      catch { /* realtime will re-sync */ }
+    }
+  };
+  const removeEvent = async (id) => {
+    // Optimistic: remove from local state immediately.
+    setEvents((prev) => prev.filter((e) => e.id !== id));
+    if (remote) {
+      try { const { error } = await supabase.from("events").delete().eq("id", id); if (error) throw error; }
+      catch { /* realtime will re-sync */ }
+    }
+  };
+  const clearEvents = async () => {
+    const snapshot = events;
+    // Optimistic: clear instantly.
+    setEvents([]);
+    if (remote) {
+      const { error } = await supabase.from("events").delete().eq("household_id", household.id);
+      if (error) { setEvents(snapshot); setDataError(error.message); throw error; }
+    }
+  };
 
   // ---- Chat ----
   const sendMessage = async (message) => {
+    const tempId = makeId("msg");
+    // Optimistic: show the message instantly.
+    setMessages((prev) => [...prev, { id: tempId, senderId: currentUserId, sentAt: new Date().toISOString(), ...message }]);
     if (remote) {
-      const row = { household_id: household.id, sender_id: user.id, recipient_id: message.recipientId, body: message.text };
-      let result = await supabase.from("messages").insert(row).select().single();
-      if (result.error && /recipient_id|schema cache/i.test(result.error.message || "")) {
-        const { recipient_id: _recipientId, ...compatibleRow } = row;
-        result = await supabase.from("messages").insert(compatibleRow).select().single();
+      try {
+        const row = { household_id: household.id, sender_id: user.id, recipient_id: message.recipientId, body: message.text };
+        let result = await supabase.from("messages").insert(row).select().single();
+        if (result.error && /recipient_id|schema cache/i.test(result.error.message || "")) {
+          const { recipient_id: _recipientId, ...compatibleRow } = row;
+          result = await supabase.from("messages").insert(compatibleRow).select().single();
+        }
+        if (result.error) throw result.error;
+        setMessages((prev) => prev.map((item) => item.id === tempId ? { ...mapMessage(result.data), recipientId: result.data.recipient_id || message.recipientId || null } : item));
+        sendHouseholdPush({ title: `${memberById[user.id]?.name || "A family member"} sent a message`, body: message.text, tag: `message-${result.data.id}`, url: "/#chat" }, message.recipientId ? [message.recipientId] : []);
+      } catch (error) {
+        setMessages((prev) => prev.filter((item) => item.id !== tempId));
+        setDataError(error.message);
+        throw error;
       }
-      if (result.error) throw result.error;
-      setMessages((prev) => [...prev, { ...mapMessage(result.data), recipientId: result.data.recipient_id || message.recipientId || null }]);
-      sendHouseholdPush({ title: `${memberById[user.id]?.name || "A family member"} sent a message`, body: message.text, tag: `message-${result.data.id}`, url: "/#chat" }, message.recipientId ? [message.recipientId] : []);
-    } else setMessages((prev) => [...prev, { id: makeId("msg"), sentAt: new Date().toISOString(), ...message }]);
+    }
   };
   const importMessages = async (items, recipientId = null) => {
     const safeItems = items
@@ -571,20 +784,24 @@ export function FamilyProvider({ children, tabletMode = false }) {
   };
   // Permanently remove the shared household thread for everyone in the home.
   const clearFamilyChat = async () => {
-    if (remote) {
-      const expected = messages.filter((message) => !message.recipientId).length;
-      // .select() returns the rows actually deleted so we can tell a real clear
-      // from an RLS-blocked no-op (which returns 0 rows without an error).
-      const { data, error } = await supabase.from("messages").delete().eq("household_id", household.id).is("recipient_id", null).select("id");
-      if (error) { setDataError(error.message); throw error; }
-      if (expected > 0 && (!data || data.length === 0)) {
-        throw new Error("Messages could not be cleared right now. Please try again in a moment.");
-      }
-      const deleted = new Set((data || []).map((row) => row.id));
-      setMessages((prev) => prev.filter((message) => message.recipientId || !deleted.has(message.id)));
-      return;
-    }
+    const snapshot = messages;
+    // Optimistic: remove all non-DM messages instantly.
     setMessages((prev) => prev.filter((message) => message.recipientId));
+    if (remote) {
+      try {
+        const expected = snapshot.filter((message) => !message.recipientId).length;
+        const { data, error } = await supabase.from("messages").delete().eq("household_id", household.id).is("recipient_id", null).select("id");
+        if (error) throw error;
+        if (expected > 0 && (!data || data.length === 0)) {
+          throw new Error("Messages could not be cleared right now. Please try again in a moment.");
+        }
+      } catch (error) {
+        // Rollback: restore all messages.
+        setMessages(snapshot);
+        setDataError(error.message);
+        throw error;
+      }
+    }
   };
   // Permanently remove only the current user's direct-message threads.
   const clearMyDirectMessages = async (userId = user?.id) => {
@@ -648,19 +865,25 @@ export function FamilyProvider({ children, tabletMode = false }) {
   const broadcastMessage = async (text) => {
     const body = (text || "").trim();
     if (!body) return;
+    const tempId = makeId("msg");
+    // Optimistic: show the broadcast instantly.
+    setMessages((prev) => [...prev, { id: tempId, senderId: currentUserId, recipientId: null, text: body, sentAt: new Date().toISOString(), broadcast: true }]);
     if (remote) {
-      const row = { household_id: household.id, sender_id: user.id, recipient_id: null, body, broadcast: true };
-      let result = await supabase.from("messages").insert(row).select().single();
-      if (result.error && /broadcast|schema cache|column/i.test(result.error.message || "")) {
-        // Broadcast column not deployed yet — fall back to a plain household message.
-        const { broadcast: _broadcast, ...compatibleRow } = row;
-        result = await supabase.from("messages").insert(compatibleRow).select().single();
+      try {
+        const row = { household_id: household.id, sender_id: user.id, recipient_id: null, body, broadcast: true };
+        let result = await supabase.from("messages").insert(row).select().single();
+        if (result.error && /broadcast|schema cache|column/i.test(result.error.message || "")) {
+          const { broadcast: _broadcast, ...compatibleRow } = row;
+          result = await supabase.from("messages").insert(compatibleRow).select().single();
+        }
+        if (result.error) throw result.error;
+        setMessages((prev) => prev.map((item) => item.id === tempId ? mapMessage(result.data) : item));
+        sendHouseholdPush({ title: `${memberById[user.id]?.name || "A family member"} broadcast a message`, body, tag: `broadcast-${result.data.id}`, url: "/#today" }, []);
+      } catch (error) {
+        setMessages((prev) => prev.filter((item) => item.id !== tempId));
+        setDataError(error.message);
+        throw error;
       }
-      if (result.error) throw result.error;
-      setMessages((prev) => [...prev, mapMessage(result.data)]);
-      sendHouseholdPush({ title: `${memberById[user.id]?.name || "A family member"} broadcast a message`, body, tag: `broadcast-${result.data.id}`, url: "/#today" }, []);
-    } else {
-      setMessages((prev) => [...prev, { id: makeId("msg"), senderId: currentUserId, recipientId: null, text: body, sentAt: new Date().toISOString(), broadcast: true }]);
     }
   };
   const clearBroadcast = async (id) => {
@@ -734,8 +957,12 @@ export function FamilyProvider({ children, tabletMode = false }) {
     } else setExpenses((prev) => [{ id: makeId("expense"), createdBy: user?.id || null, ...expense }, ...prev]);
   };
   const removeExpense = async (id) => {
-    if (remote) await runRemote(supabase.from("expenses").delete().eq("id", id));
+    // Optimistic: remove from local state immediately.
     setExpenses((prev) => prev.filter((expense) => expense.id !== id));
+    if (remote) {
+      try { const { error } = await supabase.from("expenses").delete().eq("id", id); if (error) throw error; }
+      catch { /* realtime will re-sync */ }
+    }
   };
   const setFinanceBudget = async (period, amount) => {
     const budgetField = period === "monthly" ? "monthly_budget" : "weekly_budget";
@@ -860,6 +1087,36 @@ export function FamilyProvider({ children, tabletMode = false }) {
     syncGoogleEvents(googleProviderToken);
   }, [googleProviderToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Mount-time status recovery: on a fresh page load the in-memory
+  // googleConnected state defaults to false even though the durable
+  // google-calendar-token backend might already hold a refresh token for
+  // this user (AuthContext captured it the moment of OAuth consent). Without
+  // this probe, Settings + Calendar management modal keep showing "Not
+  // connected" until the user taps Reconnect — the recurring "stuck
+  // connecting" UX. The status action is a single SELECT by user_id; we
+  // only flip React state to true when the backend says connected, and the
+  // existing backgroundSync useEffect picks up the silent re-import from
+  // there (it already gates on googleConnected). Fails silently so a
+  // missing or broken edge function can't bounce the page to "not connected"
+  // when truth is actually connected. We deliberately do NOT touch
+  // googleStatus / googleLastSynced here — the upstream provider-token
+  // useEffect + backgroundSync own those transitions correctly, including
+  // the "expired" path when the refresh token was revoked.
+  useEffect(() => {
+    if (!remote || !user?.id) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const status = await invokeEdgeFunction("google-calendar-token", { action: "status" });
+        if (cancelled || !status?.connected) return;
+        setGoogleConnected((current) => current || true);
+      } catch {
+        /* keep default state — the user can connect manually from Settings */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [remote, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Re-sync when the app regains focus so an expired token surfaces promptly as
   // a reconnect prompt rather than silently stale data. Skips while already
   // syncing or expired to avoid hammering a known-dead token.
@@ -915,7 +1172,15 @@ export function FamilyProvider({ children, tabletMode = false }) {
       setGoogleStatus("connecting");
       setGoogleError(null);
       try {
-        await signInWithGoogle();
+        const result = await signInWithGoogle();
+        // Supabase sees the user already has a linked Google identity and
+        // returns the cached one instead of redirecting — we must reset
+        // the button state ourselves, otherwise it stays "Connecting…"
+        // forever (the bug the user reported).
+        if (result?.reused) {
+          setGoogleConnected(true);
+          setGoogleStatus("idle");
+        }
       } catch (e) {
         setGoogleStatus("error");
         setGoogleError(e.message || "Could not connect to Google Calendar.");

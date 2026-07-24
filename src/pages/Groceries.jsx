@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Baby, Bone, Carrot, Check, ChevronDown, Clipboard, Coffee, Cookie, Croissant, CupSoda, Download, Drumstick, ExternalLink, FlaskConical, Globe2, GripVertical, HeartPulse, LoaderCircle, Maximize2, Milk, Package, Pencil, Plus, Sandwich, ScanLine, ScrollText, Share2, ShoppingBag, ShoppingBasket, Snowflake, Soup, SprayCan, Star, Store, Trash2, Truck, Wheat, Wine, X } from "lucide-react";
+import { Baby, Bone, Carrot, Check, ChevronDown, Clipboard, Coffee, Cookie, Croissant, CupSoda, Download, Drumstick, ExternalLink, FlaskConical, Globe2, GripVertical, HeartPulse, ListChecks, LoaderCircle, Maximize2, Milk, Package, Pencil, Plus, Sandwich, ScanLine, ScrollText, Share2, ShoppingBag, ShoppingBasket, Snowflake, Soup, SprayCan, Star, Store, Trash2, Truck, Wheat, Wine, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { Avatar, Card, Checkbox, EmptyState, Modal, PrimaryButton, SecondaryButton, Stepper, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
@@ -9,6 +9,8 @@ import { invokeEdgeFunction } from "../lib/supabase";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useLocalCache } from "../hooks/useLocalCache";
 import ConfirmAction from "../components/ConfirmAction";
+import { isIngredientOnList, loadIngredientCache, saveIngredientCache } from "../lib/mealIngredientCache";
+import { formatDayLabel } from "../lib/dates";
 import { GROCERY_CATEGORIES } from "../data/mockData";
 
 // The Groceries-page soft-tier cache key + parser still live here: the key
@@ -199,7 +201,7 @@ function categoryFromItemName(name = "", fallback = GROCERY_CATEGORIES[0]) {
 }
 
 export default function Groceries() {
-  const { groceries, addGrocery, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries, clearGroceries, memberById, refreshData } = useFamily();
+  const { groceries, meals, addGrocery, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries, clearGroceries, memberById, refreshData } = useFamily();
   const [editingId, setEditingId] = useState(null); // null closed, "new" for add, or item id
   const [draft, setDraft] = useState(emptyDraft);
   const [staples, setStaples] = useState(loadStaples);
@@ -223,6 +225,29 @@ export default function Groceries() {
   const scannerHandledRef = useRef(false);
   const [deliveryModal, setDeliveryModal] = useState(false);
   const [deliveryStatus, setDeliveryStatus] = useState("");
+  // Plan-aware ingredients: Groceries.jsx reads the same cache Meals.jsx
+  // writes after a recipe lookup, then surfaces the cross-reference so the
+  // user can see + add items their planned meals need. The cache lives in
+  // localStorage so the list is correct on a fresh page load and survives
+  // a reload — both pages reach it via src/lib/mealIngredientCache.js.
+  const [mealIngredientsCache, setMealIngredientsCache] = useState(() => loadIngredientCache());
+  // Cross-page sync. The util dispatches `famos:meal-ingredients-changed`
+  // every time Meals.jsx writes a new ingredient list to the cache, and
+  // the native `storage` event picks up writes from sibling tabs/windows.
+  // Either path → we re-read the cache so the "Missing N" pill stays
+  // accurate after a recipe lookup, without waiting for a reload.
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const refresh = () => setMealIngredientsCache(loadIngredientCache());
+    window.addEventListener("famos:meal-ingredients-changed", refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener("famos:meal-ingredients-changed", refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
+  const [showMissingModal, setShowMissingModal] = useState(false);
+  const [missingBulkBusy, setMissingBulkBusy] = useState(false);
 
   useEffect(() => { localStorage.setItem(STAPLES_KEY, JSON.stringify(staples)); }, [staples]);
 
@@ -328,6 +353,76 @@ export default function Groceries() {
     () => [...groceries].sort((a, b) => Number(a.checked) - Number(b.checked) || a.category.localeCompare(b.category)),
     [groceries]
   );
+
+  // Per-meal missing-ingredient breakdown. Skips meals with no cached
+  // ingredient list (e.g., a roulette-spun meal that has not been looked
+  // up via Cook Mode yet) so the cross-reference only shows surface-able
+  // gaps. Sort: chronological by date, then by typical slot order so the
+  // modal reads Monday-breakfast → Monday-lunch → Monday-dinner → ...
+  const SLOT_ORDER = { breakfast: 0, lunch: 1, dinner: 2 };
+  const missingByMeal = useMemo(() => {
+    const result = [];
+    for (const meal of meals) {
+      const names = mealIngredientsCache[meal.id];
+      if (!Array.isArray(names) || !names.length) continue;
+      const missing = names.filter((name) => !isIngredientOnList(name, groceries));
+      if (missing.length) {
+        result.push({ meal, dateISO: meal.date, slot: meal.slot, title: meal.title || "Untitled meal", missing });
+      }
+    }
+    return result.sort((a, b) => {
+      if (a.dateISO !== b.dateISO) return a.dateISO.localeCompare(b.dateISO);
+      return (SLOT_ORDER[a.slot] ?? 99) - (SLOT_ORDER[b.slot] ?? 99);
+    });
+  }, [meals, mealIngredientsCache, groceries]);
+  const totalMissingCount = useMemo(() => missingByMeal.reduce((acc, entry) => acc + entry.missing.length, 0), [missingByMeal]);
+  // Deduped across-meal list — used for the bulk "Add all N missing" pill
+  // in the modal header so adding doesn't double-add items shared between
+  // two meals (e.g., a marinade shared by dinner + lunch the day after).
+  const uniqueMissingNames = useMemo(() => {
+    const seen = new Set();
+    const unique = [];
+    for (const entry of missingByMeal) {
+      for (const name of entry.missing) {
+        const key = String(name).trim().toLowerCase();
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        unique.push(name);
+      }
+    }
+    return unique;
+  }, [missingByMeal]);
+
+  const addMissingItem = async (rawName) => {
+    const name = String(rawName || "").trim();
+    if (!name) return;
+    if (groceries.some((grocery) => String(grocery?.name || "").trim().toLowerCase() === name.toLowerCase())) {
+      // Already on the list — no-op so the button doesn't re-add.
+      return;
+    }
+    await addGrocery({ name, quantity: 1, unit: "" });
+    // The ingredients-cache stays untouched; this is a forward increment
+    // and the user's grocery-list state already reflects the new item.
+  };
+  const addAllMissingItems = async () => {
+    if (!uniqueMissingNames.length) return;
+    setMissingBulkBusy(true);
+    // Sequential so a single failure stops the bulk instead of partially
+    // succeeding silently. Also surfaces one row-per-write to the
+    // realtime channel so sibling devices see cascading grocery entries
+    // — same muscle memory as the per-day clear pattern. The try/finally
+    // resets `missingBulkBusy` even on a thrown write so the button
+    // re-enables; we keep the modal open so the user sees the partial
+    // state and can retry.
+    try {
+      for (const name of uniqueMissingNames) {
+        await addGrocery({ name, quantity: 1, unit: "" });
+      }
+      setShowMissingModal(false);
+    } finally {
+      setMissingBulkBusy(false);
+    }
+  };
 
   const openNew = () => {
     setDraft(emptyDraft);
@@ -651,12 +746,22 @@ export default function Groceries() {
   };
 
   return (
-    <PullToRefresh onRefresh={refreshData}><div className="pb-24 reference-groceries">
+    <PullToRefresh onRefresh={refreshData}><div className="pb-24 reference-groceries famos-noscroll">
       <PageHeader
         title="Shopping"
         illustration="groceries"
         subtitle="One shared list for staples, favourites, and store runs."
         action={<div className="grocery-mode-actions">
+          {totalMissingCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowMissingModal(true)}
+              aria-label={`View ${totalMissingCount} missing ingredients from planned meals`}
+              title="Cross-reference planned meals against your list"
+            >
+              <ListChecks size={14} /> Missing {totalMissingCount}
+            </button>
+          )}
           <button onClick={() => { resetBarcodeDraft(); setReturnToFocus(false); setBarcodeModal(true); }}><ScanLine size={14} /> Scan product</button>
           {groceries.length > 0 && <button onClick={() => setFocusMode(true)}><Maximize2 size={14} /> Focus shop</button>}
           {checkedCount > 0 && <button onClick={() => setClearingChecked(true)}>Clear {checkedCount} checked</button>}
@@ -844,7 +949,20 @@ export default function Groceries() {
                           {adder && !item.checked && (
                             <Avatar member={adder} size="xs" className="shrink-0" aria-label={`Added by ${adder.name}`} />
                           )}
-                          <button onClick={() => saveAsStaple(item)} className="p-1 text-[var(--color-ink-faint)] shrink-0" aria-label={`Save ${item.name} as a frequent item`} title="Save as frequent"><Star size={15} fill={staples.some((staple) => staple.name.toLowerCase() === item.name.toLowerCase()) ? "currentColor" : "none"} /></button>
+                          {(function isFavourite() {
+                            const isFav = staples.some((staple) => staple.name.toLowerCase() === item.name.toLowerCase());
+                            return (
+                              <button
+                                onClick={() => saveAsStaple(item)}
+                                className="flex items-center gap-1 shrink-0 text-[var(--color-ink-faint)]"
+                                aria-label={isFav ? `Remove ${item.name} from favourites` : `Save ${item.name} as a frequent item`}
+                                title={isFav ? "Saved as favourite" : "Save as favourite"}
+                              >
+                                <Star size={15} fill={isFav ? "#f5a623" : "none"} color={isFav ? "#f5a623" : "currentColor"} />
+                                {isFav && <span className="text-[10px] font-semibold text-[#f5a623]">Fav</span>}
+                              </button>
+                            );
+                          })()}
                           <button onClick={() => removeGrocery(item.id)} className="p-1 -mr-1 text-[var(--color-ink-faint)] shrink-0">
                             <Trash2 size={15} />
                           </button>
@@ -1094,6 +1212,52 @@ export default function Groceries() {
           <button className="focus-shopping-done" onClick={() => setFocusMode(false)}>Done shopping</button>
         </div>
       )}
+
+      {/* Cross-reference: planned meals vs the current grocery list.
+          Opened from the "Missing N" pill in the page header. Per-meal
+          sections list what's still missing, with per-item Add buttons
+          and a deduped "Add all N missing" pill at the top. Empty state
+          when nothing's missing so the modal always feels intentional. */}
+      <Modal open={showMissingModal} onClose={() => setShowMissingModal(false)} title="Missing ingredients for planned meals">
+        {missingByMeal.length === 0 ? (
+          <p className="groceries-missing-empty">Every planned meal is fully covered by the list. Add a new meal on the Meals tab to see suggestions next time.</p>
+        ) : (
+          <>
+            <div className="groceries-missing-modal-summary">
+              <p>
+                <strong>{uniqueMissingNames.length}</strong> distinct ingredient{uniqueMissingNames.length === 1 ? "" : "s"} to add, across <strong>{missingByMeal.length}</strong> planned meal{missingByMeal.length === 1 ? "" : "s"}
+                {totalMissingCount !== uniqueMissingNames.length ? <> · <small>{totalMissingCount - uniqueMissingNames.length} repeat{totalMissingCount - uniqueMissingNames.length === 1 ? "" : "s"} re-used</small></> : null}.
+              </p>
+              <button
+                type="button"
+                onClick={addAllMissingItems}
+                disabled={missingBulkBusy}
+                aria-label={`Add all ${uniqueMissingNames.length} distinct missing ingredients to grocery list`}
+              >
+                <Plus size={14} /> {missingBulkBusy ? `Adding ${uniqueMissingNames.length}…` : `Add all ${uniqueMissingNames.length} missing`}
+              </button>
+            </div>
+            <div className="groceries-missing-modal-list">
+              {missingByMeal.map((entry) => (
+                <section key={`${entry.meal.id}-${entry.slot}`} className="groceries-missing-meal-block">
+                  <header>
+                    <small className="groceries-missing-meal-day">{formatDayLabel(entry.dateISO)} · {entry.slot}</small>
+                    <strong>{entry.title}</strong>
+                  </header>
+                  <ul className="groceries-missing-ingredient-list">
+                    {entry.missing.map((name) => (
+                      <li key={`${entry.meal.id}-${name}`}>
+                        <span>{name}</span>
+                        <button type="button" onClick={() => addMissingItem(name)} aria-label={`Add ${name} to grocery list`} title="Add to grocery list"><Plus size={13} /></button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </div>
+          </>
+        )}
+      </Modal>
     </div></PullToRefresh>
   );
 }

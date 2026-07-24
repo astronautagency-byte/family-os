@@ -214,7 +214,7 @@ export default function Chat() {
   };
 
   return (
-    <div className="h-screen pb-20 flex flex-col">
+    <div className="h-screen pb-20 flex flex-col famos-noscroll">
       <PageHeader eyebrow="Private conversations" title="Chat, minus the chaos." illustration="chat" subtitle="Quick decisions, saved from the scroll." />
 
       <div className="px-5 mt-1 mb-2 flex gap-2 overflow-x-auto pb-1">

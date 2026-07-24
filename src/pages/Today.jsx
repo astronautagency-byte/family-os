@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays, ChefHat, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, Clock3, Droplets, Home, ListChecks, LoaderCircle, MapPin, Megaphone, Moon, PartyPopper, ShoppingCart, Sparkles, Sun, TriangleAlert, Users, Wind, X } from "lucide-react";
+import { CalendarDays, CalendarPlus, ChefHat, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, Clock3, Droplets, ExternalLink, Home, ListChecks, LoaderCircle, MapPin, Megaphone, Moon, PartyPopper, ShoppingCart, Sparkles, Sun, Ticket, TriangleAlert, Users, Wind, X } from "lucide-react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { BROADCAST_REACTIONS, useFamily } from "../context/FamilyContext";
@@ -48,6 +48,24 @@ const dayLabel = (date) => {
   return Number.isNaN(parsed.getTime()) ? "" : parsed.toLocaleDateString(undefined, { weekday: "short" });
 };
 const roundTemp = (value) => (Number.isFinite(Number(value)) ? Math.round(Number(value)) : "—");
+
+// Event type classification (mirrors Calendar.jsx for consistent carousel badges).
+const EVENT_TYPES = {
+  family: { label: "Family", color: "#5b55d6" },
+  school: { label: "School", color: "#4f8177" },
+  activity: { label: "Activities", color: "#dc9147" },
+  health: { label: "Health", color: "#d46b7a" },
+  work: { label: "Work", color: "#747184" },
+};
+const eventType = (event) => {
+  if (event.eventType && EVENT_TYPES[event.eventType]) return event.eventType;
+  const text = `${event.title} ${event.location || ""}`.toLowerCase();
+  if (/school|class|teacher|homework|project/.test(text)) return "school";
+  if (/doctor|dentist|clinic|health|appointment/.test(text)) return "health";
+  if (/practice|soccer|hockey|dance|game|gym|swim/.test(text)) return "activity";
+  if (/work|meeting|client|office/.test(text)) return "work";
+  return "family";
+};
 
 // Tap-to-prepend emoji "stickers" used to live INSIDE the input box but the
 // family-feedback round flagged them as noisy — replaced with a single
@@ -473,7 +491,7 @@ export default function Today({ goTo }) {
 
   return (
     <PullToRefresh onRefresh={refreshAll}>
-    <div className="pb-24 reference-dashboard">
+    <div className="pb-24 reference-dashboard famos-noscroll">
       <PageHeader
         eyebrow={fullDateLabel(today)}
         title={tabletMode ? `${greetingLabel}, family` : `${greetingLabel}${greetingName ? `, ${greetingName}` : ""}`}
@@ -596,7 +614,15 @@ export default function Today({ goTo }) {
                 <span className="flex-1 min-w-0">
                   <small className="block text-[11px] font-bold uppercase tracking-wide text-[var(--color-accent-strong)]">Up next · {formatTime(nextEvent.start)}</small>
                   <strong className="block text-[15px] text-[var(--color-ink)] truncate">{nextEvent.title}</strong>
-                  {nextEvent.location && <em className="not-italic text-[12.5px] text-[var(--color-ink-soft)] flex items-center gap-1 mt-0.5"><MapPin size={11} /> {nextEvent.location}</em>}
+                  {nextEvent.location && (
+                    // Same hardening as the schedule list row below: a long
+                    // address would otherwise claim min-content width past
+                    // the up-next card's right edge on narrow viewports.
+                    <em className="not-italic text-[12.5px] text-[var(--color-ink-soft)] flex items-center gap-1 mt-0.5 min-w-0">
+                      <MapPin size={11} className="shrink-0" />
+                      <span className="truncate">{nextEvent.location}</span>
+                    </em>
+                  )}
                 </span>
                 <AvatarStack members={(nextEvent.memberIds || []).map((id) => memberById[id]).filter(Boolean)} />
               </button>
@@ -640,25 +666,39 @@ export default function Today({ goTo }) {
             {todaysEvents.length === 0 ? (
               <EmptyState title="Nothing on the books" subtitle="Add something from the Calendar tab when real life inevitably happens." />
             ) : (
-              <ol className="divide-y divide-[var(--color-border)]">
+              <div className="event-carousel-wrapper"><div className="event-carousel today-event-carousel">
                 {todaysEvents.slice(0, 5).map((ev) => {
                   const evMembers = (ev.memberIds || []).map((id) => memberById[id]).filter(Boolean);
                   const isPast = new Date(ev.end) < new Date();
-                  const isExternal = ev.source !== "local";
-                  const dotColor = isExternal ? (ev.color || "#4C91F2") : evMembers[0] ? colorVar(evMembers[0].color) : "var(--color-accent)";
+                  const typeStyle = EVENT_TYPES[eventType(ev)];
                   return (
-                    <li key={ev.id} className={`flex items-center gap-3 py-3 ${isPast ? "opacity-50" : ""}`}>
-                      <span className="w-16 shrink-0 text-[12.5px] font-semibold tabular-nums text-[var(--color-ink-soft)]">{formatTime(ev.start)}</span>
-                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: dotColor }} />
-                      <span className="flex-1 min-w-0">
-                        <strong className="block text-[14px] text-[var(--color-ink)] truncate">{ev.title}</strong>
-                        {ev.location && <small className="text-[12px] text-[var(--color-ink-soft)] truncate flex items-center gap-1"><MapPin size={11} /> {ev.location}</small>}
-                      </span>
-                      <AvatarStack members={evMembers} size="sm" />
-                    </li>
+                    <div
+                      className={`event-carousel-card today-event-card ${isPast ? "today-event-past" : ""}`}
+                      key={ev.id}
+                      onClick={() => goTo("calendar")}
+                    >
+                      <div className="event-carousel-media" style={{ background: `linear-gradient(135deg, ${typeStyle.color}22, var(--color-surface-sunken))` }}>
+                        <span className="event-carousel-badge" style={{ background: typeStyle.color }}>{typeStyle.label}</span>
+                      </div>
+                      <div className="event-carousel-body">
+                        <div className="event-carousel-date">
+                          <span>{formatTime(ev.start)}</span>
+                          {ev.end && <small>{formatTime(ev.end)}</small>}
+                        </div>
+                        <h3>{ev.title}</h3>
+                        {ev.location && (
+                          <span className="event-carousel-location">
+                            <MapPin size={12} /> {ev.location}
+                          </span>
+                        )}
+                        <div className="event-carousel-footer">
+                          {evMembers.length > 0 && <AvatarStack members={evMembers} size="sm" />}
+                        </div>
+                      </div>
+                    </div>
                   );
                 })}
-              </ol>
+              </div></div>
             )}
           </Card>
 

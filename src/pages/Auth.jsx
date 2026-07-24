@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Baby, Bell, BellRing, BriefcaseBusiness, CalendarDays, Check, CheckSquare, ChefHat, ChevronLeft, Eye, EyeOff, HeartHandshake, House, ImagePlus, Leaf, LoaderCircle, LockKeyhole, Mail, MessageCircle, Palette, Phone, Plus, Salad, Send, ShieldCheck, ShoppingCart, Smartphone, Sparkles, Trash2, UserRound, UsersRound, WalletCards, WheatOff } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { Card, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
+import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
+import { passwordError } from "../utils/passwordStrength";
 import { supabase } from "../lib/supabase";
 
 const VAPID_PUBLIC_KEY = "BK4WksXI5RRZqDhurNH8v2VbinrSKrBLzOA6xni__siwCbKjhtJ1T0N3GOSVKKQPNAnENCacYtdlLW553fadxHQ";
@@ -73,7 +75,7 @@ export function SignIn({ initialCreating = false }) {
 
   const submit = async (event) => {
     event.preventDefault();
-    if (!email.trim() || password.length < 6 || (creating && !displayName.trim())) return;
+    if (!email.trim() || passwordError(password) || (creating && !displayName.trim())) return;
     setBusy(true);
     setLocalError("");
     setNotice("");
@@ -120,7 +122,7 @@ export function SignIn({ initialCreating = false }) {
         <form onSubmit={submit}>
           {creating && <TextField label="Your name" placeholder="e.g. Kat" value={displayName} onChange={(e) => setDisplayName(e.target.value)} autoComplete="name" required />}
           <TextField type="email" label="Email address" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
-          <TextField type={showPassword ? "text" : "password"} label="Password" placeholder="At least 6 characters" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={creating ? "new-password" : "current-password"} minLength={6} required />
+          <TextField type={showPassword ? "text" : "password"} label="Password" placeholder="10+ characters" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={creating ? "new-password" : "current-password"} minLength={10} required />
           <div className="password-actions">
             <button type="button" onClick={() => setShowPassword((value) => !value)}>
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />} {showPassword ? "Hide password" : "Show password"}
@@ -129,7 +131,8 @@ export function SignIn({ initialCreating = false }) {
           </div>
           {(localError || error) && <p className="text-[12.5px] text-[var(--color-warn)] mb-3">{localError || error}</p>}
           {notice && <p className="text-[12.5px] text-[var(--color-good)] mb-3">{notice}</p>}
-          <PrimaryButton type="submit" disabled={busy || !email.trim() || password.length < 6 || (creating && !displayName.trim())}>
+          {creating && <PasswordStrengthMeter value={password} />}
+          <PrimaryButton type="submit" disabled={busy || !email.trim() || !!passwordError(password) || (creating && !displayName.trim())}>
             {busy ? "One sec…" : creating ? "Create account" : "Sign in"}
           </PrimaryButton>
           {!creating && openedInvitation && (
@@ -158,7 +161,7 @@ function InvitedPasswordSetup({ initialEmail, requestCode, completeSetup, onBack
   const [error, setError] = useState("");
 
   const sendCode = async () => {
-    if (!email.trim() || password.length < 6 || password !== confirm) return;
+    if (!email.trim() || passwordError(password) || password !== confirm) return;
     setBusy(true);
     setError("");
     try {
@@ -173,7 +176,7 @@ function InvitedPasswordSetup({ initialEmail, requestCode, completeSetup, onBack
 
   const createPassword = async (event) => {
     event.preventDefault();
-    if (!code.trim() || password.length < 6 || password !== confirm) return;
+    if (!code.trim() || passwordError(password) || password !== confirm) return;
     setBusy(true);
     setError("");
     try {
@@ -195,8 +198,8 @@ function InvitedPasswordSetup({ initialEmail, requestCode, completeSetup, onBack
       <Card className="minimal-auth-card">
         <form onSubmit={createPassword}>
           <TextField type="email" label="Invited email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required disabled={codeSent} />
-          <TextField type={showPassword ? "text" : "password"} label="Create password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" minLength={6} required />
-          <TextField type={showPassword ? "text" : "password"} label="Confirm password" value={confirm} onChange={(event) => setConfirm(event.target.value)} autoComplete="new-password" minLength={6} required />
+          <TextField type={showPassword ? "text" : "password"} label="Create password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" minLength={10} required />
+          <TextField type={showPassword ? "text" : "password"} label="Confirm password" value={confirm} onChange={(event) => setConfirm(event.target.value)} autoComplete="new-password" minLength={10} required />
           <div className="password-actions">
             <button type="button" onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff size={16} /> : <Eye size={16} />} {showPassword ? "Hide passwords" : "Show passwords"}</button>
           </div>
@@ -205,11 +208,12 @@ function InvitedPasswordSetup({ initialEmail, requestCode, completeSetup, onBack
           {error && <p className="text-[12.5px] text-[var(--color-warn)] mb-3">{error}</p>}
           {codeSent ? (
             <>
-              <PrimaryButton type="submit" disabled={busy || code.length !== 6 || password.length < 6 || password !== confirm}>{busy ? "Creating password…" : "Create password & join"}</PrimaryButton>
+              <PasswordStrengthMeter value={password} />
+          <PrimaryButton type="submit" disabled={busy || code.length !== 6 || !!passwordError(password) || password !== confirm}>{busy ? "Creating password…" : "Create password & join"}</PrimaryButton>
               <button type="button" className="minimal-google" disabled={busy} onClick={sendCode}>{busy ? "Sending…" : "Send a new code"}</button>
             </>
           ) : (
-            <PrimaryButton type="button" onClick={sendCode} disabled={busy || !email.trim() || password.length < 6 || password !== confirm}>{busy ? "Sending code…" : "Email my verification code"}</PrimaryButton>
+            <PrimaryButton type="button" onClick={sendCode} disabled={busy || !email.trim() || !!passwordError(password) || password !== confirm}>{busy ? "Sending code…" : "Email my verification code"}</PrimaryButton>
           )}
           <button type="button" className="recovery-back" onClick={onBack}>Back to sign in</button>
         </form>
@@ -269,7 +273,7 @@ export function ResetPassword() {
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const valid = password.length >= 6 && password === confirm;
+  const valid = !passwordError(password) && password === confirm;
 
   const submit = async (event) => {
     event.preventDefault();
@@ -290,10 +294,11 @@ export function ResetPassword() {
       <p className="recovery-intro">Create your password here, then we’ll take you directly to the family home waiting for you.</p>
       <Card className="minimal-auth-card">
         <form onSubmit={submit}>
-          <TextField type={show ? "text" : "password"} label="New password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" minLength={6} required />
-          <TextField type={show ? "text" : "password"} label="Confirm password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" minLength={6} required />
+          <TextField type={show ? "text" : "password"} label="New password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" minLength={10} required />
+          <TextField type={show ? "text" : "password"} label="Confirm password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" minLength={10} required />
           <div className="password-actions"><button type="button" onClick={() => setShow((value) => !value)}>{show ? <EyeOff size={16} /> : <Eye size={16} />} {show ? "Hide passwords" : "Show passwords"}</button></div>
           {confirm && password !== confirm && <p className="text-[12.5px] text-[var(--color-warn)] mb-3">Those passwords are almost friends, but not quite.</p>}
+          <PasswordStrengthMeter value={password} />
           {error && <p className="text-[12.5px] text-[var(--color-warn)] mb-3">{error}</p>}
           <PrimaryButton type="submit" disabled={busy || !valid}>{busy ? "Saving…" : "Save new password"}</PrimaryButton>
         </form>

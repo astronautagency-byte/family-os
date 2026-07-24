@@ -58,7 +58,8 @@ export async function requestGoogleAccessToken(clientId, { silent = false, timeo
     let settled = false;
     const cleanup = () => {
       if (timer) clearTimeout(timer);
-      document.removeEventListener("visibilitychange", onVisChange);
+      window.removeEventListener("blur", onBlur);
+      window.removeEventListener("focus", onFocus);
     };
     const settle = (handler, value) => {
       if (settled) return;
@@ -70,13 +71,20 @@ export async function requestGoogleAccessToken(clientId, { silent = false, timeo
       () => settle(reject, new Error("Google sign-in timed out. Close any popups and try again.")),
       timeoutMs
     );
-    const onVisChange = () => {
-      if (settled || document.visibilityState !== "visible") return;
-      // Give the callback a beat to fire after focus returns (success path
-      // can land here first). If it doesn't, treat as cancellation.
+    // The GIS popup steals window focus from the parent page when it opens
+    // (`blur` here) and returns focus when the user finishes or dismisses
+    // the popup (`focus` here). On desktop, `visibilitychange` does NOT
+    // reliably fire for small popups, so we listen for the focus events
+    // instead. After a brief grace period that lets a racing success
+    // callback win, a focus return counts as a user-initiated cancellation.
+    let popupOpened = false;
+    const onFocus = () => {
+      if (settled || !popupOpened) return;
       setTimeout(() => settle(reject, new Error("Google sign-in was cancelled.")), 600);
     };
-    document.addEventListener("visibilitychange", onVisChange);
+    const onBlur = () => { popupOpened = true; };
+    window.addEventListener("blur", onBlur);
+    window.addEventListener("focus", onFocus);
     try {
       const client = window.google.accounts.oauth2.initTokenClient({
         client_id: clientId.trim(),

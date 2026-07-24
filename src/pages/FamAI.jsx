@@ -802,7 +802,7 @@ export default function FamAI() {
   const primaryPending = pending.filter((action) => !cookablePlanMealIds.has(action.id));
 
   return (
-    <div className="fam-ai-page">
+    <div className="fam-ai-page famos-noscroll">
       {/* Minimal header */}
       <div className="fam-ai-header">
         <div className="fam-ai-header-inner">

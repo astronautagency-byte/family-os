@@ -106,6 +106,37 @@ const saveIngredientCache = (cache) => {
   try { window.localStorage.setItem(INGREDIENT_CACHE_KEY, JSON.stringify(cache)); } catch { /* storage unavailable */ }
 };
 
+const THE_MEAL_DB = "https://www.themealdb.com/api/json/v1/1";
+
+// Map a TheMealDB meal object to our internal recipe shape.
+const mealDbToRecipe = (meal) => {
+  if (!meal?.idMeal || !meal?.strMeal) return null;
+  const ingredients = [];
+  for (let i = 1; i <= 20; i++) {
+    const name = meal[`strIngredient${i}`];
+    const measure = meal[`strMeasure${i}`];
+    if (!name || !name.trim()) continue;
+    const label = measure && measure.trim() ? `${measure.trim()} ${name.trim()}` : name.trim();
+    ingredients.push(label);
+  }
+  const instructions = (meal.strInstructions || "")
+    .split(/\r?\n|\.\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return {
+    id: `the-meal-db-${meal.idMeal}`,
+    title: meal.strMeal,
+    cuisine: meal.strArea || meal.strCategory || "International",
+    readyInMinutes: 35,
+    servings: 4,
+    ingredients,
+    instructions,
+    source: "themealdb",
+    sourceUrl: `https://www.themealdb.com/meal/${meal.idMeal}`,
+    thumbnail: meal.strMealThumb || "",
+  };
+};
+
 const titleFromMeal = (meal) => String(meal?.title || "").trim();
 
 export default function Meals() {
@@ -233,15 +264,40 @@ export default function Meals() {
     setDraft((d) => ({ ...d, cookIds: d.cookIds.includes(id) ? d.cookIds.filter((x) => x !== id) : [...d.cookIds, id] }));
 
   const rouletteForSlot = async (date, slot) => {
+    setRouletteBusy(true);
+    // Try TheMealDB first — it's free, no API key needed, and returns rich
+    // recipes with full instructions, ingredients, and thumbnails. Call the
+    // random endpoint 3 times in parallel to give the family a choice.
+    try {
+      const responses = await Promise.all(
+        Array.from({ length: 3 }, () =>
+          fetch(`${THE_MEAL_DB}/random.php`).then((r) => r.json())
+        )
+      );
+      const meals = responses
+        .map((res) => mealDbToRecipe(res?.meals?.[0]))
+        .filter(Boolean);
+      if (meals.length > 0) {
+        const cuisines = [...new Set(meals.map((m) => m.cuisine))];
+        setRouletteOptions({
+          date,
+          slot,
+          recipes: meals.slice(0, 3),
+          cuisine: cuisines.join(", ") || "Random picks",
+          source: "themealdb",
+        });
+        setRouletteBusy(false);
+        return;
+      }
+    } catch {
+      // TheMealDB failed — fall through to API Ninjas below.
+    }
+    // Fallback: try API Ninjas via the recipe-search edge function.
     const choices = ["Italian", "Mexican", "Indian", "Japanese", "Chinese", "Thai", "Mediterranean", "American Comfort"];
     const cuisine = choices[Math.floor(Math.random() * choices.length)];
     const ingredientsPool = ["chicken", "rice", "pasta", "tofu", "salmon", "beef", "eggs", "lentils"];
     const ingredient = ingredientsPool[Math.floor(Math.random() * ingredientsPool.length)];
-    // Build a real recipe-name search: the API Ninjas free tier searches by
-    // title only, so we need a phrase like "Italian chicken pasta" instead of
-    // passing mealType/dietary metadata that no recipe title contains.
     const query = `${cuisine} ${ingredient}`.trim().slice(0, 120);
-    setRouletteBusy(true);
     const { data, error } = await supabase.functions.invoke("recipe-search", { body: { query } }).catch(() => ({ data: null, error: new Error("offline") }));
     const recipeErr = data?.error || error?.message;
     const list = !recipeErr ? recipesFromSearch(data) : [];
@@ -254,7 +310,7 @@ export default function Meals() {
       setRouletteBusy(false);
       return;
     }
-    setRouletteOptions({ date, slot, recipes: list.slice(0, 3), cuisine });
+    setRouletteOptions({ date, slot, recipes: list.slice(0, 3), cuisine, source: "api-ninjas" });
     setRouletteBusy(false);
   };
 
@@ -730,12 +786,17 @@ export default function Meals() {
         confirmLabel={meals.length === 1 ? "Clear 1 meal" : `Clear ${meals.length} meals`}
       />
 
-      {/* Roulette picker — shows up to 3 recipe options from API Ninjas */}
+      {/* Roulette picker — shows up to 3 recipe options from TheMealDB (free) or API Ninjas (fallback) */}
       <Modal open={!!rouletteOptions} onClose={() => setRouletteOptions(null)} title={rouletteOptions ? `${SLOT_META[rouletteOptions.slot].label} roulette` : ""}>
         <div className="roulette-picker">
           {rouletteOptions && (
             <>
-              <p className="roulette-picker-intro">API Ninjas found {rouletteOptions.recipes.length} recipe{rouletteOptions.recipes.length === 1 ? "" : "s"} for <strong>{rouletteOptions.cuisine}</strong>. Pick one or spin again.</p>
+              <p className="roulette-picker-intro">
+                {rouletteOptions.source === "themealdb"
+                  ? `${rouletteOptions.recipes.length} random recipe${rouletteOptions.recipes.length === 1 ? "" : "s"} for your family. Pick one or spin again.`
+                  : `API Ninjas found ${rouletteOptions.recipes.length} recipe${rouletteOptions.recipes.length === 1 ? "" : "s"} for <strong>${rouletteOptions.cuisine}</strong>. Pick one or spin again.`
+                }
+              </p>
               <div className="roulette-picker-list">
                 {rouletteOptions.recipes.map((recipe, index) => (
                   <button
@@ -744,7 +805,7 @@ export default function Meals() {
                     onClick={async () => {
                       await setMealForSlot(rouletteOptions.date, rouletteOptions.slot, {
                         title: recipe.title,
-                        notes: `${SLOT_META[rouletteOptions.slot].label} roulette · ${rouletteOptions.cuisine}`,
+                        notes: `Roulette pick`,
                         cookIds: [],
                       });
                       // Cache ingredient names so the grocery-status badge
@@ -769,12 +830,17 @@ export default function Meals() {
                       setRouletteOptions(null);
                     }}
                   >
-                    <span className="roulette-picker-index">{index + 1}</span>
+                    {recipe.thumbnail ? (
+                      <img className="roulette-picker-thumb" src={recipe.thumbnail} alt="" loading="lazy" />
+                    ) : (
+                      <span className="roulette-picker-index">{index + 1}</span>
+                    )}
                     <div className="roulette-picker-copy">
                       <strong>{recipe.title}</strong>
                       <small>
                         {recipe.readyInMinutes ? `${recipe.readyInMinutes} min` : ""}
                         {recipe.servings ? ` · Serves ${recipe.servings}` : ""}
+                        {recipe.cuisine ? ` · ${recipe.cuisine}` : ""}
                       </small>
                     </div>
                     <ChefHat size={16} className="roulette-picker-arrow" />

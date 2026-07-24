@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FamOS Form Variants — Visual Regression Fixture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  /* ── Reset & tokens (mirrors src/theme/famos-tokens.css) ── */
+  :root {
+    --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+    --radius-xs: 8px;
+    --radius-sm: 12px;
+    --radius-md: 16px;
+    --radius-control: 16px;
+    --radius-pill: 999px;
+    --radius-section: 22px;
+    --motion-fast: 160ms;
+    --motion-standard: 260ms;
+    --color-canvas: #F3F0EE;
+    --color-surface: #FFFFFF;
+    --color-surface-sunken: #F0EDEB;
+    --color-border: #E5E0DB;
+    --color-border-strong: #C4BCB4;
+    --color-ink: #101828;
+    --color-ink-soft: #475467;
+    --color-ink-faint: #98A2B3;
+    --color-accent: #6C4EE4;
+    --color-accent-soft: #F0ECFC;
+    --color-accent-strong: #5A3DC8;
+    --color-warn: #C26A1B;
+    --color-warn-soft: #FDF2E4;
+    --color-good: #12B76A;
+    --color-good-soft: #D0F5E0;
+    --color-fam-rose: #D94B7A;
+    --color-fam-sky: #4E9EF7;
+  }
+
+  .theme-dark {
+    --color-canvas: #0E0E12;
+    --color-surface: #16161D;
+    --color-surface-sunken: #1E1E27;
+    --color-border: #2A2A36;
+    --color-border-strong: #3E3E4E;
+    --color-ink: #F0F0F4;
+    --color-ink-soft: #A0A0B0;
+    --color-ink-faint: #5C5C6E;
+    --color-accent: #8B6CF0;
+    --color-accent-soft: #1E1A30;
+    --color-accent-strong: #A68BFA;
+    --color-warn: #E8943A;
+    --color-warn-soft: #2E2010;
+    --color-good: #34D399;
+    --color-good-soft: #0E2A1A;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: var(--font-sans);
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    padding: 40px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Layout ── */
+  .vr-page { max-width: 960px; margin: 0 auto; }
+  .vr-page h1 {
+    font: 800 28px/1.2 var(--font-display);
+    margin-bottom: 6px;
+  }
+  .vr-page > p {
+    color: var(--color-ink-soft);
+    font-size: 14px;
+    margin-bottom: 32px;
+  }
+  .vr-section {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-section);
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+  .vr-section h2 {
+    font: 700 18px/1.3 var(--font-display);
+    margin-bottom: 4px;
+  }
+  .vr-section > p {
+    color: var(--color-ink-soft);
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+  .vr-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .vr-item {
+    display: grid;
+    gap: 6px;
+    min-width: 200px;
+    flex: 1;
+  }
+  .vr-item > span {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-ink-faint);
+  }
+
+  /* ── Shared form-control (app style) ── */
+  .form-control {
+    display: block;
+    width: 100%;
+    min-height: 46px;
+    padding: 10px 14px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    background: var(--color-surface-sunken);
+    color: var(--color-ink);
+    font: 500 15px/1.35 var(--font-sans);
+    transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease, background var(--motion-fast) ease;
+    outline: none;
+  }
+  .form-control:hover {
+    border-color: var(--color-border-strong);
+  }
+  .form-control:focus {
+    border-color: var(--color-accent);
+    background: var(--color-surface);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 16%, transparent);
+  }
+  .form-control:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  /* ── Admin form input ── */
+  .admin-input {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    padding: 12px 14px;
+    min-height: 46px;
+    background: var(--color-surface-sunken);
+    color: var(--color-ink);
+    font-size: 15px;
+    transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease, background var(--motion-fast) ease;
+    outline: none;
+  }
+  .admin-input:hover {
+    border-color: var(--color-border-strong);
+  }
+  .admin-input:focus {
+    border-color: var(--color-accent);
+    background: var(--color-surface);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 16%, transparent);
+  }
+
+  /* ── Select (app + admin) ── */
+  .form-select, .admin-select {
+    display: block;
+    width: 100%;
+    min-height: 46px;
+    padding: 0 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    background: var(--color-surface-sunken);
+    color: var(--color-ink);
+    font-size: 15px;
+    font-weight: 500;
+    outline: none;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2398A2B3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease;
+  }
+  .form-select:hover, .admin-select:hover {
+    border-color: var(--color-border-strong);
+  }
+  .form-select:focus, .admin-select:focus {
+    border-color: var(--color-accent);
+    background-color: var(--color-surface);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 16%, transparent);
+  }
+
+  /* ── Pill buttons ── */
+  .pill-btn, .admin-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    padding: 0 20px;
+    min-height: 46px;
+    font-weight: 750;
+    font-size: 14px;
+    cursor: pointer;
+    transition: opacity var(--motion-fast) ease, transform var(--motion-fast) ease;
+  }
+  .pill-btn:active, .admin-pill-btn:active {
+    transform: scale(0.98);
+  }
+  .pill-btn:disabled, .admin-pill-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* Primary (ink bg) */
+  .pill-primary {
+    background: var(--color-ink);
+    color: var(--color-surface);
+  }
+  .pill-accent {
+    background: var(--color-accent);
+    color: #fff;
+  }
+  .pill-outline {
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-ink);
+  }
+  .pill-outline:hover {
+    background: var(--color-accent-soft);
+    border-color: var(--color-accent);
+  }
+  .pill-danger {
+    background: var(--color-warn);
+    color: #fff;
+  }
+  .pill-ghost {
+    background: transparent;
+    color: var(--color-accent);
+  }
+  .pill-ghost:hover {
+    background: var(--color-accent-soft);
+  }
+
+  /* ── Theme toggle ── */
+  .theme-toggle {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 100;
+    display: flex;
+    gap: 6px;
+  }
+  .theme-toggle button {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    background: var(--color-surface);
+    color: var(--color-ink-soft);
+    cursor: pointer;
+    transition: all var(--motion-fast) ease;
+  }
+  .theme-toggle button.active {
+    background: var(--color-ink);
+    color: var(--color-surface);
+    border-color: var(--color-ink);
+  }
+
+  /* ── Forced state previews ── */
+  .force-focus .form-control,
+  .force-focus .admin-input,
+  .force-focus .form-select,
+  .force-focus .admin-select {
+    border-color: var(--color-accent) !important;
+    background: var(--color-surface) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 16%, transparent) !important;
+  }
+  .force-disabled .form-control,
+  .force-disabled .admin-input,
+  .force-disabled .form-select,
+  .force-disabled .admin-select,
+  .force-disabled .pill-btn,
+  .force-disabled .admin-pill-btn {
+    opacity: 0.55 !important;
+    cursor: not-allowed !important;
+  }
+
+  /* ── Comparison grid ── */
+  .vr-compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .vr-compare-grid > div {
+    display: grid;
+    gap: 6px;
+  }
+  .vr-compare-grid > div > span {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-ink-faint);
+  }
+  .vr-compare-label {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 3px 8px;
+    border-radius: var(--radius-pill);
+    background: var(--color-accent-soft);
+    color: var(--color-accent-strong);
+    margin-bottom: 8px;
+    width: fit-content;
+  }
+</style>
+</head>
+<body>
+<div class="vr-page" id="vr-root">
+  <h1>Form Variants — Visual Regression Fixture</h1>
+  <p>Captures every form control in light and dark mode for screenshot comparison. Use the theme toggle to switch modes.</p>
+
+  <div class="theme-toggle">
+    <button class="active" data-theme="light" onclick="setTheme('light', this)">Light</button>
+    <button data-theme="dark" onclick="setTheme('dark', this)">Dark</button>
+  </div>
+
+  <!-- ── 1. App form-control: Input (default) ── -->
+  <div class="vr-section" data-variant="app-input-default">
+    <span class="vr-compare-label">App</span>
+    <h2>Text Input — Default</h2>
+    <p>Standard .form-control input at rest</p>
+    <div class="vr-row">
+      <div class="vr-item">
+        <span>With placeholder</span>
+        <input class="form-control" type="text" placeholder="Enter your name…" />
+      </div>
+      <div class="vr-item">
+        <span>With value</span>
+        <input class="form-control" type="text" value="Alex Vorobiev" />
+      </div>
+      <div class="vr-item">
+        <span>Disabled</span>
+        <input class="form-control" type="text" value="Read-only field" disabled />
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 2. App form-control: Input (focus) ── -->
+  <div class="vr-section force-focus" data-variant="app-input-focus">
+    <span class="vr-compare-label">App — Focus State</span>
+    <h2>Text Input — Focus</h2>
+    <p>.form-control with accent border + glow</p>
+    <div class="vr-row">
+      <div class="vr-item">
+        <span>Focused with value</span>
+        <input class="form-control" type="text" value="Focused input" />
+      </div>
+      <div class="vr-item">
+        <span>Focused empty</span>
+        <input class="form-control" type="text" placeholder="Type here…" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 3. App select ── -->
+  <div class="vr-section" data-variant="app-select">
+    <span class="vr-compare-label">App</span>
+    <h2>Select Dropdown</h2>
+    <p>Native select with custom styling</p>
+    <div class="vr-row">
+      <div class="vr-item">
+        <span>Default</span>
+        <select class="form-select">
+          <option>Breakfast</option>
+          <option>Lunch</option>
+          <option>Dinner</option>
+        </select>
+      </div>
+      <div class="vr-item">
+        <span>With focus (forced)</span>
+        <select class="form-select" style="border-color:var(--color-accent);background:var(--color-surface);box-shadow:0 0 0 3px color-mix(in srgb, var(--color-accent) 16%, transparent)">
+          <option selected>Meal type</option>
+          <option>Breakfast</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 4. App pill buttons ── -->
+  <div class="vr-section" data-variant="app-pill-buttons">
+    <span class="vr-compare-label">App</span>
+    <h2>Pill Buttons</h2>
+    <p>All button variants used across the app</p>
+    <div class="vr-row">
+      <div class="vr-item">
+        <span>Primary (ink)</span>
+        <button class="pill-btn pill-primary">Save changes</button>
+      </div>
+      <div class="vr-item">
+        <span>Accent</span>
+        <button class="pill-btn pill-accent">Add event</button>
+      </div>
+      <div class="vr-item">
+        <span>Outline</span>
+        <button class="pill-btn pill-outline">Cancel</button>
+      </div>
+      <div class="vr-item">
+        <span>Danger</span>
+        <button class="pill-btn pill-danger">Delete</button>
+      </div>
+      <div class="vr-item">
+        <span>Ghost</span>
+        <button class="pill-btn pill-ghost">Skip</button>
+      </div>
+      <div class="vr-item">
+        <span>Disabled</span>
+        <button class="pill-btn pill-primary" disabled>Locked</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 5. Admin input (default) ── -->
+  <div class="vr-section" data-variant="admin-input-default">
+    <span class="vr-compare-label">Admin</span>
+    <h2>Admin Text Input — Default</h2>
+    <p>Admin inline form input at rest</p>
+    <div class="vr-row">
+      <div class="vr-item">
+        <span>With placeholder</span>
+        <input class="admin-input" type="text" placeholder="Enter email address…" />
+      </div>
+      <div class="vr-item">
+        <span>With value</span>
+        <input class="admin-input" type="text" value="admin@fam-os.app" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 6. Admin input (focus) ── -->
+  <div class="vr-section force-focus" data-variant="admin-input-focus">
+    <span class="vr-compare-label">Admin — Focus State</span>
+    <h2>Admin Text Input — Focus</h2>
+    <p>Admin input with accent border + glow</p>
+    <div class="vr-row">
+      <div class="vr-item">
+        <span>Focused with value</span>
+        <input class="admin-input" type="text" value="admin@fam-os.app" />
+      </div>
+      <div class="vr-item">
+        <span>Focused empty</span>
+        <input class="admin-input" type="text" placeholder="Search users…" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 7. Admin select ── -->
+  <div class="vr-section" data-variant="admin-select">
+    <span class="vr-compare-label">Admin</span>
+    <h2>Admin Select Dropdown</h2>
+    <p>Admin select with custom styling</p>
+    <div class="vr-row">
+      <div class="vr-item">
+        <span>Default</span>
+        <select class="admin-select">
+          <option>Active</option>
+          <option>Trial</option>
+          <option>Suspended</option>
+        </select>
+      </div>
+      <div class="vr-item">
+        <span>Focused (forced)</span>
+        <select class="admin-select" style="border-color:var(--color-accent);background:var(--color-surface);box-shadow:0 0 0 3px color-mix(in srgb, var(--color-accent) 16%, transparent)">
+          <option selected>Account status</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 8. Admin pill buttons ── -->
+  <div class="vr-section" data-variant="admin-pill-buttons">
+    <span class="vr-compare-label">Admin</span>
+    <h2>Admin Pill Buttons</h2>
+    <p>Admin action buttons matching app convention</p>
+    <div class="vr-row">
+      <div class="vr-item">
+        <span>Primary (ink)</span>
+        <button class="admin-pill-btn pill-primary">Send invite</button>
+      </div>
+      <div class="vr-item">
+        <span>Outline</span>
+        <button class="admin-pill-btn pill-outline">Cancel</button>
+      </div>
+      <div class="vr-item">
+        <span>Danger</span>
+        <button class="admin-pill-btn pill-danger">Remove member</button>
+      </div>
+      <div class="vr-item">
+        <span>Ghost</span>
+        <button class="admin-pill-btn pill-ghost">View all</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 9. Admin disabled states ── -->
+  <div class="vr-section force-disabled" data-variant="admin-disabled">
+    <span class="vr-compare-label">Admin — Disabled</span>
+    <h2>Admin Disabled States</h2>
+    <p>All form controls in their disabled appearance</p>
+    <div class="vr-row">
+      <div class="vr-item">
+        <span>Disabled input</span>
+        <input class="admin-input" type="text" value="Cannot edit" disabled />
+      </div>
+      <div class="vr-item">
+        <span>Disabled select</span>
+        <select class="admin-select" disabled>
+          <option>Locked</option>
+        </select>
+      </div>
+      <div class="vr-item">
+        <span>Disabled pill button</span>
+        <button class="admin-pill-btn pill-primary" disabled>Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 10. Side-by-side comparison ── -->
+  <div class="vr-section" data-variant="side-by-side">
+    <span class="vr-compare-label">Comparison</span>
+    <h2>App vs Admin — Side by Side</h2>
+    <p>Direct comparison of matching form elements to verify visual parity</p>
+
+    <div style="margin-bottom:20px">
+      <strong style="font-size:13px;color:var(--color-ink-soft)">Input (default)</strong>
+      <div class="vr-compare-grid" style="margin-top:8px">
+        <div>
+          <span>App .form-control</span>
+          <input class="form-control" type="text" value="App input" />
+        </div>
+        <div>
+          <span>Admin .admin-input</span>
+          <input class="admin-input" type="text" value="Admin input" />
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:20px">
+      <strong style="font-size:13px;color:var(--color-ink-soft)">Input (focus)</strong>
+      <div class="vr-compare-grid force-focus" style="margin-top:8px">
+        <div>
+          <span>App .form-control:focus</span>
+          <input class="form-control" type="text" value="App focused" />
+        </div>
+        <div>
+          <span>Admin .admin-input:focus</span>
+          <input class="admin-input" type="text" value="Admin focused" />
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:20px">
+      <strong style="font-size:13px;color:var(--color-ink-soft)">Select</strong>
+      <div class="vr-compare-grid" style="margin-top:8px">
+        <div>
+          <span>App .form-select</span>
+          <select class="form-select">
+            <option>Meal type</option>
+          </select>
+        </div>
+        <div>
+          <span>Admin .admin-select</span>
+          <select class="admin-select">
+            <option>Account status</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <strong style="font-size:13px;color:var(--color-ink-soft)">Pill Button (primary)</strong>
+      <div class="vr-compare-grid" style="margin-top:8px">
+        <div>
+          <span>App .pill-btn</span>
+          <button class="pill-btn pill-primary">Save changes</button>
+        </div>
+        <div>
+          <span>Admin .admin-pill-btn</span>
+          <button class="admin-pill-btn pill-primary">Send invite</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function setTheme(mode, btn) {
+    document.documentElement.classList.toggle('theme-dark', mode === 'dark');
+    document.querySelectorAll('.theme-toggle button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  // Expose for Playwright
+  window.__setTheme = setTheme;
+
+  // Expose variant list for automated capture
+  window.__VR_VARIANTS = Array.from(document.querySelectorAll('[data-variant]'))
+    .map(el => ({ id: el.dataset.variant, selector: `[data-variant="${el.dataset.variant}"]` }));
+</script>
+</body>
+</html>

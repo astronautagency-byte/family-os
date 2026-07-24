@@ -217,7 +217,7 @@ export default function Finance() {
   const canSubmit = draft.description.trim() && Number(draft.amount) > 0;
 
   return (
-    <div className="pb-24">
+    <div className="pb-24 famos-noscroll">
       <PageHeader eyebrow={range.label} title="Money without the mystery." illustration="finance" subtitle={`A calmer look at real dollars this ${financePeriod === "monthly" ? "month" : "week"}.`} />
       <div className="px-5 mt-2 space-y-5">
         <div className="grid grid-cols-2 gap-1 rounded-xl bg-[var(--color-surface-sunken)] border border-[var(--color-border)] p-1">

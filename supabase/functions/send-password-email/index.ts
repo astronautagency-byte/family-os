@@ -89,7 +89,12 @@ Deno.serve(async (request) => {
     const url = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const resendKey = Deno.env.get("RESEND_API_KEY");
-    const fromEmail = Deno.env.get("FAMOS_FROM_EMAIL") || "FamOS <invites@fam-os.app>";
+    // Outbound mail lives on a dedicated sending subdomain so SPF / DKIM /
+    // DMARC sit on `mail.fam-os.app` and the root keeps a clean reputation
+    // zone. The explicit FAMOS_FROM_EMAIL override still wins if the operator
+    // wants to point the envelope at a different address.
+    const FAMOS_MAIL_DOMAIN = Deno.env.get("FAMOS_MAIL_DOMAIN") || "mail.fam-os.app";
+    const fromEmail = Deno.env.get("FAMOS_FROM_EMAIL") || `FamOS <invites@${FAMOS_MAIL_DOMAIN}>`;
     const accessKeyId = Deno.env.get("AWS_ACCESS_KEY_ID");
     const secretAccessKey = Deno.env.get("AWS_SECRET_ACCESS_KEY");
     const region = Deno.env.get("AWS_REGION") || "ca-central-1";

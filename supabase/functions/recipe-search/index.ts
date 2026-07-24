@@ -113,6 +113,69 @@ const parseServings = (raw) => {
   return n;
 };
 
+// Translate a hand-picked fallback row from `cook_mode_fallback_recipes`
+// into the same recipe shape that `normaliseRecipe(...)` produces for an
+// API Ninjas response, so the front-end can render either path without
+// branching on the source column. Stored rows already carry the v3 fields
+// (`ingredients` jsonb shaped as `{name, quantity, unit}`, instructions as
+// a string array) so the only reshaping needed is type coercion on the
+// numeric columns.
+const normaliseFallbackRow = (row) => {
+  if (!row || typeof row !== "object") return null;
+  const title = cleanText(row.title, 120);
+  if (!title) return null;
+  const servings = Number(row.servings);
+  const ready = Number(row.ready_in_minutes);
+  return {
+    title,
+    ingredients: cleanIngredients(row.ingredients),
+    instructions: cleanInstructions(row.instructions),
+    servings: Number.isFinite(servings) && servings > 0 ? Math.round(servings) : DEFAULT_SERVINGS,
+    readyInMinutes: Number.isFinite(ready) && ready > 0 ? Math.round(ready) : null,
+    source: cleanText(row.source, 80) || "FamOS curated",
+    sourceUrl: cleanText(row.source_url || row.sourceUrl || "", 220),
+  };
+};
+
+// Look up a curated fallback recipe from the cook_mode_fallback_recipes
+// table when API Ninjas returned zero recipes. Uses PostgREST via the
+// service-role key so the table can stay RLS-locked (the row data is
+// internal, not a public catalogue). The query is ILIKE-matched against
+// the generated `search_text` column, which flattens title + ingredients
+// + instructions so a single pattern matches both "the recipe's name"
+// AND "any ingredient in the recipe". A user typing "chicken" in the
+// ingredient search will therefore find "Sheet-pan chicken fajitas" via
+// its title token. Returns the first match's recipe (already normalised)
+// or null.
+//
+// This is deliberately *not* a second full search — the fallback table is
+// short and hand-curated, so the ILIKE match is fine. It also runs *after*
+// the API Ninjas call (we never want to skip the live source when it has
+// matches), only on the empty-result branch.
+const fetchFallbackRecipe = async (searchQuery) => {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceKey || !searchQuery) return null;
+  // Strip SQL LIKE wildcards (% _) AND PostgREST's actual URL filter
+  // wildcard (*) so a user query like "co*oper" can't introduce extra
+  // wildcards once PostgREST URL-decodes the value.
+  const safeQuery = searchQuery.replace(/[%_*]/g, "").slice(0, 120);
+  if (!safeQuery) return null;
+  try {
+    const url = `${supabaseUrl}/rest/v1/cook_mode_fallback_recipes?select=title,ingredients,instructions,servings,ready_in_minutes,source,source_url&search_text=ilike.*${encodeURIComponent(safeQuery)}*&limit=1`;
+    const res = await fetch(url, {
+      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+    });
+    if (!res.ok) return null;
+    const rows = await res.json().catch(() => null);
+    const row = Array.isArray(rows) ? rows[0] : null;
+    return row ? normaliseFallbackRow(row) : null;
+  } catch (err) {
+    console.warn("cook_mode_fallback_recipes lookup failed", err);
+    return null;
+  }
+};
+
 // API Ninjas does not return `total_time` or `readyInMinutes`. Walk the
 // instruction list once and pick the first recognised duration phrase. If
 // none is found, surface null and let the UI render "Plan the prep" rather
@@ -223,9 +286,32 @@ Deno.serve(async (request) => {
 
     const raw = await response.json().catch(() => null);
     const list = Array.isArray(raw) ? raw : Array.isArray(raw?.recipes) ? raw.recipes : [];
-    const recipes = list.map(normaliseRecipe).filter(Boolean);
+    let recipes = list.map(normaliseRecipe).filter(Boolean);
+    let apiSource = "api-ninjas";
 
-    return new Response(JSON.stringify({ recipes, query: searchParams.get("title"), source: "api-ninjas" }), {
+    // When API Ninjas returned zero matches for this title, fall back to
+    // the hand-picked cook_mode_fallback_recipes table so cook mode always
+    // has at least one real recipe to land. Only consulted on the
+    // empty-result branch — never preempts a successful live search.
+    if (recipes.length === 0) {
+      // Both `title` and `ingredients` queries are matched against the
+      // same generated `search_text` column on the fallback table, so a
+      // user typing "chicken" in the ingredient search box (no title
+      // param sent) still triggers the curated fallback. Pick whichever
+      // is non-empty — the same query that hit API Ninjas also hits the
+      // fallback.
+      const searchQuery = searchParams.get("title") || searchParams.get("ingredients") || "";
+      const fallback = await fetchFallbackRecipe(searchQuery);
+      if (fallback) {
+        recipes = [fallback];
+        // Curated rows always stamp source = "FamOS curated" via
+        // normaliseFallbackRow, so a single literal is clearer than
+        // round-tripping the field back off the recipe.
+        apiSource = "FamOS curated";
+      }
+    }
+
+    return new Response(JSON.stringify({ recipes, query: searchParams.get("title"), source: apiSource }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {

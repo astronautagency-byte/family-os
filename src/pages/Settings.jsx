@@ -4,7 +4,9 @@ import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, Card, Modal, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
 import ConfirmAction from "../components/ConfirmAction";
+import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
 import PageHeader from "../components/PageHeader";
+import { passwordError } from "../utils/passwordStrength";
 import { FAMILY_COLORS } from "../data/mockData";
 import { AVATAR_PRESETS } from "../data/avatarLibrary";
 import { PRICING_PLAN, formatMoney } from "../data/pricingPlan";
@@ -527,7 +529,7 @@ export default function Settings() {
   const estimatedMonthlyPlan = PRICING_PLAN.basePlan.price.monthly + extraMembers * PRICING_PLAN.basePlan.additionalMemberPrice.monthly;
 
   return (
-    <div className="pb-24 reference-settings">
+    <div className="pb-24 reference-settings famos-noscroll">
       <PageHeader eyebrow="Household" title="Settings" illustration="settings" subtitle="Tweak the home base without making it a whole thing." />
 
       <div className="px-5 space-y-6 mt-2">
@@ -739,9 +741,10 @@ export default function Settings() {
         {configured && <section>
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">Account password</h2>
           <Card className="p-4">
-            <TextField type={showNewPassword ? "text" : "password"} label="New password" placeholder="At least 6 characters" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} minLength={6} autoComplete="new-password" />
+            <TextField type={showNewPassword ? "text" : "password"} label="New password" placeholder="10+ characters" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} minLength={10} autoComplete="new-password" />
             <button type="button" onClick={() => setShowNewPassword((value) => !value)} className="flex items-center gap-1.5 text-[12px] text-[var(--color-ink-soft)] -mt-1 mb-3">{showNewPassword ? <EyeOff size={14} /> : <Eye size={14} />} {showNewPassword ? "Hide password" : "Show password"}</button>
-            <PrimaryButton disabled={newPassword.length < 6} onClick={async () => { try { await updatePassword(newPassword); setNewPassword(""); setPasswordStatus("Password saved. You can now use it to sign in on your phone."); } catch (e) { setPasswordStatus(e.message); } }}>Save password</PrimaryButton>
+            <PasswordStrengthMeter value={newPassword} compact />
+            <PrimaryButton disabled={!!passwordError(newPassword)} onClick={async () => { try { await updatePassword(newPassword); setNewPassword(""); setPasswordStatus("Password saved. You can now use it to sign in on your phone."); } catch (e) { setPasswordStatus(e.message); } }}>Save password</PrimaryButton>
             {passwordStatus && <p className="text-[12px] text-[var(--color-ink-soft)] mt-2">{passwordStatus}</p>}
           </Card>
         </section>}

@@ -55,8 +55,8 @@ test("normaliseRecipe never fabricates fields API Ninjas does not return", () =>
   assert.match(source, /readyInMinutes:\s*parseReadyInMinutes\(instructions\)/, "readyInMinutes must be derived from the instruction text, not invented");
 });
 
-test("default result limit is 1 (the free-tier ceiling per API Ninjas docs)", () => {
-  assert.match(source, /DEFAULT_RESULT_LIMIT\s*=\s*1/, "free tier returns one recipe by default per docs");
+test("default result limit matches the current free-tier ceiling (3 for roulette picker)", () => {
+  assert.match(source, /DEFAULT_RESULT_LIMIT\s*=\s*3/, "free tier limit bumped to 3 so the roulette picker has options to show");
 });
 
 test("title parameter is sent (used to be 'query' — current endpoint accepts 'title' as the free-text search)", () => {

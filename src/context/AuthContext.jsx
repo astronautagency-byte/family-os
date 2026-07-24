@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { invokeEdgeFunction, isSupabaseConfigured, supabase } from "../lib/supabase";
+import { passwordError } from "../utils/passwordStrength";
 
 const AuthContext = createContext(null);
 const STAPLES_KEY = "family-os:grocery-staples:v1";
@@ -473,6 +474,8 @@ export function AuthProvider({ children }) {
 
   const signUp = async (email, password, displayName) => {
     setError(null);
+    const weak = passwordError(password);
+    if (weak) throw new Error(weak);
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: email.trim().toLowerCase(),
       password,
@@ -486,6 +489,8 @@ export function AuthProvider({ children }) {
   };
 
   const updatePassword = async (password) => {
+    const weak = passwordError(password);
+    if (weak) throw new Error(weak);
     const { error: passwordError } = await supabase.auth.updateUser({ password });
     if (passwordError) throw passwordError;
     setPasswordRecovery(false);
@@ -536,6 +541,8 @@ export function AuthProvider({ children }) {
 
   const completeInvitePasswordSetup = async (email, token, password) => {
     setError(null);
+    const weak = passwordError(password);
+    if (weak) throw new Error(weak);
     const { data, error: verifyError } = await supabase.auth.verifyOtp({
       email: email.trim().toLowerCase(),
       token: token.trim(),
