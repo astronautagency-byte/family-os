@@ -6,6 +6,7 @@ import { Avatar, AvatarStack, Card, Modal, PrimaryButton, SecondaryButton, TextF
 import PageHeader from "../components/PageHeader";
 import PullToRefresh from "../components/PullToRefresh";
 import ConfirmAction from "../components/ConfirmAction";
+import ErrorBoundary from "../components/ErrorBoundary";
 import { MEAL_SLOTS } from "../data/mockData";
 import { recipeSearchProfileForMeal } from "../data/recipeBox";
 import { addDays, formatDayLabel, todayISO } from "../lib/dates";
@@ -163,10 +164,11 @@ export default function Meals() {
   const finishCookMode = useCallback(() => setCookMeal(null), []);
   const advanceCookStep = useCallback((delta) => {
     setCookStep((step) => {
-      const max = Math.max((cookSteps?.length || 1) - 1, 0);
+      const total = cookRecipe?.instructions?.length || 0;
+      const max = Math.max(total - 1, 0);
       return Math.min(Math.max(step + delta, 0), max);
     });
-  }, [cookSteps?.length]);
+  }, [cookRecipe?.instructions?.length]);
   const { supported: voiceSupported, listening: voiceListening, transcript: voiceTranscript, error: voiceError, start: startVoice, stop: stopVoice } = useVoiceCommands({
     commands: [
       { match: /\b(next|forward|continue|go)\b/i, action: "next" },
@@ -954,7 +956,29 @@ export default function Meals() {
         </div>
       </Modal>
       {cookMeal && cookRecipe && (
-        <div className="cook-focus-screen" role="dialog" aria-modal="true" aria-label={`Recipe for ${cookRecipe.title}`}>
+        <ErrorBoundary
+          fallback={(error) => (
+            <div className="cook-focus-screen cook-focus-crash" role="alert">
+              <div className="cook-focus-shell">
+                <div className="cook-focus-topbar">
+                  <button onClick={() => setCookMeal(null)}><ArrowLeft size={18} /> Back to meals</button>
+                </div>
+                <section className="cook-focus-hero no-photo">
+                  <div className="cook-focus-copy">
+                    <p className="eyebrow">COOK MODE</p>
+                    <h2>{cookRecipe.title}</h2>
+                    <p>Cook Mode hit an unexpected snag. Your meal is still in the planner — finishing cooking and trying again usually clears it.</p>
+                    <button className="cook-primary-action" onClick={() => setCookMeal(null)}>
+                      <ChefHat size={21} />
+                      <span><strong>Back to meal planner</strong><small>You can re-open Cook Mode any time</small></span>
+                    </button>
+                  </div>
+                </section>
+              </div>
+            </div>
+          )}
+        >
+          <div className="cook-focus-screen" role="dialog" aria-modal="true" aria-label={`Recipe for ${cookRecipe.title}`}>
           <div className="cook-focus-shell">
             <div className="cook-focus-topbar">
               <button onClick={() => setCookMeal(null)}><ArrowLeft size={18} /> Back to meals</button>
@@ -1112,6 +1136,7 @@ export default function Meals() {
             )}
           </div>
         </div>
+        </ErrorBoundary>
       )}
     </div></PullToRefresh>
   );
