@@ -13,7 +13,7 @@ import { formatDuration, formatTime, todayISO } from "../lib/dates";
 import { fetchGooglePlaceSuggestions, googleMapsApiKey, loadGooglePlaces } from "../lib/googleMapsPlaces";
 import { invokeEdgeFunction } from "../lib/supabase";
 import { parseQuickAdd } from "../lib/quickCapture";
-import { eventCacheKey, readEventCache, writeEventCache, clearEventCache, formatEventCacheAge } from "../lib/eventSearchCache";
+import { eventCacheKey, readEventCache, writeEventCache, clearEventCache } from "../lib/eventSearchCache";
 
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 
@@ -204,6 +204,7 @@ export default function CalendarPage() {
   const [discoverError, setDiscoverError] = useState("");
   const [discoveredEvents, setDiscoveredEvents] = useState([]);
   const [coverageLocalOnly, setCoverageLocalOnly] = useState(false);
+  const [eventTypeFilter, setEventTypeFilter] = useState(null);
   // Per-city surgical toggles — when nearby-cities expansion fired, the
   // user can disable a single contributing city without hiding all nearby.
   // Persistent across searches and sessions: lazy-init reads the saved
@@ -233,7 +234,10 @@ export default function CalendarPage() {
   const [quickText, setQuickText] = useState("");
   const quickRef = useRef(null);
   const quickInputRef = useRef(null);
-  const [cacheMeta, setCacheMeta] = useState(null); // { cachedAt: number, payload } | null
+  // Cached event results are stored in localStorage with a 4h TTL;
+  // on modal reopen the cache hydrates immediately, then a silent
+  // background refresh fires so the user sees fresh data without
+  // waiting. No badge needed — it just works.
 
   // Weather: only relevant to TODAY's agenda header. Lat/lng come from the
   // household's saved address; the edge function is preferred, Open-Meteo is
@@ -490,11 +494,10 @@ export default function CalendarPage() {
       mutedNearbyCities: Array.from(excludedNearbyCities),
     });
     clearEventCache(key);
-    setCacheMeta(null);
     await runSearch(citiesForRequest);
   };
   const runSearch = async (citiesForRequest, { silent } = {}) => {
-    if (!citiesForRequest.length) { setDiscoverError("Add your home address in Settings, or add a city below, to discover nearby events."); setResultDiagnostics(null); setCacheMeta(null); return; }
+    if (!citiesForRequest.length) { setDiscoverError("Add your home address in Settings, or add a city below, to discover nearby events."); setResultDiagnostics(null); return; }
     if (!silent) setDiscoverBusy(true); setDiscoverError("");
     const country = String(householdProfileExtra?.country || "ca").toLowerCase().slice(0, 2);
     try {
@@ -507,11 +510,6 @@ export default function CalendarPage() {
       const key = eventCacheKey({ category: CATEGORY_FOR_DISCOVERY, when: discoverWhen, country, cities: citiesForRequest, mutedNearbyCities: Array.from(excludedNearbyCities) });
       const writeAt = Date.now();
       writeEventCache(key, result, writeAt);
-      if (result?.providerStatus !== "upstream_error") {
-        setCacheMeta({ cachedAt: writeAt, payload: result });
-      } else {
-        setCacheMeta(null);
-      }
       // Cache hit on next modal reopen OR a fresh runSearch both end up here.
       // The helper unifies the wording so the two paths can't drift.
       if (!Array.isArray(result?.events) || !result.events.length) {
@@ -588,7 +586,7 @@ export default function CalendarPage() {
   // Animate agenda rows sliding in when the date or filter changes.
   useGSAP(() => {
     if (!dayEvents.length) return;
-    gsap.fromTo(".calendar-list-row",
+    gsap.fromTo(".calendar-event",
       { y: 16, opacity: 0, scale: 0.97 },
       { y: 0, opacity: 1, scale: 1, duration: 0.35, stagger: 0.05, ease: "power2.out" }
     );
@@ -684,11 +682,12 @@ export default function CalendarPage() {
         ? `Showing ${userAreaEvents.length} from ${userCityLabel} + ${displayedNearbyEvents.length} from nearby (${nearbyLabel}). ${mutedHint}.`
         : `Showing ${userAreaEvents.length} from ${userCityLabel} + ${displayedNearbyEvents.length} from nearby (${nearbyLabel}).`;
   const coverageToggleDisabled = !coverageLocalOnly && userAreaEvents.length === 0;
+  const filteredEvents = eventTypeFilter ? displayedEvents.filter((event) => eventType(event) === eventTypeFilter) : displayedEvents;
 
   return (
     <>
     <PullToRefresh onRefresh={refreshAll}>
-      <div className="pb-28 calendar-page">
+      <div className="pb-28 calendar-page famos-noscroll">
         {/* ── Header with prominent date ── */}
         <div className="calendar-hero">
           <div className="calendar-hero-date">
@@ -705,8 +704,7 @@ export default function CalendarPage() {
               const key = eventCacheKey({ category: CATEGORY_FOR_DISCOVERY, when: discoverWhen, country: countryKey, cities: initialCities, mutedNearbyCities: Array.from(excludedNearbyCities) });
               const entry = readEventCache(key);
               if (entry) {
-                // Hydrate from cache so the modal shows results immediately.
-                setCacheMeta(entry);
+                // Hydrate from cache so the modal shows results instantly — no loading spinner.
                 setDiscoveredEvents(Array.isArray(entry.payload?.events) ? entry.payload.events : []);
                 setResultDiagnostics(entry.payload?.diagnostics || null);
                 setDiscoverError(deriveDiscoverError(entry.payload, initialCities, discoverWhen));
@@ -813,39 +811,43 @@ export default function CalendarPage() {
                 <p>Enjoy the quiet, or tap + to add something.</p>
               </div>
             ) : (
-              <div className="calendar-list">
+              <div className="calendar-agenda">
                 {dayEvents.map((ev) => {
                   const type = EVENT_TYPES[eventType(ev)];
                   const deletable = canDeleteEvent(ev);
                   return (
                     <div
-                      className="calendar-list-row"
+                      className="calendar-event"
                       key={ev.id}
                       onClick={() => setSelectedEvent(ev)}
                     >
-                      <div className="calendar-list-time">
-                        <span>{formatTime(ev.start)}</span>
-                        {ev.end && <em>{formatDuration(ev.start, ev.end)}</em>}
+                      <div className="calendar-event-time">
+                        <span className="calendar-event-start">{formatTime(ev.start)}</span>
+                        {ev.end && <span className="calendar-event-end">{formatTime(ev.end)}</span>}
+                        {ev.end && <span className="calendar-event-duration">{formatDuration(ev.start, ev.end)}</span>}
                       </div>
-                      <span className="calendar-list-dot" style={{ backgroundColor: type.color }} aria-hidden="true" />
-                      <div className="calendar-list-body">
+                      <span className="calendar-event-line" style={{ backgroundColor: type.color }} aria-hidden="true" />
+                      <div className="calendar-event-body">
                         <strong>{ev.title}</strong>
-                        {ev.location && (
-                          <span className="calendar-list-location">
-                            <MapPin size={11} />
-                            {ev.location}
-                          </span>
+                        <div className="calendar-event-meta">
+                          <span className="calendar-event-type" style={{ color: type.color }}>{type.label}</span>
+                          {ev.location && (
+                            <span className="calendar-event-location">
+                              <MapPin size={11} />
+                              {ev.location}
+                            </span>
+                          )}
+                        </div>
+                        {deletable && (
+                          <button
+                            className="calendar-event-delete"
+                            onClick={(event) => { event.stopPropagation(); setDeleteTarget(ev); }}
+                            aria-label={`Delete ${ev.title}`}
+                          >
+                            <Trash2 size={14} />
+                          </button>
                         )}
                       </div>
-                      {deletable && (
-                        <button
-                          className="calendar-list-delete"
-                          onClick={(event) => { event.stopPropagation(); setDeleteTarget(ev); }}
-                          aria-label={`Delete ${ev.title}`}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
                     </div>
                   );
                 })}
@@ -955,21 +957,6 @@ export default function CalendarPage() {
         </Modal>
 
         <Modal open={discovering} onClose={() => setDiscovering(false)} title="Find something fun nearby">
-          {!discoverBusy && cacheMeta && (
-            <button
-              type="button"
-              className="event-cache-badge"
-              onClick={() => {
-                const cities = discoverCities.length ? discoverCities : (discoverLocation ? [discoverLocation] : []);
-                refreshFromNetwork(cities);
-              }}
-              title={`Results loaded from cache ${formatEventCacheAge(cacheMeta.cachedAt)} · tap to refresh`}
-              aria-label={`Cached results from ${formatEventCacheAge(cacheMeta.cachedAt)} — tap to refresh`}
-            >
-              <RefreshCw aria-hidden="true" size={11} />
-              Cached · {formatEventCacheAge(cacheMeta.cachedAt)} · refresh
-            </button>
-          )}
           <div className="event-discovery-intro">
             <span><Sparkles /></span>
             <div>
@@ -989,12 +976,12 @@ export default function CalendarPage() {
             <small>Add nearby cities to widen the search radius. Results merge across every area.</small>
           </div>
           <div className="event-discovery-controls">
-            <label><span>When?</span>
+            <label className="calendar-select-label"><span>When?</span>
               <select value={discoverWhen} onChange={event => setDiscoverWhen(event.target.value)}>
-                <option>today</option><option>tomorrow</option><option>this weekend</option><option>next weekend</option><option>this month</option>
+                <option>today</option><option>tomorrow</option><option>this weekend</option><option>next weekend</option><option>this month</option><option>next month</option>
               </select>
             </label>
-            <button onClick={searchLocalEvents} disabled={discoverBusy}><Search />{discoverBusy ? "Looking nearby…" : "Search"}</button>
+            <button className="event-discovery-search" onClick={searchLocalEvents} disabled={discoverBusy}><Search size={15} />{discoverBusy ? "Looking nearby…" : "Search"}</button>
           </div>
           {discoverBusy && <div className="event-discovery-loading"><LoaderCircle /> Finding ideas near your family…</div>}
           {discoverError && (
@@ -1089,29 +1076,51 @@ export default function CalendarPage() {
                   <button type="button" className="event-discovery-retry-city" onClick={retryFailedCities}><Search aria-hidden="true" size={14} /> Retry {resultDiagnostics.failedCities.length === 1 ? "that area" : "those areas"}</button>
                 </div>
               )}
-              <div className="discovered-event-list">
-                {displayedEvents.map(event => (
-                  <article key={event.id}>
-                    <div className="discovered-event-thumb">
-                      {event.thumbnail ? <img src={event.thumbnail} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <Ticket aria-hidden="true" />}
-                    </div>
-                    <div className="discovered-event-copy">
-                      <div>
-                        <span>{event.dateLabel || (event.startTime ? new Date(event.startTime.replace(" ", "T")).toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" }) : "Date varies")}</span>
-                        {event.ticketSource && <small><Ticket aria-hidden="true" /> {event.ticketSource}</small>}
-                        {event.origin === "nearby" && <small className="discovered-event-from"><MapPin aria-hidden="true" /> {event.fromCity} (nearby)</small>}
-                      </div>
-                      <h3>{event.name}</h3>
-                      <p>{event.description || "Open the event page for details."}</p>
-                      <b><MapPin aria-hidden="true" />{event.virtual ? "Online event" : event.venue?.name || event.venue?.city || searchCities[0] || discoverLocation}</b>
-                      <footer>
-                        <button type="button" onClick={() => addDiscoveredEvent(event)}><CalendarPlus aria-hidden="true" /> Add to calendar</button>
-                        {event.link && <a href={event.link} target="_blank" rel="noreferrer">View details <ExternalLink aria-hidden="true" /></a>}
-                      </footer>
-                    </div>
-                  </article>
+              <div className="event-type-chips">
+                <button className={`event-type-chip ${eventTypeFilter === null ? "active" : ""}`} onClick={() => setEventTypeFilter(null)}>All</button>
+                {Object.entries(EVENT_TYPES).map(([key, type]) => (
+                  <button
+                    key={key}
+                    className={`event-type-chip ${eventTypeFilter === key ? "active" : ""}`}
+                    style={{ "--chip-color": type.color }}
+                    onClick={() => setEventTypeFilter(eventTypeFilter === key ? null : key)}
+                  >
+                    <i style={{ backgroundColor: type.color }} />
+                    {type.label}
+                  </button>
                 ))}
               </div>
+              <div className="event-carousel-wrapper"><div className="event-carousel">
+                {filteredEvents.map(event => {
+                  const eventTypeKey = eventType(event);
+                  const typeStyle = EVENT_TYPES[eventTypeKey];
+                  return (
+                    <div className="event-carousel-card" key={event.id}>
+                      <div className="event-carousel-media">
+                        {event.thumbnail ? <img src={event.thumbnail} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <Ticket aria-hidden="true" />}
+                        <span className="event-carousel-badge" style={{ background: typeStyle.color }}>{typeStyle.label}</span>
+                      </div>
+                      <div className="event-carousel-body">
+                        <div className="event-carousel-date">
+                          <span>{event.dateLabel || (event.startTime ? new Date(event.startTime.replace(" ", "T")).toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" }) : "Date varies")}</span>
+                          {event.ticketSource && <small><Ticket size={11} /> {event.ticketSource}</small>}
+                          {event.origin === "nearby" && <small><MapPin size={11} /> {event.fromCity}</small>}
+                        </div>
+                        <h3>{event.name}</h3>
+                        <p>{event.description || "Open the event page for details."}</p>
+                        <span className="event-carousel-location">
+                          <MapPin size={12} />
+                          {event.virtual ? "Online event" : event.venue?.name || event.venue?.city || searchCities[0] || discoverLocation}
+                        </span>
+                        <div className="event-carousel-footer">
+                          <button type="button" onClick={() => addDiscoveredEvent(event)}><CalendarPlus size={13} /> Add</button>
+                          {event.link && <a href={event.link} target="_blank" rel="noreferrer">Details <ExternalLink size={13} /></a>}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div></div>
               {/* ── Muted suggestions tier ──
                   Surface events from muted cities in a collapsible low-priority
                   section so rare-but-relevant events (a once-a-year Toronto
@@ -1131,29 +1140,36 @@ export default function CalendarPage() {
                       </small>
                     </div>
                   </summary>
-                  <div className="discovered-event-list discovered-event-list-muted">
-                    {mutedNearbyEvents.map((event) => (
-                      <article key={event.id}>
-                        <div className="discovered-event-thumb">
-                          {event.thumbnail ? <img src={event.thumbnail} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <Ticket aria-hidden="true" />}
-                        </div>
-                        <div className="discovered-event-copy">
-                          <div>
-                            <span>{event.dateLabel || (event.startTime ? new Date(event.startTime.replace(" ", "T")).toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" }) : "Date varies")}</span>
-                            {event.ticketSource && <small><Ticket aria-hidden="true" /> {event.ticketSource}</small>}
-                            <small className="discovered-event-from discovered-event-from-muted"><MapPin aria-hidden="true" /> {event.fromCity} (muted)</small>
+                  <div className="event-carousel-wrapper"><div className="event-carousel event-carousel-muted">
+                    {mutedNearbyEvents.map((event) => {
+                      const eventTypeKey = eventType(event);
+                      const typeStyle = EVENT_TYPES[eventTypeKey];
+                      return (
+                        <div className="event-carousel-card" key={event.id}>
+                          <div className="event-carousel-media">
+                            {event.thumbnail ? <img src={event.thumbnail} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <Ticket aria-hidden="true" />}
+                            <span className="event-carousel-badge" style={{ background: typeStyle.color }}>{typeStyle.label}</span>
                           </div>
-                          <h3>{event.name}</h3>
-                          <p>{event.description || "Open the event page for details."}</p>
-                          <b><MapPin aria-hidden="true" />{event.virtual ? "Online event" : event.venue?.name || event.venue?.city || searchCities[0] || discoverLocation}</b>
-                          <footer>
-                            <button type="button" onClick={() => addDiscoveredEvent(event)}><CalendarPlus aria-hidden="true" /> Add to calendar</button>
-                            {event.link && <a href={event.link} target="_blank" rel="noreferrer">View details <ExternalLink aria-hidden="true" /></a>}
-                          </footer>
+                          <div className="event-carousel-body">
+                            <div className="event-carousel-date">
+                              <span>{event.dateLabel || (event.startTime ? new Date(event.startTime.replace(" ", "T")).toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" }) : "Date varies")}</span>
+                              {event.ticketSource && <small><Ticket size={11} /> {event.ticketSource}</small>}
+                              <small><MapPin size={11} /> {event.fromCity}</small>
+                            </div>
+                            <p>{event.description || "Open the event page for details."}</p>
+                            <span className="event-carousel-location">
+                              <MapPin size={12} />
+                              {event.virtual ? "Online event" : event.venue?.name || event.venue?.city || searchCities[0] || discoverLocation}
+                            </span>
+                            <div className="event-carousel-footer">
+                              <button type="button" onClick={() => addDiscoveredEvent(event)}><CalendarPlus size={13} /> Add</button>
+                              {event.link && <a href={event.link} target="_blank" rel="noreferrer">Details <ExternalLink size={13} /></a>}
+                            </div>
+                          </div>
                         </div>
-                      </article>
-                    ))}
-                  </div>
+                      );
+                    })}
+                  </div></div>
                 </details>
               )}
               {resultDiagnostics?.expanded && (

@@ -168,7 +168,124 @@ type MappedEvent = {
   origin: "user" | "nearby";
   fromCity: string;
   tags: Array<{ label: string }>;
-  provider: "google_events" | "ticketmaster";
+  provider: "google_events" | "ticketmaster" | "eventbrite";
+};
+
+// ISO 3166-1 alpha-2 → Eventbrite URL country slug.
+// Eventbrite uses lowercase full country names for some and ISO codes for
+// others. We map the ones we know about and fall back to the ISO code.
+const EVENTBRITE_COUNTRY_SLUG: Record<string, string> = {
+  ca: "canada", us: "united-states", mx: "mexico", gb: "gb", uk: "gb",
+  au: "australia", nz: "new-zealand", de: "germany", fr: "france",
+  es: "spain", it: "italy", pt: "portugal", nl: "netherlands", ie: "ireland",
+  jp: "japan", sg: "singapore", in: "india", br: "brazil",
+};
+
+// ──── Eventbrite web scraper ────
+// Eventbrite's official /v3/events/search/ API was shut down in 2019.
+// This scraper fetches Eventbrite's public event listing pages and extracts
+// structured event data from JSON-LD + HTML microdata embedded in the page.
+// The EVENTBRITE_KEY (private token) is sent as a header for authenticated
+// access if available, but is not strictly required for public page views.
+const slugifyCity = (city: string): string =>
+  city.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+const mapEventbriteEvent = (
+  item: Record<string, unknown>,
+  city: string,
+  origin: "user" | "nearby"
+): MappedEvent | null => {
+  const name = cleanText(item.name, 180);
+  if (!name) return null;
+
+  const startDate = cleanText(item.startDate, 32);
+  const endDate = cleanText(item.endDate, 32);
+  const url = cleanText(item.url, 500);
+  const description = cleanText(item.description, 600);
+  const imageUrl = cleanText(item.image, 500);
+
+  // Build a stable id from the event URL (Eventbrite event URLs are unique).
+  let safeId = `eb:${name}|${startDate}`.toLowerCase();
+  if (url) {
+    try { safeId = `eb:${btoa(url).slice(0, 40)}`; } catch { /* keep name+date fallback */ }
+  }
+  const id = safeId;
+
+  // Venue info from the location field
+  const location = asRecord(item.location);
+  const venueName = cleanText(location.name, 160);
+  const venueAddress = asRecord(location.address);
+  const streetAddress = cleanText(venueAddress.streetAddress, 160);
+  const addressLocality = cleanText(venueAddress.addressLocality, 100) || city;
+
+  // Parse date into a readable label
+  let dateLabel = "";
+  if (startDate) {
+    const parsed = new Date(startDate);
+    if (!Number.isNaN(parsed.getTime())) {
+      dateLabel = parsed.toLocaleDateString("en-CA", {
+        weekday: "short", month: "short", day: "numeric",
+      });
+    }
+  }
+
+  // Extract image from string or object
+  let thumbnail = imageUrl;
+  if (!thumbnail && typeof item.image === "object") {
+    const imgObj = item.image as Record<string, unknown>;
+    thumbnail = cleanText(imgObj.url, 500) || "";
+  }
+
+  // Performer/category tags
+  const performer = Array.isArray(item.performer) ? item.performer as Array<Record<string, unknown>> : [];
+  const tagLabels = performer.map((p) => cleanText(p.name, 60)).filter(Boolean);
+
+  return {
+    id,
+    name,
+    description: description || name,
+    startTime: startDate,
+    endTime: endDate,
+    dateLabel,
+    when: dateLabel,
+    virtual: /online|virtual/i.test(streetAddress + venueName),
+    thumbnail,
+    publisher: venueName || "Eventbrite",
+    link: url,
+    ticketSource: "Eventbrite",
+    venue: {
+      name: venueName,
+      address: streetAddress,
+      city: addressLocality,
+      rating: null,
+    },
+    origin,
+    fromCity: city,
+    tags: tagLabels.map((label) => ({ label })),
+    provider: "eventbrite",
+  };
+};
+
+// Extract schema.org Event items from JSON-LD embedded in the page HTML.
+const extractEventbriteJsonLd = (html: string): Record<string, unknown>[] => {
+  const events: Record<string, unknown>[] = [];
+  // Match all <script type="application/ld+json"> blocks
+  const scriptRegex = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = scriptRegex.exec(html)) !== null) {
+    try {
+      const parsed = JSON.parse(match[1]);
+      const items = Array.isArray(parsed) ? parsed : [parsed];
+      for (const item of items) {
+        if (item && item["@type"] === "Event" && item.name) {
+          events.push(item as Record<string, unknown>);
+        }
+      }
+    } catch {
+      // Skip invalid JSON blocks
+    }
+  }
+  return events;
 };
 
 Deno.serve(async (request) => {
@@ -184,12 +301,13 @@ Deno.serve(async (request) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const serpApiKey = Deno.env.get("SERPAPI_KEY");
     const ticketmasterKey = Deno.env.get("TICKETMASTER_API_KEY");
+    const eventbriteKey = Deno.env.get("EVENTBRITE_API_KEY");
     if (!url || !serviceKey) return json({ error: "FamOS event discovery is not configured." }, 503);
-    // Both providers are independently optional. Empty results is fine —
-    // the diagnostics will surface which provider ran (or both) so the
+    // All three providers are independently optional. Empty results is fine —
+    // the diagnostics will surface which provider ran (or all three) so the
     // user can tell whether the empty list came from a missing key vs
     // a genuine zero-result query.
-    if (!serpApiKey && !ticketmasterKey) return json({ error: "Local event discovery needs SerpApi or Ticketmaster configured." }, 503);
+    if (!serpApiKey && !ticketmasterKey && !eventbriteKey) return json({ error: "Local event discovery needs SerpApi, Ticketmaster, or Eventbrite configured." }, 503);
 
     const admin = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
     const token = authorization.replace(/^Bearer\s+/i, "").trim();
@@ -407,6 +525,47 @@ Deno.serve(async (request) => {
 
     type FetchFn = (city: string, origin: "user" | "nearby") => Promise<MappedEvent[]>;
 
+    const fetchEventbriteCity = async (
+      city: string,
+      origin: "user" | "nearby",
+      apiKey: string
+    ): Promise<MappedEvent[]> => {
+      const countrySlug = EVENTBRITE_COUNTRY_SLUG[country] || country;
+      const citySlug = slugifyCity(city);
+      const endpoint = `https://www.eventbrite.com/d/${countrySlug}/${citySlug}/all-events/`;
+    
+      const headers: Record<string, string> = {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml",
+      };
+      // Send the private token as an Authorization header if available.
+      if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+    
+      const abortController = new AbortController();
+      const abortTimer = setTimeout(() => abortController.abort(), 10_000);
+      let response: Response;
+      try {
+        response = await fetch(endpoint, { headers, signal: abortController.signal });
+      } finally {
+        clearTimeout(abortTimer);
+      }
+      if (!response.ok) {
+        throw new Error(`Eventbrite returned HTTP ${response.status} for ${city}.`);
+      }
+      const html = await response.text();
+      const jsonldItems = extractEventbriteJsonLd(html);
+    
+      // Map and filter out nulls
+      const events: MappedEvent[] = [];
+      for (const item of jsonldItems) {
+        const mapped = mapEventbriteEvent(item, city, origin);
+        if (mapped) events.push(mapped);
+      }
+    
+      return events.slice(0, 20);
+    };
+
     const runProvider = async (
       citiesForBatch: string[],
       origin: "user" | "nearby",
@@ -434,16 +593,19 @@ Deno.serve(async (request) => {
       return { mapped, errors };
     };
 
-    // ── Phase 1: search the user's exact cities. Run SerpApi and
-    //    Ticketmaster in parallel — both providers hit each user city.
-    //    Rate-limited to 2 in-flight per provider per batch so we stay
-    //    safely under both SerpApi's per-minute and Ticketmaster's 5 rps.
-    const [serpApiPhase1, ticketmasterPhase1] = await Promise.all([
+    // ── Phase 1: search the user's exact cities. Run all configured
+    //    providers in parallel — each hits every user city.
+    //    Rate-limited to 2 in-flight per provider per batch.
+    const [serpApiPhase1, ticketmasterPhase1, eventbritePhase1] = await Promise.all([
       serpApiKey ? runProvider(cities, "user", (city, origin) => fetchSerpCity(city, origin, serpApiKey), "google_events") : Promise.resolve({ mapped: [], errors: [] }),
       ticketmasterKey ? runProvider(cities, "user", (city, origin) => fetchTicketmasterCity(city, origin, ticketmasterKey), "ticketmaster") : Promise.resolve({ mapped: [], errors: [] }),
+      // Eventbrite public search page works without an API key — the key is only
+      // used for an optional Authorization header. Always run the provider so events
+      // still appear when the key expires or is missing.
+      runProvider(cities, "user", (city, origin) => fetchEventbriteCity(city, origin, eventbriteKey || undefined), "eventbrite"),
     ]);
-    const userMapped = [...serpApiPhase1.mapped, ...ticketmasterPhase1.mapped];
-    const userErrors = [...serpApiPhase1.errors, ...ticketmasterPhase1.errors];
+    const userMapped = [...serpApiPhase1.mapped, ...ticketmasterPhase1.mapped, ...eventbritePhase1.mapped];
+    const userErrors = [...serpApiPhase1.errors, ...ticketmasterPhase1.errors, ...eventbritePhase1.errors];
     // Cheap telemetry so we can measure the savings: do a single log line
     // when the client sent a muted set, even if it had no impact on this
     // particular request (cities might already be filtered by user list).
@@ -485,9 +647,17 @@ Deno.serve(async (request) => {
       .filter((nearby) => !isMuted(nearby))
       .slice(0, 8);
     const userCleanZeroCount = userMapped.filter((m) => m.events.length === 0).length;
+    // Only count errors from providers that have a valid API key when deciding
+    // whether to expand to nearby cities. Eventbrite's best-effort public
+    // scraping often fails (HTTP 403/429) — those errors should not block
+    // Phase 2 expansion that depends on SerpApi/Ticketmaster succeeding.
+    const configuredProviderErrors = userErrors.filter((e) =>
+      (e.provider === "google_events" && !!serpApiKey) ||
+      (e.provider === "ticketmaster" && !!ticketmasterKey)
+    );
     const nearbyCandidates: string[] = serpApiKey && (totalUserEvents < 4
       && userCleanZeroCount > 0
-      && userErrors.length < cities.length)
+      && configuredProviderErrors.length < cities.length)
       ? availableNearby.slice(0, 3)
       : [];
 
@@ -530,6 +700,7 @@ Deno.serve(async (request) => {
     const providerStatus = deriveProviderStatus();
     const serpEvents = events.filter((e) => e.provider === "google_events").length;
     const ticketmasterEvents = events.filter((e) => e.provider === "ticketmaster").length;
+    const eventbriteEvents = events.filter((e) => e.provider === "eventbrite").length;
     const diagnostics = {
       perCityCounts: allMapped.map((entry) => ({ city: entry.city, origin: entry.origin, count: entry.events.length })),
       failedCities: allErrors.map((entry) => ({ city: entry.city, message: entry.message, provider: entry.provider })),
@@ -537,12 +708,15 @@ Deno.serve(async (request) => {
       expanded: nearbyCandidates.length > 0,
       expandedCities: nearbyCandidates,
       availableNearby,
-      providerCounts: { google_events: serpEvents, ticketmaster: ticketmasterEvents },
+      providerCounts: { google_events: serpEvents, ticketmaster: ticketmasterEvents, eventbrite: eventbriteEvents },
     };
 
-    const providerLabel = serpApiKey && ticketmasterKey
-      ? "SerpApi + Ticketmaster"
-      : serpApiKey ? "SerpApi (Google Events)" : "Ticketmaster";
+    const activeProviders = [
+      serpApiKey && "SerpApi",
+      ticketmasterKey && "Ticketmaster",
+      eventbriteKey && "Eventbrite",
+    ].filter(Boolean);
+    const providerLabel = activeProviders.length ? activeProviders.join(" + ") : "No provider configured";
 
     if (events.length === 0) {
       if (providerStatus === "upstream_error") {
