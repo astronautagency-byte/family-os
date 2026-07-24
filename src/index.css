@@ -1802,6 +1802,8 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 /* Cook focus mode for planned meals. */
 .meal-cook-hint{display:flex;align-items:center;gap:4px;margin-top:3px;color:var(--color-accent);font-size:10.5px;font-weight:850;letter-spacing:.01em}
 .today-meal-cook-hint{color:var(--color-accent);opacity:.85;flex:none;margin-left:auto;transition:opacity .15s ease}
+.task-row-share{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:10px;color:var(--color-accent);background:transparent;transition:background .15s ease,color .15s ease}.task-row-share:hover{background:var(--color-accent-soft);color:var(--color-accent-strong)}
+.event-share-button{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:var(--radius-pill);background:var(--color-accent-soft);color:var(--color-accent-strong);font-weight:700;font-size:12.5px;transition:transform .12s ease,background .15s ease}.event-share-button:hover{background:color-mix(in srgb,var(--color-accent) 22%,var(--color-accent-soft))}.event-share-button:active{transform:scale(.97)}
 .theme-dark,.theme-dark .app-shell{color:var(--color-ink);background:#0f1020}
 .theme-dark .app-content{background:linear-gradient(180deg,#151628 0,var(--color-canvas) 280px);color:var(--color-ink)}
 .theme-dark .app-topbar,.theme-dark .primary-nav{background:rgba(18,19,34,.84);backdrop-filter:blur(18px);color:var(--color-ink)}
@@ -3436,5 +3438,213 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .theme-dark .m3-navigation-item.is-active .nav-label { color: #FFFFFF; font-weight: 800 }
 .theme-dark .m3-navigation-item.is-active .nav-icon { color: #9087FF }
 .theme-dark .nav-icon svg, .theme-dark .nav-icon { color: #C7CCE0 }
+
+/* ── Fam AI floating action button + sheet ──────────────────────────── */
+.fam-ai-fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 88px);
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-strong));
+  color: #fff;
+  box-shadow: 0 12px 30px rgba(91, 85, 214, 0.32), 0 2px 4px rgba(0,0,0,0.12);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.fam-ai-fab:hover { transform: translateY(-2px) scale(1.04); box-shadow: 0 18px 36px rgba(91, 85, 214, 0.4), 0 4px 6px rgba(0,0,0,0.14); }
+.fam-ai-fab:active { transform: scale(0.95); }
+.fam-ai-fab-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-fam-marigold);
+  border: 2px solid var(--color-surface);
+  animation: fam-ai-fab-pulse 1.4s ease-in-out infinite;
+}
+@keyframes fam-ai-fab-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.25); opacity: 0.7; }
+}
+.fam-ai-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(16, 24, 40, 0.42);
+  backdrop-filter: blur(6px);
+  border: 0;
+  padding: 0;
+}
+.fam-ai-sheet {
+  position: fixed;
+  inset: 8vh 0 0 0;
+  z-index: 61;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border-radius: 22px 22px 0 0;
+  border-top: 1px solid var(--color-border);
+  box-shadow: 0 -8px 32px rgba(16, 24, 40, 0.18);
+  overflow: hidden;
+  animation: fam-ai-sheet-in 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes fam-ai-sheet-in {
+  from { transform: translateY(8vh); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.fam-ai-sheet-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-ink-soft);
+  transition: background 160ms ease, color 160ms ease;
+}
+.fam-ai-sheet-close:hover { background: var(--color-surface-sunken); color: var(--color-ink); }
+@media (min-width: 720px) {
+  .fam-ai-sheet {
+    left: 50%;
+    right: auto;
+    width: min(560px, 92vw);
+    transform: translateX(-50%);
+    inset: 10vh auto 6vh auto;
+    border-radius: 22px;
+    border: 1px solid var(--color-border);
+    animation: fam-ai-sheet-in-desktop 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes fam-ai-sheet-in-desktop {
+    from { transform: translate(-50%, 8vh); opacity: 0; }
+    to { transform: translate(-50%, 0); opacity: 1; }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fam-ai-fab-dot { animation: none; }
+  .fam-ai-sheet { animation: none; }
+}
+
+/* ── Cook Mode hands-free voice toggle + transcript pill ────────────── */
+.cook-listen-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-accent-strong);
+  font-size: 13px;
+  font-weight: 700;
+  transition: background 160ms ease, color 160ms ease, transform 0.12s ease;
+}
+.cook-listen-toggle:hover { background: var(--color-accent-soft); }
+.cook-listen-toggle:active { transform: scale(0.96); }
+.cook-listen-toggle.is-listening {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--color-accent);
+  animation: cook-listen-pulse 1.4s ease-in-out infinite;
+}
+@keyframes cook-listen-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(91, 85, 214, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(91, 85, 214, 0); }
+}
+.cook-voice-transcript {
+  margin: 12px 0 0 0;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: var(--color-surface-sunken);
+  color: var(--color-ink-soft);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+.cook-voice-transcript.is-listening {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-strong);
+}
+.cook-voice-transcript.is-error {
+  background: color-mix(in srgb, var(--color-warn) 14%, var(--color-surface));
+  color: var(--color-warn);
+}
+
+/* ── Today's "Cook tonight's ___" hero CTA ──────────────────────────── */
+.cook-tonight-cta {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 28%, var(--color-border));
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--color-accent) 14%, var(--color-surface)),
+    color-mix(in srgb, var(--color-fam-marigold) 10%, var(--color-surface))
+  );
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+.cook-tonight-cta-meta { min-width: 0; display: grid; gap: 2px; }
+.cook-tonight-cta-eyebrow {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-accent-strong);
+}
+.cook-tonight-cta-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cook-tonight-cta-sub {
+  font-size: 11.5px;
+  color: var(--color-ink-soft);
+}
+.cook-tonight-cta-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--color-ink);
+  background: var(--color-ink);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 0.14s ease, background 160ms ease;
+}
+.cook-tonight-cta-button em {
+  font-style: normal;
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 2px;
+}
+.cook-tonight-cta-button:hover { background: var(--color-accent-strong); transform: translateY(-1px); }
+.cook-tonight-cta-button:active { transform: scale(0.97); }
+@media (max-width: 480px) {
+  .cook-tonight-cta { grid-template-columns: 1fr; }
+  .cook-tonight-cta-button { width: 100%; justify-content: center; }
+}
+
 
 /* ── Page-header live channel-health badge ──────────────────────────── */

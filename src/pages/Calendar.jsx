@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo, useState } from "react";
-import { CalendarDays, CalendarPlus, ChevronDown, ChevronLeft, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, ExternalLink, Eye, EyeOff, LoaderCircle, MapPin, Moon, Plus, RefreshCw, Search, Settings2, Sparkles, Sun, Ticket, Trash2, TriangleAlert, Users, X } from "lucide-react";
+import { CalendarDays, CalendarPlus, ChevronDown, ChevronLeft, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, ExternalLink, Eye, EyeOff, LoaderCircle, MapPin, Moon, Plus, RefreshCw, Search, Settings2, Share2, Sparkles, Sun, Ticket, Trash2, TriangleAlert, Users, X } from "lucide-react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useFamily } from "../context/FamilyContext";
@@ -13,6 +13,7 @@ import { formatDuration, formatTime, todayISO } from "../lib/dates";
 import { fetchGooglePlaceSuggestions, googleMapsApiKey, loadGooglePlaces } from "../lib/googleMapsPlaces";
 import { invokeEdgeFunction } from "../lib/supabase";
 import { parseQuickAdd } from "../lib/quickCapture";
+import { buildShareUrl, nativeShareWithFallback } from "../lib/share";
 import { eventCacheKey, readEventCache, writeEventCache, clearEventCache } from "../lib/eventSearchCache";
 
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
@@ -1281,6 +1282,16 @@ export default function CalendarPage() {
               ) : <p className="event-muted">No location added.</p>}
               <p className="event-muted">Source: {sourceId(selectedEvent) === "family" ? "FamOS calendar" : selectedEvent.source === "google" ? "Google Calendar" : "Imported calendar"}</p>
               <div className="reset-confirm-actions">
+                <button className="event-share-button" onClick={async () => {
+                  if (!selectedEvent?.id) return;
+                  const start = selectedEvent.start ? new Date((selectedEvent.start || "").replace(" ", "T")).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }) : "TBD";
+                  const url = buildShareUrl("event", selectedEvent.id);
+                  await nativeShareWithFallback({
+                    title: `${selectedEvent.title} — FamOS`,
+                    text: `${selectedEvent.title}\n${start}${selectedEvent.location ? ` · ${selectedEvent.location}` : ""}`,
+                    url,
+                  });
+                }} aria-label={`Share ${selectedEvent.title}`}><Share2 size={15} /> Share with family</button>
                 <SecondaryButton onClick={() => setSelectedEvent(null)}>Close</SecondaryButton>
                 {canDeleteEvent(selectedEvent) && <button className="event-danger-button" onClick={() => setDeleteTarget(selectedEvent)}><Trash2 size={16} /> Delete event</button>}
               </div>

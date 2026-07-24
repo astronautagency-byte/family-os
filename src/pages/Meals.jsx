@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, BarChart3, Bookmark, CalendarPlus, CandyOff, Check, ChefHat, Clock, Coffee, Dices, FishOff, Leaf, ListChecks, LoaderCircle, MilkOff, NutOff, ShoppingCart, Soup, Sparkles, Sprout, Trash2, Users, WheatOff, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, BarChart3, Bookmark, CalendarPlus, CandyOff, Check, ChefHat, Clock, Coffee, Dices, FishOff, Leaf, ListChecks, LoaderCircle, Mic, MicOff, MilkOff, NutOff, ShoppingCart, Soup, Sparkles, Sprout, Trash2, Users, WheatOff, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, AvatarStack, Card, Modal, PrimaryButton, SecondaryButton, TextField, colorVar } from "../components/ui";
@@ -10,6 +10,7 @@ import { MEAL_SLOTS } from "../data/mockData";
 import { recipeSearchProfileForMeal } from "../data/recipeBox";
 import { addDays, formatDayLabel, todayISO } from "../lib/dates";
 import { supabase } from "../lib/supabase";
+import useVoiceCommands, { requestScreenWakeLock } from "../hooks/useVoiceCommands";
 
 const SLOT_META = {
   breakfast: { label: "Breakfast", icon: Coffee },
@@ -156,6 +157,72 @@ export default function Meals() {
   const [cookIngredientsAdded, setCookIngredientsAdded] = useState(false);
   const [cookNutrition, setCookNutrition] = useState(null);
   const [cookNutritionLoading, setCookNutritionLoading] = useState(false);
+  // Voice-hands-free cook navigation. Bound to next/previous/finish so a
+  // flour-covered hand never has to tap the phone screen.
+  const wakeLockRef = useRef(null);
+  const finishCookMode = useCallback(() => setCookMeal(null), []);
+  const advanceCookStep = useCallback((delta) => {
+    setCookStep((step) => {
+      const max = Math.max((cookSteps?.length || 1) - 1, 0);
+      return Math.min(Math.max(step + delta, 0), max);
+    });
+  }, [cookSteps?.length]);
+  const { supported: voiceSupported, listening: voiceListening, transcript: voiceTranscript, error: voiceError, start: startVoice, stop: stopVoice } = useVoiceCommands({
+    commands: [
+      { match: /\b(next|forward|continue|go)\b/i, action: "next" },
+      { match: /\b(back|previous|prev|undo)\b/i, action: "previous" },
+      { match: /\b(finish|done|stop|complete|exit)\b/i, action: "finish" },
+    ],
+    onAction: (action) => {
+      if (action === "next") advanceCookStep(1);
+      else if (action === "previous") advanceCookStep(-1);
+      else if (action === "finish") finishCookMode();
+    },
+  });
+  const releaseWakeLock = useCallback(() => {
+    if (wakeLockRef.current) {
+      try { wakeLockRef.current.release(); } catch { /* sentinel already released */ }
+      wakeLockRef.current = null;
+    }
+  }, []);
+  const toggleVoice = useCallback(async () => {
+    if (voiceListening) {
+      stopVoice();
+      releaseWakeLock();
+      return;
+    }
+    startVoice();
+    if (!wakeLockRef.current && typeof navigator !== "undefined" && navigator.wakeLock?.request) {
+      wakeLockRef.current = await requestScreenWakeLock();
+    }
+  }, [voiceListening, startVoice, stopVoice, releaseWakeLock]);
+  // Release the wake lock whenever Cook Mode closes (or the page unmounts)
+  // so the screen can sleep normally again.
+  useEffect(() => {
+    if (!cookMeal || !cookMode) releaseWakeLock();
+  }, [cookMeal, cookMode, releaseWakeLock]);
+  useEffect(() => () => releaseWakeLock(), [releaseWakeLock]);
+  // Deep-link intent: when Today taps "Cook tonight's ___" it writes the
+  // meal id to sessionStorage and routes to /meals. We consume the intent
+  // here so the cook modal opens straight into the requested meal, then
+  // remove the key so a refresh doesn't re-trigger.
+  const COOK_INTENT_KEY = "famos:cook-intent:v1";
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = window.sessionStorage.getItem(COOK_INTENT_KEY);
+    if (!raw) return;
+    window.sessionStorage.removeItem(COOK_INTENT_KEY);
+    // Pick up the requested meal once it lands in state (FamilyContext
+    // may still be hydrating on first paint).
+    const target = meals.find((meal) => (
+      meal.id === raw
+      || `${meal.date}:${meal.slot}` === raw
+    ));
+    if (target?.title) openCookRecipe(target);
+  // Re-run when meals hydrate so a deep-link arriving during initial load
+  // still finds its target. The intent is single-use (we remove the key
+  // above before looking it up) so this won't loop.
+  }, [meals]);
   // Cached ingredient names per meal ID — populated once a recipe has been
   // looked up, persists across sessions so the grocery badge works immediately.
   const [mealIngredientsCache, setMealIngredientsCache] = useState(() => loadIngredientCache());
@@ -998,14 +1065,41 @@ export default function Meals() {
                   </div>
                   <h3>{cookSteps[currentCookStep]}</h3>
                   <p>When this step is done, tap next. FamOS will keep the recipe moving without turning this into another checklist.</p>
-                  <div className="cook-guide-actions">
-                    <button disabled={currentCookStep === 0} onClick={() => setCookStep((step) => Math.max(step - 1, 0))}>Previous</button>
-                    {currentCookStep < cookSteps.length - 1 ? (
-                      <button className="primary" onClick={() => setCookStep((step) => Math.min(step + 1, cookSteps.length - 1))}>Next step</button>
-                    ) : (
-                      <button className="primary" onClick={() => setCookMeal(null)}><Check size={17} /> Finish cooking</button>
-                    )}
-                  </div>
+        <div className="cook-guide-actions">
+          {/* Listen toggle — hidden entirely if SpeechRecognition is unsupported so we never tease a feature we can't deliver. */}
+          {voiceSupported && (
+            <button
+              type="button"
+              className={`cook-listen-toggle ${voiceListening ? "is-listening" : ""}`}
+              onClick={toggleVoice}
+              aria-pressed={voiceListening}
+              aria-label={voiceListening ? "Stop listening for voice commands" : "Start listening for voice commands"}
+              title={voiceListening ? "Listening — say ‘next’, ‘back’, or ‘finish’" : "Hands-free voice commands"}
+            >
+              {voiceListening ? <MicOff size={17} /> : <Mic size={17} />}
+              <span>{voiceListening ? "Listening" : "Listen"}</span>
+            </button>
+          )}
+          <button disabled={currentCookStep === 0} onClick={() => advanceCookStep(-1)}>Previous</button>
+          {currentCookStep < cookSteps.length - 1 ? (
+            <button className="primary" onClick={() => advanceCookStep(1)}>Next step</button>
+          ) : (
+            <button className="primary" onClick={finishCookMode}><Check size={17} /> Finish cooking</button>
+          )}
+        </div>
+        {voiceSupported && (voiceListening || voiceTranscript || voiceError) && (
+          <p
+            className={`cook-voice-transcript ${voiceListening ? "is-listening" : ""} ${voiceError ? "is-error" : ""}`}
+            role={voiceError ? "alert" : "status"}
+            aria-live="polite"
+          >
+            {voiceError
+              ? `Voice: ${voiceError}`
+              : voiceTranscript
+                ? `Heard: “${voiceTranscript}”`
+                : `Say “next”, “back”, or “finish”`}
+          </p>
+        )}
                 </Card>
 
                 <Card className="cook-quiet-reference">

@@ -1,6 +1,10 @@
-import { Bot, CalendarDays, CheckSquare, CookingPot, Home, MessageCircle, ShoppingCart } from "lucide-react";
+import { CalendarDays, CheckSquare, CookingPot, Home, MessageCircle, ShoppingCart } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 
+// Fam AI is no longer a tab — it's a global floating action button mounted
+// once at the shell level. Leaving it out of TABS keeps the bottom nav
+// focused on core surfaces and gives the FAB the always-on presence it
+// deserves without conflicting with page routing.
 const TABS = [
   { id: "today", label: "Today", icon: Home, hint: "Today's snapshot" },
   { id: "calendar", label: "Calendar", icon: CalendarDays, hint: "Family events" },
@@ -8,15 +12,13 @@ const TABS = [
   { id: "tasks", label: "Tasks", icon: CheckSquare, hint: "Open tasks" },
   { id: "groceries", label: "Shopping", icon: ShoppingCart, hint: "Shared shopping list" },
   { id: "chat", label: "Chat", icon: MessageCircle, hint: "Family messages" },
-  { id: "famai", label: "Fam AI", icon: Bot, hint: "Ask anything — meal, grocery, task help" },
 ];
 
-const FEATURE_KEYS = { calendar: "calendar", meals: "meals", tasks: "tasks", groceries: "groceries", chat: "chat", famai: "fam_ai" };
+const FEATURE_KEYS = { calendar: "calendar", meals: "meals", tasks: "tasks", groceries: "groceries", chat: "chat" };
 
 export default function BottomNav({ active, onChange, features = {}, tabletMode = false }) {
   const { unreadMessageCount = 0 } = useFamily();
   const visibleTabs = TABS.filter((tab) => {
-    if (tabletMode && tab.id === "famai") return false;
     return tab.id === "today" || features[FEATURE_KEYS[tab.id]] !== false;
   });
   return (

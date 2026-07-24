@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
-import { BriefcaseBusiness, GraduationCap, House, Plus, ShoppingBag, Trash2, Users } from "lucide-react";
+import { BriefcaseBusiness, GraduationCap, House, Plus, Share2, ShoppingBag, Trash2, Users } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { Avatar, Checkbox, DateField, Modal, PrimaryButton, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import PullToRefresh from "../components/PullToRefresh";
 import ConfirmAction from "../components/ConfirmAction";
 import { todayISO } from "../lib/dates";
+import { buildShareUrl, nativeShareWithFallback } from "../lib/share";
 
 const GROUPS={home:{label:"Housework",Icon:House,tone:"violet",color:"#6b5ce7"},errand:{label:"Errands",Icon:ShoppingBag,tone:"green",color:"#3b8c75"},school:{label:"School",Icon:GraduationCap,tone:"slate",color:"#4b7ec5"},family:{label:"Family",Icon:Users,tone:"rose",color:"#d66b83"},work:{label:"Work",Icon:BriefcaseBusiness,tone:"amber",color:"#c98232"},personal:{label:"Personal",Icon:House,tone:"violet",color:"#756d8d"}};
 
@@ -29,6 +30,8 @@ export default function Tasks(){
 
  const save=async()=>{if(!draft.title.trim())return;await updateTask(editingId,{...draft,title:draft.title.trim()});setShowEditPanel(false);setEditingId(null);};
 
+ const shareTask=async(task)=>{if(!task?.id)return;const due=task.due===todayISO()?"today":task.due?new Date(`${task.due}T12:00`).toLocaleDateString("en-CA",{weekday:"short",month:"short",day:"numeric"}):"whenever it fits";const url=buildShareUrl("task",task.id);await nativeShareWithFallback({title:"FamOS task",text:`${task.title}\nDue: ${due}`,url});};
+
  return <PullToRefresh onRefresh={refreshData}><div className="pb-28 reference-tasks famos-noscroll"><PageHeader title="Tasks" illustration="tasks" subtitle="Assign, track, and finish household tasks." action={tasks.length?<button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button>:null}/><div className="px-5 space-y-5">
   {/* Inline input — iOS Reminders style: type and hit Enter, task appears */}
   <form className="task-inline-form" onSubmit={submitInline}>
@@ -36,7 +39,7 @@ export default function Tasks(){
     <input value={inlineText} onChange={e=>setInlineText(e.target.value)} placeholder="New task" className="task-inline-input" autoFocus aria-label="Add a new task" />
   </form>
 
-  {Object.entries(grouped).map(([key,items])=>{const meta=GROUPS[key]||GROUPS.home;const Icon=meta.Icon;return <section className={`task-board-group ${meta.tone}`} key={key}><div className="task-group-title"><h2><Icon/>{meta.label}</h2><span>{items.length} Task{items.length===1?"":"s"}</span></div><div className="task-board-list">{items.map(t=>{const person=memberById[t.assigneeId];const dueLabel=t.due===todayISO()?"Today":t.due?new Date(`${t.due}T12:00`).toLocaleDateString("en-CA",{weekday:"short"}):null;const categoryLabel=t.taskType?GROUPS[t.taskType]?.label||t.taskType:null;return <div className="task-board-row" key={t.id}><Checkbox checked={t.done} onChange={()=>toggleTask(t.id)}/><button className="task-row-copy" onClick={()=>openEdit(t)}><strong>{t.title}</strong><small>{[dueLabel,categoryLabel].filter(Boolean).join(" · ")}</small></button>{person&&<Avatar member={person} size="sm"/>}<button className="task-row-delete" onClick={()=>removeTask(t.id)} aria-label={`Delete ${t.title}`}><Trash2/></button></div>})}</div></section>})}
+  {Object.entries(grouped).map(([key,items])=>{const meta=GROUPS[key]||GROUPS.home;const Icon=meta.Icon;return <section className={`task-board-group ${meta.tone}`} key={key}><div className="task-group-title"><h2><Icon/>{meta.label}</h2><span>{items.length} Task{items.length===1?"":"s"}</span></div><div className="task-board-list">{items.map(t=>{const person=memberById[t.assigneeId];const dueLabel=t.due===todayISO()?"Today":t.due?new Date(`${t.due}T12:00`).toLocaleDateString("en-CA",{weekday:"short"}):null;const categoryLabel=t.taskType?GROUPS[t.taskType]?.label||t.taskType:null;return <div className="task-board-row" key={t.id}><Checkbox checked={t.done} onChange={()=>toggleTask(t.id)}/><button className="task-row-copy" onClick={()=>openEdit(t)}><strong>{t.title}</strong><small>{[dueLabel,categoryLabel].filter(Boolean).join(" · ")}</small></button>{person&&<Avatar member={person} size="sm"/>}<button className="task-row-share" onClick={()=>shareTask(t)} aria-label={`Share ${t.title}`} title="Share with the family"><Share2 size={15}/></button><button className="task-row-delete" onClick={()=>removeTask(t.id)} aria-label={`Delete ${t.title}`}><Trash2/></button></div>})}</div></section>})}
   {open.length===0&&<section className="task-board-group violet"><div className="task-board-row"><strong>All clear. Type above to add a task.</strong></div></section>}
   <section className="weekly-progress"><h2>This week’s wins</h2><p>Your family has knocked out {pct}% of the list this week.</p><div><span style={{width:`${pct}%`}}/></div><small>{done} tasks done <b>{open.length} left</b></small></section>
   </div>

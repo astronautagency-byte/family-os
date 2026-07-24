@@ -152,6 +152,29 @@ function wantsTasksFromCalendar(text) {
 
 const compactName = (value = "") => value.toLowerCase();
 
+// Detects when any modal or full-screen sheet is open elsewhere in the app.
+// Used to hide the Fam AI FAB so it doesn't compete with cook/recipe/event
+// modals. Returns true if any element inside `.primary-nav` isn't enough on
+// its own — we look at the live DOM for a few well-known overlay classes.
+const FAM_AI_HIDE_WHEN_ANY = [
+  "cook-focus-screen",
+  "recipe-modal",
+  "recipe-cook-modal",
+  "modal-card",
+  "event-detail-modal",
+  "invite-modal",
+  "support-modal",
+  "fam-ai-sheet-backdrop",
+];
+
+function isOverlayOpen() {
+  if (typeof document === "undefined") return false;
+  for (const cls of FAM_AI_HIDE_WHEN_ANY) {
+    if (document.querySelector(`.${cls}`)) return true;
+  }
+  return false;
+}
+
 function uniqueActions(actions = []) {
   const seen = new Set();
   return actions.filter((action) => {
@@ -412,17 +435,30 @@ export default function FamAI() {
     addEvent,
     setMealForSlot,
   } = useFamily();
-  const [messages, setMessages] = useState([
-    {
-      role: "assistant",
-      content: "Hi, I’m Fam AI. Tell me what you need and I’ll suggest the next step.",
-    },
-  ]);
+const INITIAL_FAM_AI_MESSAGE = {
+  role: "assistant",
+  content: "Hi, I’m Fam AI. Tell me what you need and I’ll suggest the next step.",
+};
+
+  const [messages, setMessages] = useState([INITIAL_FAM_AI_MESSAGE]);
   const [busy, setBusy] = useState(false);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState([]);
   const [error, setError] = useState("");
   const chatRef = useRef(null);
+  // FAB ↔ sheet state. When `open === false` we render only the floating
+  // button. A launch hint (small badge dot) haunts the FAB on first open
+  // to teach the family that the assistant is one tap away.
+  const [open, setOpen] = useState(false);
+  const [overlayActive, setOverlayActive] = useState(false);
+  // Keep the help dot visible until the user has dismissed the FAB at least
+  // once this session. Stored so the badge never comes back on its own.
+  const FAB_HINT_KEY = "famos:fam-ai-fab-hint-shown:v1";
+  const [hintShown, setHintShown] = useState(() => {
+    if (typeof window === "undefined") return true;
+    try { return window.localStorage.getItem(FAB_HINT_KEY) === "1"; }
+    catch { return true; }
+  });
 
   // Auto-scroll chat to bottom when new messages arrive
   useEffect(() => {
@@ -801,19 +837,46 @@ export default function FamAI() {
   const cookablePlanMealIds = new Set(cookablePlanMealActions.map((action) => action.id));
   const primaryPending = pending.filter((action) => !cookablePlanMealIds.has(action.id));
 
-  return (
-    <div className="fam-ai-page famos-noscroll">
-      {/* Minimal header */}
-      <div className="fam-ai-header">
-        <div className="fam-ai-header-inner">
-          <div className="fam-ai-brand">
-            <span className="fam-ai-brand-icon"><Sparkles size={16} /></span>
-            <strong>Fam AI</strong>
-            <em>Beta</em>
+  // Hide the FAB whenever another full-screen modal is up so it doesn't
+  // crop over a recipe / event / invite sheet. The mesh is cheap (a few
+  // querySelectors on tab change) and matches the closing pattern used by
+  // the broadcast banner.
+  useEffect(() => {
+    if (typeof document === "undefined") return undefined;
+    const check = () => setOverlayActive(isOverlayOpen());
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.body, { childList: true, subtree: false, attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
+  const dismissHint = () => {
+    setHintShown(true);
+    try { window.localStorage.setItem(FAB_HINT_KEY, "1"); } catch { /* storage full */ }
+  };
+
+  const sheet = (
+    <div className="fam-ai-sheet" role="dialog" aria-modal="true" aria-label="Fam AI assistant">
+      <button
+        className="fam-ai-sheet-close"
+        onClick={() => setOpen(false)}
+        aria-label="Close Fam AI"
+        type="button"
+      >
+        <X size={18} />
+      </button>
+      <div className="fam-ai-page famos-noscroll">
+        {/* Minimal header */}
+        <div className="fam-ai-header">
+          <div className="fam-ai-header-inner">
+            <div className="fam-ai-brand">
+              <span className="fam-ai-brand-icon"><Sparkles size={16} /></span>
+              <strong>Fam AI</strong>
+              <em>Beta</em>
+            </div>
+            <p className="fam-ai-header-tagline">Your assistant for meals, groceries, tasks, and schedules.</p>
           </div>
-          <p className="fam-ai-header-tagline">Your assistant for meals, groceries, tasks, and schedules.</p>
         </div>
-      </div>
 
       {/* Chat area — scrollable */}
       <div className="fam-ai-chat" ref={chatRef}>
@@ -958,6 +1021,36 @@ export default function FamAI() {
         </div>
         <p className="fam-ai-composer-legal">AI uses household data from FamOS to create suggestions. No real-time external access.</p>
       </form>
+      </div>
     </div>
+  );
+
+  return (
+    <>
+      {/* ── Floating action button — only when the sheet is closed AND nothing else is overlaying ── */}
+      {!open && !overlayActive && (
+        <button
+          className="fam-ai-fab"
+          type="button"
+          onClick={() => { setOpen(true); dismissHint(); }}
+          aria-label="Open Fam AI assistant"
+        >
+          <Sparkles size={20} />
+          {!hintShown && <span className="fam-ai-fab-dot" aria-hidden="true" />}
+        </button>
+      )}
+      {/* ── Sheet overlay (backdrop + scrolling sheet body) ── */}
+      {open && (
+        <>
+          <button
+            type="button"
+            className="fam-ai-sheet-backdrop"
+            onClick={() => setOpen(false)}
+            aria-label="Close Fam AI"
+          />
+          {sheet}
+        </>
+      )}
+    </>
   );
 }

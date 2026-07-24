@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Baby, Bone, Carrot, Check, ChevronDown, Clipboard, Coffee, Cookie, Croissant, CupSoda, Download, Drumstick, ExternalLink, FlaskConical, Globe2, GripVertical, HeartPulse, ListChecks, LoaderCircle, Maximize2, Milk, Package, Pencil, Plus, Sandwich, ScanLine, ScrollText, Share2, ShoppingBag, ShoppingBasket, Snowflake, Soup, SprayCan, Star, Store, Trash2, Truck, Wheat, Wine, X } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
 import { Avatar, Card, Checkbox, EmptyState, Modal, PrimaryButton, SecondaryButton, Stepper, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
@@ -202,6 +203,8 @@ function categoryFromItemName(name = "", fallback = GROCERY_CATEGORIES[0]) {
 
 export default function Groceries() {
   const { groceries, meals, addGrocery, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries, clearGroceries, memberById, refreshData } = useFamily();
+  const auth = useAuth();
+  const household = auth?.household;
   const [editingId, setEditingId] = useState(null); // null closed, "new" for add, or item id
   const [draft, setDraft] = useState(emptyDraft);
   const [staples, setStaples] = useState(loadStaples);
@@ -712,16 +715,29 @@ export default function Groceries() {
       setDeliveryStatus("Your active grocery list is empty.");
       return;
     }
+    // Build a deep link so the recipient opens FamOS directly into the list,
+    // not a pasted text dump. Falls back to clipboard copy if the OS share
+    // sheet isn't available.
+    const link = (typeof window !== "undefined" && window.location)
+      ? `${window.location.origin}/?list=${encodeURIComponent(household?.id || "active")}`
+      : "https://fam-os.app/?list=active";
+    const fullText = `${deliveryShareText}\n\nOpen in FamOS: ${link}`;
     if (navigator?.share) {
       try {
-        await navigator.share({ title: "FamOS grocery list", text: deliveryShareText });
+        await navigator.share({ title: "FamOS grocery list", text: fullText, url: link });
         setDeliveryStatus("Shared. Tiny domestic victory.");
         return;
       } catch (error) {
         if (error?.name === "AbortError") return;
+        // Non-abort error — fall through to clipboard below.
       }
     }
-    await copyDeliveryList();
+    try {
+      await navigator.clipboard?.writeText?.(fullText);
+      setDeliveryStatus(`Shared with link. ${deliveryItems.length} items copied.`);
+    } catch {
+      await copyDeliveryList();
+    }
   };
 
   const downloadDeliveryList = () => {

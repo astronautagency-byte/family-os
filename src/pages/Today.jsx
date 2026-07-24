@@ -501,6 +501,37 @@ export default function Today({ goTo }) {
       />
 
       <div className="px-5 space-y-6 mt-2">
+        {/* ── Cook tonight hero CTA ── appears when today's dinner has a
+            planned title; tapping deep-links into Cook Mode via session
+            storage so the cook modal opens straight into the right meal
+            without forcing the family through a second tap. */}
+        {dinner?.title && (
+          <section className="cook-tonight-cta" aria-label="Cook tonight">
+            <div className="cook-tonight-cta-meta">
+              <span className="cook-tonight-cta-eyebrow">Tonight on the menu</span>
+              <strong className="cook-tonight-cta-title">{dinner.title}</strong>
+              <small className="cook-tonight-cta-sub">One tap takes you straight to hands-free cook mode.</small>
+            </div>
+            <button
+              type="button"
+              className="cook-tonight-cta-button"
+              onClick={() => {
+                try {
+                  window.sessionStorage.setItem(
+                    "famos:cook-intent:v1",
+                    dinner.id || `${dinner.date}:${dinner.slot}`,
+                  );
+                } catch { /* private mode */ }
+                goTo("meals");
+              }}
+              aria-label={`Cook tonight's ${dinner.title}`}
+            >
+              <ChefHat size={20} aria-hidden="true" />
+              <span>Cook tonight's <em>{dinner.title}</em></span>
+              <ChevronRight size={17} aria-hidden="true" />
+            </button>
+          </section>
+        )}
         <section className="broadcast-home" aria-label="Family broadcast">
           <div className="broadcast-confetti-host" ref={composeContainerRef}>
             <form

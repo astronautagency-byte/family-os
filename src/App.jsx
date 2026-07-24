@@ -102,6 +102,7 @@ export default function App() {
       window.removeEventListener("popstate", onLocationChange);
     };
   }, []);
+
   useEffect(() => {
     localStorage.setItem("familyos:theme", darkMode ? "dark" : "light");
   }, [darkMode]);
@@ -195,6 +196,33 @@ export default function App() {
     </main>
   );
 
+  // Deep-link resolver — accepts ?cook=meal_<id> (Today hero CTA) and writes
+  // the intent into sessionStorage so Meals.jsx picks it up on mount and
+  // auto-opens Cook Mode. The key is single-use; Meals strips it on consume.
+  const COOK_INTENT_KEY = "famos:cook-intent:v1";
+  useEffect(() => {
+    if (!session) return;
+    const params = new URLSearchParams(window.location.search);
+    const cookId = params.get("cook");
+    const taskId = params.get("task");
+    const eventId = params.get("event");
+    const listId = params.get("list");
+    const sharedText = params.get("shared_text");
+    const sharedUrl = params.get("shared_url");
+    if (!cookId && !taskId && !eventId && !listId && !sharedText && !sharedUrl) return;
+    try {
+      if (cookId && typeof window !== "undefined") {
+        window.sessionStorage.setItem(COOK_INTENT_KEY, cookId);
+      }
+    } catch { /* private mode */ }
+    if (cookId) setTab("meals");
+    else if (taskId) setTab("tasks");
+    else if (eventId) setTab("calendar");
+    else if (listId || sharedText || sharedUrl) setTab("groceries");
+    const cleanUrl = window.location.pathname + window.location.hash;
+    window.history.replaceState({}, "", cleanUrl);
+  }, [session]);
+
   return (
     <FamilyProvider tabletMode={effectiveTabletMode}>
       <div className={`app-shell ${darkMode ? "theme-dark" : ""} ${effectiveTabletMode ? "tablet-mode" : ""}`} ref={shellRef}>
@@ -216,10 +244,13 @@ export default function App() {
             {tab === "groceries" && <Groceries />}
             {tab === "tasks" && <Tasks />}
             {tab === "chat" && <Chat />}
-            {tab === "famai" && <FamAI />}
             {tab === "settings" && <Settings />}
           </Suspense>
         </main>
+        {/* Fam AI is now a global floating surface — no longer a tab. */}
+        <Suspense fallback={null}>
+          <FamAI />
+        </Suspense>
         <InstallPrompt />
       </div>
     </FamilyProvider>
