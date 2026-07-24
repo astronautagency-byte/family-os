@@ -177,28 +177,13 @@ export default function App() {
     return () => { cancelled = true; media?.revert?.(); };
   }, [tab]);
 
-  if (configured && loading) return <AuthLoading />;
-  if (configured && passwordRecovery) return <ResetPassword />;
-  if (publicRoute === "admin") return <Suspense fallback={<PageFallback />}><Admin /></Suspense>;
-  if (publicRoute === "landing" || publicRoute === "pricing") return <Suspense fallback={<PageFallback />}><Landing signedIn={!!session} /></Suspense>;
-  if (publicRoute === "privacy") return <Suspense fallback={<PageFallback />}><Privacy signedIn={!!session} /></Suspense>;
-  if (publicRoute === "terms") return <Suspense fallback={<PageFallback />}><Terms signedIn={!!session} /></Suspense>;
-  if (configured && !session && publicRoute === "signin") return <SignIn key="signin" initialCreating={false} />;
-  if (configured && !session && publicRoute === "signup") return <SignIn key="signup" initialCreating />;
-  if (configured && !session) return <Suspense fallback={<PageFallback />}><Landing /></Suspense>;
-  if (configured && (!household || onboardingRequired)) return <HouseholdOnboarding />;
-  if (["suspended", "disabled"].includes(runtimeConfig.status)) return (
-    <main className="admin-denied">
-      <ShieldCheck />
-      <h1>This family account is paused</h1>
-      <p>Your household data is safe. Contact FamOS support to restore access.</p>
-      <button onClick={() => supabase.auth.signOut()}>Sign out</button>
-    </main>
-  );
-
-  // Deep-link resolver — accepts ?cook=meal_<id> (Today hero CTA) and writes
-  // the intent into sessionStorage so Meals.jsx picks it up on mount and
-  // auto-opens Cook Mode. The key is single-use; Meals strips it on consume.
+  // Deep-link resolver — accepts ?cook=meal_<id> (Today hero CTA), ?task=,
+  // ?event=, ?list=, ?shared_text/=url= and routes to the right tab. Writes
+  // the cook intent to sessionStorage so Meals.jsx picks it up on mount and
+  // auto-opens Cook Mode. The key is single-use; the URL is stripped after.
+  // MUST stay above the conditional-returns block below or this hook's slot
+  // appears only after sign-in, breaking the Rules of Hooks (render 1 runs
+  // the 16 hooks above and returns early as Landing; render 2 needs 17).
   const COOK_INTENT_KEY = "famos:cook-intent:v1";
   useEffect(() => {
     if (!session) return;
@@ -222,6 +207,25 @@ export default function App() {
     const cleanUrl = window.location.pathname + window.location.hash;
     window.history.replaceState({}, "", cleanUrl);
   }, [session]);
+
+  if (configured && loading) return <AuthLoading />;
+  if (configured && passwordRecovery) return <ResetPassword />;
+  if (publicRoute === "admin") return <Suspense fallback={<PageFallback />}><Admin /></Suspense>;
+  if (publicRoute === "landing" || publicRoute === "pricing") return <Suspense fallback={<PageFallback />}><Landing signedIn={!!session} /></Suspense>;
+  if (publicRoute === "privacy") return <Suspense fallback={<PageFallback />}><Privacy signedIn={!!session} /></Suspense>;
+  if (publicRoute === "terms") return <Suspense fallback={<PageFallback />}><Terms signedIn={!!session} /></Suspense>;
+  if (configured && !session && publicRoute === "signin") return <SignIn key="signin" initialCreating={false} />;
+  if (configured && !session && publicRoute === "signup") return <SignIn key="signup" initialCreating />;
+  if (configured && !session) return <Suspense fallback={<PageFallback />}><Landing /></Suspense>;
+  if (configured && (!household || onboardingRequired)) return <HouseholdOnboarding />;
+  if (["suspended", "disabled"].includes(runtimeConfig.status)) return (
+    <main className="admin-denied">
+      <ShieldCheck />
+      <h1>This family account is paused</h1>
+      <p>Your household data is safe. Contact FamOS support to restore access.</p>
+      <button onClick={() => supabase.auth.signOut()}>Sign out</button>
+    </main>
+  );
 
   return (
     <FamilyProvider tabletMode={effectiveTabletMode}>
