@@ -380,6 +380,11 @@ export default function Meals() {
       }
       setCookRecipe({ ...placeholderRecipe(meal.title, meal.slot), ...recipe });
 
+      // Auto-enter Cook Mode once the recipe has real instructions — so the
+      // user doesn't need a second tap on the "Start Cook Mode" button if
+      // they already know they want to cook this meal.
+      if (recipe?.instructions?.length) setCookMode(true);
+
       // Cache ingredient names for the grocery badge on the meal card.
       const ingredientNames = recipe.ingredients
         .map((item) => typeof item === "string" ? item.trim().toLowerCase() : (item?.name || "").trim().toLowerCase())

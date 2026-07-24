@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, CalendarPlus, ChefHat, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, Clock3, Droplets, ExternalLink, Home, ListChecks, LoaderCircle, MapPin, Megaphone, Moon, PartyPopper, ShoppingCart, Sparkles, Sun, Ticket, TriangleAlert, Users, Wind, X } from "lucide-react";
+// ChefHat is already imported above for the Cook button icon.
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { BROADCAST_REACTIONS, useFamily } from "../context/FamilyContext";
@@ -745,7 +746,13 @@ export default function Today({ goTo }) {
                 const meal = meals.find((m) => m.date === date && m.slot === "dinner" && m.title);
                 const adder = meal?.createdBy ? memberById[meal.createdBy] : null;
                 return (
-                  <div key={date} className="flex items-center gap-3 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] px-3 py-2.5">
+                  <button
+                    key={date}
+                    type="button"
+                    onClick={() => goTo("meals")}
+                    className="w-full flex items-center gap-3 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] px-3 py-2.5 text-left hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-soft)] transition-colors"
+                    aria-label={meal?.title ? `Open ${meal.title} in meal planner` : `Open meal planner for ${date === today ? "today" : formatDayLabel(date, { withWeekday: true })}`}
+                  >
                     <span className="w-12 shrink-0 text-[11.5px] font-bold uppercase text-[var(--color-accent-strong)]">{date === today ? "Today" : formatDayLabel(date, { withWeekday: true }).split(",")[0]}</span>
                     <div className="flex-1 min-w-0">
                       <span className="block text-[13px] text-[var(--color-ink)] truncate">{meal?.title || "Open dinner slot"}</span>
@@ -762,7 +769,8 @@ export default function Today({ goTo }) {
                       );
                     })()}
                     {meal?.cookIds?.length ? <AvatarStack members={meal.cookIds.map((id) => memberById[id]).filter(Boolean)} size="sm" /> : <Tag tone="neutral">Plan</Tag>}
-                  </div>
+                    <ChefHat size={15} className="today-meal-cook-hint" aria-hidden="true" />
+                  </button>
                 );
               })}
             </div>

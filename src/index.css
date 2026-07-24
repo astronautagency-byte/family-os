@@ -1801,6 +1801,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 
 /* Cook focus mode for planned meals. */
 .meal-cook-hint{display:flex;align-items:center;gap:4px;margin-top:3px;color:var(--color-accent);font-size:10.5px;font-weight:850;letter-spacing:.01em}
+.today-meal-cook-hint{color:var(--color-accent);opacity:.85;flex:none;margin-left:auto;transition:opacity .15s ease}
 .theme-dark,.theme-dark .app-shell{color:var(--color-ink);background:#0f1020}
 .theme-dark .app-content{background:linear-gradient(180deg,#151628 0,var(--color-canvas) 280px);color:var(--color-ink)}
 .theme-dark .app-topbar,.theme-dark .primary-nav{background:rgba(18,19,34,.84);backdrop-filter:blur(18px);color:var(--color-ink)}
