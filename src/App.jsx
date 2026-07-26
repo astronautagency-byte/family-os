@@ -23,6 +23,7 @@ const Landing = lazy(() => import("./pages/Landing"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Admin = lazy(() => import("./pages/Admin"));
+const Features = lazy(() => import("./pages/Features"));
 
 const PageFallback = () => (
   <div className="app-page-skeleton" role="status" aria-label="Loading page">
@@ -44,12 +45,15 @@ const VALID_TABS = ["today","calendar","meals","tasks","groceries","chat","famai
 const PUBLIC_ROUTES = ["privacy", "terms", "pricing", "signin", "signup"];
 const ROUTE_ALIASES = { "sign-in": "signin", "lsign-in": "signin", "sign-up": "signup" };
 const VALID_ROUTES = [...VALID_TABS, "landing", "admin", ...PUBLIC_ROUTES];
+const FEATURES_PATH_REGEX = /^\/features(?:\/([a-z-]+))?\/?$/i;
 const normalizeRoute = (route = "") => ROUTE_ALIASES[route] || route;
 const pathRoute = () => normalizeRoute(window.location.pathname.replace(/^\/+|\/+$/g, ""));
+const isFeaturesPath = () => FEATURES_PATH_REGEX.test(window.location.pathname.replace(/\/+$/g, ""));
 const routeFromLocation = () => {
   const hashRoute = normalizeRoute(window.location.hash.slice(1));
   if (VALID_ROUTES.includes(hashRoute)) return hashRoute;
   const route = pathRoute();
+  if (isFeaturesPath()) return "features";
   return [...PUBLIC_ROUTES, "admin"].includes(route) ? route : "";
 };
 const tabFromLocation = () => VALID_TABS.includes(routeFromLocation()) ? routeFromLocation() : "today";
@@ -215,6 +219,7 @@ export default function App() {
   if (configured && loading) return <AuthLoading />;
   if (configured && passwordRecovery) return <ResetPassword />;
   if (publicRoute === "admin") return <Suspense fallback={<PageFallback />}><Admin /></Suspense>;
+  if (publicRoute === "features") return <Suspense fallback={<PageFallback />}><Features /></Suspense>;
   if (publicRoute === "landing" || publicRoute === "pricing") return <Suspense fallback={<PageFallback />}><Landing signedIn={!!session} /></Suspense>;
   if (publicRoute === "privacy") return <Suspense fallback={<PageFallback />}><Privacy signedIn={!!session} /></Suspense>;
   if (publicRoute === "terms") return <Suspense fallback={<PageFallback />}><Terms signedIn={!!session} /></Suspense>;
