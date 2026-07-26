@@ -293,19 +293,30 @@
 .features-dropdown-chev{transition:transform .22s cubic-bezier(.2,.8,.2,1);opacity:.7}
 .features-dropdown.is-open .features-dropdown-chev{transform:rotate(180deg);opacity:1}
 
+/* Closed: display:none fully removes from layout — no chance of bleeding
+ * into document flow even if a parent has transform/overflow quirks.
+ * Open: display:block + opacity fade. The animation only touches opacity
+ * so it doesn't fight the static transform rules (desktop centers via
+ * translateX(-50%); mobile pins left via left:-8px). */
 .features-dropdown-panel{
-  position:absolute;z-index:60;
+  display:none;
+  position:absolute!important;z-index:60;
   top:calc(100% + 14px);left:50%;
   transform:translateX(-50%) translateY(-6px);
   width:min(640px,calc(100vw - 40px));
   padding:14px;
   border:1px solid rgba(121,82,232,.16);border-radius:22px;
   background:#fff;box-shadow:0 24px 58px rgba(42,34,65,.18);
-  opacity:0;pointer-events:none;
-  transition:opacity .18s ease,transform .18s ease
+  pointer-events:none;
 }
 .features-dropdown.is-open .features-dropdown-panel{
-  opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto
+  display:block;
+  pointer-events:auto;
+  animation:featuresDropdownIn .18s ease both
+}
+@keyframes featuresDropdownIn{
+  from{opacity:0}
+  to{opacity:1}
 }
 .features-dropdown-panel:before{
   content:"";position:absolute;left:50%;top:-7px;width:14px;height:14px;
@@ -403,4 +414,5 @@
   .features-dropdown-item,
   .features-dropdown-item-arrow,
   .features-dropdown-item-icon{transition:none!important}
+  .features-dropdown.is-open .features-dropdown-panel{animation:none}
 }
