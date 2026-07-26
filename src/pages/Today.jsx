@@ -709,11 +709,9 @@ export default function Today({ goTo }) {
                       key={ev.id}
                       onClick={() => goTo("calendar")}
                     >
-                      <div className="event-carousel-media" style={{ background: `linear-gradient(135deg, ${typeStyle.color}22, var(--color-surface-sunken))` }}>
-                        <span className="event-carousel-badge" style={{ background: typeStyle.color }}>{typeStyle.label}</span>
-                      </div>
                       <div className="event-carousel-body">
-                        <div className="event-carousel-date">
+                        <div className="event-carousel-date today-event-date">
+                          <span className="today-event-type-pill" style={{ background: typeStyle.color }}>{typeStyle.label}</span>
                           <span>{formatTime(ev.start)}</span>
                           {ev.end && <small>{formatTime(ev.end)}</small>}
                         </div>
