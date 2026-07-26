@@ -6,6 +6,7 @@ import { Avatar, Card, Modal, PrimaryButton, SecondaryButton, TextField } from "
 import ConfirmAction from "../components/ConfirmAction";
 import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
 import PageHeader from "../components/PageHeader";
+import PullToRefresh from "../components/PullToRefresh";
 import { passwordError } from "../utils/passwordStrength";
 import { FAMILY_COLORS } from "../data/mockData";
 import { AVATAR_PRESETS } from "../data/avatarLibrary";
@@ -262,7 +263,7 @@ function CalendarFeedsCard() {
 }
 
 export default function Settings() {
-  const { members, addMember, updateMember, removeMember, resetToDemoData, notificationPermission, requestNotifications, sendTestNotification } = useFamily();
+  const { members, addMember, updateMember, removeMember, resetToDemoData, notificationPermission, requestNotifications, sendTestNotification, refreshData } = useFamily();
   const { configured, user, household, householdProfileExtra, memberProfile, updateHouseholdSettings, updateHouseholdProfile, invitePartner, updatePassword, signOut, deleteAccount } = useAuth();
   const [editingMember, setEditingMember] = useState(null); // member object or "new"
   const [name, setName] = useState("");
@@ -529,7 +530,7 @@ export default function Settings() {
   const estimatedMonthlyPlan = PRICING_PLAN.basePlan.price.monthly + extraMembers * PRICING_PLAN.basePlan.additionalMemberPrice.monthly;
 
   return (
-    <div className="pb-24 reference-settings famos-noscroll">
+    <PullToRefresh onRefresh={refreshData}><div className="pb-24 reference-settings famos-noscroll">
       <PageHeader eyebrow="Household" title="Settings" illustration="settings" subtitle="Tweak the home base without making it a whole thing." />
 
       <div className="px-5 space-y-6 mt-2">
@@ -1225,6 +1226,6 @@ export default function Settings() {
           </PrimaryButton>
         </div>
       </Modal>
-    </div>
+    </div></PullToRefresh>
   );
 }
