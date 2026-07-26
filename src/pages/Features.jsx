@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, ArrowUpRight, ChevronRight } from "lucide-react";
 import { FEATURES, FEATURE_BY_ID, TONES, SITE_WIDE_FEATURES } from "../data/featureData";
+import FeaturesDropdown from "../components/FeaturesDropdown";
 import "../feature.css";
 
 /* ── helpers ─────────────────────────────────────────────────────────── */
 
-const FeaturesNav = () => (
+const FeaturesNav = ({ currentId = null }) => (
   <nav className="features-nav" aria-label="Features">
     <a className="features-nav-brand" href="/landing">
       <img src="/famicon.png" alt="" />
@@ -13,7 +14,7 @@ const FeaturesNav = () => (
     </a>
     <div className="features-nav-links">
       <a href="/landing">Home</a>
-      <a href="/features" className="is-active" aria-current="page">Features</a>
+      <FeaturesDropdown active currentId={currentId} label="Features" />
       <a href="/landing#pricing">Pricing</a>
       <a href="/landing#faq">FAQ</a>
     </div>
@@ -219,7 +220,7 @@ const FeaturePage = ({ id }) => {
   }
   return (
     <main className="features-page">
-      <FeaturesNav />
+      <FeaturesNav currentId={id} />
       <div className="px-5" style={{ padding: "0 28px" }}>
         <div className="features-breadcrumb" style={{ paddingTop: 28 }}>
           <a href="/features">All features</a>

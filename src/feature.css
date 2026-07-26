@@ -271,3 +271,136 @@
   .features-bullet:hover,
   .features-modulenav a:hover { transform: none !important; box-shadow: 0 14px 32px rgba(42,34,65,.06) !important; }
 }
+
+/* ── Features nav dropdown ─────────────────────────────────────────────
+   Trigger sits inline with the surrounding nav links; popover panel
+   appears below on hover/focus/click. Per-tone item icons echo the
+   index card backgrounds. */
+.features-dropdown{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+}
+.features-dropdown-trigger{
+  display:inline-flex;align-items:center;gap:5px;
+  background:transparent;border:0;padding:6px 4px;
+  font:700 14.5px/1 var(--font-sans);
+  color:inherit;letter-spacing:inherit;cursor:pointer;
+  transition:color .2s ease
+}
+.features-dropdown-trigger:hover,
+.features-dropdown.is-active .features-dropdown-trigger{color:var(--landing-color-primary,#7952e8)}
+.features-dropdown-chev{transition:transform .22s cubic-bezier(.2,.8,.2,1);opacity:.7}
+.features-dropdown.is-open .features-dropdown-chev{transform:rotate(180deg);opacity:1}
+
+.features-dropdown-panel{
+  position:absolute;z-index:60;
+  top:calc(100% + 14px);left:50%;
+  transform:translateX(-50%) translateY(-6px);
+  width:min(640px,calc(100vw - 40px));
+  padding:14px;
+  border:1px solid rgba(121,82,232,.16);border-radius:22px;
+  background:#fff;box-shadow:0 24px 58px rgba(42,34,65,.18);
+  opacity:0;pointer-events:none;
+  transition:opacity .18s ease,transform .18s ease
+}
+.features-dropdown.is-open .features-dropdown-panel{
+  opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto
+}
+.features-dropdown-panel:before{
+  content:"";position:absolute;left:50%;top:-7px;width:14px;height:14px;
+  background:#fff;border-left:1px solid rgba(121,82,232,.16);
+  border-top:1px solid rgba(121,82,232,.16);
+  transform:translateX(-50%) rotate(45deg);
+  border-radius:3px
+}
+
+.features-dropdown-overview{
+  display:grid;grid-template-columns:42px 1fr 16px;align-items:center;gap:12px;
+  padding:11px 14px;border-radius:14px;
+  background:linear-gradient(135deg,#faf8ff 0%,#fff7e6 100%);
+  border:1px solid rgba(121,82,232,.16);
+  text-decoration:none;color:#17171f;font-weight:750;
+  transition:border-color .2s ease,transform .2s ease,box-shadow .2s ease
+}
+.features-dropdown-overview:hover{
+  transform:translateY(-1px);border-color:rgba(121,82,232,.36);
+  box-shadow:0 10px 22px rgba(42,34,65,.08)
+}
+.features-dropdown-overview-icon{
+  width:42px;height:42px;display:grid;place-items:center;
+  border-radius:11px;background:#fff;color:var(--landing-color-primary,#7952e8);
+  border:1px solid rgba(23,23,47,.06)
+}
+.features-dropdown-overview-copy strong{display:block;font-size:13.5px;margin-bottom:3px;color:#17171f}
+.features-dropdown-overview-copy small{display:block;font-size:11px;color:#716953;font-weight:600}
+.features-dropdown-arrow{color:#a99bff;transition:transform .2s ease,color .2s ease}
+.features-dropdown-overview:hover .features-dropdown-arrow{transform:translateX(3px);color:var(--landing-color-primary,#7952e8)}
+
+.features-dropdown-divider{height:1px;background:rgba(23,23,47,.08);margin:11px 4px}
+
+.features-dropdown-grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px
+}
+.features-dropdown-item{
+  display:grid;grid-template-columns:34px 1fr 13px;align-items:center;gap:10px;
+  padding:9px 11px;border-radius:11px;
+  text-decoration:none;color:#17171f;font-weight:700;
+  transition:background .15s ease,transform .15s ease
+}
+.features-dropdown-item:hover{background:var(--color-surface,#f3f1f8);transform:translateX(2px)}
+.features-dropdown-item.is-current{
+  background:color-mix(in srgb,var(--landing-color-primary,#7952e8) 12%,transparent);
+  color:var(--landing-color-primary,#7952e8)
+}
+.features-dropdown-item:focus-visible{
+  outline:2px solid color-mix(in srgb,var(--landing-color-primary,#7952e8) 35%,transparent);
+  outline-offset:2px
+}
+.features-dropdown-item-icon{
+  width:34px;height:34px;display:grid;place-items:center;border-radius:9px;
+  background:#fff;color:var(--landing-color-primary,#7952e8);
+  border:1px solid rgba(23,23,47,.08);
+  transition:transform .2s ease,background .2s ease
+}
+.features-dropdown-item:hover .features-dropdown-item-icon{transform:translateX(-2px)}
+.features-dropdown-item[data-tone="lilac"] .features-dropdown-item-icon{background:#faf6ff;border-color:#d9cff7;color:#7952e8}
+.features-dropdown-item[data-tone="pink"] .features-dropdown-item-icon{background:#fff1f6;border-color:#f5d3df;color:#a44e68}
+.features-dropdown-item[data-tone="yellow"] .features-dropdown-item-icon{background:#fff9dd;border-color:#ecdc92;color:#87650c}
+.features-dropdown-item[data-tone="mint"] .features-dropdown-item-icon{background:#eefaf4;border-color:#c6e8d7;color:#31735e}
+.features-dropdown-item[data-tone="blue"] .features-dropdown-item-icon{background:#eef6ff;border-color:#c7ddf2;color:#366d9f}
+.features-dropdown-item[data-tone="peach"] .features-dropdown-item-icon{background:#fff1e6;border-color:#f0d2b3;color:#a05e1f}
+
+.features-dropdown-item-copy strong{display:block;font-size:13px;font-weight:750}
+.features-dropdown-item-copy small{
+  display:block;font-size:9.5px;color:#716953;font-weight:750;
+  letter-spacing:.06em;text-transform:uppercase;margin-top:2px
+}
+.features-dropdown-item-arrow{color:#cfc8d6;transition:transform .15s ease,color .15s ease}
+.features-dropdown-item:hover .features-dropdown-item-arrow{color:var(--landing-color-primary,#7952e8);transform:translateX(2px)}
+
+/* Mobile: pin the panel to the trigger's left edge so it never spills. */
+@media (max-width:760px){
+  .features-dropdown-panel{
+    left:-8px;right:auto;width:min(360px,calc(100vw - 32px));
+    transform:translateY(-6px)
+  }
+  .features-dropdown.is-open .features-dropdown-panel{transform:translateY(0)}
+  .features-dropdown-panel:before{left:32px;transform:rotate(45deg)}
+  .features-dropdown-grid{grid-template-columns:1fr}
+}
+
+/* Reduced-motion: no fade/transform transitions on the dropdown.
+ * We drop transitions but let the per-breakpoint .is-open transform
+ * (translateX(-50%) translateY(0) on desktop, translateY(0) on mobile)
+ * still apply so the panel ends up in the right place — the lack of
+ * transition just means it appears instantly rather than fading. */
+@media (prefers-reduced-motion: reduce){
+  .features-dropdown-panel,
+  .features-dropdown-chev,
+  .features-dropdown-arrow,
+  .features-dropdown-overview,
+  .features-dropdown-item,
+  .features-dropdown-item-arrow,
+  .features-dropdown-item-icon{transition:none!important}
+}
