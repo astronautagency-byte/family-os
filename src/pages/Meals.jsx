@@ -127,6 +127,10 @@ const CUISINE_TO_MEALDB_AREA = {
   "American Comfort": "American",
 };
 
+const MEAL_TYPE_TO_MEALDB_CATEGORY = {
+  breakfast: "Breakfast",
+};
+
 // Map a TheMealDB meal object to our internal recipe shape.
 const mealDbToRecipe = (meal) => {
   if (!meal?.idMeal || !meal?.strMeal) return null;
@@ -354,15 +358,18 @@ export default function Meals() {
     setRouletteBusy(true);
     const chosenCuisine = rouletteCuisine;
     const mealdbArea = chosenCuisine ? CUISINE_TO_MEALDB_AREA[chosenCuisine] : null;
+    const mealdbCategory = MEAL_TYPE_TO_MEALDB_CATEGORY[slot] || null;
     // Try TheMealDB first — it's free, no API key needed, and returns rich
     // recipes with full instructions, ingredients, and thumbnails.
-    // When a cuisine is selected, filter by area so the family sees only
-    // relevant options; otherwise fetch 3 random meals.
+    // When a cuisine is selected, filter by area. When breakfast, filter by
+    // Breakfast category so the roulette only returns appropriate meals.
+    // Otherwise fetch 3 random meals for the family to choose from.
     try {
       let responses;
-      if (mealdbArea) {
-        // Fetch all meals in the chosen cuisine area, then pick 3.
-        const filterRes = await fetch(`${THE_MEAL_DB}/filter.php?a=${encodeURIComponent(mealdbArea)}`).then((r) => r.json());
+      const filterBy = mealdbArea || mealdbCategory;
+      if (filterBy) {
+        const param = mealdbArea ? `a=${encodeURIComponent(mealdbArea)}` : `c=${encodeURIComponent(filterBy)}`;
+        const filterRes = await fetch(`${THE_MEAL_DB}/filter.php?${param}`).then((r) => r.json());
         const mealList = filterRes?.meals || [];
         if (mealList.length > 0) {
           // Shuffle and pick up to 3, then fetch full details for each.
@@ -406,7 +413,7 @@ export default function Meals() {
     const ingredientsPool = ["chicken", "rice", "pasta", "tofu", "salmon", "beef", "eggs", "lentils"];
     const ingredient = ingredientsPool[Math.floor(Math.random() * ingredientsPool.length)];
     const query = `${cuisine} ${ingredient}`.trim().slice(0, 120);
-    const { data, error } = await supabase.functions.invoke("recipe-search", { body: { query } }).catch(() => ({ data: null, error: new Error("offline") }));
+    const { data, error } = await supabase.functions.invoke("recipe-search", { body: { query, mealType: slot } }).catch(() => ({ data: null, error: new Error("offline") }));
     const recipeErr = data?.error || error?.message;
     const list = !recipeErr ? recipesFromSearch(data) : [];
     if (list.length === 0) {
