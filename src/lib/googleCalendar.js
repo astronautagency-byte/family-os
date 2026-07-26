@@ -117,6 +117,7 @@ function normalizeGoogleEvent(item, calendar = { id: "primary", summary: "Google
   if (!rawStart) return null;
   return {
     id: `gcal_${encodeURIComponent(calendar.id)}_${item.id}`,
+    googleEventId: item.id,
     title: item.summary || "(No title)",
     start: new Date(rawStart).toISOString(),
     end: new Date(rawEnd || rawStart).toISOString(),
@@ -176,6 +177,20 @@ export async function createGoogleCalendarEvent(accessToken, event, calendar = {
     throw new Error(`Google Calendar returned ${res.status}: ${body.slice(0, 200)}`);
   }
   return normalizeGoogleEvent(await res.json(), calendar);
+}
+
+export async function deleteGoogleCalendarEvent(accessToken, event, calendar = { id:"primary", summary:"Google Calendar" }) {
+  const googleEventId = event.googleEventId || event.id;
+  if (!googleEventId) throw new Error("Cannot determine the Google Calendar event ID to delete.");
+  const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendar.id)}/events/${encodeURIComponent(googleEventId)}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok && res.status !== 404) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Google Calendar delete returned ${res.status}: ${body.slice(0, 200)}`);
+  }
+  // 404 means the event was already deleted on Google's side — treat as success.
 }
 
 export function revokeGoogleAccessToken(accessToken) {

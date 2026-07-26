@@ -185,7 +185,7 @@ function LocationAutocompleteField({ value, onChange }) {
 }
 
 export default function CalendarPage() {
-  const { members, memberById, events, googleEvents, feedEvents, calendarFeeds, googleConnected, googleCalendars, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleStatus, googleError, googleLastSynced, addEvent, addGoogleCalendarEvent, removeEvent, clearEvents, refreshData, syncGoogleCalendarNow, connectGoogleCalendar, disconnectGoogleCalendar, toggleGoogleCalendar, toggleGoogleCalendarSharing } = useFamily();
+  const { members, memberById, events, googleEvents, feedEvents, calendarFeeds, googleConnected, googleCalendars, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleStatus, googleError, googleLastSynced, addEvent, addGoogleCalendarEvent, deleteGoogleCalendarEvent, removeEvent, clearEvents, refreshData, syncGoogleCalendarNow, connectGoogleCalendar, disconnectGoogleCalendar, toggleGoogleCalendar, toggleGoogleCalendarSharing } = useFamily();
   const { householdProfileExtra } = useAuth();
   const todayStr = todayISO();
   const [selectedDate, setSelectedDate] = useState(todayStr);
@@ -342,7 +342,16 @@ export default function CalendarPage() {
   const dayNum = selected.getDate();
   const monthDayLabel = selected.toLocaleDateString("en-CA", { month: "short", day: "numeric" });
   const selectedLabel = selected.toLocaleDateString("en-CA", { month: "short", day: "numeric", weekday: "short" }).toUpperCase();
-  const canDeleteEvent = (event) => sourceId(event) === "family";
+  const canDeleteEvent = (event) => {
+    if (sourceId(event) === "family") return true;
+    // Google Calendar events are deletable when the user can write to
+    // the underlying Google Calendar.
+    if (event.source === "google" && event.calendarId) {
+      const calendar = googleCalendars.find((item) => item.id === event.calendarId);
+      return calendar && ["owner", "writer"].includes(calendar.accessRole);
+    }
+    return false;
+  };
   const mapsUrl = (location) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
 
   // Build a 7-day strip starting from the start of the week containing selectedDate
@@ -574,7 +583,17 @@ export default function CalendarPage() {
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
-    await removeEvent(deleteTarget.id);
+    // Only call the Google Calendar API when the event carries a raw
+    // googleEventId (live- synced events). DB-stored events from the
+    // shared sync path have source:"google" but no googleEventId —
+    // those fall through to removeEvent.
+    if (deleteTarget.source === "google" && deleteTarget.googleEventId && deleteGoogleCalendarEvent) {
+      // Two-way sync: delete from Google Calendar first. FamilyContext
+      // handles local state cleanup — no need for a second setGoogleEvents.
+      await deleteGoogleCalendarEvent(deleteTarget);
+    } else {
+      await removeEvent(deleteTarget.id);
+    }
     setDeleteTarget(null);
     if (selectedEvent?.id === deleteTarget.id) setSelectedEvent(null);
   };
@@ -1300,7 +1319,7 @@ export default function CalendarPage() {
         </Modal>
 
         <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Delete event?">
-          <p className="reset-confirm-copy">This removes "{deleteTarget?.title}" from the FamOS calendar.</p>
+          <p className="reset-confirm-copy">{deleteTarget?.source === "google" ? `This removes "${deleteTarget?.title}" from both Google Calendar and FamOS.` : `This removes "${deleteTarget?.title}" from the FamOS calendar.`}</p>
           <div className="reset-confirm-actions">
             <button onClick={() => setDeleteTarget(null)}>Cancel</button>
             <PrimaryButton onClick={confirmDelete}>Delete event</PrimaryButton>

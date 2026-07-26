@@ -1,4 +1,4 @@
-import { Bell, CalendarDays, CheckSquare, Home, MessageCircle, Moon, Settings2, ShoppingCart, Sparkles, Sun, Tablet, X } from "lucide-react";
+import { Bell, CalendarDays, CheckSquare, Home, MessageCircle, Moon, RefreshCw, Settings2, ShoppingCart, Sparkles, Sun, Tablet, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
@@ -6,7 +6,7 @@ import { todayISO } from "../lib/dates";
 
 export default function AppTopBar({ onOpenSettings, onNavigate, onOpenFamAI, darkMode, onToggleDarkMode, tabletMode, tabletModeAvailable = true, onToggleTabletMode }) {
   const { profile, user, household } = useAuth();
-  const { members, tasks, events, googleEvents, feedEvents, groceries, messages, unreadMessageCount = 0, markChatRead } = useFamily();
+  const { members, tasks, events, googleEvents, feedEvents, groceries, messages, unreadMessageCount = 0, markChatRead, refreshData, dataLoading } = useFamily();
   const [open,setOpen]=useState(false); const today=todayISO();
   const [readIds,setReadIds]=useState(()=>{try{return JSON.parse(localStorage.getItem("familyos:read-notifications")||"[]")}catch{return[]}});
   const currentMember = members.find((member) => member.id === user?.id);
@@ -27,6 +27,7 @@ export default function AppTopBar({ onOpenSettings, onNavigate, onOpenFamAI, dar
     <div className="topbar-wordmark"><img src="/brand/famos-icon.png" alt=""/><strong>Fam<span>OS</span></strong>{tabletMode&&<em>{household?.name || "Shared display"}</em>}</div>
     <div className="topbar-actions">
       <button className="m3-icon-button" aria-label={`${bellCount} unread notifications`} aria-expanded={open} onClick={()=>setOpen(v=>!v)}><Bell/>{bellCount>0&&<i>{bellCount>9?"9+":bellCount}</i>}</button>
+      {refreshData&&!tabletMode&&<button className="m3-icon-button" aria-label={dataLoading ? "Refreshing data" : "Refresh data"} aria-busy={dataLoading || undefined} title="Pull-to-refresh works too — swipe down on the page" onClick={() => { refreshData(); }} disabled={dataLoading} type="button"><RefreshCw className={dataLoading ? "topbar-refresh-spin" : undefined} /></button>}
       {onOpenFamAI&&!tabletMode&&<button className="topbar-fam-ai m3-icon-button" aria-label="Open Fam AI assistant" title="Fam AI — ask anything" onClick={onOpenFamAI} type="button"><Sparkles/></button>}
       {(tabletModeAvailable||tabletMode)&&<button className={`tablet-mode-button m3-icon-button ${tabletMode ? "is-active" : ""}`} aria-label={tabletMode?"Exit tablet mode":"Turn on tablet mode"} aria-pressed={tabletMode} title={tabletMode?"Exit tablet mode":"Tablet mode: shared household display"} onClick={onToggleTabletMode} type="button"><Tablet/></button>}
       <button className="theme-toggle-button m3-icon-button" aria-label={darkMode?"Switch to light mode":"Switch to dark mode"} aria-pressed={darkMode} onClick={onToggleDarkMode} type="button">{darkMode?<Sun/>:<Moon/>}</button>

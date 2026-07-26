@@ -4,6 +4,7 @@ import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, colorVar, Modal, SecondaryButton } from "../components/ui";
 import PageHeader from "../components/PageHeader";
+import PullToRefresh from "../components/PullToRefresh";
 import ConfirmAction from "../components/ConfirmAction";
 import { detectIntent, intentKey } from "../lib/chatIntents";
 
@@ -100,7 +101,7 @@ function intentDetail(intent) {
 
 export default function Chat() {
   const { user } = useAuth();
-  const { members, memberById, messages, sendMessage, clearFamilyChat, clearMyDirectMessages, markChatRead, dataError, tabletMode, addGrocery, addTask, setMealForSlot, addEvent } = useFamily();
+  const { members, memberById, messages, sendMessage, clearFamilyChat, clearMyDirectMessages, markChatRead, dataError, tabletMode, addGrocery, addTask, setMealForSlot, addEvent, refreshData } = useFamily();
   const [text, setText] = useState("");
   const [sendError, setSendError] = useState("");
   const [sending, setSending] = useState(false);
@@ -214,7 +215,7 @@ export default function Chat() {
   };
 
   return (
-    <div className="h-screen pb-20 flex flex-col famos-noscroll">
+    <PullToRefresh onRefresh={refreshData}><div className="h-screen pb-20 flex flex-col famos-noscroll">
       <PageHeader eyebrow="Private conversations" title="Chat, minus the chaos." illustration="chat" subtitle="Quick decisions, saved from the scroll." />
 
       <div className="px-5 mt-1 mb-2 flex gap-2 overflow-x-auto pb-1">
@@ -350,6 +351,6 @@ export default function Chat() {
         busyLabel="Clearing…"
       />
       {clearError && confirmClear === null && <p className="chat-clear-error">{clearError}</p>}
-    </div>
+    </div></PullToRefresh>
   );
 }

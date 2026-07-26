@@ -7,7 +7,7 @@ import {
   initialTasks,
   initialMessages,
 } from "../data/mockData";
-import { createGoogleCalendarEvent, fetchGoogleCalendarEvents, fetchGoogleCalendars, requestGoogleAccessToken, revokeGoogleAccessToken } from "../lib/googleCalendar";
+import { createGoogleCalendarEvent, deleteGoogleCalendarEvent as deleteGoogleCalendarEventApi, fetchGoogleCalendarEvents, fetchGoogleCalendars, requestGoogleAccessToken, revokeGoogleAccessToken } from "../lib/googleCalendar";
 import { fetchIcalFeed, parseIcalEvents } from "../lib/icalCalendar";
 import { useAuth } from "./AuthContext";
 import { invokeEdgeFunction, supabase } from "../lib/supabase";
@@ -355,8 +355,12 @@ export function FamilyProvider({ children, tabletMode = false }) {
     const refreshOnReturn = () => {
       if (document.visibilityState !== "visible") return;
       if (typeof document.hasFocus === "function" && !document.hasFocus()) return;
-      // Only do a full reload if the realtime channel was disconnected.
-      if (!channelHealthyRef.current) loadRemoteData();
+      // Defensively reload — iOS / Android aggressively throttle background
+      // WebSocket frames, so we cannot trust realtime to be gap-free after
+      // a long absence. A full reload keeps the user honest without
+      // doubling network on healthy tabs (still only fires when the tab
+      // actually returns to the foreground).
+      loadRemoteData();
     };
     document.addEventListener("visibilitychange", refreshOnReturn);
     window.addEventListener("focus", refreshOnReturn);
@@ -399,12 +403,16 @@ export function FamilyProvider({ children, tabletMode = false }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks", filter: `household_id=eq.${household.id}` }, (payload) => { notifyFromChange("tasks", payload); applyChange("tasks", payload); })
       .on("postgres_changes", { event: "*", schema: "public", table: "grocery_items", filter: `household_id=eq.${household.id}` }, (payload) => { notifyFromChange("grocery_items", payload); applyChange("grocery_items", payload); })
       .on("postgres_changes", { event: "*", schema: "public", table: "events", filter: `household_id=eq.${household.id}` }, (payload) => { if (payload.eventType === "INSERT") notifyFromChange("events", payload); applyChange("events", payload); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "event_participants" }, (payload) => loadRemoteData())
       .on("postgres_changes", { event: "*", schema: "public", table: "meals", filter: `household_id=eq.${household.id}` }, (payload) => { notifyFromChange("meals", payload); applyChange("meals", payload); })
       .on("postgres_changes", { event: "*", schema: "public", table: "messages", filter: `household_id=eq.${household.id}` }, (payload) => { if (payload.eventType === "INSERT") notifyFromChange("messages", payload); applyChange("messages", payload); })
       .on("postgres_changes", { event: "*", schema: "public", table: "message_reactions", filter: `household_id=eq.${household.id}` }, (payload) => applyChange("message_reactions", payload))
       .on("postgres_changes", { event: "*", schema: "public", table: "expenses", filter: `household_id=eq.${household.id}` }, (payload) => applyChange("expenses", payload))
       .on("postgres_changes", { event: "*", schema: "public", table: "household_members", filter: `household_id=eq.${household.id}` }, loadRemoteData)
       .on("postgres_changes", { event: "*", schema: "public", table: "household_finance_settings", filter: `household_id=eq.${household.id}` }, loadRemoteData)
+      .on("postgres_changes", { event: "*", schema: "public", table: "household_invitations", filter: `household_id=eq.${household.id}` }, loadRemoteData)
+      .on("postgres_changes", { event: "*", schema: "public", table: "calendar_feeds", filter: `household_id=eq.${household.id}` }, loadRemoteData)
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, (payload) => loadRemoteData())
       .subscribe((status, error) => {
         if (status === "SUBSCRIBED") { channelHealthyRef.current = true; }
         else if (status === "CHANNEL_ERROR") { console.warn("[realtime] channel error", error); channelHealthyRef.current = false; }
@@ -726,22 +734,46 @@ export function FamilyProvider({ children, tabletMode = false }) {
 
   // ---- Chat ----
   const sendMessage = async (message) => {
-    const tempId = makeId("msg");
+    // Pre-allocate a real UUID so the optimistic row's id matches the row
+    // Supabase returns. applyChange() uses an `id` collision to dedupe
+    // INSERT vs UPDATE, so a shared id keeps the optimistic message in
+    // place when the realtime event lands a few ms later — no flicker,
+    // no duplicate. Falls back to makeId() on browsers without crypto.
+    const optimisticId = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : makeId("msg");
+    const optimisticRow = {
+      id: optimisticId,
+      senderId: currentUserId,
+      recipientId: message.recipientId || null,
+      text: message.text,
+      sentAt: new Date().toISOString(),
+      source: "famos",
+      sourceSender: "",
+      broadcast: false,
+    };
     // Optimistic: show the message instantly.
-    setMessages((prev) => [...prev, { id: tempId, senderId: currentUserId, sentAt: new Date().toISOString(), ...message }]);
+    setMessages((prev) => [...prev, optimisticRow]);
     if (remote) {
       try {
-        const row = { household_id: household.id, sender_id: user.id, recipient_id: message.recipientId, body: message.text };
+        const row = { id: optimisticId, household_id: household.id, sender_id: user.id, recipient_id: message.recipientId, body: message.text };
         let result = await supabase.from("messages").insert(row).select().single();
         if (result.error && /recipient_id|schema cache/i.test(result.error.message || "")) {
-          const { recipient_id: _recipientId, ...compatibleRow } = row;
-          result = await supabase.from("messages").insert(compatibleRow).select().single();
+          // Fallback for pre-migration schemas: drop the generated id so
+          // Supabase allocates its own. The temp id in state won't match
+          // the realtime payload, so applyChange() will see it as a fresh
+          // INSERT — still safe, just a tiny render flicker on legacy DBs.
+          const { id: _id, ...withoutId } = row;
+          result = await supabase.from("messages").insert(withoutId).select().single();
         }
         if (result.error) throw result.error;
-        setMessages((prev) => prev.map((item) => item.id === tempId ? { ...mapMessage(result.data), recipientId: result.data.recipient_id || message.recipientId || null } : item));
+        // Reconcile: if the server assigned a different id (legacy fallback),
+        // swap the optimistic row for the real one. Otherwise applyChange()
+        // will dedupe via the matching id.
+        if (result.data.id !== optimisticId) {
+          setMessages((prev) => prev.map((item) => item.id === optimisticId ? { ...mapMessage(result.data), recipientId: result.data.recipient_id || message.recipientId || null } : item));
+        }
         sendHouseholdPush({ title: `${memberById[user.id]?.name || "A family member"} sent a message`, body: message.text, tag: `message-${result.data.id}`, url: "/#chat" }, message.recipientId ? [message.recipientId] : []);
       } catch (error) {
-        setMessages((prev) => prev.filter((item) => item.id !== tempId));
+        setMessages((prev) => prev.filter((item) => item.id !== optimisticId));
         setDataError(error.message);
         throw error;
       }
@@ -1268,6 +1300,30 @@ export function FamilyProvider({ children, tabletMode = false }) {
     return created;
   };
 
+  const deleteGoogleCalendarEvent = async (event) => {
+    if (!event?.calendarId) throw new Error("Cannot delete — this event is not linked to a Google Calendar.");
+    const calendar = googleCalendars.find((item) => item.id === event.calendarId) || { id: event.calendarId, summary: "Google Calendar", accessRole: "owner" };
+    // Only allow deletion of calendars the user can write to.
+    if (!["owner", "writer"].includes(calendar.accessRole)) throw new Error("You can only delete events from calendars you own or can edit.");
+    let token = googleAccessToken;
+    if (!token) {
+      const fresh = await getFreshGoogleToken();
+      if (fresh) {
+        token = fresh;
+        setGoogleAccessTokenState(fresh);
+      } else {
+        const result = await requestGoogleAccessToken(googleClientId, { silent: false });
+        token = result.accessToken;
+        setGoogleAccessTokenState(token);
+        setGoogleConnected(true);
+      }
+    }
+    await deleteGoogleCalendarEventApi(token, event, calendar);
+    // Remove from local state optimistically.
+    setGoogleEvents((current) => current.filter((item) => item.id !== event.id));
+  }
+
+
   const toggleGoogleCalendar = async (calendarId) => {
     const isConnected = !selectedGoogleCalendarIds.includes(calendarId);
     const next = isConnected ? [...selectedGoogleCalendarIds, calendarId] : selectedGoogleCalendarIds.filter(id=>id!==calendarId);
@@ -1454,7 +1510,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
     googleClientId, setGoogleClientId,
     googleConnected, googleEvents: tabletMode ? [] : googleEvents, googleCalendars: tabletMode ? [] : googleCalendars, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleStatus, googleError, googleLastSynced,
     googleUsesAccount: configured,
-    connectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, addGoogleCalendarEvent, toggleGoogleCalendar, toggleGoogleCalendarSharing,
+    connectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, addGoogleCalendarEvent, deleteGoogleCalendarEvent, toggleGoogleCalendar, toggleGoogleCalendarSharing,
     // Other calendar providers via published iCal feeds
     calendarFeeds: tabletMode ? [] : calendarFeeds, feedEvents: tabletMode ? [] : feedEvents, calendarFeedStatus, calendarFeedError,
     addCalendarFeed, importCalendarFile, syncCalendarFeed, removeCalendarFeed,
