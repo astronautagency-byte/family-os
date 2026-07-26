@@ -9,7 +9,7 @@ import PullToRefresh from "../components/PullToRefresh";
 import ConfirmAction from "../components/ConfirmAction";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { MEAL_SLOTS } from "../data/mockData";
-import { recipeSearchProfileForMeal } from "../data/recipeBox";
+import { buildCookSearchLadder, recipeSearchProfileForMeal } from "../data/recipeBox";
 import { addDays, formatDayLabel, todayISO } from "../lib/dates";
 import { supabase } from "../lib/supabase";
 import useVoiceCommands, { requestScreenWakeLock } from "../hooks/useVoiceCommands";
@@ -436,16 +436,18 @@ export default function Meals() {
     }
 
     try {
-      const profile = recipeSearchProfileForMeal(meal, meal.slot, dietaryPreferences);
-      const { data, error } = await supabase.functions.invoke("recipe-search", { body: profile });
-      const recipeErr = data?.error || error?.message;
-      if (recipeErr) {
-        setCookError(recipeErr);
-        return;
+      const ladder = buildCookSearchLadder(meal, dietaryPreferences);
+      let recipe = null;
+      let lastError = "";
+      for (const rung of ladder) {
+        const { data, error } = await supabase.functions.invoke("recipe-search", { body: rung });
+        const recipeErr = data?.error || error?.message;
+        if (recipeErr) { lastError = recipeErr; continue; }
+        const found = recipeFromSearch(data);
+        if (found) { recipe = found; break; }
       }
-      const recipe = recipeFromSearch(data);
       if (!recipe) {
-        setCookError("API Ninjas returned no recipe for this meal.");
+        setCookError(lastError || "API Ninjas returned no recipe for this meal.");
         return;
       }
       setCookRecipe({ ...placeholderRecipe(meal.title, meal.slot), ...recipe });
