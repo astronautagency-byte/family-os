@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, useAnimate, useInView, useScroll, useSpring, useTransform, useReducedMotion, MotionConfig, stagger } from "framer-motion";
-import { ArrowRight, Baby, Bot, CalendarDays, Check, CheckSquare, ChefHat, Gift, GraduationCap, Heart, LockKeyhole, MessageCircle, Minus, Plus, ShieldCheck, ShoppingCart, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Baby, Bot, CalendarDays, Check, CheckSquare, ChefHat, Gift, GraduationCap, Heart, LoaderCircle, LockKeyhole, MessageCircle, Minus, Plus, ShieldCheck, ShoppingCart, Sparkles, Users } from "lucide-react";
 import "../landing.css";
 import "../landing-theme.css";
 import { PRICING_PLAN, formatMoney } from "../data/pricingPlan";
 import FeaturesDropdown from "../components/FeaturesDropdown";
+import { supabase } from "../lib/supabase";
 
 // Shared motion vocabulary. Framer Motion drives all landing animation via
 // IntersectionObserver-backed `whileInView`, which — unlike GSAP ScrollTrigger —
@@ -106,6 +107,8 @@ function PricingSection({ signedIn }) {
   const [billing, setBilling] = useState("monthly");
   const [members, setMembers] = useState(PRICING_PLAN.basePlan.membersIncluded);
   const [addOns, setAddOns] = useState({ smart_bundle: false, fam_ai: PRICING_PLAN.trial.famAiPretoggled });
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
   const extraMembers = Math.max(0, members - PRICING_PLAN.basePlan.membersIncluded);
   const monthlyBase = PRICING_PLAN.basePlan.price.monthly;
   const annualBase = PRICING_PLAN.basePlan.price.yearly;
@@ -121,6 +124,37 @@ function PricingSection({ signedIn }) {
   const savings = monthlySubtotal * 12 - annualTotal;
   const annualizeMonthly = (value) => value * 12;
   const pulseKey = `${billing}-${displayedTotal}`;
+
+  // Start the trial: anonymous users go through signup first (Stripe needs an
+  // email/name for the Customer), then bounce back to /pricing and land on this
+  // handler. Signed-in users get a Stripe Checkout URL and are redirected.
+  const startCheckout = async () => {
+    setCheckoutError("");
+    if (!signedIn) {
+      // Queue the chosen billing freq + addons via the signup return path so
+      // it's restored after sign-up. signup reads ?returnPath=<url>.
+      const params = new URLSearchParams({ returnPath: "/pricing" });
+      window.location.hash = `signup?${params.toString()}`;
+      return;
+    }
+    setCheckoutBusy(true);
+    const addons = [
+      ...(addOns.smart_bundle ? ["smart_bundle"] : []),
+      ...(addOns.fam_ai ? ["fam_ai"] : []),
+    ];
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout-session", {
+        body: { billing, memberCount: members, addons },
+      });
+      if (error) throw error;
+      const url = data?.url;
+      if (!url) throw new Error("Stripe did not return a checkout URL.");
+      window.location.assign(url);
+    } catch (err) {
+      setCheckoutError(err?.message || "Could not start checkout. Please try again.");
+      setCheckoutBusy(false);
+    }
+  };
 
   return <section className="landing-pricing" id="pricing">
     <SectionHead eyebrow="Simple pricing" note={`Try FamOS free for ${PRICING_PLAN.trial.days} days. ${PRICING_PLAN.basePlan.membersIncluded} people are included in Core, then each extra member is ${formatMoney(PRICING_PLAN.basePlan.additionalMemberPrice.monthly)}/month. Add-ons stack on top.`}>Pick what fits.<br/>Add more as you grow.</SectionHead>
@@ -175,7 +209,12 @@ function PricingSection({ signedIn }) {
           {addOns.fam_ai && <div><span>Fam AI</span><b>{formatMoney(5.99)}/mo</b></div>}
           {billing === "annual" && <div className="annual-savings"><span>Yearly savings</span><b>{formatMoney(savings)}</b></div>}
           <div className="pricing-total"><span>Total after trial</span><motion.b key={pulseKey} initial={{ y: 7, opacity: 0.55 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.34, ease: EASE }}>{formatMoney(displayedTotal)}<small>{billing === "annual" ? "/yr" : "/mo"}</small></motion.b></div>
-          <button onClick={() => go(signedIn ? "today" : "signup")}>Start free for {PRICING_PLAN.trial.days} days <ArrowRight/></button>
+          <button onClick={startCheckout} disabled={checkoutBusy}>
+            {checkoutBusy ? <LoaderCircle className="animate-spin" size={16} /> : null}
+            {checkoutBusy ? "Opening checkout…" : `Start free for ${PRICING_PLAN.trial.days} days`}
+            {!checkoutBusy && <ArrowRight/>}
+          </button>
+          {checkoutError && <small className="pricing-checkout-error">{checkoutError}</small>}
           <small><ShieldCheck/> Full feature access during trial. Card required; cancel anytime before billing starts.</small>
         </div>
       </aside>

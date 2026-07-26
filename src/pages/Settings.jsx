@@ -61,8 +61,82 @@ function GoogleCalendarCard() {
     connectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, toggleGoogleCalendar, toggleGoogleCalendarSharing,
   } = useFamily();
   const [showSetup, setShowSetup] = useState(!googleClientId);
+  const [subscription, setSubscription] = useState(null);
+  const [billingBusy, setBillingBusy] = useState(false);
+  const [billingError, setBillingError] = useState("");
+
+  // Pull the household's real Stripe-backed subscription so the Plan & billing
+  // card can show a status badge + payment method, and "Manage billing" can
+  // open the Stripe Customer Portal via the billing-portal edge function.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.rpc("get_my_subscription");
+      if (!cancelled && !error && data?.[0]) setSubscription(data[0]);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const openBillingPortal = async () => {
+    setBillingError("");
+    setBillingBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("billing-portal");
+      if (error) throw error;
+      const url = data?.url;
+      if (!url) throw new Error("Stripe did not return a portal URL.");
+      window.location.assign(url);
+    } catch (err) {
+      setBillingError(err?.message || "Could not open the billing portal. Please try again.");
+      setBillingBusy(false);
+    }
+  };
 
   const isBusy = googleStatus === "connecting" || googleStatus === "syncing";
+
+  // ── Subscription status formatting ──
+  // The Plan & billing card pulls these from the get_my_subscription RPC; we
+  // render a status pill, payment method, and next-charge date instead of the
+  // static PRICING_PLAN values whenever a real subscription row exists.
+  const subStatusBadge = (() => {
+    if (!subscription) return null;
+    const s = subscription.status;
+    if (s === "trial" || s === "trialing") {
+      const days = subscription.trial_ends_at
+        ? Math.max(0, Math.ceil((new Date(subscription.trial_ends_at).getTime() - Date.now()) / 86_400_000))
+        : null;
+      return { tone: "good", label: days !== null ? `Trial · ${days} day${days === 1 ? "" : "s"} left` : "Trial active" };
+    }
+    if (s === "active") return { tone: "good", label: "Active" };
+    if (s === "past_due") return { tone: "warn", label: "Payment overdue" };
+    if (s === "canceled") return { tone: "muted", label: "Canceled" };
+    if (s === "incomplete") return { tone: "warn", label: "Setup incomplete" };
+    if (s === "paused") return { tone: "muted", label: "Paused" };
+    return { tone: "muted", label: s };
+  })();
+
+  const formatNextCharge = (iso) => {
+    if (!iso) return null;
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  };
+
+  const nextChargeLabel = (() => {
+    if (!subscription) return null;
+    if (subscription.status === "trial" || subscription.status === "trialing") {
+      return formatNextCharge(subscription.trial_ends_at) ? `First charge after trial · ${formatNextCharge(subscription.trial_ends_at)}` : "First charge after trial";
+    }
+    if (subscription.status === "active" || subscription.status === "past_due") {
+      return formatNextCharge(subscription.current_period_ends_at) ? `Next charge · ${formatNextCharge(subscription.current_period_ends_at)}` : null;
+    }
+    return null;
+  })();
+
+  const paymentMethodLabel = (() => {
+    if (!subscription?.payment_method_brand || !subscription?.payment_method_last4) return null;
+    return `${subscription.payment_method_brand.toUpperCase()} •••• ${subscription.payment_method_last4}`;
+  })();
 
   return (
     <Card className="p-4">
@@ -681,12 +755,29 @@ export default function Settings() {
                 <span className="inline-flex items-center gap-1.5"><Bot size={14} /> Fam AI</span>
                 <strong className="text-[var(--color-ink)]">{formatMoney(5.99)}/mo · 100 queries</strong>
               </div>
-              <div className="flex items-start gap-2 rounded-xl bg-[var(--color-good-soft)] px-3 py-2 text-[var(--color-good)]">
-                <ShieldCheck size={14} className="mt-0.5 shrink-0" />
-                <span>{PRICING_PLAN.trial.days}-day trial includes everything — Core, Smart Family Bundle, and Fam AI. Card required.</span>
-              </div>
+              {subStatusBadge && (
+                <div className={`flex items-center gap-2 rounded-xl px-3 py-2 ${subStatusBadge.tone === "good" ? "bg-[var(--color-good-soft)] text-[var(--color-good)]" : subStatusBadge.tone === "warn" ? "bg-[var(--color-warn-soft,#fde7d6)] text-[var(--color-warn)]" : "bg-[var(--color-surface-sunken)] text-[var(--color-ink-soft)]"}`}>
+                  <ShieldCheck size={14} className="mt-0.5 shrink-0" />
+                  <span>{subStatusBadge.label}{nextChargeLabel ? ` · ${nextChargeLabel}` : ""}</span>
+                </div>
+              )}
+              {paymentMethodLabel && (
+                <div className="flex items-center gap-2 text-[12.5px] text-[var(--color-ink-soft)]">
+                  <span className="font-bold text-[var(--color-ink)]">{paymentMethodLabel}</span>
+                  {subscription?.cancel_at_period_end && <span className="text-[var(--color-warn)]">· cancels at period end</span>}
+                </div>
+              )}
+              {!subStatusBadge && (
+                <div className="flex items-start gap-2 rounded-xl bg-[var(--color-good-soft)] px-3 py-2 text-[var(--color-good)]">
+                  <ShieldCheck size={14} className="mt-0.5 shrink-0" />
+                  <span>{PRICING_PLAN.trial.days}-day trial includes everything — Core, Smart Family Bundle, and Fam AI. Card required.</span>
+                </div>
+              )}
             </div>
-            <SecondaryButton onClick={() => { window.location.hash = "pricing"; }} className="mt-3">View pricing page</SecondaryButton>
+            <SecondaryButton onClick={openBillingPortal} disabled={billingBusy} className="mt-3">
+              {billingBusy ? "Opening billing portal…" : "Manage billing"}
+            </SecondaryButton>
+            {billingError && <div className="text-[12px] text-[var(--color-warn)] mt-2">{billingError}</div>}
           </Card>
         </section>
 
