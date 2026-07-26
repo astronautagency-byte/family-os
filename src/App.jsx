@@ -64,6 +64,10 @@ export default function App() {
   });
   const [route, setRoute] = useState(routeFromLocation);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("familyos:theme") === "dark");
+  // Fam AI is now a global overlay accessible from every page via the top bar
+  // Sparkles button (no more floating FAB). The boolean below drives the
+  // controlled-mode `open` prop on <FamAI />.
+  const [famAiOpen, setFamAiOpen] = useState(false);
   const [tabletMode, setTabletMode] = useState(() => localStorage.getItem("familyos:tablet-mode") === "true");
   // Tablet mode is a shared-display layout meant only for tablet-sized screens.
   // We track whether the viewport is actually a tablet so the mode never applies
@@ -235,6 +239,7 @@ export default function App() {
           <AppTopBar
             onOpenSettings={() => setTab("settings")}
             onNavigate={setTab}
+            onOpenFamAI={() => setFamAiOpen(true)}
             darkMode={darkMode}
             onToggleDarkMode={() => setDarkMode((value) => !value)}
             tabletMode={effectiveTabletMode}
@@ -251,9 +256,11 @@ export default function App() {
             {tab === "settings" && <Settings />}
           </Suspense>
         </main>
-        {/* Fam AI is now a global floating surface — no longer a tab. */}
+        {/* Fam AI is now a global overlay controlled by the AppTopBar Sparkles
+            button. Passing `open` / `onClose` keeps it controlled — closing
+            from inside the sheet simply clears the openFamAI flag. */}
         <Suspense fallback={null}>
-          <FamAI />
+          <FamAI open={famAiOpen} onClose={() => setFamAiOpen(false)} />
         </Suspense>
         <InstallPrompt />
       </div>

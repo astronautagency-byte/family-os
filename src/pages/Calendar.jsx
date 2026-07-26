@@ -318,7 +318,7 @@ export default function CalendarPage() {
   const sources = useMemo(() => [
     { id: "all", label: "All calendars" }, { id: "family", label: "Family" },
     ...(googleConnected ? googleCalendars.filter(calendar => selectedGoogleCalendarIds.includes(calendar.id)).map(calendar => ({ id: `google:${calendar.id}`, label: calendar.summary, color: calendar.backgroundColor })) : []),
-    ...calendarFeeds.map((feed) => ({ id: `feed:${feed.id}`, label: feed.name })),
+    ...calendarFeeds.map((feed) => ({ id: `feed:${feed.id}`, label: feed.source === "file" ? feed.name : `${feed.name} · iCal` })),
   ], [calendarFeeds, googleConnected, googleCalendars, selectedGoogleCalendarIds]);
 
   const cells = useMemo(() => {

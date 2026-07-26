@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, ChefHat, ChevronDown, LoaderCircle, ShoppingBasket, Sparkles, WandSparkles } from "lucide-react";
+import { Check, ChefHat, ChevronDown, Dices, LoaderCircle, ShoppingBasket, Sparkles, WandSparkles } from "lucide-react";
 import { normaliseDietaryPreferences } from "../data/recipeBox";
 import { useFamily } from "../context/FamilyContext";
 import { invokeEdgeFunction, supabase } from "../lib/supabase";
@@ -52,6 +52,11 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType, dieta
   const [aiMeals, setAiMeals] = useState([]);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiError, setAiError] = useState("");
+  // Cuisine cycling — the chip row lets the family pin the next roulette spin
+  // to a particular style (Italian, Mexican, etc.). Click "Next" to cycle
+  // deterministically instead of rolling randomly.
+  const [cuisineCursor, setCuisineCursor] = useState(0);
+  const [pinnedCuisine, setPinnedCuisine] = useState(null);
   const mealType = fixedMealType || selectedMealType;
   const diet = normaliseDietaryPreferences(dietaryPreferences);
   const dietSummary = [
@@ -60,6 +65,7 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType, dieta
   ].filter(Boolean).join(" · ");
   const hasDietPrefs = Boolean(dietSummary);
   const lastQueryRef = useRef("");
+  const activeCuisine = pinnedCuisine || ROULETTE_QUERIES[cuisineCursor]?.cuisine || "Random";
 
   // Soft tier: split results into "needs ingredients" (active list) and
   // "you can make this tonight" (collapsed accordion below). Mirrors the
@@ -121,8 +127,16 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType, dieta
   const roulette = async () => {
     setBusy(true);
     setError("");
-    setIngredientInput("");
-    const choice = ROULETTE_QUERIES[Math.floor(Math.random() * ROULETTE_QUERIES.length)];
+    setIngredientInput("");// Spin always picks deterministically so the button label is honest:
+    // "Spin dinner roulette · Italian" must actually query Italian, not
+    // whatever a random index happens to land on. Pinned cuisines stay on
+    // their style; unpinned rotates through the canonical cuisine order so
+    // families see a fresh flavour each spin without ever losing the chain.
+    const chosenIndex = pinnedCuisine
+      ? Math.max(ROLETTE_QUERIES.findIndex((entry) => entry.cuisine === pinnedCuisine), 0)
+      : (cuisineCursor + 1) % ROULETTE_QUERIES.length;
+    setCuisineCursor(chosenIndex);
+    const choice = ROULETTE_QUERIES[chosenIndex];
     try {
       const data = await invokeEdgeFunction("recipe-search", buildSearchBody({
         query: choice.cuisine,
@@ -199,9 +213,40 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType, dieta
 
       {hasDietPrefs && <p className="meal-suggestion-diet-note">Tuned for {dietSummary}.</p>}
 
+      {/* Cuisine cycling — chip row shows the next cuisine on the roulette, and
+          a "Cycle" button steps through cuisines deterministically. Tapping a
+          chip pins it so subsequent spins stick to that style until cleared. */}
+      <div className="meal-roulette-cuisine" role="group" aria-label="Cycle cuisine">
+        <button
+          type="button"
+          className="meal-roulette-cuisine-cycle"
+          onClick={() => { setCuisineCursor((cursor) => (cursor + 1) % ROULETTE_QUERIES.length); setPinnedCuisine(null); }}
+          aria-label={`Cycle cuisine (currently ${activeCuisine})`}
+        >
+          <Dices aria-hidden="true" size={13} />
+          <span>Next cuisine</span>
+          <em aria-hidden="true">→</em>
+          <strong>{ROLETTE_QUERIES[(cuisineCursor + 1) % ROULETTE_QUERIES.length]?.cuisine || "Random"}</strong>
+        </button>
+        <ul className="meal-roulette-cuisine-chips">
+          {ROLETTE_QUERIES.map((entry) => (
+            <li key={entry.cuisine}>
+              <button
+                type="button"
+                className={`meal-roulette-cuisine-chip ${pinnedCuisine === entry.cuisine ? "pinned" : ""}`}
+                onClick={() => setPinnedCuisine((current) => current === entry.cuisine ? null : entry.cuisine)}
+                aria-pressed={pinnedCuisine === entry.cuisine}
+                title={pinnedCuisine === entry.cuisine ? `Pinned to ${entry.cuisine}` : `Pin roulette to ${entry.cuisine}`}
+              >
+                {entry.cuisine}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
       <button onClick={roulette} disabled={busy} className="w-full flex items-center justify-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] py-2 text-[12.5px] font-semibold text-[var(--color-accent)] mb-3 disabled:opacity-50">
         {busy ? <LoaderCircle size={15} className="animate-spin" /> : <ChefHat size={15} />}
-        Spin dinner roulette
+        Spin dinner roulette · <span className="meal-roulette-current">{activeCuisine}</span>
       </button>
 
       <input

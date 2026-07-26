@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ArrowLeft, BarChart3, Bookmark, CalendarPlus, CandyOff, Check, ChefHat, Clock, Coffee, Dices, FishOff, Leaf, ListChecks, LoaderCircle, Mic, MicOff, MilkOff, NutOff, ShoppingCart, Soup, Sparkles, Sprout, Trash2, Users, WheatOff, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
@@ -955,7 +956,7 @@ export default function Meals() {
           ))}
         </div>
       </Modal>
-      {cookMeal && cookRecipe && (
+      {cookMeal && cookRecipe && createPortal(
         <ErrorBoundary
           fallback={(error) => (
             <div className="cook-focus-screen cook-focus-crash" role="alert">
@@ -1137,7 +1138,7 @@ export default function Meals() {
           </div>
         </div>
         </ErrorBoundary>
-      )}
+      , document.body)}
     </div></PullToRefresh>
   );
 }

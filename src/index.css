@@ -3324,6 +3324,27 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .broadcast-reaction.reacted{border-color:var(--color-accent);background:var(--color-accent-soft);box-shadow:0 2px 8px color-mix(in srgb,var(--color-accent) 18%,transparent)}
 .broadcast-reaction.reacted em{color:var(--color-accent-strong)}
 
+/* Fam AI in the top bar — replaces the floating FAB so it no longer overlaps
+   the + buttons on meal cards, calendar headlines, grocery quick-add, etc. */
+.topbar-fam-ai{position:relative}
+.topbar-fam-ai::before{content:"";position:absolute;inset:6px;border-radius:50%;pointer-events:none;background:linear-gradient(135deg,var(--color-accent),color-mix(in srgb,var(--color-accent) 60%,#fff));opacity:.18}
+.topbar-fam-ai::after{content:"";position:absolute;inset:0;border-radius:50%;pointer-events:none;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--color-accent) 40%,transparent)}
+.topbar-fam-ai:hover::after{box-shadow:inset 0 0 0 2px var(--color-accent)}
+.topbar-fam-ai:active{transform:scale(.95)}
+
+/* Roulette cuisine cycling — deterministic next-cuisine button + chip row to
+   pin the next spin to a specific style (Italian / Mexican / Indian / etc.). */
+.meal-roulette-cuisine{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.meal-roulette-cuisine-cycle{display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:11px;border:1px dashed var(--color-border);background:var(--color-surface);font-size:11.5px;font-weight:600;color:var(--color-ink-soft);transition:border-color .15s ease,background .15s ease}
+.meal-roulette-cuisine-cycle:hover{border-color:var(--color-accent);background:var(--color-accent-soft)}
+.meal-roulette-cuisine-cycle em{font-style:normal;color:var(--color-ink-faint);margin-left:auto}
+.meal-roulette-cuisine-cycle strong{color:var(--color-accent-strong);font-weight:700;letter-spacing:.02em}
+.meal-roulette-cuisine-chips{display:flex;flex-wrap:wrap;gap:5px;padding:0;margin:0;list-style:none}
+.meal-roulette-cuisine-chip{padding:5px 10px;border-radius:999px;font-size:11px;font-weight:600;border:1px solid var(--color-border);background:var(--color-surface);color:var(--color-ink-soft);transition:all .15s ease}
+.meal-roulette-cuisine-chip:hover{border-color:var(--color-accent);color:var(--color-accent-strong)}
+.meal-roulette-cuisine-chip.pinned{background:var(--color-accent);color:#fff;border-color:var(--color-accent)}
+.meal-roulette-current{font-weight:600;letter-spacing:.02em;color:var(--color-accent-strong)}
+
 .settings-household-note{color:var(--color-ink-soft);font-size:13px;line-height:1.5;margin-bottom:6px}
 .settings-household-note strong{color:var(--color-ink)}
 

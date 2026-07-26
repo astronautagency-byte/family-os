@@ -416,7 +416,7 @@ async function getFunctionError(invokeError) {
   return "Fam AI is not connected yet. The FamOS admin needs to finish the server setup.";
 }
 
-export default function FamAI() {
+export default function FamAI({ open: propOpen, onClose }) {
   const { configured } = useAuth();
   const {
     members,
@@ -449,7 +449,24 @@ const INITIAL_FAM_AI_MESSAGE = {
   // FAB ↔ sheet state. When `open === false` we render only the floating
   // button. A launch hint (small badge dot) haunts the FAB on first open
   // to teach the family that the assistant is one tap away.
-  const [open, setOpen] = useState(false);
+  // The sheet can be driven by the parent (top-bar Sparkles button) via the
+  // `open` / `onClose` props, or fall back to the legacy uncontrolled mode
+  // when mounted as a routed tab. When controlled, internal clicks just
+  // bubble the close event to the parent.
+  const [internalOpen, setInternalOpen] = useState(false);
+  const controlled = propOpen !== undefined;
+  const open = controlled ? propOpen : internalOpen;
+  const setOpen = (next) => {
+    // When the parent drives the sheet (AppTopBar's Sparkles button), we only
+    // forward *close* intents — re-opens from internal legacy code paths
+    // (e.g. the launch-hint dot) are a no-op because the parent already owns
+    // the open flag. Internal-only mounts keep the original behaviour.
+    if (controlled) {
+      if (!next) onClose?.();
+      return;
+    }
+    setInternalOpen(next);
+  };
   const [overlayActive, setOverlayActive] = useState(false);
   // Keep the help dot visible until the user has dismissed the FAB at least
   // once this session. Stored so the badge never comes back on its own.
@@ -1027,19 +1044,10 @@ const INITIAL_FAM_AI_MESSAGE = {
 
   return (
     <>
-      {/* ── Floating action button — only when the sheet is closed AND nothing else is overlaying ── */}
-      {!open && !overlayActive && (
-        <button
-          className="fam-ai-fab"
-          type="button"
-          onClick={() => { setOpen(true); dismissHint(); }}
-          aria-label="Open Fam AI assistant"
-        >
-          <Sparkles size={20} />
-          {!hintShown && <span className="fam-ai-fab-dot" aria-hidden="true" />}
-        </button>
-      )}
-      {/* ── Sheet overlay (backdrop + scrolling sheet body) ── */}
+      {/* Sheet overlay (backdrop + scrolling sheet body). The floating action
+          button now lives in AppTopBar.jsx — keeping it out of this component
+          lets the Sparkles button sit beside the notification icon on every
+          page, instead of overlapping the + buttons on iOS Safari. */}
       {open && (
         <>
           <button
