@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Activity, Archive, ArrowLeft, BadgeDollarSign, Building2, CalendarDays, CheckCircle2, ChevronRight,
+  Activity, Archive, ArrowLeft, BadgeDollarSign, Bug, Building2, CalendarDays, CheckCircle2, ChevronRight,
   CircleDollarSign, CreditCard, Flag, LayoutDashboard, ListChecks, LogOut, Mail, MessageCircle,
-  Search, Send, Settings2, ShieldCheck, ShoppingCart, Tag, Trash2, TrendingUp, UserPlus, Users, Utensils,
+  Search, Send, Settings2, ShieldCheck, ShoppingCart, Tag, Ticket, Trash2, TrendingUp, UserPlus, Users, Utensils,
   WalletCards, XCircle,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
