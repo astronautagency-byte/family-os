@@ -627,7 +627,6 @@
   .landing-community .community-facts { gap: 10px !important; }
   .landing-community .community-facts article { padding: 16px !important; }
   .landing-final { margin: 48px 12px; padding: 26px 20px; border-radius: 28px; }
-  .landing-footer { padding: 32px var(--landing-phone-gutter) 40px; gap: 22px; }
 }
 
 @media (max-width: 380px) {
@@ -746,5 +745,4 @@
 .landing-sticky-cta button svg{width:15px}
 @media(max-width:700px){
   .landing-sticky-cta{display:flex}
-  .landing-footer{padding-bottom:104px}
 }

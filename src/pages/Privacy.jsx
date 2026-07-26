@@ -1,4 +1,5 @@
 import { ArrowLeft, LockKeyhole } from "lucide-react";
+import MarketingFooter from "../components/MarketingFooter";
 
 const go = (route) => {
   const target = route === "landing" ? "/" : `/#${route}`;
@@ -29,6 +30,6 @@ export default function Privacy({ signedIn = false }) {
 
       <aside className="legal-disclaimer"><h2>Copyright and product disclaimer</h2><p>© 2026 FamOS. All rights reserved. FamOS, its original interface, branding, copy, and associated assets are protected by applicable intellectual-property laws. Third-party names, trademarks, services, and content remain the property of their respective owners.</p><p>FamOS is a family-organization tool and does not provide legal, medical, financial, or professional advice. AI suggestions may be incomplete or inaccurate and should be reviewed before use.</p></aside>
     </main>
-    <footer className="legal-footer"><p>Developed by the team at Astronaut Digital<br/>Part of Astronaut Ventures</p><small>© 2026 FamOS. All rights reserved.</small></footer>
+    <MarketingFooter />
   </div>;
 }

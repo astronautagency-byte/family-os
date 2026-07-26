@@ -1,5 +1,6 @@
 import { ArrowLeft, FileText } from "lucide-react";
 import { PRICING_PLAN, formatMoney } from "../data/pricingPlan";
+import MarketingFooter from "../components/MarketingFooter";
 
 const go = (route) => {
   const target = route === "landing" ? "/" : `/#${route}`;
@@ -34,6 +35,6 @@ export default function Terms({ signedIn = false }) {
 
       <aside className="legal-disclaimer"><h2>Copyright and product disclaimer</h2><p>© 2026 FamOS. All rights reserved. FamOS, its original interface, branding, copy, and associated assets are protected by applicable intellectual-property laws. Third-party names, trademarks, services, and content remain the property of their respective owners.</p><p>These terms are provided for product launch readiness and should be reviewed by qualified counsel before relying on them for legal compliance.</p></aside>
     </main>
-    <footer className="legal-footer"><p>Developed by the team at Astronaut Digital<br/>Part of Astronaut Ventures</p><small>© 2026 FamOS. All rights reserved.</small></footer>
+    <MarketingFooter />
   </div>;
 }

@@ -5,6 +5,7 @@ import "../landing.css";
 import "../landing-theme.css";
 import { PRICING_PLAN, formatMoney } from "../data/pricingPlan";
 import FeaturesDropdown from "../components/FeaturesDropdown";
+import MarketingFooter from "../components/MarketingFooter";
 import { supabase } from "../lib/supabase";
 
 // Shared motion vocabulary. Framer Motion drives all landing animation via
@@ -434,7 +435,7 @@ export default function Landing({ signedIn = false }) {
       <motion.section className="landing-final" {...revealBlock}><img src="/illustrations/famos-family-planning.png" alt="A family planning together"/><div><p>Family life, in sync.</p><motion.h2 {...revealHeading}>Families run better<br/>on FamOS.</motion.h2><button onClick={() => go(signedIn ? "today" : "signup")}>{signedIn ? "Open FamOS" : "Start your family space"}<ArrowRight/></button></div></motion.section>
     </main>
 
-    <footer className="landing-footer"><div className="landing-brand"><img src="/brand/famos-icon-transparent.png" alt=""/><strong>Fam<span>OS</span></strong></div><p>For the family you have today, and the one you are growing into.</p><div>{!signedIn&&<button onClick={() => go("signin")}>Sign in</button>}<a href="#pricing">Pricing</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a><button onClick={() => go(signedIn ? "today" : "signup")}>{signedIn ? "Open FamOS" : "Sign up"}</button></div><small>© 2026 FamOS. All rights reserved.<br/>Developed by the team at Astronaut Digital · Part of Astronaut Ventures</small></footer>
+    <MarketingFooter signedIn={signedIn} />
 
     <AnimatePresence>{!heroInView && <motion.div className="landing-sticky-cta" initial={{ y: 90 }} animate={{ y: 0 }} exit={{ y: 90 }} transition={{ duration: 0.32, ease: EASE }}><div><strong>{signedIn ? "Your family space is ready" : `Full access free for ${PRICING_PLAN.trial.days} days`}</strong><small>{signedIn ? "Pick up where you left off" : "Card required · cancel anytime"}</small></div><button onClick={() => go(signedIn ? "today" : "signup")}>{signedIn ? "Open FamOS" : "Start free trial"}<ArrowRight/></button></motion.div>}</AnimatePresence>
   </div></MotionConfig>;

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowRight, ArrowUpRight, ChevronRight } from "lucide-react";
 import { FEATURES, FEATURE_BY_ID, TONES, SITE_WIDE_FEATURES } from "../data/featureData";
 import FeaturesDropdown from "../components/FeaturesDropdown";
+import MarketingFooter from "../components/MarketingFooter";
 import "../feature.css";
 
 /* ── helpers ─────────────────────────────────────────────────────────── */
@@ -23,49 +24,6 @@ const FeaturesNav = ({ currentId = null }) => (
       <a href="/signin">Sign in</a>
     </div>
   </nav>
-);
-
-const FeaturesFooter = () => (
-  <footer className="features-footer">
-    <div className="features-footer-inner">
-      <div>
-        <h4>FamOS</h4>
-        <p>The family operating system that quietly keeps everyone in sync — from morning routines to weekend dinners to next year's calendar.</p>
-      </div>
-      <div>
-        <h4>Features</h4>
-        <ul>
-          <li><a href="/features/today">Today</a></li>
-          <li><a href="/features/calendar">Calendar</a></li>
-          <li><a href="/features/meals">Meals & Cook Mode</a></li>
-          <li><a href="/features/shopping">Shopping list</a></li>
-          <li><a href="/features/fam-ai">Fam AI</a></li>
-        </ul>
-      </div>
-      <div>
-        <h4>Product</h4>
-        <ul>
-          <li><a href="/features/tasks">Tasks & rewards</a></li>
-          <li><a href="/features/chat">Family chat</a></li>
-          <li><a href="/features/family">Invites & settings</a></li>
-          <li><a href="/landing#pricing">Pricing</a></li>
-        </ul>
-      </div>
-      <div>
-        <h4>Company</h4>
-        <ul>
-          <li><a href="/privacy">Privacy</a></li>
-          <li><a href="/terms">Terms</a></li>
-          <li><a href="/signin">Sign in</a></li>
-          <li><a href="/signup">Start trial</a></li>
-        </ul>
-      </div>
-    </div>
-    <div className="features-footer-bottom">
-      <span>© {new Date().getFullYear()} FamOS — made with care for families.</span>
-      <span><a href="/landing">Home</a> · <a href="/features">All features</a> · <a href="/landing#pricing">Pricing</a></span>
-    </div>
-  </footer>
 );
 
 /* ── Feature hero (left copy + right mock-panel) ─────────────────────── */
@@ -267,7 +225,7 @@ const FeaturePage = ({ id }) => {
       <FeatureBullets feature={feature} />
       <FeatureSpotlight feature={feature} />
       <FinalCta feature={feature} />
-      <FeaturesFooter />
+      <MarketingFooter />
     </main>
   );
 };
@@ -281,7 +239,7 @@ const NotFoundFeature = () => (
       lede="We build modules as our users ask for them, so the catalogue keeps moving."
     />
     <FinalCta />
-    <FeaturesFooter />
+    <MarketingFooter />
   </main>
 );
 
@@ -365,7 +323,7 @@ const FeaturesIndex = () => {
 
       <SiteWideProofs />
       <FinalCta />
-      <FeaturesFooter />
+      <MarketingFooter />
     </main>
   );
 };
