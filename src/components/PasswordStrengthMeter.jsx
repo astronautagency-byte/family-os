@@ -1,5 +1,11 @@
 import { Check, Lock } from "lucide-react";
-import { MIN_PASSWORD_LENGTH, passwordError, passwordHint, passwordScore, passwordScoreLabel } from "../utils/passwordStrength";
+// Namespace import (vs. named `passwordError`, etc.) keeps every helper as a
+// property access — esbuild/Terser can no longer minify any utility to the
+// same short identifier as a local destructured `error`, eliminating the
+// TDZ-on-`n` risk that previously broke new-password setup.
+import * as PasswordStrength from "../utils/passwordStrength";
+
+const MIN_PASSWORD_LENGTH = PasswordStrength.MIN_PASSWORD_LENGTH;
 
 /**
  * Visual password strength meter. Renders a labelled 3-segment bar that fills
@@ -13,10 +19,10 @@ import { MIN_PASSWORD_LENGTH, passwordError, passwordHint, passwordScore, passwo
  *   - compact (boolean): render a denser version for tight layouts
  */
 export default function PasswordStrengthMeter({ value, id, compact = false }) {
-  const score = passwordScore(value);
-  const label = passwordScoreLabel(value);
-  const error = passwordError(value);
-  const hint = passwordHint(value);
+  const score = PasswordStrength.passwordScore(value);
+  const label = PasswordStrength.passwordScoreLabel(value);
+  const error = PasswordStrength.passwordError(value);
+  const hint = PasswordStrength.passwordHint(value);
   // 3-tier tone ladder. The "amber" / score=1 branch is dormant while
   // MIN_PASSWORD_LENGTH is 10 (any 8–9 char password trips the length error
   // first, so the meter renders "Password needs work" instead of "Weak").

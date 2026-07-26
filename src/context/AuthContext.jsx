@@ -1,6 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { invokeEdgeFunction, isSupabaseConfigured, supabase } from "../lib/supabase";
-import { passwordError } from "../utils/passwordStrength";
+// Namespace import (vs. named `passwordError`) makes the call site a property
+// access — esbuild/Terser can no longer minify `passwordError` to the exact
+// same short identifier `n` as a local destructured `error` inside the same
+// function. That collision was the root cause of the
+// `Cannot access 'n' before initialization` TDZ that broke password setup.
+import * as PasswordStrength from "../utils/passwordStrength";
 
 const AuthContext = createContext(null);
 const STAPLES_KEY = "family-os:grocery-staples:v1";
@@ -474,7 +479,7 @@ export function AuthProvider({ children }) {
 
   const signUp = async (email, password, displayName) => {
     setError(null);
-    const weak = passwordError(password);
+    const weak = PasswordStrength.passwordError(password);
     if (weak) throw new Error(weak);
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: email.trim().toLowerCase(),
@@ -489,7 +494,7 @@ export function AuthProvider({ children }) {
   };
 
   const updatePassword = async (password) => {
-    const weak = passwordError(password);
+    const weak = PasswordStrength.passwordError(password);
     if (weak) throw new Error(weak);
     // Rename the destructured error so it doesn't shadow the imported
     // `passwordError` utility above (which would put the local into the TDZ
@@ -545,7 +550,7 @@ export function AuthProvider({ children }) {
 
   const completeInvitePasswordSetup = async (email, token, password) => {
     setError(null);
-    const weak = passwordError(password);
+    const weak = PasswordStrength.passwordError(password);
     if (weak) throw new Error(weak);
     const { data, error: verifyError } = await supabase.auth.verifyOtp({
       email: email.trim().toLowerCase(),

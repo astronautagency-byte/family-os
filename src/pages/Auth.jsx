@@ -3,7 +3,11 @@ import { Baby, Bell, BellRing, BriefcaseBusiness, CalendarDays, Check, CheckSqua
 import { useAuth } from "../context/AuthContext";
 import { Card, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
 import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
-import { passwordError } from "../utils/passwordStrength";
+// Namespace import (vs. named `passwordError`) makes every call a property
+// access — esbuild/Terser can no longer minify `passwordError` and a local
+// destructured `error` to the identical short identifier `n`, which was the
+// TDZ that broke new-password setup.
+import * as PasswordStrength from "../utils/passwordStrength";
 import { supabase } from "../lib/supabase";
 
 const VAPID_PUBLIC_KEY = "BK4WksXI5RRZqDhurNH8v2VbinrSKrBLzOA6xni__siwCbKjhtJ1T0N3GOSVKKQPNAnENCacYtdlLW553fadxHQ";
@@ -75,7 +79,7 @@ export function SignIn({ initialCreating = false }) {
 
   const submit = async (event) => {
     event.preventDefault();
-    if (!email.trim() || passwordError(password) || (creating && !displayName.trim())) return;
+    if (!email.trim() || PasswordStrength.passwordError(password) || (creating && !displayName.trim())) return;
     setBusy(true);
     setLocalError("");
     setNotice("");
@@ -132,7 +136,7 @@ export function SignIn({ initialCreating = false }) {
           {(localError || error) && <p className="text-[12.5px] text-[var(--color-warn)] mb-3">{localError || error}</p>}
           {notice && <p className="text-[12.5px] text-[var(--color-good)] mb-3">{notice}</p>}
           {creating && <PasswordStrengthMeter value={password} />}
-          <PrimaryButton type="submit" disabled={busy || !email.trim() || !!passwordError(password) || (creating && !displayName.trim())}>
+          <PrimaryButton type="submit" disabled={busy || !email.trim() || !!PasswordStrength.passwordError(password) || (creating && !displayName.trim())}>
             {busy ? "One sec…" : creating ? "Create account" : "Sign in"}
           </PrimaryButton>
           {!creating && openedInvitation && (
@@ -161,7 +165,7 @@ function InvitedPasswordSetup({ initialEmail, requestCode, completeSetup, onBack
   const [error, setError] = useState("");
 
   const sendCode = async () => {
-    if (!email.trim() || passwordError(password) || password !== confirm) return;
+    if (!email.trim() || PasswordStrength.passwordError(password) || password !== confirm) return;
     setBusy(true);
     setError("");
     try {
@@ -176,7 +180,7 @@ function InvitedPasswordSetup({ initialEmail, requestCode, completeSetup, onBack
 
   const createPassword = async (event) => {
     event.preventDefault();
-    if (!code.trim() || passwordError(password) || password !== confirm) return;
+    if (!code.trim() || PasswordStrength.passwordError(password) || password !== confirm) return;
     setBusy(true);
     setError("");
     try {
@@ -209,11 +213,11 @@ function InvitedPasswordSetup({ initialEmail, requestCode, completeSetup, onBack
           {codeSent ? (
             <>
               <PasswordStrengthMeter value={password} />
-          <PrimaryButton type="submit" disabled={busy || code.length !== 6 || !!passwordError(password) || password !== confirm}>{busy ? "Creating password…" : "Create password & join"}</PrimaryButton>
+          <PrimaryButton type="submit" disabled={busy || code.length !== 6 || !!PasswordStrength.passwordError(password) || password !== confirm}>{busy ? "Creating password…" : "Create password & join"}</PrimaryButton>
               <button type="button" className="minimal-google" disabled={busy} onClick={sendCode}>{busy ? "Sending…" : "Send a new code"}</button>
             </>
           ) : (
-            <PrimaryButton type="button" onClick={sendCode} disabled={busy || !email.trim() || !!passwordError(password) || password !== confirm}>{busy ? "Sending code…" : "Email my verification code"}</PrimaryButton>
+            <PrimaryButton type="button" onClick={sendCode} disabled={busy || !email.trim() || !!PasswordStrength.passwordError(password) || password !== confirm}>{busy ? "Sending code…" : "Email my verification code"}</PrimaryButton>
           )}
           <button type="button" className="recovery-back" onClick={onBack}>Back to sign in</button>
         </form>
@@ -273,7 +277,7 @@ export function ResetPassword() {
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const valid = !passwordError(password) && password === confirm;
+  const valid = !PasswordStrength.passwordError(password) && password === confirm;
 
   const submit = async (event) => {
     event.preventDefault();
