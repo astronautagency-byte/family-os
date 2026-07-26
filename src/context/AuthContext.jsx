@@ -491,8 +491,12 @@ export function AuthProvider({ children }) {
   const updatePassword = async (password) => {
     const weak = passwordError(password);
     if (weak) throw new Error(weak);
-    const { error: passwordError } = await supabase.auth.updateUser({ password });
-    if (passwordError) throw passwordError;
+    // Rename the destructured error so it doesn't shadow the imported
+    // `passwordError` utility above (which would put the local into the TDZ
+    // and break the earlier `passwordError(password)` call — manifested as
+    // a Vite-minified `Cannot access 'n' before initialization` error).
+    const { error: passwordUpdateError } = await supabase.auth.updateUser({ password });
+    if (passwordUpdateError) throw passwordUpdateError;
     setPasswordRecovery(false);
   };
 
@@ -550,11 +554,14 @@ export function AuthProvider({ children }) {
     });
     if (verifyError) throw verifyError;
     if (!data.session) throw new Error("That verification code could not start a secure session.");
-    const { error: passwordError } = await supabase.auth.updateUser({
+    // Same TDZ-shadow guard as `updatePassword` — avoid re-binding the local
+    // variable name `passwordError` so the earlier `passwordError(password)`
+    // validator above stays resolvable to the import.
+    const { error: inviteUpdateError } = await supabase.auth.updateUser({
       password,
       data: { ...data.user?.user_metadata, invited_to_famos: false },
     });
-    if (passwordError) throw passwordError;
+    if (inviteUpdateError) throw inviteUpdateError;
     setPasswordRecovery(false);
     await refreshAccount(data.session);
   };
