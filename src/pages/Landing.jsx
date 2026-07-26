@@ -4,6 +4,7 @@ import { ArrowRight, Baby, Bot, CalendarDays, Check, CheckSquare, ChefHat, Gift,
 import "../landing.css";
 import "../landing-theme.css";
 import { PRICING_PLAN, formatMoney } from "../data/pricingPlan";
+import FeaturesDropdown from "../components/FeaturesDropdown";
 
 // Shared motion vocabulary. Framer Motion drives all landing animation via
 // IntersectionObserver-backed `whileInView`, which — unlike GSAP ScrollTrigger —
