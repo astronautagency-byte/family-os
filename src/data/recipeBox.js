@@ -110,5 +110,26 @@ export function buildCookSearchLadder(meal, dietaryPreferences = {}) {
       rungs.push({ ...recipeSearchProfileForMeal(cuisine, slot, dietaryPreferences), query: `${cuisine} ${slot}` });
     }
   }
+  // Fallback rungs for meals whose titles don't contain a recognised cuisine.
+  // The ladder tries progressively broader matches so a strict title like
+  // "Vegan Chocolate Cake" still has a chance of finding a recipe.
+  if (!cuisine) {
+    // Rung 2: try the title without mealType filtering so API Ninjas sees
+    // the full query across all meal types instead of narrowing to one slot.
+    const noType = { ...recipeSearchProfileForMeal(meal, slot, dietaryPreferences), query: cleanTitle };
+    delete noType.mealType;
+    rungs.push(noType);
+    // Rung 3: extract key words from the title (skip short/common words)
+    // and search by those ingredients. E.g. "Vegan Chocolate Cake" →
+    // "chocolate, cake" which API Ninjas can match.
+    const keywords = cleanTitle
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((word) => word.length > 3 && !/^(vegan?|with|and|from|the|for|style|easy|quick|best|homemade|fresh)$/i.test(word))
+      .slice(0, 4);
+    if (keywords.length > 1) {
+      rungs.push({ query: "", ingredients: keywords.join(", "), mealType: slot, dietary: [] });
+    }
+  }
   return rungs;
 }

@@ -481,18 +481,34 @@ export default function Meals() {
     }
 
     try {
-      const ladder = buildCookSearchLadder(meal, dietaryPreferences);
       let recipe = null;
       let lastError = "";
-      for (const rung of ladder) {
-        const { data, error } = await supabase.functions.invoke("recipe-search", { body: rung });
-        const recipeErr = data?.error || error?.message;
-        if (recipeErr) { lastError = recipeErr; continue; }
-        const found = recipeFromSearch(data);
-        if (found) { recipe = found; break; }
+      // Rung 0: try TheMealDB search first — free, no API key, great
+      // coverage for common dish names. Uses the full meal title so even
+      // meals like "Vegan Chocolate Cake" find a match when API Ninjas
+      // has no listing. Falls through to the API Ninjas ladder below.
+      try {
+        const cleanTitle = (meal.title || "").trim();
+        if (cleanTitle) {
+          const mealdbRes = await fetch(`${THE_MEAL_DB}/search.php?s=${encodeURIComponent(cleanTitle)}`).then((r) => r.json());
+          const mealdbMeal = mealDbToRecipe(mealdbRes?.meals?.[0]);
+          if (mealdbMeal?.instructions?.length) recipe = mealdbMeal;
+        }
+      } catch {
+        // TheMealDB offline — fall through to API Ninjas ladder.
       }
       if (!recipe) {
-        setCookError(lastError || "API Ninjas returned no recipe for this meal.");
+        const ladder = buildCookSearchLadder(meal, dietaryPreferences);
+        for (const rung of ladder) {
+          const { data, error } = await supabase.functions.invoke("recipe-search", { body: rung });
+          const recipeErr = data?.error || error?.message;
+          if (recipeErr) { lastError = recipeErr; continue; }
+          const found = recipeFromSearch(data);
+          if (found) { recipe = found; break; }
+        }
+      }
+      if (!recipe) {
+        setCookError(lastError || "Could not find a recipe for this meal. Try a different title.");
         return;
       }
       setCookRecipe({ ...placeholderRecipe(meal.title, meal.slot), ...recipe });
