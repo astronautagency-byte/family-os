@@ -111,6 +111,22 @@ const saveIngredientCache = (cache) => {
 
 const THE_MEAL_DB = "https://www.themealdb.com/api/json/v1/1";
 
+const CUISINE_LIST = [
+  "Italian", "Mexican", "Indian", "Japanese", "Chinese",
+  "Thai", "Mediterranean", "American Comfort",
+];
+
+const CUISINE_TO_MEALDB_AREA = {
+  Italian: "Italian",
+  Mexican: "Mexican",
+  Indian: "Indian",
+  Japanese: "Japanese",
+  Chinese: "Chinese",
+  Thai: "Thai",
+  Mediterranean: "Greek",
+  "American Comfort": "American",
+};
+
 // Map a TheMealDB meal object to our internal recipe shape.
 const mealDbToRecipe = (meal) => {
   if (!meal?.idMeal || !meal?.strMeal) return null;
@@ -236,6 +252,7 @@ export default function Meals() {
   useEffect(() => () => { if (badgeTimerRef.current) window.clearTimeout(badgeTimerRef.current); }, []);
   const [rouletteOptions, setRouletteOptions] = useState(null); // { date, slot, recipes[] }
   const [rouletteBusy, setRouletteBusy] = useState(false);
+  const [rouletteCuisine, setRouletteCuisine] = useState(null); // null = any cuisine
   const [savedRecipes, setSavedRecipes] = useState(() => readStoredJson(SAVED_RECIPES_KEY, []));
   const [planningRecipe, setPlanningRecipe] = useState(null);
   // Ingredient-based recipe search in the editor modal.
@@ -335,15 +352,36 @@ export default function Meals() {
 
   const rouletteForSlot = async (date, slot) => {
     setRouletteBusy(true);
+    const chosenCuisine = rouletteCuisine;
+    const mealdbArea = chosenCuisine ? CUISINE_TO_MEALDB_AREA[chosenCuisine] : null;
     // Try TheMealDB first — it's free, no API key needed, and returns rich
-    // recipes with full instructions, ingredients, and thumbnails. Call the
-    // random endpoint 3 times in parallel to give the family a choice.
+    // recipes with full instructions, ingredients, and thumbnails.
+    // When a cuisine is selected, filter by area so the family sees only
+    // relevant options; otherwise fetch 3 random meals.
     try {
-      const responses = await Promise.all(
-        Array.from({ length: 3 }, () =>
-          fetch(`${THE_MEAL_DB}/random.php`).then((r) => r.json())
-        )
-      );
+      let responses;
+      if (mealdbArea) {
+        // Fetch all meals in the chosen cuisine area, then pick 3.
+        const filterRes = await fetch(`${THE_MEAL_DB}/filter.php?a=${encodeURIComponent(mealdbArea)}`).then((r) => r.json());
+        const mealList = filterRes?.meals || [];
+        if (mealList.length > 0) {
+          // Shuffle and pick up to 3, then fetch full details for each.
+          const shuffled = [...mealList].sort(() => Math.random() - 0.5).slice(0, 3);
+          responses = await Promise.all(
+            shuffled.map((m) =>
+              fetch(`${THE_MEAL_DB}/lookup.php?i=${m.idMeal}`).then((r) => r.json())
+            )
+          );
+        } else {
+          responses = [];
+        }
+      } else {
+        responses = await Promise.all(
+          Array.from({ length: 3 }, () =>
+            fetch(`${THE_MEAL_DB}/random.php`).then((r) => r.json())
+          )
+        );
+      }
       const meals = responses
         .map((res) => mealDbToRecipe(res?.meals?.[0]))
         .filter(Boolean);
@@ -353,7 +391,7 @@ export default function Meals() {
           date,
           slot,
           recipes: meals.slice(0, 3),
-          cuisine: cuisines.join(", ") || "Random picks",
+          cuisine: cuisines.join(", ") || chosenCuisine || "Random picks",
           source: "themealdb",
         });
         setRouletteBusy(false);
@@ -363,8 +401,8 @@ export default function Meals() {
       // TheMealDB failed — fall through to API Ninjas below.
     }
     // Fallback: try API Ninjas via the recipe-search edge function.
-    const choices = ["Italian", "Mexican", "Indian", "Japanese", "Chinese", "Thai", "Mediterranean", "American Comfort"];
-    const cuisine = choices[Math.floor(Math.random() * choices.length)];
+    const choices = CUISINE_LIST;
+    const cuisine = chosenCuisine || choices[Math.floor(Math.random() * choices.length)];
     const ingredientsPool = ["chicken", "rice", "pasta", "tofu", "salmon", "beef", "eggs", "lentils"];
     const ingredient = ingredientsPool[Math.floor(Math.random() * ingredientsPool.length)];
     const query = `${cuisine} ${ingredient}`.trim().slice(0, 120);
@@ -866,6 +904,28 @@ export default function Meals() {
       {/* Roulette picker — shows up to 3 recipe options from TheMealDB (free) or API Ninjas (fallback) */}
       <Modal open={!!rouletteOptions} onClose={() => setRouletteOptions(null)} title={rouletteOptions ? `${SLOT_META[rouletteOptions.slot].label} roulette` : ""}>
         <div className="roulette-picker">
+          {/* Cuisine chip row — filter the roulette to a specific cuisine type */}
+          <div className="roulette-cuisine-chips" role="group" aria-label="Filter roulette by cuisine">
+            <button
+              type="button"
+              className={`roulette-cuisine-chip ${rouletteCuisine === null ? "selected" : ""}`}
+              onClick={() => setRouletteCuisine(null)}
+              aria-pressed={rouletteCuisine === null}
+            >
+              Any cuisine
+            </button>
+            {CUISINE_LIST.map((cuisine) => (
+              <button
+                key={cuisine}
+                type="button"
+                className={`roulette-cuisine-chip ${rouletteCuisine === cuisine ? "selected" : ""}`}
+                onClick={() => setRouletteCuisine(cuisine)}
+                aria-pressed={rouletteCuisine === cuisine}
+              >
+                {cuisine}
+              </button>
+            ))}
+          </div>
           {rouletteOptions && (
             <>
               <p className="roulette-picker-intro">

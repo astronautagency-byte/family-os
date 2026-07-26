@@ -2196,6 +2196,43 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   line-height: 1.45;
 }
 
+/* Roulette cuisine picker chips */
+.roulette-cuisine-chips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-bottom:14px;
+  padding:0 2px;
+}
+.roulette-cuisine-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  padding:5px 12px;
+  border-radius:999px;
+  border:1px solid var(--color-border);
+  background:var(--color-surface);
+  font-size:12px;
+  font-weight:600;
+  color:var(--color-ink-soft);
+  transition:all 120ms ease;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.roulette-cuisine-chip:hover{
+  border-color:var(--color-accent);
+  color:var(--color-accent-strong);
+  background:var(--color-accent-soft);
+}
+.roulette-cuisine-chip.selected{
+  border-color:var(--color-accent);
+  background:var(--color-accent);
+  color:#fff;
+}
+.roulette-cuisine-chip:active{
+  transform:scale(.96);
+}
+
 /* Roulette picker — shows up to 3 recipe options for the family to choose */
 .roulette-picker-intro{
   color:var(--color-ink-soft);
@@ -3331,6 +3368,12 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .topbar-fam-ai::after{content:"";position:absolute;inset:0;border-radius:50%;pointer-events:none;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--color-accent) 40%,transparent)}
 .topbar-fam-ai:hover::after{box-shadow:inset 0 0 0 2px var(--color-accent)}
 .topbar-fam-ai:active{transform:scale(.95)}
+
+/* Top-bar refresh button — animates while dataLoading is true so the
+   manual tap-to-refresh (for desktop / keyboard users who can't swipe)
+   gives the same visual feedback as pull-to-refresh. */
+.topbar-refresh-spin{animation:topbar-refresh-spin .9s linear infinite}
+@keyframes topbar-refresh-spin{to{transform:rotate(360deg)}}
 
 /* Roulette cuisine cycling — deterministic next-cuisine button + chip row to
    pin the next spin to a specific style (Italian / Mexican / Indian / etc.). */
