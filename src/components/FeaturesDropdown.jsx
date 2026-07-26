@@ -194,7 +194,7 @@ const FeaturesDropdown = ({ active = false, label = "Features", currentId = null
                 </span>
                 <span className="features-dropdown-item-copy">
                   <strong>{feature.name}</strong>
-                  <small>{feature.pill}</small>
+                  {feature.pill && feature.pill !== feature.name ? <small>{feature.pill}</small> : null}
                 </span>
                 <ChevronRight size={12} className="features-dropdown-item-arrow" aria-hidden="true" />
               </a>
