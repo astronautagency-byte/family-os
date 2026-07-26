@@ -237,7 +237,6 @@ export const FEATURES = [
     lede: "A small admin surface that respects the household. Invite by email or SMS, set roles, drop in everyone's dietary preferences, and the app remembers — for everyone, in real time.",
     icon: Users,
     tone: "mint",
-    pill: "Settings",
     bullets: [
       { icon: Users,        title: "Invite by email or SMS",       copy: "Email via Resend (with a fallback chain), SMS via AWS End User Messaging. The receiver picks a password, lands in the household — no shared password text." },
       { icon: ChefHat,      title: "Household dietary preferences", copy: "Vegetarian, gluten-free, peanut allergy — saved once, applied across meal roulette, recipe search, and grocery suggestions." },
