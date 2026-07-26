@@ -153,6 +153,32 @@ const FeatureBullets = ({ feature }) => (
   </section>
 );
 
+/* ── Spotlight (per-feature pro tips) ────────────────────────────────── */
+
+const FeatureSpotlight = ({ feature }) => {
+  if (!feature.tips?.length) return null;
+  return (
+    <section className={`features-spotlight${feature.tone ? ` features-spotlight-${feature.tone}` : ""}`} aria-label={`${feature.name} pro tips`}>
+      <div className="features-spotlight-inner">
+        <div className="features-spotlight-head">
+          <p>PRO TIPS</p>
+          <h2>Getting more from {feature.name}.</h2>
+          <p className="lede">Three things worth knowing about {feature.name} before your first week is up.</p>
+        </div>
+        <div className="features-spotlight-grid">
+          {feature.tips.map((tip, idx) => (
+            <article className="features-spotlight-tip" key={tip.headline}>
+              <span className="features-spotlight-num">{String(idx + 1).padStart(2, "0")}</span>
+              <h3>{tip.headline}</h3>
+              <p>{tip.copy}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
 /* ── Site-wide proofs (shown on every module page) ───────────────────── */
 
 const SiteWideProofs = () => (
@@ -198,18 +224,27 @@ const ModuleNav = ({ currentId }) => {
 
 /* ── Final CTA strip ─────────────────────────────────────────────────── */
 
-const FinalCta = () => (
-  <section className="features-final">
-    <div className="features-final-inner">
-      <h2>One month free. Every module unlocked.</h2>
-      <p>Start a 30-day trial with the full Core plan, the Smart Family Bundle add-on, and Fam AI all included. No card required to look around.</p>
-      <div className="features-final-actions">
-        <a href="/signup">Start free trial <ArrowRight size={14} /></a>
-        <a href="/landing">See pricing</a>
+/* On the /features index this still renders the generic cross-feature
+ * pitch. On a per-module page it accepts the feature so the headline +
+ * copy name that specific module — e.g. "Try FamOS Calendar free for 30
+ * days — multiple Google Calendars, two-way Google sync..." instead of
+ * the across-the-board "Every module unlocked." */
+const FinalCta = ({ feature = null }) => {
+  const headline = feature?.ctaHeadline || "One month free. Every module unlocked.";
+  const copy = feature?.ctaCopy || "Start a 30-day trial with the full Core plan, the Smart Family Bundle add-on, and Fam AI all included. No card required to look around.";
+  return (
+    <section className="features-final">
+      <div className="features-final-inner">
+        <h2>{headline}</h2>
+        <p>{copy}</p>
+        <div className="features-final-actions">
+          <a href="/signup">Start free trial <ArrowRight size={14} /></a>
+          <a href="/landing">See pricing</a>
+        </div>
       </div>
-    </div>
-  </section>
-);
+    </section>
+  );
+};
 
 /* ── Single Feature page (/features/<id>) ────────────────────────────── */
 
@@ -230,9 +265,8 @@ const FeaturePage = ({ id }) => {
       </div>
       <FeatureHero feature={feature} />
       <FeatureBullets feature={feature} />
-      <SiteWideProofs />
-      <ModuleNav currentId={feature.id} />
-      <FinalCta />
+      <FeatureSpotlight feature={feature} />
+      <FinalCta feature={feature} />
       <FeaturesFooter />
     </main>
   );

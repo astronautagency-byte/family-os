@@ -46,6 +46,13 @@ export const FEATURES = [
         { avatar: "L", name: "Lou (kid)",  meta: "1 event · 0 open tasks",  accent: "mint" },
       ],
     },
+    tips: [
+      { headline: "Pin to your morning routine", copy: "Set the FamOS home tab to show your evening plans first — a gentle nudge when plans change beats a busy chat every time." },
+      { headline: "Use reactions to keep chat quiet", copy: "Tap ❤️ on routine broadcasts instead of replying — the kitchen conversation stays in the chat, not on everyone's lock screen." },
+      { headline: "One-tap Cook tonight", copy: "If dinner is planned, the hero CTA jumps straight into Cook Mode in one tap. No menu hunting, no friction." },
+    ],
+    ctaHeadline: "One screen for the whole household.",
+    ctaCopy: "Start your 30-day free trial and try the Today dashboard — broadcast, weather, upcoming events, and tonight's dinner on a single page.",
   },
   {
     id: "calendar",
@@ -72,6 +79,13 @@ export const FEATURES = [
         { avatar: "L", name: "Family dinner",    meta: "Today · 7:00 PM · Home",           accent: "peach" },
       ],
     },
+    tips: [
+      { headline: "Color-code every Google source", copy: "One tint for kids' school, one for your work, one for the family shared calendar — at a glance you know whose event is whose." },
+      { headline: "Weather forecasts are built-in", copy: "Outdoor events pull the forecast automatically, so 'soccer practice' comes with '☂️ light rain expected' badge." },
+      { headline: "Discover nearby family events", copy: "Tap Discover to surface family-friendly events from SerpApi, Ticketmaster, and Eventbrite — preserved-search cuisine keeps reopens instant." },
+    ],
+    ctaHeadline: "Every calendar. One clear week.",
+    ctaCopy: "Try the FamOS Calendar free for 30 days — multiple Google Calendars, two-way Google sync, and local-event discovery all in one view.",
   },
   {
     id: "meals",
@@ -98,6 +112,13 @@ export const FEATURES = [
         { avatar: "🐟", name: "Baked salmon",     meta: "Sun · 30 min · 7 ingredients",   accent: "mint" },
       ],
     },
+    tips: [
+      { headline: "Pin a cuisine preference", copy: "Pick Italian, Mexican, or anything else once — Meal Roulette respects it for every suggestion, and the search filter follows." },
+      { headline: "Cook Mode is hands-free", copy: "Say 'next', 'back', or 'finish' from across the kitchen — your flour-covered hand never has to touch the phone." },
+      { headline: "Tap-to-add missing ingredients", copy: "Every meal card has a grocery badge — tap it and every missing ingredient pushes straight into the shopping list." },
+    ],
+    ctaHeadline: "From 'what's for dinner?' to plated in four taps.",
+    ctaCopy: "Try FamOS Meals free for 30 days — plan a week, let the roulette pick a recipe that matches your cuisine and meal type, then cook hands-free.",
   },
   {
     id: "shopping",
@@ -124,6 +145,13 @@ export const FEATURES = [
         { avatar: "🌮", name: "Tortillas",      meta: "Pantry · 1 pack", accent: "rose" },
       ],
     },
+    tips: [
+      { headline: "Scan barcodes in-store", copy: "Tap the camera icon while shopping — point, scan, the item lands in the right category automatically, and Focus-shopping finds it next." },
+      { headline: "Cook Mode ingredients → list", copy: "From any meal card, the grocery badge shows what's still missing — tap once and every ingredient pushes to the list." },
+      { headline: "Capitalized items stick", copy: "Avocado matches 'avocados' matches 'Avacado' — the list forgives fuzzy typing so kids spelling phonetically still get credit." },
+    ],
+    ctaHeadline: "One list. Every hand contributes.",
+    ctaCopy: "Try FamOS Shopping free for 30 days — anyone in the household adds, scan barcode to fill, focus-shop mode for the aisles.",
   },
   {
     id: "tasks",
@@ -150,6 +178,13 @@ export const FEATURES = [
         { avatar: "A", name: "Pay tuition", meta: "This week · Alex", accent: "amber" },
       ],
     },
+    tips: [
+      { headline: "Quick-add like iPhone Notes", copy: "Type the task, hit Enter. Then tap to edit the assignee, due date, category, and recurring cadence — nothing blocks the first keystroke." },
+      { headline: "Streaks beat nagging", copy: "Tap a household member to put them on the hook — the color shows up everywhere (list, dashboard, weekly pulse) without anyone asking twice." },
+      { headline: "Realtime across phones", copy: "Mark done on the porch, see the parent's screen update in the kitchen. Mark deleted from one phone, it's gone from every other in under a second." },
+    ],
+    ctaHeadline: "Chores with an owner. Recurring without nagging.",
+    ctaCopy: "Try FamOS Tasks free for 30 days — type, assign, set recurrence, watch the streaks build. Realtime sync across every phone in the family.",
   },
   {
     id: "chat",
@@ -176,6 +211,13 @@ export const FEATURES = [
         { avatar: "📣", name: "Family",  meta: "Running 10 min late ❤️",     accent: "amber" },
       ],
     },
+    tips: [
+      { headline: "Smart shortcuts turn chat into action", copy: "Type 'we need butter' (or any grocery / task / event keyword) and Chat suggests the right shortcut — tap to push it straight into that list, not the chat itself." },
+      { headline: "Broadcasts for kitchen-level noise", copy: "'Running 10 min late' doesn't deserve a notification storm — send a broadcast and everyone sees the banner with one-tap reactions, no thread noise." },
+      { headline: "Direct messages without the group ping", copy: "Talk to one partner without pinging the kids group chat — reactions, attachments, read receipts still work the same way." },
+    ],
+    ctaHeadline: "Less shouting across the house. More typing it once.",
+    ctaCopy: "Try FamOS Chat free for 30 days — broadcasts, direct messages, and smart shortcuts that turn chat into the right kind of action.",
   },
   {
     id: "fam-ai",
@@ -202,6 +244,13 @@ export const FEATURES = [
         { avatar: "🥗", name: "Sheet-pan salmon",   meta: "30 min · gluten-free",         accent: "sky" },
       ],
     },
+    tips: [
+      { headline: "Ask 'what can I make with what's checked?'", copy: "On the Shopping page, type that phrase and Fam AI returns only meals you can cook right now — soft-tiered so they don't fight your active plan." },
+      { headline: "Plan tonight in one sentence", copy: "Type 'help me plan dinner tonight' and you get a recipe that matches the slot, the assignee, and the day's weather — confirmed, not silent-changed." },
+      { headline: "Stays quiet until asked", copy: "Fam AI never edits the family calendar or shopping list without an explicit confirmation step — you're always in control, never auto-overwritten." },
+    ],
+    ctaHeadline: "The household's quiet chief of staff.",
+    ctaCopy: "Try Fam AI free for 30 days — meal ideas from your groceries, calendar summaries, and weekly recaps that respect the family plan.",
   },
   {
     id: "rewards",
@@ -228,6 +277,13 @@ export const FEATURES = [
         { avatar: "A", name: "Alex · groceries",    meta: "+5 · on time",             accent: "amber" },
       ],
     },
+    tips: [
+      { headline: "You decide what each task is worth", copy: "Daily chores 1pt, school-night meal 2pt, big grocery run 5pt — customise point values per task so the carrot matches the effort." },
+      { headline: "Family-wide leaderboard, opt-in", copy: "Healthy, friendly, never forced. Kids see themselves climbing, parents see the load balance — no shame, no subtraction." },
+      { headline: "Redemptions you define", copy: "Screen time, ice cream pick, allowance top-up — set them once and the system does the math when someone hits their goal." },
+    ],
+    ctaHeadline: "Turn 'chore' into 'I did it first.'",
+    ctaCopy: "Try FamOS Rewards free for 30 days — points per task, family-wide leaderboard, opt-in redemptions with no shame.",
   },
   {
     id: "family",
@@ -253,6 +309,13 @@ export const FEATURES = [
         { avatar: "L", name: "Lou",      meta: "Kid · view-only",               accent: "mint" },
       ],
     },
+    tips: [
+      { headline: "Invite by email or SMS — receiver picks a password", copy: "No shared credentials texted across the family. The invite arrives with a secure link, the new member lands in the household, picks their own password, and is in." },
+      { headline: "Dietary preferences travel everywhere", copy: "Vegetarian, gluten-free, peanut allergy — saved once on the household, applied across Meal Roulette, recipe search, and grocery suggestions automatically." },
+      { headline: "Tablet kiosk mode for the fridge", copy: "Stick an iPad to the fridge and Fam OS turns into a single-screen always-on display — without locking the device out for the rest of the household." },
+    ],
+    ctaHeadline: "Roles, dietary needs, dark mode, every member welcome.",
+    ctaCopy: "Try Fam OS Household Settings free for 30 days — invites by email or SMS, dietary preferences, dark mode, tablet kiosk for the fridge.",
   },
 ];
 

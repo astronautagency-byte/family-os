@@ -416,3 +416,35 @@
   .features-dropdown-item-icon{transition:none!important}
   .features-dropdown.is-open .features-dropdown-panel{animation:none}
 }
+
+/* ── Spotlight (per-feature pro tips) ──────────────────────────────────
+ * Per-module page only — each /features/<id> renders three pro tips that
+ * are unique to that feature, so the page is genuinely dedicated to it
+ * instead of carrying the same generic cross-feature content. The tone-
+ * specific gradients echo the index card backgrounds: lilac (Today / Fam
+ * AI), pink (Meals), yellow (Tasks / Rewards), mint (Shopping / Family),
+ * blue (Calendar), peach (Chat). */
+.features-spotlight{padding:84px 28px;background:#fffaf2}
+.features-spotlight-lilac{background:linear-gradient(180deg,#faf8ff 0%,#f4efff 100%)}
+.features-spotlight-pink{background:linear-gradient(180deg,#fff8fb 0%,#ffeef5 100%)}
+.features-spotlight-yellow{background:linear-gradient(180deg,#fffdf1 0%,#fff7d2 100%)}
+.features-spotlight-mint{background:linear-gradient(180deg,#f8fffb 0%,#eaf9f2 100%)}
+.features-spotlight-blue{background:linear-gradient(180deg,#f8fcff 0%,#eaf5ff 100%)}
+.features-spotlight-peach{background:linear-gradient(180deg,#fffaf6 0%,#ffeddd 100%)}
+.features-spotlight-inner{max-width:1080px;margin:auto}
+.features-spotlight-head{max-width:780px;margin:0 auto 36px;text-align:center}
+.features-spotlight-head>p{color:#7952e8;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px}
+.features-spotlight-head h2{font:760 clamp(28px,3.8vw,44px)/1.06 var(--font-display);letter-spacing:-.035em;margin:0 0 12px;color:#17171f}
+.features-spotlight-head p.lede{color:#5a5260;font-size:15px;line-height:1.55;margin:0}
+.features-spotlight-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.features-spotlight-tip{position:relative;padding:24px;border:1px solid var(--color-border);border-radius:22px;background:#fff;box-shadow:0 12px 28px rgba(42,34,65,.05);transition:transform .25s ease,box-shadow .25s ease}
+.features-spotlight-tip:hover{transform:translateY(-3px);box-shadow:0 18px 36px rgba(42,34,65,.1)}
+.features-spotlight-num{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:24px;padding:0 10px;border-radius:999px;background:color-mix(in srgb,#7952e8 14%,transparent);color:#7952e8;font:850 11px/1 var(--font-sans);letter-spacing:.08em}
+.features-spotlight-tip h3{margin:16px 0 8px;font:720 17px/1.22 var(--font-display);letter-spacing:-.022em;color:#17171f}
+.features-spotlight-tip p{margin:0;color:#5a5260;font-size:13px;line-height:1.55}
+@media(max-width:1080px){.features-spotlight-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.features-spotlight-grid{grid-template-columns:1fr}.features-spotlight{padding:60px 18px}}
+@media(prefers-reduced-motion:reduce){
+  .features-spotlight-tip{transition:none!important}
+  .features-spotlight-tip:hover{transform:none!important;box-shadow:0 12px 28px rgba(42,34,65,.05)!important}
+}
