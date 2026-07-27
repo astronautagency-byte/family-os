@@ -26,15 +26,15 @@ export const FEATURES = [
     name: "Today",
     eyebrow: "HOME DASHBOARD",
     title: "One screen for the whole household.",
-    lede: "Today is the calm, glance-and-go hub: a family broadcast, today's weather, upcoming events, tasks still open, and what's for dinner — all on one screen, with everyone synced in real time.",
+    lede: "Today is the quiet glance-and-go hub. Broadcasts, weather, tonight's plan, what's still open — one screen for everyone.",
     icon: Sparkles,
     tone: "lilac",
     pill: "Home",
     bullets: [
       { icon: Megaphone,  title: "Family broadcast",       copy: "Tap, type, send. Everyone in the household sees a celebration banner with one-tap emoji reactions (❤️ / 👍 / 😄 / 🎉)." },
-      { icon: BellRing,   title: "Real-time sync",         copy: "Anything any member changes — broadcast, task, meal, list — appears on every phone in under a second via Supabase realtime." },
-      { icon: ChefHat,    title: "Cook tonight, one tap",  copy: "If dinner is planned, the hero CTA deep-links straight into Cook Mode with hands-free voice navigation." },
-      { icon: Users,      title: "Family load",            copy: "A live view of who has the most on their plate this week, so you can spread the work without asking." },
+      { icon: BellRing,   title: "Real-time sync",         copy: "Anything anyone changes — broadcast, task, meal, list — shows up on every phone in under a second." },
+      { icon: ChefHat,    title: "Cook tonight, one tap",  copy: "If dinner is planned, the home screen jumps you straight into Cook Mode with hands-free voice navigation." },
+      { icon: Users,      title: "Family load",            copy: "See at a glance who has the most on their plate this week — and spread the work without asking." },
     ],
     preview: {
       title: "Today",
@@ -48,7 +48,7 @@ export const FEATURES = [
     },
     tips: [
       { headline: "Pin to your morning routine", copy: "Set the FamOS home tab to show your evening plans first — a gentle nudge when plans change beats a busy chat every time." },
-      { headline: "Use reactions to keep chat quiet", copy: "Tap ❤️ on routine broadcasts instead of replying — the kitchen conversation stays in the chat, not on everyone's lock screen." },
+      { headline: "Use reactions to keep chat quiet", copy: "Tap ❤️ on routine broadcasts instead of replying — the kitchen conversation stays in the chat, not on every lock screen." },
       { headline: "One-tap Cook tonight", copy: "If dinner is planned, the hero CTA jumps straight into Cook Mode in one tap. No menu hunting, no friction." },
     ],
     ctaHeadline: "One screen for the whole household.",
@@ -59,15 +59,15 @@ export const FEATURES = [
     name: "Calendar",
     eyebrow: "SHARED FAMILY CALENDAR",
     title: "Sync every calendar. Stop double-booking dinner.",
-    lede: "Bring in multiple Google Calendars, color-coded per source, share only what each person needs, and let FamOS surface the weather forecast for outdoor events automatically.",
+    lede: "Bring in as many Google Calendars as your family uses, color-code them by source, share only what each person needs, and let FamOS surface the forecast for outdoor events automatically.",
     icon: CalendarDays,
     tone: "blue",
     pill: "Calendar",
     bullets: [
       { icon: CalendarDays, title: "Multiple Google Calendars", copy: "Connect personal, work, kids' school, and shared family calendars — pick which to display and which are private to you." },
       { icon: CalendarPlus, title: "Quick capture",             copy: "Type 'dentist 3pm Wed' — FamOS parses, prefill, save in two taps. The full form stays one tap away." },
-      { icon: MapPin,       title: "Local event discovery",     copy: "Tired of scrolling Facebook? FamOS pulls family-friendly events nearby from SerpApi, Ticketmaster and Eventbrite, with a 'nearby area' fallback when nothing's local." },
-      { icon: BellRing,     title: "Two-way Google sync",       copy: "Add it in FamOS — it shows up in Google. Delete it here — it's gone there. Owner-only Google events get a delete button on the card." },
+      { icon: MapPin,       title: "Local event discovery",     copy: "Find things to do nearby. FamOS pulls family-friendly events close to home, with a wider search when nothing's local." },
+      { icon: BellRing,     title: "Two-way Google sync",       copy: "Add it in FamOS — it shows up in Google Calendar. Delete it here — it's gone there. Owner-only events get a delete button right on the card." },
     ],
     preview: {
       title: "This week",
@@ -80,12 +80,12 @@ export const FEATURES = [
       ],
     },
     tips: [
-      { headline: "Color-code every Google source", copy: "One tint for kids' school, one for your work, one for the family shared calendar — at a glance you know whose event is whose." },
+      { headline: "Color-code every calendar", copy: "One tint for kids' school, one for your work, one for the family shared calendar — at a glance you know whose event is whose." },
       { headline: "Weather forecasts are built-in", copy: "Outdoor events pull the forecast automatically, so 'soccer practice' comes with '☂️ light rain expected' badge." },
-      { headline: "Discover nearby family events", copy: "Tap Discover to surface family-friendly events from SerpApi, Ticketmaster, and Eventbrite — preserved-search cuisine keeps reopens instant." },
+      { headline: "Discover things to do nearby", copy: "Tap Discover to surface family-friendly events close to home. Recent searches are remembered, so reopening the list is instant." },
     ],
     ctaHeadline: "Every calendar. One clear week.",
-    ctaCopy: "Try the FamOS Calendar free for 30 days — multiple Google Calendars, two-way Google sync, and local-event discovery all in one view.",
+    ctaCopy: "Try Calendar free for 30 days — as many calendars as you use, two-way sync, and a discover pane for things to do nearby.",
   },
   {
     id: "meals",
@@ -98,7 +98,7 @@ export const FEATURES = [
     pill: "Meals",
     bullets: [
       { icon: ChefHat,       title: "Cook Mode, hands-free",   copy: "Big step-by-step screen with voice commands — say 'next', 'back', or 'finish' so a flour-covered hand never has to tap the phone." },
-      { icon: Sparkles,      title: "Meal roulette",            copy: "Three recipe picks from TheMealDB (free) or API Ninjas (fallback), filtered by meal type (breakfast / lunch / dinner) and the cuisine you pinned." },
+      { icon: Sparkles,      title: "Meal roulette",            copy: "Three picks from our recipe library, filtered by meal type — breakfast, lunch, or dinner — and the cuisine you pinned." },
       { icon: ListChecks,    title: "Save & re-use recipes",    copy: "Built-in browser for thousands of recipes by ingredient. One-tap save into your family library; ingredients cache for instant grocery badges next time." },
       { icon: ShoppingCart,  title: "Ingredients → groceries",  copy: "Each meal card shows a tap-to-add badge. Tap and every missing ingredient pushes into the shopping list — no editing required." },
     ],
@@ -113,24 +113,24 @@ export const FEATURES = [
       ],
     },
     tips: [
-      { headline: "Pin a cuisine preference", copy: "Pick Italian, Mexican, or anything else once — Meal Roulette respects it for every suggestion, and the search filter follows." },
+      { headline: "Pin a cuisine", copy: "Pick Italian, Mexican, or anything else once. Meal Roulette respects it, and the search filter follows." },
       { headline: "Cook Mode is hands-free", copy: "Say 'next', 'back', or 'finish' from across the kitchen — your flour-covered hand never has to touch the phone." },
       { headline: "Tap-to-add missing ingredients", copy: "Every meal card has a grocery badge — tap it and every missing ingredient pushes straight into the shopping list." },
     ],
     ctaHeadline: "From 'what's for dinner?' to plated in four taps.",
-    ctaCopy: "Try FamOS Meals free for 30 days — plan a week, let the roulette pick a recipe that matches your cuisine and meal type, then cook hands-free.",
+    ctaCopy: "Try Meals free for 30 days — plan a week, let the roulette pick a recipe that matches your cuisine and meal type, then cook hands-free.",
   },
   {
     id: "shopping",
     name: "Shopping",
     eyebrow: "SHARED SHOPPING LIST",
-    title: "One list, everyone's hands contribute.",
-    lede: "Add from anywhere — chat shortcuts, recipe Cook Mode, manual input, or a camera barcode scan. Focus-shopping mode keeps one item on screen at a time so you never lose your place in aisle 7.",
+    title: "One list. Every hand contributes.",
+    lede: "Add from chat, from a recipe, from a barcode scan. Focus-shopping keeps one item on screen at a time so you never lose your place in aisle 7.",
     icon: ShoppingCart,
     tone: "mint",
     pill: "Shopping",
     bullets: [
-      { icon: ShoppingCart, title: "Shared, with attribution", copy: "Every item shows who added it. The avatar-only chip keeps the UI quiet while you still know whose idea that fancy cheese was." },
+      { icon: ShoppingCart, title: "Shared, with attribution", copy: "Every item shows who added it. A quiet avatar dot keeps the list clean — and you still know whose idea that fancy cheese was." },
       { icon: Camera,       title: "Barcode scanner",         copy: "Tap the camera icon — point, scan, save. The item name lands in the right category automatically, then in focus-shopping mode." },
       { icon: Sparkles,     title: "Missing-ingredient add",  copy: "On any meal card, the grocery badge shows what's still needed. Tap to push all missing ingredients straight to the list." },
       { icon: ListChecks,   title: "Focus-shopping mode",     copy: "One item, full-screen. Tap to check, swipe to next. Auto-arrives when you have one item left and need to find the shortest checkout line." },
@@ -151,7 +151,7 @@ export const FEATURES = [
       { headline: "Capitalized items stick", copy: "Avocado matches 'avocados' matches 'Avacado' — the list forgives fuzzy typing so kids spelling phonetically still get credit." },
     ],
     ctaHeadline: "One list. Every hand contributes.",
-    ctaCopy: "Try FamOS Shopping free for 30 days — anyone in the household adds, scan barcode to fill, focus-shop mode for the aisles.",
+    ctaCopy: "Try Shopping free for 30 days — anyone in the household adds, scan to fill, and focus-shop keeps one item at a time in the aisles.",
   },
   {
     id: "tasks",
@@ -166,7 +166,7 @@ export const FEATURES = [
       { icon: ListChecks,   title: "Quick-add, like Notes",    copy: "Type a task, hit Enter. Then tap to edit the assignee, due date, category and recurring cadence — nothing blocking the first keystroke." },
       { icon: Users,        title: "Assign any member",        copy: "Tap a household member to put them on the hook. The color shows up everywhere — list, dashboard, weekly pulse." },
       { icon: BellRing,     title: "Realtime across phones",   copy: "Mark done on the porch, see the parent's screen update in the kitchen. No refresh, no manual sync." },
-      { icon: Coins,        title: "Earn points, redeem rewards", copy: "Opt-in rewards: completed tasks tick up points for each kid or partner. Top the leaderboard, redeem for screen time, allowance, the next family vote." },
+      { icon: Coins,        title: "Earn points, redeem rewards", copy: "Opt-in rewards: completed tasks tick up points for each kid or partner. Top the leaderboard, then redeem for screen time, allowance, or the next family vote." },
     ],
     preview: {
       title: "Today's tasks",
@@ -181,10 +181,10 @@ export const FEATURES = [
     tips: [
       { headline: "Quick-add like iPhone Notes", copy: "Type the task, hit Enter. Then tap to edit the assignee, due date, category, and recurring cadence — nothing blocks the first keystroke." },
       { headline: "Streaks beat nagging", copy: "Tap a household member to put them on the hook — the color shows up everywhere (list, dashboard, weekly pulse) without anyone asking twice." },
-      { headline: "Realtime across phones", copy: "Mark done on the porch, see the parent's screen update in the kitchen. Mark deleted from one phone, it's gone from every other in under a second." },
+      { headline: "Live across every phone", copy: "Mark a task done on the porch, see the parent's screen update in the kitchen. Mark it deleted from one phone — it's gone from every other in under a second." },
     ],
     ctaHeadline: "Chores with an owner. Recurring without nagging.",
-    ctaCopy: "Try FamOS Tasks free for 30 days — type, assign, set recurrence, watch the streaks build. Realtime sync across every phone in the family.",
+    ctaCopy: "Try Tasks free for 30 days — type a task, assign it, set the cadence, watch the streaks build. Live across every phone in the family.",
   },
   {
     id: "chat",
@@ -199,7 +199,7 @@ export const FEATURES = [
       { icon: Megaphone,   title: "Broadcasts",       copy: "Send a heads-up that lives on everyone's home dashboard with reactions — perfect for 'running 10 minutes late' that's loud but doesn't deserve a notification storm." },
       { icon: Users,       title: "Direct messages",  copy: "Talk to one partner without the kids group-chat ping. Reactions, attachments, and read receipts." },
       { icon: ShoppingCart, title: "Smart shortcuts", copy: "Mention 'we need butter' (or any grocery / task / event) and FamOS suggests the right shortcut — tap to push it straight into the right list." },
-      { icon: BellRing,    title: "Quiet by default", copy: "Notifications only for things that matter: a direct message to you, a broadcast, or a deadline. The kitchen conversation stays in the chat, not on your lock screen." },
+      { icon: BellRing,    title: "Quiet by default", copy: "Notifications fire only for things that matter: a direct message to you, a broadcast, or a deadline. The kitchen conversation stays in the chat, not on your lock screen." },
     ],
     preview: {
       title: "Family chat",
@@ -232,7 +232,7 @@ export const FEATURES = [
       { icon: ChefHat,       title: "Meal ideas from your groceries", copy: "Based on ingredients you already have on the shopping list, fresh recipes show up on the dashboard with required vs. optional ingredients." },
       { icon: ListChecks,    title: "Plan tonight in one sentence",   copy: "Type 'help me plan dinner tonight' and you get a recipe that matches the slot, the assignee, and the weather." },
       { icon: Coins,         title: "Weekly recap",                   copy: "Sunday summary of what got done, what slipped, and what's coming up. Send it to the family chat with one tap." },
-      { icon: Mic,           title: "Stays quiet until asked",        copy: "Hands-free voice access from Cook Mode. Fam AI never edits the family calendar or list without an explicit confirmation step." },
+      { icon: Mic,           title: "Stays quiet until asked",        copy: "Hands-free voice inside Cook Mode. Fam AI never edits the family calendar or list without your explicit say-so." },
     ],
     preview: {
       title: "Fam AI",
@@ -247,7 +247,7 @@ export const FEATURES = [
     tips: [
       { headline: "Ask 'what can I make with what's checked?'", copy: "On the Shopping page, type that phrase and Fam AI returns only meals you can cook right now — soft-tiered so they don't fight your active plan." },
       { headline: "Plan tonight in one sentence", copy: "Type 'help me plan dinner tonight' and you get a recipe that matches the slot, the assignee, and the day's weather — confirmed, not silent-changed." },
-      { headline: "Stays quiet until asked", copy: "Fam AI never edits the family calendar or shopping list without an explicit confirmation step — you're always in control, never auto-overwritten." },
+      { headline: "Stays quiet until asked", copy: "Fam AI never edits the family calendar or shopping list without your confirmation — you're always in control, never silently overwritten." },
     ],
     ctaHeadline: "The household's quiet chief of staff.",
     ctaCopy: "Try Fam AI free for 30 days — meal ideas from your groceries, calendar summaries, and weekly recaps that respect the family plan.",
@@ -283,20 +283,20 @@ export const FEATURES = [
       { headline: "Redemptions you define", copy: "Screen time, ice cream pick, allowance top-up — set them once and the system does the math when someone hits their goal." },
     ],
     ctaHeadline: "Turn 'chore' into 'I did it first.'",
-    ctaCopy: "Try FamOS Rewards free for 30 days — points per task, family-wide leaderboard, opt-in redemptions with no shame.",
+    ctaCopy: "Try Rewards free for 30 days — points per task, a family-wide leaderboard, opt-in redemptions with no shame.",
   },
   {
     id: "family",
     name: "Family & Settings",
     eyebrow: "HOUSEHOLD SETTINGS",
     title: "Roles, dietary preferences, dark mode, every member welcome.",
-    lede: "A small admin surface that respects the household. Invite by email or SMS, set roles, drop in everyone's dietary preferences, and the app remembers — for everyone, in real time.",
+    lede: "A small admin surface that respects the household. Invite by email or SMS, set roles, drop in everyone's dietary preferences, and the app remembers — for everyone, instantly.",
     icon: Users,
     tone: "mint",
     bullets: [
-      { icon: Users,        title: "Invite by email or SMS",       copy: "Email via Resend (with a fallback chain), SMS via AWS End User Messaging. The receiver picks a password, lands in the household — no shared password text." },
+      { icon: Users,        title: "Invite by email or text",       copy: "Send an invite by email or SMS. The receiver picks their own password and lands in the household — no shared passwords in your group chat." },
       { icon: ChefHat,      title: "Household dietary preferences", copy: "Vegetarian, gluten-free, peanut allergy — saved once, applied across meal roulette, recipe search, and grocery suggestions." },
-      { icon: MapPin,       title: "Home location + weather",       copy: "Your address powers weather, disruption alerts, and 'local events nearby'. Set it once; forget it lives there." },
+      { icon: MapPin,       title: "Home location + weather",       copy: "Your address powers the forecast, outage alerts, and nearby things to do. Set it once — it stays out of the way." },
       { icon: Sparkles,     title: "Tablet kiosk mode",            copy: "Stick an iPad to the fridge. FamOS turns into a one-screen always-on display without locking the device." },
     ],
     preview: {
@@ -315,7 +315,7 @@ export const FEATURES = [
       { headline: "Tablet kiosk mode for the fridge", copy: "Stick an iPad to the fridge and Fam OS turns into a single-screen always-on display — without locking the device out for the rest of the household." },
     ],
     ctaHeadline: "Roles, dietary needs, dark mode, every member welcome.",
-    ctaCopy: "Try Fam OS Household Settings free for 30 days — invites by email or SMS, dietary preferences, dark mode, tablet kiosk for the fridge.",
+    ctaCopy: "Try Settings free for 30 days — invites by email or text, household dietary needs, dark mode, and tablet kiosk for the fridge.",
   },
 ];
 
@@ -323,7 +323,25 @@ export const FEATURE_BY_ID = (id) => FEATURES.find((feature) => feature.id === i
 
 // Optional: build a cross-feature highlight for the index page footer.
 export const SITE_WIDE_FEATURES = [
-  { icon: BellRing, label: "Real-time across phones" },
-  { icon: Sparkles, label: "No login required for household members you invite" },
-  { icon: ChefHat,  label: "Cook Mode with hands-free voice commands" },
+  { icon: BellRing, label: "Live across every phone" },
+  { icon: Sparkles, label: "No shared passwords in your group chat" },
+  { icon: ChefHat,  label: "Cook Mode with hands-free voice" },
 ];
+
+// The six modules the public marketing surface highlights. Order is the
+// order shown in the nav dropdown, the footer columns, and the /features
+// index grid. Other entries in FEATURES (today, rewards, family) still
+// exist in the catalog for deep-link use, but are intentionally not
+// surfaced on the marketing site.
+export const MARKETING_FEATURE_IDS = [
+  "meals",
+  "calendar",
+  "fam-ai",
+  "tasks",
+  "chat",
+  "shopping",
+];
+
+export const MARKETING_FEATURES = MARKETING_FEATURE_IDS
+  .map((id) => FEATURES.find((feature) => feature.id === id))
+  .filter(Boolean);

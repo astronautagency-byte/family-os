@@ -465,9 +465,8 @@ export default function Settings() {
     if (editingMember === "new") {
       addMember({ name: name.trim(), role, color, initials: initialsFrom(name), avatarUrl });
     } else {
-      const result = await updateMember(editingMember.id, { name: name.trim(), role, color, initials: initialsFrom(name), avatarUrl });
-      if (result?.error) {
-        setAvatarStatus("Saved locally, but Supabase did not accept the profile update. The avatar may reset after refresh until the profile schema/policy is updated.");
+      const result = await updateMember(editingMember.id, { name: name.trim(), role, color, initials: initialsFrom(name), avatarUrl });        if (result?.error) {
+        setAvatarStatus("Saved on this device, but the cloud sync hasn't accepted the avatar update yet — it may need a quick profile schema update before it sticks.");
       }
     }
     setSavingMember(false);
@@ -556,7 +555,7 @@ export default function Settings() {
       const { data, error } = await supabase.functions.invoke("billing-portal");
       if (error) throw error;
       const url = data?.url;
-      if (!url) throw new Error("Stripe did not return a portal URL.");
+      if (!url) throw new Error("Couldn't open the billing portal. Please try again in a moment.");
       window.location.assign(url);
     } catch (err) {
       setBillingError(err?.message || "Could not open the billing portal. Please try again.");
@@ -908,11 +907,7 @@ export default function Settings() {
               <p className="font-medium text-[14.5px] text-[var(--color-ink)]">FamOS</p>
               <p className="text-[12.5px] text-[var(--color-ink-soft)]">Version 1.0 · Private {configured ? "& synced" : "& local"}</p>
               <p className="text-[12px] text-[var(--color-ink-soft)] mt-2 leading-relaxed">
-                Developed by the team at{" "}
-                <a href="https://getastronaut.io" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-[var(--color-accent)]">
-                  Astronaut Digital <ExternalLink size={10} />
-                </a>
-                <br />Part of Astronaut Ventures
+                Made by the FamOS team. We'd love to hear what's working and what would feel even more like home.
               </p>
               <div className="mt-3 flex flex-wrap gap-3">
                 <button onClick={() => { window.location.hash = "privacy"; }} className="text-[12px] font-semibold text-[var(--color-accent)]">Privacy policy</button>

@@ -499,7 +499,7 @@
     flex: 1 1 auto;
     align-items: center;
   }
-  .landing-brand img { width: 34px; height: 34px; }
+  .landing-brand img { width: 43px; height: 43px; }
   .landing-brand strong { font-size: 18px; line-height: 1; }
   .landing-actions {
     height: 40px;

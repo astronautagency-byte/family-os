@@ -1,30 +1,15 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, ArrowUpRight, ChevronRight } from "lucide-react";
-import { FEATURES, FEATURE_BY_ID, TONES, SITE_WIDE_FEATURES } from "../data/featureData";
-import FeaturesDropdown from "../components/FeaturesDropdown";
+import { FEATURES, FEATURE_BY_ID, MARKETING_FEATURES, TONES, SITE_WIDE_FEATURES } from "../data/featureData";
+import MarketingNav from "../components/MarketingNav";
 import MarketingFooter from "../components/MarketingFooter";
 import "../feature.css";
 
 /* ── helpers ─────────────────────────────────────────────────────────── */
 
-const FeaturesNav = ({ currentId = null }) => (
-  <nav className="features-nav" aria-label="Features">
-    <a className="features-nav-brand" href="/landing">
-      <img src="/famicon.png" alt="" />
-      <strong><span>Fam</span>OS</strong>
-    </a>
-    <div className="features-nav-links">
-      <a href="/landing">Home</a>
-      <FeaturesDropdown active currentId={currentId} label="Features" />
-      <a href="/landing#pricing">Pricing</a>
-      <a href="/landing#faq">FAQ</a>
-    </div>
-    <div className="features-nav-actions">
-      <a href="/signup">Start free trial <ArrowRight size={14} /></a>
-      <a href="/signin">Sign in</a>
-    </div>
-  </nav>
-);
+// MarketingNav lives in src/components/MarketingNav.jsx and is shared by
+// the home page and every /features/* page — one canonical nav so the
+// public marketing surface reads as one product.
 
 /* ── Feature hero (left copy + right mock-panel) ─────────────────────── */
 
@@ -93,8 +78,8 @@ const FeatureBullets = ({ feature }) => (
   <section className="features-bullets" aria-label="Feature highlights">
     <div className="features-bullets-head">
       <p>WHY YOU'LL USE IT DAILY</p>
-      <h2>Built around the way real families run.</h2>
-      <p className="lede">Every detail in {feature.name} was cut to fit actual Monday-to-Sunday use, not a feature-checklist screenshot.</p>
+      <h2>Designed for how real families run.</h2>
+      <p className="lede">Every detail in {feature.name} was cut to fit actual Monday-to-Sunday use. Not a feature-checklist screenshot.</p>
     </div>
     <div className="features-bullets-grid">
       {feature.bullets.map((bullet) => {
@@ -158,7 +143,11 @@ const SiteWideProofs = () => (
 /* ── Cross-link to other features ───────────────────────────────────── */
 
 const ModuleNav = ({ currentId }) => {
-  const others = FEATURES.filter((f) => f.id !== currentId);
+  // Only link to the six modules highlighted on the marketing surface;
+  // the deep-link catalog entries that aren't surfaced (today, rewards,
+  // family) are skipped here so a /features/meals page never suggests
+  // a /features/today tour that isn't part of the public surface.
+  const others = MARKETING_FEATURES.filter((f) => f.id !== currentId);
   return (
     <section className="features-modulenav" aria-label="Explore other features">
       <div className="features-modulenav-inner">
@@ -213,7 +202,7 @@ const FeaturePage = ({ id }) => {
   }
   return (
     <main className="features-page">
-      <FeaturesNav currentId={id} />
+      <MarketingNav currentId={id} />
       <div className="px-5" style={{ padding: "0 28px" }}>
         <div className="features-breadcrumb" style={{ paddingTop: 28 }}>
           <a href="/features">All features</a>
@@ -232,11 +221,11 @@ const FeaturePage = ({ id }) => {
 
 const NotFoundFeature = () => (
   <main className="features-page">
-    <FeaturesNav />
+    <MarketingNav />
     <Feedback
       eyebrow="404"
       title="That feature doesn't exist — yet."
-      lede="We build modules as our users ask for them, so the catalogue keeps moving."
+      lede="We build what families ask for. So the catalogue keeps moving."
     />
     <FinalCta />
     <MarketingFooter />
@@ -273,18 +262,18 @@ const FeaturesIndex = () => {
 
   return (
     <main className="features-page">
-      <FeaturesNav />
+      <MarketingNav />
 
       <section className="features-index-hero">
         <div className="features-index-hero-grid">
           <div className="features-index-hero-copy">
             <p>FEATURES TOUR</p>
-            <h1>Every module in <em>FamOS</em>, one page deep.</h1>
+            <h1>Six modules. One page each.</h1>
             <p className="lede">
-              From the morning dashboard to evening Cook Mode, from real-time sync across phones to the grocery banner that knows what you're missing — here's a tour of every feature in FamOS.
+              Calendars, meals, tasks, shopping, chat, and Fam AI. Tap a module to see what it feels like at home.
             </p>
             <div className="features-index-hero-actions">
-              <a href="/signup">Start your free trial <ArrowRight size={14} /></a>
+              <a href="/signup">Try FamOS free for 30 days <ArrowRight size={14} /></a>
               <a href="/landing">See pricing</a>
             </div>
           </div>
@@ -293,10 +282,10 @@ const FeaturesIndex = () => {
       </section>
 
       <section className="features-index-section" id="all-modules" aria-label="All modules">
-        <h2>Browse every FamOS module</h2>
-        <p className="features-section-lede">Tap any module to see its dedicated deep-dive with screenshots, the problems it solves, and the micro-features you only notice after a few weeks.</p>
+        <h2>Meet every module.</h2>
+        <p className="features-section-lede">Tap a module to see what it does — and the small things it does better with time.</p>
         <div className="features-index-grid">
-          {FEATURES.map((feature) => {
+          {MARKETING_FEATURES.map((feature) => {
             const Icon = feature.icon;
             return (
               <a
@@ -330,7 +319,12 @@ const FeaturesIndex = () => {
 
 /* ── Path → page router ──────────────────────────────────────────────── */
 
-const featurePathRegex = /^\/features\/([a-z-]+)\/?$/i;
+// After trimming slashes off `window.location.pathname` we have no leading
+// `/` to match — the regex must accept `features/<id>` directly. Without
+// this, every /features/<id> page silently falls through to <FeaturesIndex />
+// and visitors see the "All modules" grid instead of the module's own
+// highlights.
+const featurePathRegex = /^features\/([a-z-]+)\/?$/i;
 
 const FeaturesRouter = () => {
   const [path, setPath] = useState(() => typeof window === "undefined" ? "" : window.location.pathname);
@@ -346,7 +340,10 @@ const FeaturesRouter = () => {
   const trimmedPath = (path || "").replace(/^\/+|\/+$/g, "");
   if (!trimmedPath || trimmedPath === "features") return <FeaturesIndex />;
   const match = trimmedPath.match(featurePathRegex);
-  if (match) return <FeaturePage id={match[1]} />;
+  // Lowercase so /features/Meals still finds the meals feature (ids are all
+  // lowercase, so a case-insensitive regex match without normalising would
+  // render a confusing 404 for what looks like a valid URL).
+  if (match) return <FeaturePage id={match[1].toLowerCase()} />;
   return <FeaturesIndex />;
 };
 

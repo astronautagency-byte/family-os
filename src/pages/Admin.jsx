@@ -30,7 +30,7 @@ function AdminLogin({ onSignedIn }) {
     setBusy(false);
   };
   return <main className="admin-login"><form onSubmit={submit} className="admin-login-card">
-    <img src="/brand/famos-icon-transparent.png" alt="FamOS" />
+    <img src="/icons/icon-512.png" alt="FamOS" />
     <span className="admin-kicker"><ShieldCheck size={14} /> FamOS operations</span>
     <h1>Admin sign in</h1><p>Secure access for authorized FamOS operators.</p>
     <TextField label="Admin username or email" value={login} onChange={(event) => setLogin(event.target.value)} autoComplete="username" required />
@@ -58,7 +58,7 @@ function AdminAccount({ session, onSessionChanged }) {
   };
   return <div className="admin-account-grid">
     <Card className="admin-panel"><PanelHead eyebrow="Sign-in identity" title="Admin profile" icon={ShieldCheck} /><p className="admin-section-copy">Use a unique administrator username. This identity stays separate from family accounts.</p><div className="admin-account-form"><TextField label="Username" value={username} onChange={(event) => setUsername(event.target.value)} /><PrimaryButton disabled={busy || username.length < 3} onClick={() => run("username", supabase.rpc("admin_update_own_username", { next_username: username }), "Admin username updated.")}>Save username</PrimaryButton></div></Card>
-    <Card className="admin-panel"><PanelHead eyebrow="Recovery & notices" title="Login email" icon={Mail} /><p className="admin-section-copy">Supabase confirms a new address before it becomes active.</p><div className="admin-account-form"><TextField label="Email address" type="email" value={email} onChange={(event) => setEmail(event.target.value)} /><PrimaryButton disabled={busy || !email || email === session.user.email} onClick={() => run("email", supabase.auth.updateUser({ email: email.trim().toLowerCase() }), "Check the new email address to confirm the change.")}>Change email</PrimaryButton></div></Card>
+    <Card className="admin-panel"><PanelHead eyebrow="Recovery & notices" title="Login email" icon={Mail} /><p className="admin-section-copy">We send a confirmation link to the new address before it becomes active.</p><div className="admin-account-form"><TextField label="Email address" type="email" value={email} onChange={(event) => setEmail(event.target.value)} /><PrimaryButton disabled={busy || !email || email === session.user.email} onClick={() => run("email", supabase.auth.updateUser({ email: email.trim().toLowerCase() }), "Check the new email address to confirm the change.")}>Change email</PrimaryButton></div></Card>
     <Card className="admin-panel"><PanelHead eyebrow="Security" title="Change password" icon={Settings2} /><div className="admin-account-form"><TextField label="New password" type="password" placeholder="10+ characters" value={password} onChange={(event) => setPassword(event.target.value)} minLength={10} autoComplete="new-password" /><TextField label="Confirm password" type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} /><PasswordStrengthMeter value={password} compact /><PrimaryButton disabled={busy || !!passwordError(password) || password !== confirmPassword} onClick={async () => { await run("password", supabase.auth.updateUser({ password }), "Password updated successfully."); setPassword(""); setConfirmPassword(""); }}>Update password</PrimaryButton></div></Card>
     {notice.text && <div className={notice.type === "error" ? "admin-error" : "admin-success"}>{notice.text}</div>}
   </div>;

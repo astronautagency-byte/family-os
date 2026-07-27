@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Sparkles } from "lucide-react";
-import { FEATURES } from "../data/featureData";
+import { FEATURES, MARKETING_FEATURES } from "../data/featureData";
 
 /* Reusable nav dropdown that lists every FamOS feature module. Used by
  * both Landing's top nav ("All modules" link replacement) and the
@@ -122,7 +122,7 @@ const FeaturesDropdown = ({ active = false, label = "Features", currentId = null
         className="features-dropdown-trigger"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={`Browse FamOS modules (${FEATURES.length} features)`}
+        aria-label={`Browse FamOS modules (${MARKETING_FEATURES.length} features)`}
         onClick={() => {
           captureOpener();
           toggle();
@@ -176,7 +176,7 @@ const FeaturesDropdown = ({ active = false, label = "Features", currentId = null
         </a>
         <div className="features-dropdown-divider" aria-hidden="true" />
         <div className="features-dropdown-grid" role="none">
-          {FEATURES.map((feature) => {
+          {MARKETING_FEATURES.map((feature) => {
             const Icon = feature.icon;
             const isCurrent = currentId === feature.id;
             return (

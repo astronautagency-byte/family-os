@@ -110,7 +110,7 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType, dieta
         } else {
           const list = recipesFromSearch(data);
           setRecipes(list);
-          if (!list.length) setError("API Ninjas returned no matches. Try a broader search.");
+          if (!list.length) setError("No recipes match that search right now. Try a broader ingredient list.");
         }
         lastQueryRef.current = query;
       } catch (err) {
@@ -157,7 +157,7 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType, dieta
         onPick(pick.title, `Meal roulette · ${pick.cuisine || choice.cuisine}`);
         return;
       }
-      setError("API Ninjas returned no recipes for that cuisine. Try typing an ingredient instead.");
+      setError("No recipes found for that cuisine. Try typing an ingredient instead.");
     } catch (err) {
       setError(err?.message || "Roulette fetch failed.");
       setRecipes([]);
@@ -196,11 +196,9 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType, dieta
   };
 
   return (
-    <div className="rounded-2xl bg-[var(--color-surface-sunken)] border border-[var(--color-border)] p-3.5 mb-5 notion-shadow meal-suggestions-card">
-      <div className="flex items-center gap-1.5 mb-3">
-        <Sparkles size={14} color="var(--color-accent)" />
+    <div className="rounded-2xl bg-[var(--color-surface-sunken)] border border-[var(--color-border)] p-3.5 mb-5 notion-shadow meal-suggestions-card">        <Sparkles size={14} color="var(--color-accent)" />
         <p className="text-[12.5px] font-semibold text-[var(--color-ink)]">Dinner brain stuck?</p>
-        <span className="ml-auto text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-ink-faint)]">via API Ninjas</span>
+        <span className="ml-auto text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-ink-faint)]">Recipe library</span>
       </div>
 
       {fixedMealType ? (
@@ -256,9 +254,9 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType, dieta
         className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[13.5px] text-[var(--color-ink)] placeholder:text-[var(--color-ink-faint)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] mb-3"
       />
 
-      {error && <p className="text-[11.5px] text-[var(--color-warn)] mb-2">{error.includes("not configured") ? "Recipe search is not configured yet. Set RECIPE_API_NINJAS_KEY in Supabase Edge Function Secrets." : error.includes("429") ? "API Ninjas rate limit reached. Try again in a few minutes." : error}</p>}
+      {error && <p className="text-[11.5px] text-[var(--color-warn)] mb-2">{error.includes("not configured") ? "Recipe search isn't set up on this build yet." : error.includes("429") ? "Hit our request limit just now. Try again in a few minutes." : error}</p>}
       {busy && recipes.length === 0 && (
-        <p className="text-[12px] text-[var(--color-ink-faint)] px-1 mb-2 inline-flex items-center gap-2"><LoaderCircle size={12} className="animate-spin" /> Searching API Ninjas…</p>
+        <p className="text-[12px] text-[var(--color-ink-faint)] px-1 mb-2 inline-flex items-center gap-2"><LoaderCircle size={12} className="animate-spin" /> Finding recipes…</p>
       )}
       {!error && recipes.length === 0 && !busy && ingredientInput.trim() === "" && (
         <p className="text-[12px] text-[var(--color-ink-faint)] px-1">Type a few ingredients and we'll find a way through dinner.</p>
@@ -273,7 +271,7 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType, dieta
               >
                 <span className="text-[13.5px] font-medium text-[var(--color-ink)] truncate">{recipe.title}</span>
                 <span className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-ink-faint)] shrink-0">
-                  {recipe.cuisine || "API Ninjas"}
+                  {recipe.cuisine || "—"}
                 </span>
               </button>
             </li>

@@ -1,4 +1,4 @@
-import { FEATURES } from "../data/featureData";
+import { FEATURES, MARKETING_FEATURES } from "../data/featureData";
 
 /* ── MarketingFooter ──────────────────────────────────────────────────────
  * Single canonical footer for every public marketing surface: Landing,
@@ -11,18 +11,20 @@ import { FEATURES } from "../data/featureData";
  * Styled by the existing .features-footer rules in src/feature.css — dark
  * surface, 4-column grid, bottom row with copyright + secondary nav. ─── */
 const MarketingFooter = ({ signedIn = false }) => {
-  // Split the 9 modules into two roughly equal columns under "Features" and
-  // "Product" so neither column runs off the page on tablet widths.
-  const half = Math.ceil(FEATURES.length / 2);
-  const featuresCol = FEATURES.slice(0, half);
-  const productCol = FEATURES.slice(half);
+  // Only surface the six marketing modules in the footer columns; the
+  // remaining FEATURES entries are internal deep-link targets and
+  // shouldn't appear here. Split them into two roughly equal columns so
+  // neither column runs off the page on tablet widths.
+  const half = Math.ceil(MARKETING_FEATURES.length / 2);
+  const featuresCol = MARKETING_FEATURES.slice(0, half);
+  const productCol = MARKETING_FEATURES.slice(half);
 
   return (
     <footer className="features-footer">
       <div className="features-footer-inner">
         <div>
           <h4>FamOS</h4>
-          <p>The family operating system that quietly keeps everyone in sync — from morning routines to weekend dinners to next year's calendar.</p>
+          <p>A quieter home for everything your family does together.</p>
         </div>
         <div>
           <h4>Features</h4>
@@ -56,7 +58,7 @@ const MarketingFooter = ({ signedIn = false }) => {
         </div>
       </div>
       <div className="features-footer-bottom">
-        <span>© {new Date().getFullYear()} FamOS — developed by the team at Astronaut Digital · Part of Astronaut Ventures</span>
+        <span>© {new Date().getFullYear()} FamOS, Inc.</span>
         <span><a href="/landing">Home</a> · <a href="/features">All features</a> · <a href="/landing#pricing">Pricing</a></span>
       </div>
     </footer>

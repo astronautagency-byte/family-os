@@ -86,13 +86,13 @@ const recipesFromSearch = (data) => {
 // instructions blob hasn't arrived yet.
 const placeholderRecipe = (title, slot) => ({
   title: title || "Untitled recipe",
-  cuisine: "Waiting for API Ninjas",
+  cuisine: "Family favourite",
   readyInMinutes: 35,
   servings: 4,
   ingredients: [],
   instructions: [],
-  source: "api-ninjas",
-  sourceUrl: "https://api-ninjas.com/api/recipe",
+  source: "library",
+  sourceUrl: "",
   slot,
 });
 
@@ -313,7 +313,7 @@ export default function Meals() {
         if (err) { setRecipeSearchError(err); setRecipeSearchResults([]); return; }
         const list = recipesFromSearch(data);
         setRecipeSearchResults(list);
-        if (!list.length) setRecipeSearchError("API Ninjas found no recipes for that ingredient. Try a broader term.");
+        if (!list.length) setRecipeSearchError("No recipes match that ingredient yet. Try a broader term.");
       } catch {
         if (!cancelled) setRecipeSearchError("Recipe search failed.");
       } finally {
@@ -953,8 +953,8 @@ export default function Meals() {
             <>
               <p className="roulette-picker-intro">
                 {rouletteOptions.source === "themealdb"
-                  ? `${rouletteOptions.recipes.length} random recipe${rouletteOptions.recipes.length === 1 ? "" : "s"} for your family. Pick one or spin again.`
-                  : `API Ninjas found ${rouletteOptions.recipes.length} recipe${rouletteOptions.recipes.length === 1 ? "" : "s"} for <strong>${rouletteOptions.cuisine}</strong>. Pick one or spin again.`
+                  ? `${rouletteOptions.recipes.length} fresh idea${rouletteOptions.recipes.length === 1 ? "" : "s"} for your family. Pick one or spin again.`
+                  : `Found ${rouletteOptions.recipes.length} recipe${rouletteOptions.recipes.length === 1 ? "" : "s"} for <strong>${rouletteOptions.cuisine}</strong>. Pick one or spin again.`
                 }
               </p>
               <div className="roulette-picker-list">
@@ -1069,7 +1069,7 @@ export default function Meals() {
             <div className="cook-focus-topbar">
               <button onClick={() => setCookMeal(null)}><ArrowLeft size={18} /> Back to meals</button>
               <div className="cook-focus-topbar-actions">
-                <button className={`recipe-save-button ${cookRecipeSaved ? "saved" : ""}`} onClick={() => saveRecipeToLibrary(cookRecipe)} disabled={!cookRecipe.instructions.length} title={cookRecipe.instructions.length ? "Save recipe to your library" : "API Ninjas has not loaded the recipe yet"}><Bookmark size={16} /> {cookRecipeSaved ? "Saved" : "Save recipe"}</button>
+                <button className={`recipe-save-button ${cookRecipeSaved ? "saved" : ""}`} onClick={() => saveRecipeToLibrary(cookRecipe)} disabled={!cookRecipe.instructions.length} title={cookRecipe.instructions.length ? "Save recipe to your library" : "Recipe is still loading"}><Bookmark size={16} /> {cookRecipeSaved ? "Saved" : "Save recipe"}</button>
                 <button onClick={() => { setCookMeal(null); openEditor(cookMeal.date, cookMeal.slot); }}>Edit meal</button>
               </div>
             </div>
@@ -1078,7 +1078,7 @@ export default function Meals() {
               <div className="cook-focus-copy">
                 <p className="eyebrow">{cookMode ? "COOK MODE" : "READY TO COOK"}</p>
                 <h2>{cookRecipe.title}</h2>
-                <p>{cookMeal.notes || "Ingredients come from API Ninjas. FamOS will walk you through the recipe step by step."}</p>
+                <p>{cookMeal.notes || "FamOS will pull the ingredients and walk you through every step."}</p>
                 <div className="cook-meta-row">
                   <span><Clock size={15} /> {cookRecipe.readyInMinutes || 35} min</span>
                   <span><Users size={15} /> Serves {cookRecipe.servings || 4}</span>
@@ -1087,14 +1087,14 @@ export default function Meals() {
               </div>
             </section>
 
-            {cookLoading && <div className="cook-status"><Sparkles size={16} /> Asking API Ninjas for the recipe…</div>}
-            {cookError && <div className="cook-status subtle"><Sparkles size={16} /> {cookError.includes("429") ? "API Ninjas rate limit reached. Try again in a few minutes." : cookError.includes("not configured") ? "Recipe search is not configured yet. Set RECIPE_API_NINJAS_KEY in Supabase Edge Function Secrets." : cookError.includes("no recipe") || cookError.includes("Rate") ? "API Ninjas has no match for this meal yet. Try a different title in Cook Mode, or skip Cook Mode and just use the planner." : `API Ninjas couldn't load this recipe (${cookError}).`}</div>}
+            {cookLoading && <div className="cook-status"><Sparkles size={16} /> Looking up the recipe…</div>}
+            {cookError && <div className="cook-status subtle"><Sparkles size={16} /> {cookError.includes("429") ? "Hit our request limit just now. Try again in a few minutes." : cookError.includes("not configured") ? "Recipe lookup isn't set up on this build yet." : cookError.includes("no recipe") || cookError.includes("Rate") ? "No match for this meal yet. Try a different title, or skip Cook Mode and just use the planner." : `Could not load this recipe (${cookError}).`}</div>}
 
             {!cookMode ? (
               <div className="cook-focus-layout">
                 <Card className="cook-panel">
                   <div className="cook-panel-head"><ListChecks size={18} /><h3>Ingredients</h3></div>
-                  <p className="cook-panel-note">{cookRecipe.ingredients.length ? "Tap below to push missing ingredients to your weekly grocery list." : "API Ninjas has not returned ingredients for this meal yet."}</p>
+                  <p className="cook-panel-note">{cookRecipe.ingredients.length ? "Tap below to push missing ingredients to your weekly grocery list." : "Ingredients load as soon as the recipe arrives."}</p>
                   <ul className="cook-plain-list">
                     {cookRecipe.ingredients.length ? (
                       cookRecipe.ingredients.map((item, index) => (
@@ -1139,23 +1139,23 @@ export default function Meals() {
                   ) : cookNutritionLoading ? (
                     <p className="cook-nutrition-loading">Looking up nutrition data…</p>
                   ) : (
-                    <p className="cook-panel-note">Nutrition facts load from API Ninjas when ingredients are available.</p>
+                    <p className="cook-panel-note">Nutrition facts appear as soon as the ingredients are ready.</p>
                   )}
                 </Card>
                 <Card className="cook-panel">
                   <div className="cook-panel-head"><ChefHat size={18} /><h3>Steps ahead</h3></div>
-                  <p className="cook-panel-note">{cookRecipe.instructions.length ? "Step-by-step cooking instructions from API Ninjas. Use Cook Mode for hands-friendly navigation." : "Step-by-step cooking instructions load from API Ninjas when the recipe is found."}</p>
+                  <p className="cook-panel-note">{cookRecipe.instructions.length ? "Step-by-step cooking instructions. Use Cook Mode for hands-free navigation." : "Step-by-step instructions land as soon as the recipe arrives."}</p>
                   {cookRecipe.instructions.length ? (
                     <ol className="cook-plain-list ordered">
                       {cookRecipe.instructions.map((step, index) => <li key={`${step}-${index}`}>{step}</li>)}
                     </ol>
                   ) : (
-                    <p className="cook-empty-line">No steps loaded from API Ninjas yet.</p>
+                    <p className="cook-empty-line">No steps loaded yet.</p>
                   )}
                 </Card>
                 <button className="cook-primary-action" disabled={!cookRecipe.instructions.length} onClick={() => { setCookMode(true); setCookStep(0); }}>
                   <ChefHat size={21} />
-                  <span><strong>{cookRecipe.instructions.length ? "Start Cook Mode" : "Awaiting instructions"}</strong><small>{cookRecipe.instructions.length ? "Hands-friendly, one step at a time" : "API Ninjas is still loading this recipe"}</small></span>
+                  <span><strong>{cookRecipe.instructions.length ? "Start Cook Mode" : "Awaiting instructions"}</strong><small>{cookRecipe.instructions.length ? "Hands-friendly, one step at a time" : "Recipe is still loading"}</small></span>
                 </button>
               </div>
             ) : (

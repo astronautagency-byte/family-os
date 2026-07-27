@@ -3,8 +3,9 @@ import { motion, AnimatePresence, useAnimate, useInView, useScroll, useSpring, u
 import { ArrowRight, Baby, Bot, CalendarDays, Check, CheckSquare, ChefHat, Gift, GraduationCap, Heart, LoaderCircle, LockKeyhole, MessageCircle, Minus, Plus, ShieldCheck, ShoppingCart, Sparkles, Users } from "lucide-react";
 import "../landing.css";
 import "../landing-theme.css";
+import "../feature.css";
 import { PRICING_PLAN, formatMoney } from "../data/pricingPlan";
-import FeaturesDropdown from "../components/FeaturesDropdown";
+import MarketingNav from "../components/MarketingNav";
 import MarketingFooter from "../components/MarketingFooter";
 import { supabase } from "../lib/supabase";
 
@@ -48,13 +49,18 @@ function SectionHead({ eyebrow, children, note, className }) {
   );
 }
 
+// The six modules highlighted on the public marketing surface. Order matches
+// the nav dropdown — Calendar / Meals / Tasks first so visitors see the
+// day-to-day essentials, then Chat / Shopping / Fam AI as the connective
+// tissue between them. "Shopping" replaces the older "Groceries" label to
+// match the in-app product name; "Chat" replaces "Family chat".
 const features = [
   { label: "Calendar", title: "One calendar. Fewer surprises.", previewHeadline: "Every calendar, one clear week.", copy: "Sync multiple Google Calendars, colour-code event types, and add places with Maps suggestions.", icon: CalendarDays, art: "calendar", tone: "lilac" },
   { label: "Meals", title: "Meal planning for the week.", previewHeadline: "Plan meals without the daily scramble.", copy: "Plan one or two weeks, save recipes, set dietary notes, and launch a hands-free cook mode.", icon: ChefHat, art: "meals", tone: "yellow" },
-  { label: "Tasks", title: "Chores with an owner.", previewHeadline: "Give every task a clear owner.", copy: "Assign the thing, clear the list, and keep rewards ready for kid accounts when the time is right.", icon: CheckSquare, art: "tasks", tone: "pink" },
-  { label: "Groceries", title: "Shared grocery lists.", previewHeadline: "One list, ready for the store.", copy: "Quick-add favourites, scan barcodes, focus shop in-store, then copy or share the list to your grocery app.", icon: ShoppingCart, art: "groceries", tone: "mint" },
-  { label: "Family chat", title: "Family chat, with context.", previewHeadline: "Keep family conversations together.", copy: "Message the household without losing the plan you were talking about.", icon: MessageCircle, art: "chat", tone: "blue" },
   { label: "Fam AI", title: "Helpful suggestions when you need them.", previewHeadline: "Helpful next steps from household context.", copy: "Ask for meals from groceries, groceries from meals, or tasks from calendar events.", icon: Bot, art: "famai", tone: "peach" },
+  { label: "Tasks", title: "Chores with an owner.", previewHeadline: "Give every task a clear owner.", copy: "Assign the thing, clear the list, and keep rewards ready for kid accounts when the time is right.", icon: CheckSquare, art: "tasks", tone: "pink" },
+  { label: "Chat", title: "Family chat, with context.", previewHeadline: "Keep family conversations together.", copy: "Message the household without losing the plan you were talking about.", icon: MessageCircle, art: "chat", tone: "blue" },
+  { label: "Shopping", title: "Shared shopping lists.", previewHeadline: "One list, ready for the store.", copy: "Quick-add favourites, scan barcodes, focus shop in-store, then copy or share the list to your grocery app.", icon: ShoppingCart, art: "groceries", tone: "mint" },
 ];
 
 const capabilityHighlights = [
@@ -149,7 +155,7 @@ function PricingSection({ signedIn }) {
       });
       if (error) throw error;
       const url = data?.url;
-      if (!url) throw new Error("Stripe did not return a checkout URL.");
+      if (!url) throw new Error("Checkout couldn't start. Please try again in a moment.");
       window.location.assign(url);
     } catch (err) {
       setCheckoutError(err?.message || "Could not start checkout. Please try again.");
@@ -380,11 +386,7 @@ export default function Landing({ signedIn = false }) {
 
   return <MotionConfig reducedMotion="user"><div className="landing-page">
     <motion.div className="landing-scroll-progress" style={{ scaleX: progressScaleX }} aria-hidden="true" />
-    <motion.nav className="landing-nav" initial={{ y: -18, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.55, ease: EASE }}>
-      <button className="landing-brand" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}><img src="/brand/famos-icon-transparent.png" alt=""/><strong>Fam<span>OS</span></strong></button>
-        <div className="landing-links"><a href="#features">Features</a><FeaturesDropdown label="Modules" /><a href="#how-it-works">How it works</a><a href="#compare">Compare</a><a href="#pricing">Pricing</a></div>
-      <div className="landing-actions">{!signedIn&&<button className="landing-signin" onClick={() => go("signin")}>Sign in</button>}<button className="landing-join" onClick={() => go(signedIn ? "today" : "signup")}>{signedIn ? "Open FamOS" : "Get started"}<ArrowRight/></button></div>
-    </motion.nav>
+    <MarketingNav signedIn={signedIn} />
 
     <main>
       <section className="landing-hero" ref={heroRef}>
@@ -403,9 +405,9 @@ export default function Landing({ signedIn = false }) {
         </motion.div>
       </section>
 
-      <motion.section className="landing-purpose" id="app-purpose" {...revealBlock}><div><p>Meet FamOS</p><h2>Family life, together.</h2><span>Calendars, meals, groceries, tasks, chat, and helpful planning—all in one private household space.</span><div className="purpose-actions"><button onClick={() => go(signedIn ? "today" : "signup")}>{signedIn ? "Open FamOS" : "Start free trial"}<ArrowRight/></button>{!signedIn&&<button onClick={() => go("signin")}>Sign in</button>}</div></div><div className="purpose-grid"><motion.article {...hoverLift}><CalendarDays/><h3>Shared calendars</h3><p>Sync Google Calendars, colour-code the week, and add real places.</p></motion.article><motion.article {...hoverLift}><Users/><h3>Family updates</h3><p>Share plans, chat, and give every task a clear owner.</p></motion.article><motion.article {...hoverLift}><LockKeyhole/><h3>Private home</h3><p>Your household controls who can see and join your space.</p></motion.article></div></motion.section>
+      <motion.section className="landing-purpose" id="app-purpose" {...revealBlock}><div><p>Meet FamOS</p><h2>Made for your family.</h2><span>A quieter run for the whole household. Private to your people, gentle on attention.</span><div className="purpose-actions"><button onClick={() => go(signedIn ? "today" : "signup")}>{signedIn ? "Open FamOS" : "Start free trial"}<ArrowRight/></button>{!signedIn&&<button onClick={() => go("signin")}>Sign in</button>}</div></div><div className="purpose-grid"><motion.article {...hoverLift}><CalendarDays/><h3>Shared calendars</h3><p>Sync Google Calendars, colour-code the week, and add real places.</p></motion.article><motion.article {...hoverLift}><Users/><h3>Family updates</h3><p>Share plans, chat, and give every task a clear owner.</p></motion.article><motion.article {...hoverLift}><LockKeyhole/><h3>Private home</h3><p>Your household controls who can see and join your space.</p></motion.article></div></motion.section>
 
-      <section className="landing-intro" id="families"><p>WHY FAMOS</p><motion.h2 {...revealHeading}>All the moving parts.<br/>One warm, shared place.</motion.h2><blockquote>FamOS puts the “Fam” in family.</blockquote><div className="landing-family-pills"><span>New parents</span><span>Busy households</span><span>Co-parents</span><span>Multigenerational families</span><span>Families across cities</span></div></section>
+      <section className="landing-intro" id="families"><p>WHY FAMOS</p><motion.h2 {...revealHeading}>All the moving parts.<br/>One warm, shared place.</motion.h2><blockquote>A quieter way to run the family day.</blockquote><div className="landing-family-pills"><span>New parents</span><span>Busy households</span><span>Co-parents</span><span>Multigenerational families</span><span>Families across cities</span></div></section>
 
       <section className="landing-stages"><SectionHead eyebrow="Built for every chapter" note="Pick a chapter. The app flexes around the real-life version."><span className="no-orphan-line">Wherever your family is,</span><br/>FamOS fits.</SectionHead><div className="stage-tabs" role="tablist">{stages.map(({id,label,icon:Icon},index)=><button role="tab" aria-selected={stage===index} className={`${id} ${stage===index?"active":""}`} onClick={()=>setStage(index)} key={label}><Icon/>{label}</button>)}</div><motion.div className={`stage-panel stage-${selectedStage.id}`} {...revealBlock}><motion.div key={selectedStage.id} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, ease: EASE }}><p>{selectedStage.label}</p><h3>{selectedStage.title}</h3><span>{selectedStage.copy}</span><div className="stage-chips">{selectedStage.chips.map(item=><b key={item}><Check/>{item}</b>)}</div></motion.div><motion.img className="stage-family-art" key={selectedStage.artSrc} src={selectedStage.artSrc} alt="" aria-hidden="true" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, ease: EASE }}/></motion.div></section>
 

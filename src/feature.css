@@ -27,7 +27,7 @@
   display:inline-flex;align-items:center;gap:9px;
   text-decoration:none;color:#17171f;font-weight:850;letter-spacing:-.02em;
 }
-.features-nav-brand img{width:38px;height:38px;border-radius:11px;background:#fff5e9;padding:5px;object-fit:contain}
+.features-nav-brand img{width:48px;height:48px;border-radius:14px;background:#fff5e9;padding:6px;object-fit:contain}
 .features-nav-brand span{font:800 20px/1 var(--font-display)}
 .features-nav-brand strong span{color:#7952e8}
 .features-nav-links{display:flex!important;gap:22px;justify-content:center;flex-wrap:wrap;align-items:center}

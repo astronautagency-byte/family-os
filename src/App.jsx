@@ -1,5 +1,13 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { ShieldCheck } from "lucide-react";
+// Eager-load feature.css alongside the main entry so the FeaturesDropdown's
+// `position:absolute` popover styles are guaranteed to be present before any
+// page (lazy-loaded Landing.jsx OR Features.jsx) renders its nav. Without this,
+// vite code-splits the CSS into a separate chunk that loads asynchronously
+// after Landing.jsx mounts — leaving the dropdown briefly in default block
+// flow (visible vertical menu under the trigger). The same CSS is also
+// imported (and deduped) by Landing.jsx and Features.jsx for explicitness.
+import "./feature.css";
 import { FamilyProvider } from "./context/FamilyContext";
 import BottomNav from "./components/BottomNav";
 import AppTopBar from "./components/AppTopBar";
