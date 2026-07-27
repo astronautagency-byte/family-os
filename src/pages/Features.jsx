@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, ArrowUpRight, ChevronRight } from "lucide-react";
-import { FEATURES, FEATURE_BY_ID, MARKETING_FEATURES, TONES, SITE_WIDE_FEATURES } from "../data/featureData";
+import { FEATURES, FEATURE_BY_ID, FEATURE_HERO, MARKETING_FEATURES, TONES, SITE_WIDE_FEATURES } from "../data/featureData";
 import MarketingNav from "../components/MarketingNav";
 import MarketingFooter from "../components/MarketingFooter";
 import "../feature.css";
@@ -13,9 +13,14 @@ import "../feature.css";
 
 /* ── Feature hero (left copy + right mock-panel) ─────────────────────── */
 
+/* Feature hero — Comer AI layout: pastel gradient stage, headline + lede
+ * + CTAs + benefit pills on the left, framed phone with an actual
+ * FamOS screenshot (when available) on the right, with three floating
+ * product cards around the device. Falls back to <FeatureMockPanel> for
+ * modules that don't have a dedicated screenshot yet. */
 const FeatureHero = ({ feature }) => {
   const tone = TONES[feature.tone] || TONES.lilac;
-  const Icon = feature.icon;
+  const hero = FEATURE_HERO[feature.id] || {};
   return (
     <header
       className="features-module-hero"
@@ -30,10 +35,54 @@ const FeatureHero = ({ feature }) => {
             <a href="/signup">Try it free <ArrowRight size={14} /></a>
             <a href="/features">See all features <ArrowUpRight size={14} /></a>
           </div>
+          {hero.pills?.length > 0 && (
+            <div className="feature-hero-pills">
+              {hero.pills.map((pill) => <b key={pill}>{pill}</b>)}
+            </div>
+          )}
         </div>
-        <FeatureMockPanel feature={feature} />
+        <FeatureHeroStage feature={feature} hero={hero} />
       </div>
     </header>
+  );
+};
+
+const FeatureHeroStage = ({ feature, hero }) => {
+  const screenshot = hero.screenshot;
+  const cards = hero.cards || [];
+  return (
+    <div className="feature-hero-stage" data-tone={feature.tone}>
+      {screenshot ? (
+        <div className="feature-hero-phone">
+          <div className="feature-hero-phone-bezel">
+            <span className="feature-hero-phone-notch" aria-hidden="true" />
+            <img
+              className="feature-hero-phone-screen"
+              src={screenshot.src}
+              alt={screenshot.alt}
+              loading="eager"
+              decoding="async"
+            />
+          </div>
+        </div>
+      ) : (
+        <FeatureMockPanel feature={feature} />
+      )}
+      {cards.length > 0 && cards.map((card, idx) => (
+        <div
+          key={`${card.title}-${idx}`}
+          className={`feature-hero-card feature-hero-card-${idx + 1}`}
+          data-accent={card.accent}
+          aria-hidden="true"
+        >
+          <span className="feature-hero-card-glyph">{card.emoji}</span>
+          <div>
+            <strong>{card.title}</strong>
+            <small>{card.subtitle}</small>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 };
 
@@ -277,7 +326,7 @@ const FeaturesIndex = () => {
               <a href="/landing">See pricing</a>
             </div>
           </div>
-          <FeatureMockPanel feature={FEATURES[0]} />
+          <FeatureHeroStage feature={FEATURE_BY_ID("today")} hero={FEATURE_HERO.today} />
         </div>
       </section>
 

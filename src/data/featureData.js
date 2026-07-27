@@ -9,6 +9,78 @@ import {
   Coins, ListChecks, MapPin, Megaphone, Mic, ShoppingCart, Sparkles, Users,
 } from "lucide-react";
 
+// Per-feature hero metadata for /features and /features/<id>. The right
+// column of every module hero is now a framed phone showing an actual
+// FamOS screenshot (where we have one) with three floating product cards
+// echoing the marketing-page pattern of "device on the right, benefit
+// cards floating around it." The pills under the CTA are the headline
+// benefits for that module — separate from the deeper bullet list.
+export const FEATURE_HERO = {
+  today: {
+    pills: ["30-day free trial", "Cross-device sync", "Hands-free Cook Mode", "Weather built-in"],
+    screenshot: { src: "/features/today-dashboard.png", alt: "FamOS Today dashboard with broadcast composer and weather strip" },
+    cards: [
+      { emoji: "👋", title: "Evening, Alex",       subtitle: "Plan visible at a glance", accent: "lilac" },
+      { emoji: "🌧️", title: "Rain · Newmarket",   subtitle: "26% · 23° · 8 km/h",      accent: "blue" },
+      { emoji: "✅", title: "5 calendar · 0 open", subtitle: "Nothing due today",       accent: "mint" },
+    ],
+  },
+  calendar: {
+    pills: ["Multiple Google Calendars", "Two-way sync", "Quick capture", "Find events nearby"],
+    screenshot: { src: "/features/calendar-month.png", alt: "FamOS Calendar month view with event density" },
+    cards: [
+      { emoji: "🔍", title: "Find something fun nearby", subtitle: "Searching Newmarket · next month", accent: "blue" },
+      { emoji: "🔄", title: "Google calendar · Connected", subtitle: "Two-way sync live",                accent: "amber" },
+      { emoji: "🎟", title: "Family Fun at Bradley Museum", subtitle: "Saturday · Aug 1",                    accent: "peach" },
+    ],
+  },
+  meals: {
+    pills: ["Hands-free Cook Mode", "Meal roulette · cuisine-aware", "Save & re-use recipes", "Ingredients → shopping"],
+    screenshot: null, // No dedicated Meals screenshot yet — fallback to mock panel
+    cards: [
+      { emoji: "🍝", title: "Sheet-pan fajitas", subtitle: "Tonight · 35 min · 8 ingredients", accent: "rose" },
+      { emoji: "🥗", title: "Weekly meal plan",  subtitle: "6/7 dinners planned",                  accent: "mint" },
+      { emoji: "🎙", title: "Voice-next on step 3", subtitle: "Cook Mode is listening",             accent: "violet" },
+    ],
+  },
+  shopping: {
+    pills: ["Shared · attributed", "Barcode in-store", "Focus-shop mode", "Avocado fuzzy match"],
+    screenshot: null,
+    cards: [
+      { emoji: "🛒", title: "11 items",           subtitle: "Produce · Dairy · Pantry", accent: "mint" },
+      { emoji: "🥑", title: "Avocados",           subtitle: "Produce · 4",              accent: "lime" },
+      { emoji: "📸", title: "Scan barcode",       subtitle: "Auto-categorise",          accent: "blue" },
+    ],
+  },
+  tasks: {
+    pills: ["Quick-add like Notes", "Assign any member", "Recurring chores", "Streak rewards"],
+    screenshot: null,
+    cards: [
+      { emoji: "✅", title: "Feed the dog",        subtitle: "Daily · Lou · done",  accent: "mint" },
+      { emoji: "📦", title: "Pack soccer bag",    subtitle: "Today · Mia",          accent: "sky" },
+      { emoji: "🔥", title: "6-day streak",        subtitle: "Lou",                  accent: "amber" },
+    ],
+  },
+  chat: {
+    pills: ["Broadcasts · reactions", "Direct messages", "Smart shortcuts", "Quiet by default"],
+    screenshot: null,
+    cards: [
+      { emoji: "📣", title: "Running 10 min late", subtitle: "Family · 3 ❤️ reactions", accent: "amber" },
+      { emoji: "💬", title: "Direct message",       subtitle: "Alex → Mia",              accent: "peach" },
+      { emoji: "⚡", title: "Shortcut: 'butter'",   subtitle: "Echo into grocery",       accent: "blue" },
+    ],
+  },
+  "fam-ai": {
+    pills: ["Meal ideas · from groceries", "Calendar summary", "Weekly recap", "Stays quiet until asked"],
+    screenshot: null,
+    cards: [
+      { emoji: "🌮", title: "Avocado pasta",       subtitle: "Uses 4 grocery items", accent: "lime" },
+      { emoji: "📊", title: "Weekly recap",         subtitle: "Done · Slipped · Up",  accent: "lilac" },
+      { emoji: "🎙", title: "Voice in Cook Mode",   subtitle: "Hands-free next/back", accent: "violet" },
+    ],
+  },
+};
+
 // Tones mirror the pastel-strengths used across landing.css so the
 // gradient surfaces look like they belong on the same site.
 export const TONES = {

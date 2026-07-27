@@ -459,3 +459,67 @@
   .features-spotlight-tip{transition:none!important}
   .features-spotlight-tip:hover{transform:none!important;box-shadow:0 12px 28px rgba(42,34,65,.05)!important}
 }
+
+/* ── Comer-style framed-phone hero ──────────────────────────────────────
+ * Right column of every module hero and the /features index hero. The
+ * device is a bezel ring + notch + actual FamOS screenshot in
+ * /public/features, with three small benefit cards floating around it.
+ * Falls back to the inline mock-panel (kept above) for modules that
+ * don't have a dedicated screenshot yet. */
+
+.feature-hero-stage{position:relative;display:grid;place-items:center;width:100%;max-width:440px;margin:auto;min-height:560px;padding:6px}
+
+.feature-hero-pills{margin-top:24px;display:flex;flex-wrap:wrap;gap:8px}
+.feature-hero-pills b{display:inline-flex;align-items:center;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.78);border:1px solid rgba(121,82,232,.16);font:700 12px/1.15 var(--font-sans);color:#5d556a;letter-spacing:-.005em}
+
+.feature-hero-phone{position:relative;width:min(310px,86%);background:#17171f;padding:12px 10px 14px;border-radius:38px;box-shadow:0 32px 64px rgba(31,25,55,.22),0 8px 18px rgba(31,25,55,.12)}
+.feature-hero-phone-bezel{position:relative;border-radius:28px;overflow:hidden;background:#fff;border:1px solid #e8e2f0}
+.feature-hero-phone-notch{position:absolute;left:50%;top:7px;transform:translateX(-50%);width:90px;height:20px;border-radius:14px;background:#17171f;z-index:2}
+.feature-hero-phone-screen{display:block;width:100%;height:auto;border-radius:26px;background:#fffdf9}
+
+.feature-hero-card{position:absolute;display:flex;align-items:center;gap:11px;padding:13px 14px;border-radius:16px;background:#fff;border:1px solid rgba(121,82,232,.15);box-shadow:0 14px 28px rgba(42,34,65,.14);max-width:230px;animation:heroCardFloat 6s ease-in-out infinite}
+.feature-hero-card-1{top:-2px;left:-44px;animation-delay:-2s}
+.feature-hero-card-2{top:38%;right:-50px;animation-delay:-4s}
+.feature-hero-card-3{bottom:60px;left:-46px;animation-delay:-1s}
+.feature-hero-card-glyph{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;font-size:18px;background:#fff;border:1px solid rgba(23,23,47,.07);flex:none}
+.feature-hero-card strong{display:block;font:720 13.5px/1.18 var(--font-display);color:#17171f;letter-spacing:-.012em}
+.feature-hero-card small{display:block;font:600 11.5px/1.3 var(--font-sans);color:#716953;margin-top:3px}
+.feature-hero-card[data-accent="lilac"]{background:linear-gradient(135deg,#faf8ff,#fff);border-color:#d9cff7}
+.feature-hero-card[data-accent="lilac"] .feature-hero-card-glyph{background:#faf6ff;color:#7952e8}
+.feature-hero-card[data-accent="blue"] {background:linear-gradient(135deg,#f8fcff,#fff);border-color:#c7ddf2}
+.feature-hero-card[data-accent="blue"]  .feature-hero-card-glyph{background:#edf6ff;color:#366d9f}
+.feature-hero-card[data-accent="mint"] {background:linear-gradient(135deg,#f8fffb,#fff);border-color:#c6e8d7}
+.feature-hero-card[data-accent="mint"]  .feature-hero-card-glyph{background:#eefaf5;color:#31735e}
+.feature-hero-card[data-accent="peach"]{background:linear-gradient(135deg,#fffaf6,#fff);border-color:#f0d2b3}
+.feature-hero-card[data-accent="peach"] .feature-hero-card-glyph{background:#fff1e6;color:#a05e1f}
+.feature-hero-card[data-accent="amber"]{background:linear-gradient(135deg,#fffdf1,#fff);border-color:#ecdc92}
+.feature-hero-card[data-accent="amber"] .feature-hero-card-glyph{background:#fff6cf;color:#85610d}
+.feature-hero-card[data-accent="violet"]{background:linear-gradient(135deg,#faf6ff,#fff);border-color:#d9cff7}
+.feature-hero-card[data-accent="violet"] .feature-hero-card-glyph{background:#faf6ff;color:#6748d1}
+.feature-hero-card[data-accent="rose"] {background:linear-gradient(135deg,#fff8fb,#fff);border-color:#f5d3df}
+.feature-hero-card[data-accent="rose"]  .feature-hero-card-glyph{background:#fff1f6;color:#a44e68}
+.feature-hero-card[data-accent="lime"] {background:linear-gradient(135deg,#f8fffb,#fff);border-color:#c6e8d7}
+.feature-hero-card[data-accent="lime"]  .feature-hero-card-glyph{background:#eefaf5;color:#3e5e1c}
+.feature-hero-card[data-accent="sky"]  {background:linear-gradient(135deg,#f8fcff,#fff);border-color:#c7ddf2}
+.feature-hero-card[data-accent="sky"]   .feature-hero-card-glyph{background:#edf6ff;color:#3c74a0}
+
+@keyframes heroCardFloat{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-7px)}
+}
+
+@media (max-width:1080px){
+  .feature-hero-stage{min-height:480px;max-width:400px}
+  .feature-hero-card-1{left:-20px}
+  .feature-hero-card-2{right:-22px}
+  .feature-hero-card-3{left:-22px;bottom:40px}
+}
+@media (max-width:760px){
+  .feature-hero-stage{min-height:auto;padding-bottom:16px}
+  .feature-hero-card-1{position:relative;top:auto;left:auto;margin:12px auto 0;animation:none}
+  .feature-hero-card-2{position:relative;top:auto;right:auto;margin:10px auto 0;animation:none}
+  .feature-hero-card-3{position:relative;top:auto;left:auto;bottom:auto;margin:10px auto 0;animation:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .feature-hero-card{animation:none!important}
+}
