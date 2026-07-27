@@ -71,8 +71,8 @@
 .features-hero-pills{margin-top:24px;display:flex;flex-wrap:wrap;gap:7px}
 .features-hero-pills b{display:inline-flex;align-items:center;gap:5px;padding:6px 11px;border-radius:10px;background:rgba(255,255,255,.7);border:1px solid rgba(23,23,47,.06);font:700 11.5px/1.1 var(--font-sans);color:#5f5a67}
 
-/* Module-hero colored surface to echo landing stage panels */
-.features-module-hero{padding:64px 28px 0;background:linear-gradient(180deg,#fffdf9 0%,#f6f1ff 70%,#fffdf9 100%);border-bottom:1px solid rgba(121,82,232,.08)}
+/* The phone lands directly on the section edge, like a product-launch hero. */
+.features-module-hero{padding:64px 28px 0;background:#fff;border-bottom:1px solid rgba(23,23,31,.08);overflow:hidden}
 .features-module-hero-grid{max-width:1240px;margin:auto;display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:end}
 .features-module-hero-copy>p{margin-bottom:14px;color:#7952e8;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.12em}
 .features-module-hero-copy h1{font:760 clamp(34px,5vw,60px)/1.04 var(--font-display);letter-spacing:-.038em;margin:0 0 18px;color:#17171f}
@@ -430,13 +430,19 @@
  * Falls back to the inline mock-panel (kept above) for modules that
  * don't have a dedicated screenshot yet. */
 
-.feature-hero-stage{position:relative;display:grid;place-items:center;width:100%;max-width:440px;margin:auto;min-height:560px;padding:6px}
+.feature-hero-stage{position:relative;display:grid;place-items:end center;width:100%;max-width:440px;margin:auto;min-height:560px;padding:0}
 
 .feature-hero-pills{margin-top:24px;display:flex;flex-wrap:wrap;gap:8px}
 .feature-hero-pills b{display:inline-flex;align-items:center;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.78);border:1px solid rgba(121,82,232,.16);font:700 12px/1.15 var(--font-sans);color:#5d556a;letter-spacing:-.005em}
 
 .feature-hero-phone{position:relative;width:min(420px,90%);padding:0;z-index:1}
 .feature-hero-phone-screen{display:block;width:100%;height:auto;background:transparent;position:relative;z-index:1}
+
+/* The feature-* artwork contains a wide photographic backdrop to the
+ * right of the device. Crop that portion away and use the phone itself
+ * as the hero silhouette, flush with the section's bottom edge. */
+.feature-hero-phone.is-composite{width:226px;height:507px;overflow:hidden;border-radius:52px 52px 0 0}
+.feature-hero-phone.is-composite .feature-hero-phone-screen{width:auto;max-width:none;height:560px;transform:translateY(-53px);object-fit:contain;object-position:left bottom}
 
 .feature-hero-card{position:absolute;display:flex;align-items:center;gap:11px;padding:13px 14px;border-radius:16px;background:#fff;border:1px solid rgba(121,82,232,.15);box-shadow:0 14px 28px rgba(42,34,65,.14);max-width:230px;animation:heroCardFloat 6s ease-in-out infinite;z-index:2}
 .feature-hero-card-1{top:-2px;left:-44px;animation-delay:-2s}
@@ -471,15 +477,17 @@
 
 @media (max-width:1080px){
   .feature-hero-stage{min-height:480px;max-width:400px}
+  .feature-hero-phone.is-composite{width:194px;height:435px;border-radius:45px 45px 0 0}
+  .feature-hero-phone.is-composite .feature-hero-phone-screen{height:480px;transform:translateY(-45px)}
   .feature-hero-card-1{left:-20px}
   .feature-hero-card-2{right:-22px}
   .feature-hero-card-3{left:-22px;bottom:40px}
 }
 @media (max-width:760px){
-  .feature-hero-stage{min-height:auto;padding-bottom:16px}
-  .feature-hero-card-1{position:relative;top:auto;left:auto;margin:12px auto 0;animation:none}
-  .feature-hero-card-2{position:relative;top:auto;right:auto;margin:10px auto 0;animation:none}
-  .feature-hero-card-3{position:relative;top:auto;left:auto;bottom:auto;margin:10px auto 0;animation:none}
+  .feature-hero-stage{min-height:460px;padding-bottom:0}
+  .feature-hero-phone.is-composite{width:186px;height:417px;border-radius:43px 43px 0 0}
+  .feature-hero-phone.is-composite .feature-hero-phone-screen{height:460px;transform:translateY(-43px)}
+  .feature-hero-card{display:none}
 }
 @media (prefers-reduced-motion:reduce){
   .feature-hero-card{animation:none!important}

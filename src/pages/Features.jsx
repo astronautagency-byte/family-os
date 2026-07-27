@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, ArrowUpRight, ChevronRight } from "lucide-react";
-import { FEATURES, FEATURE_BY_ID, FEATURE_HERO, MARKETING_FEATURES, ONBOARDING_FALLBACK, TONES, SITE_WIDE_FEATURES } from "../data/featureData";
+import { FEATURES, FEATURE_BY_ID, FEATURE_HERO, MARKETING_FEATURES, ONBOARDING_FALLBACK, SITE_WIDE_FEATURES } from "../data/featureData";
 import MarketingNav from "../components/MarketingNav";
 import MarketingFooter from "../components/MarketingFooter";
 import "../feature.css";
@@ -19,13 +19,9 @@ import "../feature.css";
  * product cards around the device. Falls back to <FeatureMockPanel> for
  * modules that don't have a dedicated screenshot yet. */
 const FeatureHero = ({ feature }) => {
-  const tone = TONES[feature.tone] || TONES.lilac;
   const hero = FEATURE_HERO[feature.id] || {};
   return (
-    <header
-      className="features-module-hero"
-      style={{ background: `linear-gradient(180deg, #fffdf9 0%, ${tone.from} 60%, ${tone.to} 100%)` }}
-    >
+    <header className="features-module-hero">
       <div className="features-module-hero-grid">
         <div className="features-module-hero-copy">
           <nav className="features-breadcrumb" aria-label="Breadcrumb">
@@ -60,9 +56,10 @@ const FeatureHeroStage = ({ feature, hero }) => {
   // <img>.
   const screenshot = hero.screenshot || ONBOARDING_FALLBACK;
   const cards = hero.cards || [];
+  const isCompositePhone = screenshot.src.includes("/feature-");
   return (
     <div className="feature-hero-stage" data-tone={feature.tone}>
-      <div className="feature-hero-phone" data-tone={feature.tone}>
+      <div className={`feature-hero-phone${isCompositePhone ? " is-composite" : ""}`} data-tone={feature.tone}>
         <img
           className="feature-hero-phone-screen"
           src={screenshot.src}
