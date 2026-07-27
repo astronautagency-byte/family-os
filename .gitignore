@@ -4,3 +4,6 @@ dist-ssr
 *.local
 .DS_Store
 supabase/.temp/
+
+# Freebuff desktop preview artefacts (local-only logs, sqlite, watch scripts).
+.freebuff/

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Baby, Bone, Carrot, Check, ChevronDown, Clipboard, Coffee, Cookie, Croissant, CupSoda, Download, Drumstick, ExternalLink, FlaskConical, Globe2, GripVertical, HeartPulse, ListChecks, LoaderCircle, Maximize2, Milk, Package, Pencil, Plus, Sandwich, ScanLine, ScrollText, Share2, ShoppingBag, ShoppingBasket, Snowflake, Soup, SprayCan, Star, Store, Trash2, Truck, Wheat, Wine, X } from "lucide-react";
+import { Baby, Bone, Camera, Carrot, Check, ChevronDown, Clipboard, Coffee, Cookie, Croissant, CupSoda, Download, Drumstick, ExternalLink, FlaskConical, Globe2, GripVertical, HeartPulse, Image as ImageIcon, ListChecks, LoaderCircle, Maximize2, Milk, Package, Pencil, Plus, Sandwich, ScanLine, ScrollText, Share2, ShoppingBag, ShoppingBasket, Snowflake, Soup, SprayCan, Star, Store, Trash2, Truck, Upload, Wheat, Wine, X } from "lucide-react";
+import { uploadGroceryPhoto, isUploadableImage, deleteGroceryPhoto } from "../lib/groceryPhotoUpload";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
 import { Avatar, Card, Checkbox, EmptyState, Modal, PrimaryButton, SecondaryButton, Stepper, TextField } from "../components/ui";
@@ -11,6 +12,7 @@ import { formatDayLabel } from "../lib/dates";
 import { GROCERY_CATEGORIES } from "../data/mockData";
 
 const emptyDraft = { name: "", category: GROCERY_CATEGORIES[0], quantity: 1, unit: "" };
+const emptyPhoto = { file: null, previewUrl: "", remoteUrl: "", uploading: false, error: "" };
 const emptyBarcodeDraft = { ...emptyDraft, code: "", brand: "", price: "", imageUrl: "" };
 const STAPLES_KEY = "family-os:grocery-staples:v1";
 const PRODUCT_LOOKUP_ENDPOINT = "https://world.openfoodfacts.org/api/v2/product";
@@ -206,6 +208,65 @@ export default function Groceries() {
   const [scannerStarting, setScannerStarting] = useState(false);
   const [scannerError, setScannerError] = useState("");
   const [returnToFocus, setReturnToFocus] = useState(false);
+  const [photoDraft, setPhotoDraft] = useState(emptyPhoto);
+  const photoCameraInputRef = useRef(null);
+  const photoLibraryInputRef = useRef(null);
+
+  const onPickPhotoFile = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const check = isUploadableImage(file);
+    if (!check.ok) {
+      setPhotoDraft((current) => ({ ...current, error: check.reason }));
+      event.target.value = "";
+      return;
+    }
+    const previewUrl = (typeof URL !== "undefined" && URL.createObjectURL) ? URL.createObjectURL(file) : "";
+    if (photoDraft.previewUrl && photoDraft.previewUrl !== previewUrl) URL.revokeObjectURL(photoDraft.previewUrl);
+    setPhotoDraft({ file, previewUrl, remoteUrl: "", uploading: true, error: "" });
+    // Auto-upload once the user picks a file — the preview flips to the
+    // persistent URL when the upload resolves so Submit can persist it.
+    uploadPhotoNow(file).catch(() => {});
+    event.target.value = "";
+  };
+
+  const uploadPhotoNow = async (file) => {
+    const householdId = household?.id;
+    if (!householdId) {
+      setPhotoDraft((current) => ({ ...current, uploading: false, error: "Sign in to attach a photo." }));
+      return;
+    }
+    try {
+      const { url } = await uploadGroceryPhoto({ householdId, file, supabase });
+      setPhotoDraft((current) => ({ ...current, uploading: false, remoteUrl: url }));
+    } catch (error) {
+      setPhotoDraft((current) => ({ ...current, uploading: false, error: error?.message || "Could not upload the photo." }));
+    }
+  };
+
+  const clearPhoto = () => {
+    if (photoDraft.previewUrl && !photoDraft.remoteUrl) URL.revokeObjectURL(photoDraft.previewUrl);
+    setPhotoDraft(emptyPhoto);
+  };
+
+  // Shared close path for the editor modal — the X button, the Cancel
+  // button (if there is one), and the backdrop tap all funnel through
+  // here. We revoke any pending preview blob URL so picking a photo
+  // and then closing without saving doesn't leak the heap reference,
+  // AND we clean up the storage object that may have already been
+  // uploaded if the upload won the race against the user's tap on X.
+  // Best-effort: storage cleanup errors are non-fatal because the row
+  // was never saved — leftover files are just bucket cost, not data.
+  const closeEditorModal = () => {
+    if (photoDraft.previewUrl) URL.revokeObjectURL(photoDraft.previewUrl);
+    if (photoDraft.remoteUrl && editingId === "new") {
+      deleteGroceryPhoto(photoDraft.remoteUrl, supabase).then(({ error }) => {
+        if (error) console.warn("Could not remove orphaned grocery photo on cancel.", error);
+      });
+    }
+    setPhotoDraft(emptyPhoto);
+    setEditingId(null);
+  };
   const scannerVideoRef = useRef(null);
   const scannerControlsRef = useRef(null);
   const scannerHandledRef = useRef(false);
@@ -335,13 +396,32 @@ export default function Groceries() {
     }
   };
 
+  // Abandon any in-flight "new"-item draft whose upload landed in
+  // storage but never wrote a row. Without this, switching from
+  // Add back to Add (or hitting a sibling row's pencil icon) would
+  // orphan the previously-uploaded photo in the bucket. Same shape
+  // as closeEditorModal — revoke preview, fire-and-forget remove,
+  // then drop the local draft.
+  const abandonDraftPhoto = () => {
+    if (photoDraft.previewUrl) URL.revokeObjectURL(photoDraft.previewUrl);
+    if (photoDraft.remoteUrl && editingId === "new") {
+      deleteGroceryPhoto(photoDraft.remoteUrl, supabase).then(({ error }) => {
+        if (error) console.warn("Could not remove orphaned grocery photo on draft-switch.", error);
+      });
+    }
+  };
+
   const openNew = () => {
+    abandonDraftPhoto();
     setDraft(emptyDraft);
+    setPhotoDraft(emptyPhoto);
     setEditingId("new");
   };
 
   const openEdit = (item) => {
+    abandonDraftPhoto();
     setDraft({ name: item.name, category: item.category, quantity: item.quantity ?? 1, unit: item.unit ?? "" });
+    setPhotoDraft({ file: null, previewUrl: "", remoteUrl: item.photoUrl || "", uploading: false, error: "" });
     setEditingId(item.id);
   };
 
@@ -371,12 +451,16 @@ export default function Groceries() {
 
   const submit = () => {
     if (!draft.name.trim()) return;
+    const photoUrl = photoDraft.remoteUrl || "";
+    const previousPhotoUrl = editingId !== "new" ? (groceries.find((g) => g.id === editingId)?.photoUrl || "") : "";
     if (editingId === "new") {
-      addGrocery({ name: draft.name.trim(), category: draft.category, quantity: draft.quantity, unit: draft.unit.trim(), addedBy: null });
+      addGrocery({ name: draft.name.trim(), category: draft.category, quantity: draft.quantity, unit: draft.unit.trim(), addedBy: null, photoUrl });
     } else {
-      updateGrocery(editingId, { name: draft.name.trim(), category: draft.category, quantity: draft.quantity, unit: draft.unit.trim() });
+      updateGrocery(editingId, { name: draft.name.trim(), category: draft.category, quantity: draft.quantity, unit: draft.unit.trim(), photoUrl, previousPhotoUrl });
     }
     setEditingId(null);
+    if (photoDraft.previewUrl) URL.revokeObjectURL(photoDraft.previewUrl);
+    setPhotoDraft(emptyPhoto);
   };
 
   const addStapleToList = async (staple) => {
@@ -788,7 +872,16 @@ export default function Groceries() {
                           className="flex items-center gap-3 px-3 py-2.5 border-b border-[var(--color-border)] last:border-0"
                         >
                           <Checkbox checked={item.checked} onChange={() => toggleGrocery(item.id)} />
-                          <GroceryIcon category={item.category} />
+                          {item.photoUrl
+                            ? (
+                              <span className="grocery-photo-thumb grocery-photo-thumb-list" role="img" aria-label={item.photoUploadedBy && memberById[item.photoUploadedBy] ? `Photo of ${item.name}, added by ${memberById[item.photoUploadedBy].name}` : `Photo of ${item.name}`}>
+                                <img src={item.photoUrl} alt="" />
+                                {item.photoUploadedBy && memberById[item.photoUploadedBy] && (
+                                  <Avatar member={memberById[item.photoUploadedBy]} size="xs" className="grocery-photo-attribution" />
+                                )}
+                              </span>
+                            )
+                            : <GroceryIcon category={item.category} />}
                           <button onClick={() => openEdit(item)} className="flex-1 min-w-0 flex items-center gap-2 text-left">
                             <span
                               className={`min-w-0 text-[14.5px] ${
@@ -847,7 +940,7 @@ export default function Groceries() {
         <Plus color="white" size={24} />
       </button>
 
-      <Modal open={!!editingId} onClose={() => setEditingId(null)} title={editingId === "new" ? "Add a grocery" : "Edit grocery"}>
+      <Modal open={!!editingId} onClose={closeEditorModal} title={editingId === "new" ? "Add a grocery" : "Edit grocery"}>
         <TextField
           label="Item"
           placeholder="e.g. Sourdough bread"
@@ -875,7 +968,7 @@ export default function Groceries() {
           ))}
         </div>
 
-        <div className="flex items-end gap-3 mb-5">
+        <div className="flex items-end gap-3 mb-4">
           <div>
             <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-1.5">Quantity</p>
             <Stepper value={draft.quantity} onChange={(v) => setDraft((d) => ({ ...d, quantity: v }))} />
@@ -890,7 +983,35 @@ export default function Groceries() {
           </div>
         </div>
 
-        <div className="flex gap-2">
+        {/* Photo pick — mobile uses capture="environment" so the picker
+            opens the rear camera; desktop falls back to a plain file
+            input. Either way land in onPickPhotoFile, which uploads
+            client-side and surfaces the signed URL in the card + focus
+            shop on every device in the household via realtime. */}
+        <div className="grocery-photo-section">
+          <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-2">Photo (optional)</p>
+          <div className="flex items-center gap-3">
+            <div className="grocery-photo-thumb" aria-hidden={(photoDraft.previewUrl || photoDraft.remoteUrl) ? "false" : "true"}>
+              {(photoDraft.previewUrl || photoDraft.remoteUrl) ? (
+                <img src={photoDraft.previewUrl || photoDraft.remoteUrl} alt="" />
+              ) : (
+                <ImageIcon size={18} />
+              )}
+              {photoDraft.uploading && <span className="grocery-photo-spinner" aria-label="Uploading photo" />}
+            </div>
+            <div className="grow flex flex-wrap gap-2">
+              <input ref={photoCameraInputRef} type="file" accept="image/*" capture="environment" hidden onChange={onPickPhotoFile} />
+              <input ref={photoLibraryInputRef} type="file" accept="image/*" hidden onChange={onPickPhotoFile} />
+              <button type="button" onClick={() => photoCameraInputRef.current?.click()} className="primary-action-button small"><Camera size={14} /> Take photo</button>
+              <button type="button" onClick={() => photoLibraryInputRef.current?.click()} className="secondary-action-button small"><Upload size={14} /> Upload</button>
+              {(photoDraft.remoteUrl || photoDraft.previewUrl) && <button type="button" onClick={clearPhoto} className="secondary-action-button small"><X size={14} /> Remove</button>}
+            </div>
+          </div>
+          {photoDraft.error && <p className="text-[12px] text-[var(--color-warn)] mt-2">{photoDraft.error}</p>}
+          <p className="text-[11.5px] text-[var(--color-ink-faint)] mt-2 leading-snug">Photos stay private to your household and sync to every device realtime when the list changes.</p>
+        </div>
+
+        <div className="flex gap-2 mt-4">
           {editingId && editingId !== "new" && (
             <SecondaryButton
               onClick={() => {
@@ -1063,8 +1184,8 @@ export default function Groceries() {
               return (
                 <button key={item.id} className={`focus-shopping-item ${item.checked ? "is-checked" : ""}`} onClick={() => toggleGrocery(item.id)}>
                   <span className="focus-shopping-check" aria-hidden="true">{item.checked ? "✓" : ""}</span>
-                  <GroceryIcon category={item.category} />
-                  <span className="focus-shopping-copy"><strong>{item.name}</strong><small>{item.category}{qtyLabel ? ` · ${qtyLabel}` : ""}</small></span>
+                  {item.photoUrl ? <span className="grocery-photo-thumb grocery-photo-thumb-focus" aria-hidden="true"><img src={item.photoUrl} alt="" /></span> : <GroceryIcon category={item.category} />}
+                  <span className="focus-shopping-copy"><strong>{item.name}</strong><small>{item.category}{qtyLabel ? ` · ${qtyLabel}` : ""}{item.brand ? ` · ${item.brand}` : ""}</small></span>
                 </button>
               );
             })}

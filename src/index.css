@@ -3718,3 +3718,39 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 
 
 /* ── Page-header live channel-health badge ──────────────────────────── */
+/* ──────────────────────────────────────────────────────────────────
+   Nav safety overrides — ensure all navigation components stay
+   horizontal across all viewport widths. Injected at the end of
+   index.css so these rules win any cascade fight with earlier
+   component-level `display:none` on small screens.
+   ────────────────────────────────────────────────────────────────── */
+.landing-nav{display:flex!important;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:12px}
+.landing-links{display:flex!important;flex-wrap:wrap;align-items:center;justify-content:center;gap:18px;font-size:14px;font-weight:600;min-width:0}
+.landing-actions{display:flex!important;flex-wrap:nowrap;align-items:center;gap:10px;flex-shrink:0}
+.landing-brand{flex-shrink:0}
+.primary-nav .nav-items{display:grid!important;grid-template-columns:repeat(var(--nav-columns,7),minmax(0,1fr))!important;flex-direction:row!important}
+.primary-nav .nav-item{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important}
+@media(max-width:900px){.landing-links{display:flex!important;gap:14px;font-size:13px}.landing-links>a{white-space:nowrap}}
+@media(max-width:760px){.landing-links{gap:10px;font-size:12px}.landing-brand strong span{font-size:18px}}
+@media(max-width:560px){.landing-links{gap:8px;font-size:11px;justify-content:flex-start}.landing-nav{padding:0 14px;height:64px}.landing-join{padding:9px 12px;font-size:12px}.landing-signin{display:none}}
+/* ── Grocery photos (household-uploaded images) ─────────────────────
+   Tiny utility classes so the editor modal, list row, and focus-shop
+   view can all reuse the same thumbnail rendering without forking
+   JSX. The thumb swaps between a lucide icon (no photo) and an <img>
+   (photo present); the surrounding container holds the size so the
+   layout doesn't jump while a photo uploads or gets cleared. */
+.grocery-photo-section{display:flex;flex-direction:column;gap:6px;padding:14px;border:1px dashed var(--color-border);border-radius:18px;background:var(--color-surface-sunken)}
+.grocery-photo-thumb{position:relative;display:grid;place-items:center;width:64px;height:64px;border-radius:14px;border:1px solid var(--color-border);background:var(--color-surface);color:var(--color-ink-faint);overflow:hidden;flex:0 0 auto}
+.grocery-photo-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.grocery-photo-thumb-list{width:34px;height:34px;border-radius:9px;border-color:transparent;background:var(--color-accent-soft)}
+.grocery-photo-thumb-focus{width:48px;height:48px;border-radius:11px;border-color:transparent;background:var(--color-accent-soft)}
+.grocery-photo-spinner{position:absolute;inset:6px;background:color-mix(in srgb,var(--color-surface) 80%,transparent);display:grid;place-items:center;border-radius:inherit}
+.grocery-photo-spinner::before{content:"";width:18px;height:18px;border-radius:50%;border:2px solid var(--color-accent-soft);border-top-color:var(--color-accent);animation:groceryPhotoSpin .8s linear infinite}
+@keyframes groceryPhotoSpin{to{transform:rotate(360deg)}}
+.primary-action-button.small,.secondary-action-button.small{padding:8px 11px;font-size:12px}
+@media (prefers-reduced-motion:reduce){.grocery-photo-spinner::before{animation:none}}
+/* Photo attribution avatar overlaid on the list-row thumbnail so
+   siblings can see who snapped the photo at a glance. Sized down
+   from the standard Avatar xs so it sits inside the 34×34 thumb
+   without overpowering it. */
+.grocery-photo-attribution{position:absolute;right:-2px;bottom:-2px;width:16px;height:16px;border:1.5px solid var(--color-surface);box-shadow:0 1px 3px rgba(0,0,0,.18)}

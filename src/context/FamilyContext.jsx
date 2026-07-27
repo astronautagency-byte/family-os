@@ -11,6 +11,7 @@ import { createGoogleCalendarEvent, deleteGoogleCalendarEvent as deleteGoogleCal
 import { fetchIcalFeed, parseIcalEvents } from "../lib/icalCalendar";
 import { useAuth } from "./AuthContext";
 import { invokeEdgeFunction, supabase } from "../lib/supabase";
+import { pathFromPublicUrl as groceryPhotoPath } from "../lib/groceryPhotoUpload";
 
 const STORAGE_KEY = "family-os:v1";
 const GOOGLE_STORAGE_KEY = "family-os:google:v1";
@@ -278,6 +279,11 @@ export function FamilyProvider({ children, tabletMode = false }) {
     avatarUrl: loadAvatarOverrides()[row.id] || row.avatar_url || (row.id === user?.id ? user.user_metadata?.avatar_url || user.user_metadata?.picture || "" : ""),
   });
   const mapTask = (row) => ({ id: row.id, title: row.title, assigneeId: row.assignee_id, due: row.due_date, done: row.is_done, recurring: row.recurrence, taskType: row.task_type || "home", createdBy: row.created_by || null });
+  // image_url = OpenFoodFacts product catalogue image (read-only metadata
+  // from a barcode scan). photo_url = the household member's own upload,
+  // stored in the grocery-photos bucket and synced realtime. Two fields
+  // exists on purpose: a stale catalogue image should not leak into the
+  // slot reserved for the family snap of "this exact loaf of bread".
   const mapGrocery = (row) => ({
     id: row.id,
     name: row.name,
@@ -290,6 +296,9 @@ export function FamilyProvider({ children, tabletMode = false }) {
     brand: row.brand || "",
     price: row.price == null ? null : Number(row.price),
     imageUrl: row.image_url || "",
+    photoUrl: row.photo_url || "",
+    photoUploadedBy: row.photo_uploaded_by || null,
+    photoUploadedAt: row.photo_uploaded_at || null,
   });
   const mapEvent = (row) => ({ id: row.id, title: row.title, start: row.starts_at, end: row.ends_at, location: row.location, source: row.source === "familyos" ? "local" : row.source, externalId: row.external_id || null, calendarId: row.external_calendar_id || null, memberIds: (row.event_participants || []).map((p) => p.user_id) });
   const mapMeal = (row) => ({ id: row.id, date: row.meal_date, slot: row.slot, title: row.title, notes: row.notes, cookIds: row.cook_ids || [], createdBy: row.created_by || null });
@@ -597,6 +606,9 @@ export function FamilyProvider({ children, tabletMode = false }) {
         brand: item.brand || "",
         price: item.price ?? null,
         image_url: item.imageUrl || "",
+        photo_url: item.photoUrl || "",
+        photo_uploaded_by: item.photoUrl ? user.id : null,
+        photo_uploaded_at: item.photoUrl ? new Date().toISOString() : null,
       };
       const { data, error } = await supabase.from("grocery_items").insert(row).select().single();
       if (error) {
@@ -615,34 +627,102 @@ export function FamilyProvider({ children, tabletMode = false }) {
     // Optimistic: update local state immediately.
     setGroceries((prev) => prev.map((g) => (g.id === id ? { ...g, ...patch } : g)));
     if (remote) {
-      try { const { error } = await supabase.from("grocery_items").update({ name: patch.name, category: patch.category, quantity: patch.quantity, unit: patch.unit, is_checked: patch.checked }).eq("id", id); if (error) throw error; }
-      catch { /* realtime will re-sync */ }
+      const dbPatch = {};
+      if (patch.name !== undefined) dbPatch.name = patch.name;
+      if (patch.category !== undefined) dbPatch.category = patch.category;
+      if (patch.quantity !== undefined) dbPatch.quantity = patch.quantity;
+      if (patch.unit !== undefined) dbPatch.unit = patch.unit;
+      if (patch.checked !== undefined) dbPatch.is_checked = patch.checked;
+      // Photo fields are written together: when photoUrl is set we stamp
+      // the uploader + timestamp, when it's cleared (null/empty) we wipe
+      // both. previousPhotoUrl is optional — when the caller passes the
+      // old URL we know to clean up the underlying Storage object after
+      // the row commit so abandoned uploads don't leak storage cost.
+      if (patch.photoUrl !== undefined) {
+        dbPatch.photo_url = patch.photoUrl || "";
+        if (patch.photoUrl) {
+          dbPatch.photo_uploaded_by = user.id;
+          dbPatch.photo_uploaded_at = new Date().toISOString();
+        } else {
+          dbPatch.photo_uploaded_by = null;
+          dbPatch.photo_uploaded_at = null;
+        }
+      }
+      try {
+        const { error } = await supabase.from("grocery_items").update(dbPatch).eq("id", id);
+        if (error) throw error;
+        if (patch.photoUrl !== undefined && patch.previousPhotoUrl && patch.previousPhotoUrl !== patch.photoUrl) {
+          const oldPath = groceryPhotoPath(patch.previousPhotoUrl);
+          if (oldPath) {
+            supabase.storage.from("grocery-photos").remove([oldPath]).then(({ error: cleanupError }) => {
+              if (cleanupError) console.warn("Could not remove old grocery photo.", cleanupError);
+            });
+          }
+        }
+      } catch { /* realtime will re-sync */ }
     }
   };
+  // Best-effort delete of a grocery photo's underlying storage object.
+  // Fire-and-forget: storage failures WARN rather than throw because the
+  // row is already gone in the user's eye, and we don't want a stale
+  // photo in `grocery-photos` to keep failing the row delete call.
+  const cleanupGroceryPhoto = (publicUrl) => {
+    if (!remote || !publicUrl) return;
+    const path = groceryPhotoPath(publicUrl);
+    if (!path) return;
+    supabase.storage.from("grocery-photos").remove([path]).then(({ error }) => {
+      if (error) console.warn("Could not remove grocery photo from storage.", error);
+    });
+  };
+  // Capture the photo URL(s) before clearing rows so the storage backend
+  // can clean up the orphaned objects in the same gesture. Without this,
+  // `clearGroceries` leaves every photo behind for the household budget
+  // to silently accumulate.
+  const collectPhotoPaths = (predicate) => groceries.filter(predicate).map((g) => groceryPhotoPath(g.photoUrl)).filter(Boolean);
   const removeGrocery = async (id) => {
+    const previousItem = groceries.find((g) => g.id === id);
     // Optimistic: remove from local state immediately.
     setGroceries((prev) => prev.filter((g) => g.id !== id));
     if (remote) {
-      try { const { error } = await supabase.from("grocery_items").delete().eq("id", id); if (error) throw error; }
-      catch { /* realtime will re-sync */ }
+      try {
+        const { error } = await supabase.from("grocery_items").delete().eq("id", id);
+        if (error) throw error;
+        if (previousItem?.photoUrl) cleanupGroceryPhoto(previousItem.photoUrl);
+      } catch { /* realtime will re-sync */ }
     }
   };
   const clearCheckedGroceries = async () => {
     const snapshot = groceries;
+    const orphanPaths = collectPhotoPaths((g) => g.checked);
     // Optimistic: remove checked items instantly.
     setGroceries((prev) => prev.filter((g) => !g.checked));
     if (remote) {
-      const { error } = await supabase.from("grocery_items").delete().eq("household_id", household.id).eq("is_checked", true);
-      if (error) { setGroceries(snapshot); setDataError(error.message); throw error; }
+      try {
+        const { error } = await supabase.from("grocery_items").delete().eq("household_id", household.id).eq("is_checked", true);
+        if (error) throw error;
+        if (orphanPaths.length) {
+          supabase.storage.from("grocery-photos").remove(orphanPaths).then(({ error }) => {
+            if (error) console.warn("Could not remove some cleared grocery photos.", error);
+          });
+        }
+      } catch (error) { setGroceries(snapshot); setDataError(error.message); throw error; }
     }
   };
   const clearGroceries = async () => {
     const snapshot = groceries;
+    const orphanPaths = collectPhotoPaths(() => true);
     // Optimistic: clear instantly.
     setGroceries([]);
     if (remote) {
-      const { error } = await supabase.from("grocery_items").delete().eq("household_id", household.id);
-      if (error) { setGroceries(snapshot); setDataError(error.message); throw error; }
+      try {
+        const { error } = await supabase.from("grocery_items").delete().eq("household_id", household.id);
+        if (error) throw error;
+        if (orphanPaths.length) {
+          supabase.storage.from("grocery-photos").remove(orphanPaths).then(({ error }) => {
+            if (error) console.warn("Could not remove grocery photos on clear-all.", error);
+          });
+        }
+      } catch (error) { setGroceries(snapshot); setDataError(error.message); throw error; }
     }
   };
 

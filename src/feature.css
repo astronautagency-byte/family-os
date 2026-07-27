@@ -30,10 +30,10 @@
 .features-nav-brand img{width:38px;height:38px;border-radius:11px;background:#fff5e9;padding:5px;object-fit:contain}
 .features-nav-brand span{font:800 20px/1 var(--font-display)}
 .features-nav-brand strong span{color:#7952e8}
-.features-nav-links{display:flex;gap:22px;justify-content:center}
-.features-nav-links a{font-weight:700;font-size:13.5px;color:#4a4555;text-decoration:none;transition:color .2s ease}
+.features-nav-links{display:flex!important;gap:22px;justify-content:center;flex-wrap:wrap;align-items:center}
+.features-nav-links a{font-weight:700;font-size:13.5px;color:#4a4555;text-decoration:none;transition:color .2s ease;white-space:nowrap}
 .features-nav-links a:hover,.features-nav-links a.is-active{color:#7952e8}
-.features-nav-actions{display:flex;gap:10px;align-items:center}
+.features-nav-actions{display:flex!important;gap:10px;align-items:center;flex-wrap:wrap}
 .features-nav-actions a,.features-nav-actions button{
   display:inline-flex;align-items:center;gap:7px;
   padding:10px 16px;border-radius:999px;font-weight:750;font-size:13px;
@@ -43,7 +43,13 @@
 .features-nav-actions a:first-child{background:#17171f;color:#fff;border-color:#17171f}
 .features-nav-actions a:first-child:hover,.features-nav-actions button.primary:hover{transform:translateY(-2px);background:#7952e8;color:#fff;box-shadow:0 12px 26px rgba(121,82,232,.28)}
 .features-nav-actions button:hover{background:#fff8e5;color:#17171f}
-@media (max-width:760px){.features-nav{grid-template-columns:auto 1fr;padding:14px 18px}.features-nav-links{display:none}}
+.features-nav-brand{flex:0 0 auto}
+@media (max-width:760px){
+  .features-nav{grid-template-columns:auto 1fr auto;padding:14px 18px;gap:12px}
+  .features-nav-links{display:flex!important;gap:14px;justify-content:flex-end;font-size:12.5px}
+  .features-nav-actions{gap:6px}
+  .features-nav-actions a,.features-nav-actions button{padding:8px 12px;font-size:12px}
+}
 
 /* ── Hero (shared) ── */
 .features-hero{position:relative;padding:96px 28px 70px;max-width:1240px;margin:0 auto}
@@ -237,7 +243,7 @@
 .features-modulenav{padding:60px 28px;background:#fff5e6}
 .features-modulenav-inner{max-width:1240px;margin:auto}
 .features-modulenav-inner h3{font:760 24px/1.1 var(--font-display);letter-spacing:-.025em;margin:0 0 18px;color:#17171f}
-.features-modulenav-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.features-modulenav-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
 .features-modulenav a{
   display:flex;align-items:center;gap:10px;padding:14px 16px;border:1px solid rgba(121,82,232,.16);border-radius:18px;background:#fff;text-decoration:none;color:#17171f;font-weight:700;font-size:13.5px;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease
 }
@@ -299,7 +305,7 @@
  * so it doesn't fight the static transform rules (desktop centers via
  * translateX(-50%); mobile pins left via left:-8px). */
 .features-dropdown-panel{
-  display:none;
+  display:none!important;
   position:absolute!important;z-index:60;
   top:calc(100% + 14px);left:50%;
   transform:translateX(-50%) translateY(-6px);
@@ -308,10 +314,14 @@
   border:1px solid rgba(121,82,232,.16);border-radius:22px;
   background:#fff;box-shadow:0 24px 58px rgba(42,34,65,.18);
   pointer-events:none;
+  visibility:hidden;
+  max-height:80vh;overflow-y:auto;
 }
 .features-dropdown.is-open .features-dropdown-panel{
-  display:block;
+  display:block!important;
+  position:absolute!important;
   pointer-events:auto;
+  visibility:visible;
   animation:featuresDropdownIn .18s ease both
 }
 @keyframes featuresDropdownIn{
@@ -351,7 +361,8 @@
 .features-dropdown-divider{height:1px;background:rgba(23,23,47,.08);margin:11px 4px}
 
 .features-dropdown-grid{
-  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px
+  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px;
+  grid-auto-flow:row dense;
 }
 .features-dropdown-item{
   display:grid;grid-template-columns:34px 1fr 13px;align-items:center;gap:10px;

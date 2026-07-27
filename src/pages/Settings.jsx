@@ -61,82 +61,7 @@ function GoogleCalendarCard() {
     connectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, toggleGoogleCalendar, toggleGoogleCalendarSharing,
   } = useFamily();
   const [showSetup, setShowSetup] = useState(!googleClientId);
-  const [subscription, setSubscription] = useState(null);
-  const [billingBusy, setBillingBusy] = useState(false);
-  const [billingError, setBillingError] = useState("");
-
-  // Pull the household's real Stripe-backed subscription so the Plan & billing
-  // card can show a status badge + payment method, and "Manage billing" can
-  // open the Stripe Customer Portal via the billing-portal edge function.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data, error } = await supabase.rpc("get_my_subscription");
-      if (!cancelled && !error && data?.[0]) setSubscription(data[0]);
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
-  const openBillingPortal = async () => {
-    setBillingError("");
-    setBillingBusy(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("billing-portal");
-      if (error) throw error;
-      const url = data?.url;
-      if (!url) throw new Error("Stripe did not return a portal URL.");
-      window.location.assign(url);
-    } catch (err) {
-      setBillingError(err?.message || "Could not open the billing portal. Please try again.");
-      setBillingBusy(false);
-    }
-  };
-
   const isBusy = googleStatus === "connecting" || googleStatus === "syncing";
-
-  // ── Subscription status formatting ──
-  // The Plan & billing card pulls these from the get_my_subscription RPC; we
-  // render a status pill, payment method, and next-charge date instead of the
-  // static PRICING_PLAN values whenever a real subscription row exists.
-  const subStatusBadge = (() => {
-    if (!subscription) return null;
-    const s = subscription.status;
-    if (s === "trial" || s === "trialing") {
-      const days = subscription.trial_ends_at
-        ? Math.max(0, Math.ceil((new Date(subscription.trial_ends_at).getTime() - Date.now()) / 86_400_000))
-        : null;
-      return { tone: "good", label: days !== null ? `Trial · ${days} day${days === 1 ? "" : "s"} left` : "Trial active" };
-    }
-    if (s === "active") return { tone: "good", label: "Active" };
-    if (s === "past_due") return { tone: "warn", label: "Payment overdue" };
-    if (s === "canceled") return { tone: "muted", label: "Canceled" };
-    if (s === "incomplete") return { tone: "warn", label: "Setup incomplete" };
-    if (s === "paused") return { tone: "muted", label: "Paused" };
-    return { tone: "muted", label: s };
-  })();
-
-  const formatNextCharge = (iso) => {
-    if (!iso) return null;
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return null;
-    return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
-  };
-
-  const nextChargeLabel = (() => {
-    if (!subscription) return null;
-    if (subscription.status === "trial" || subscription.status === "trialing") {
-      return formatNextCharge(subscription.trial_ends_at) ? `First charge after trial · ${formatNextCharge(subscription.trial_ends_at)}` : "First charge after trial";
-    }
-    if (subscription.status === "active" || subscription.status === "past_due") {
-      return formatNextCharge(subscription.current_period_ends_at) ? `Next charge · ${formatNextCharge(subscription.current_period_ends_at)}` : null;
-    }
-    return null;
-  })();
-
-  const paymentMethodLabel = (() => {
-    if (!subscription?.payment_method_brand || !subscription?.payment_method_last4) return null;
-    return `${subscription.payment_method_brand.toUpperCase()} •••• ${subscription.payment_method_last4}`;
-  })();
 
   return (
     <Card className="p-4">
@@ -602,6 +527,82 @@ export default function Settings() {
   const canEditHome = isMasterOwner || memberProfile?.profileType !== "child";
   const extraMembers = Math.max(0, members.length - includedMembers);
   const estimatedMonthlyPlan = PRICING_PLAN.basePlan.price.monthly + extraMembers * PRICING_PLAN.basePlan.additionalMemberPrice.monthly;
+
+  // ── Subscription status (Stripe-backed) ──
+  // Pulls the household's real subscription via get_my_subscription so the
+  // Plan & billing card can show a status badge, payment method, and
+  // next-charge date instead of the static PRICING_PLAN values.
+  const [subscription, setSubscription] = useState(null);
+  const [billingBusy, setBillingBusy] = useState(false);
+  const [billingError, setBillingError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error } = await supabase.rpc("get_my_subscription");
+        if (!cancelled && !error && data?.[0]) setSubscription(data[0]);
+      } catch {
+        // * — subscription is optional; missing RPC must not break Settings.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const openBillingPortal = async () => {
+    setBillingError("");
+    setBillingBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("billing-portal");
+      if (error) throw error;
+      const url = data?.url;
+      if (!url) throw new Error("Stripe did not return a portal URL.");
+      window.location.assign(url);
+    } catch (err) {
+      setBillingError(err?.message || "Could not open the billing portal. Please try again.");
+      setBillingBusy(false);
+    }
+  };
+
+  const subStatusBadge = (() => {
+    if (!subscription) return null;
+    const s = subscription.status;
+    if (s === "trial" || s === "trialing") {
+      const days = subscription.trial_ends_at
+        ? Math.max(0, Math.ceil((new Date(subscription.trial_ends_at).getTime() - Date.now()) / 86_400_000))
+        : null;
+      return { tone: "good", label: days !== null ? `Trial · ${days} day${days === 1 ? "" : "s"} left` : "Trial active" };
+    }
+    if (s === "active") return { tone: "good", label: "Active" };
+    if (s === "past_due") return { tone: "warn", label: "Payment overdue" };
+    if (s === "canceled") return { tone: "muted", label: "Canceled" };
+    if (s === "incomplete") return { tone: "warn", label: "Setup incomplete" };
+    if (s === "paused") return { tone: "muted", label: "Paused" };
+    return { tone: "muted", label: s };
+  })();
+
+  const formatNextCharge = (iso) => {
+    if (!iso) return null;
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  };
+
+  const nextChargeLabel = (() => {
+    if (!subscription) return null;
+    if (subscription.status === "trial" || subscription.status === "trialing") {
+      return formatNextCharge(subscription.trial_ends_at) ? `First charge after trial · ${formatNextCharge(subscription.trial_ends_at)}` : "First charge after trial";
+    }
+    if (subscription.status === "active" || subscription.status === "past_due") {
+      return formatNextCharge(subscription.current_period_ends_at) ? `Next charge · ${formatNextCharge(subscription.current_period_ends_at)}` : null;
+    }
+    return null;
+  })();
+
+  const paymentMethodLabel = (() => {
+    if (!subscription?.payment_method_brand || !subscription?.payment_method_last4) return null;
+    return `${subscription.payment_method_brand.toUpperCase()} •••• ${subscription.payment_method_last4}`;
+  })();
 
   return (
     <PullToRefresh onRefresh={refreshData}><div className="pb-24 reference-settings famos-noscroll">
