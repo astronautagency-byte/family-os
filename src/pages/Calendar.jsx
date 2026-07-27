@@ -1020,7 +1020,7 @@ export default function CalendarPage() {
                   we just hadn't surfaced the success-side shape here. */}
               {resultDiagnostics && (resultDiagnostics.perCityCounts?.length > 0 || typeof resultDiagnostics.providerCounts === "object") && (
                 <small className="event-discovery-coverage">
-                  Searched {resultDiagnostics.perCityCounts?.length || 0} {resultDiagnostics.expanded ? "(including 3 nearby) " : ""} cities · {resultDiagnostics.providerCounts?.google_events ?? 0} SerpApi events · {resultDiagnostics.providerCounts?.ticketmaster ?? 0} Ticketmaster events
+                  Searched {resultDiagnostics.perCityCounts?.length || 0} {resultDiagnostics.expanded ? "(including 3 nearby) " : ""} cities ·              {resultDiagnostics.providerCounts?.google_events ?? 0} from web sources · {resultDiagnostics.providerCounts?.ticketmaster ?? 0} from local venues
                 </small>
               )}
               {/* Nearby-cities fallback — surfaces when the edge function

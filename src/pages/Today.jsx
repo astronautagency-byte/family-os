@@ -450,7 +450,7 @@ export default function Today({ goTo }) {
       const results = await Promise.allSettled([
         // Edge function (preferred for alerts + location name)
         (async () => {
-          if (!supabase) throw new Error("Supabase not configured");
+          if (!supabase) throw new Error("Live sync isn't ready yet.");
           const { data, error } = await supabase.functions.invoke("weather", { body: { latitude, longitude, days: 3 } });
           if (error || !data || data.error || !data.current) throw error || new Error("No weather data");
           return { source: "edge", ...data };
