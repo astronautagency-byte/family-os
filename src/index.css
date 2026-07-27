@@ -3821,8 +3821,50 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .marketing-drawer-close:focus-visible{outline:0;background:var(--landing-color-lavender-soft);color:var(--landing-color-primary-dark);box-shadow:0 0 0 3px rgba(121,82,232,.28)}
 .marketing-drawer-close:active{transform:scale(.92)}
 
+/* ── Marketing surface micro-interactions ────────────────────────────────
+   Subtle "alive" feel without flash — Apple HIG ratio: confirm every
+   press, never over-animate. Each rule should be feelable at 1× but
+   escape notice if you're not looking. */
+.marketing-nav-menu{transition:background-color .2s ease,border-color .2s ease,transform .22s cubic-bezier(.22,1,.36,1)}
+.marketing-nav-menu:hover{transform:scale(1.05)}
+.marketing-nav-menu-bars i{transition:transform .28s cubic-bezier(.22,1,.36,1),opacity .18s ease,top .28s cubic-bezier(.22,1,.36,1)}
+.marketing-nav-menu:not(.is-open):hover .marketing-nav-menu-bars i:nth-child(1){transform:translateX(2px)}
+.marketing-nav-menu:not(.is-open):hover .marketing-nav-menu-bars i:nth-child(3){transform:translateX(-2px)}
+.marketing-nav-brand img,.marketing-drawer-brand img{transition:transform .4s cubic-bezier(.22,1,.36,1)}
+.marketing-nav-brand:hover img,.marketing-drawer-brand:hover img{transform:rotate(-8deg) scale(1.06)}
+.marketing-drawer-close svg{transition:transform .42s cubic-bezier(.22,1,.36,1)}
+.marketing-drawer-close:active svg{transform:rotate(45deg) scale(.82);transition-duration:.12s}
+
+/* Stagger fade-in for drawer link list — feels like Apple cascading
+   into place. nth-child matches DOM order: Home / Features dropdown /
+   How it works / Compare / Pricing in nav, then Sign in + Get started
+   in actions. Backwards fill-mode keeps each item at opacity 0 during
+   its delay so they cascade in instead of jumping uncontrolled. */
+@keyframes famos-drawer-item-in{
+  from{opacity:0;transform:translateX(-12px)}
+  to{opacity:1;transform:translateX(0)}
+}
+.marketing-drawer.is-open .marketing-drawer-links>*:nth-child(1){animation:famos-drawer-item-in 380ms cubic-bezier(.22,1,.36,1) 80ms backwards}
+.marketing-drawer.is-open .marketing-drawer-links>*:nth-child(2){animation:famos-drawer-item-in 380ms cubic-bezier(.22,1,.36,1) 120ms backwards}
+.marketing-drawer.is-open .marketing-drawer-links>*:nth-child(3){animation:famos-drawer-item-in 380ms cubic-bezier(.22,1,.36,1) 160ms backwards}
+.marketing-drawer.is-open .marketing-drawer-links>*:nth-child(4){animation:famos-drawer-item-in 380ms cubic-bezier(.22,1,.36,1) 200ms backwards}
+.marketing-drawer.is-open .marketing-drawer-links>*:nth-child(5){animation:famos-drawer-item-in 380ms cubic-bezier(.22,1,.36,1) 240ms backwards}
+.marketing-drawer.is-open .marketing-drawer-actions>*:nth-child(1){animation:famos-drawer-item-in 380ms cubic-bezier(.22,1,.36,1) 290ms backwards}
+.marketing-drawer.is-open .marketing-drawer-actions>*:nth-child(2){animation:famos-drawer-item-in 380ms cubic-bezier(.22,1,.36,1) 330ms backwards}
+
+@media (prefers-reduced-motion:reduce){
+  .marketing-drawer.is-open .marketing-drawer-links>*:nth-child(n),
+  .marketing-drawer.is-open .marketing-drawer-actions>*:nth-child(n){animation:none}
+  .marketing-nav-brand:hover img,.marketing-drawer-brand:hover img{transform:none}
+  /* WCAG 2.3.3 — transition-driven motion (hover lifts, bar shifts,
+     press wobble) also plays at full duration for reduced-motion
+     users unless we cut the transition itself. `.01ms` collapses the
+     motion to a single frame without losing the visual states. */
+  .marketing-nav-menu,.marketing-nav-menu-bars i,.marketing-nav-brand img,.marketing-drawer-brand img,.marketing-drawer-close svg{transition-duration:.01ms!important}
+}
+
 @media (max-width:900px){
-  .marketing-nav{grid-template-columns:auto 1fr auto;padding:12px 18px;gap:14px}
+  .marketing-nav{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;gap:14px}
   .marketing-nav-links{display:none}
   .marketing-nav-actions{display:none}
   .marketing-nav-menu{display:inline-flex}
