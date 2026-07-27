@@ -52,3 +52,26 @@ that's still success — the SPA shell rendered.
 
 To stop preview: `kill <pid>` (or `kill $(cat .freebuff/preview-pid)` if we
 wrote that helper file).
+
+## Auto-restart the Vite preview
+
+`.freebuff/keep-alive.py` polls the dev server every 30s and relaunches
+Vite via the same subshell-detach trick if it dies. This is a Python
+script (not bash) because the equivalent bash version hit a reproducible
+function-scoping failure on this macOS build — the function table was
+silently dropped when the script was exec'd, producing
+"is_vite_up: command not found" in a tight loop. Python sidesteps the
+issue entirely via the standard double-fork detach pattern.
+
+Usage:
+- `.freebuff/keep-alive.py start` — start the watcher in the background
+- `.freebuff/keep-alive.py stop` — stop the watcher (and Vite)
+- `.freebuff/keep-alive.py status` — show watcher + Vite state
+- `.freebuff/keep-alive.py restart` — stop + start
+- `.freebuff/keep-alive.py run` — run in the foreground (debugging)
+
+State files:
+- `.freebuff/keep-alive.pid` — watcher PID
+- `.freebuff/preview-thmrvfzhw0gbyl.pid` — Vite PID
+- `.freebuff/keep-alive.log` — watcher event log (timestamped)
+- `.freebuff/preview-thmrvfzhw0gbyl.log` — Vite stdout/stderr (unchanged)
