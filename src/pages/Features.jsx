@@ -59,6 +59,10 @@ const FeatureHeroStage = ({ feature, hero }) => {
     <div className="feature-hero-stage" data-tone={feature.tone}>
       {screenshot ? (
         <div className="feature-hero-phone">
+          <span className="feature-hero-phone-btn feature-hero-phone-btn-action" aria-hidden="true" />
+          <span className="feature-hero-phone-btn feature-hero-phone-btn-volup" aria-hidden="true" />
+          <span className="feature-hero-phone-btn feature-hero-phone-btn-voldn" aria-hidden="true" />
+          <span className="feature-hero-phone-btn feature-hero-phone-btn-power" aria-hidden="true" />
           <div className="feature-hero-phone-bezel">
             <span className="feature-hero-phone-notch" aria-hidden="true" />
             <img
