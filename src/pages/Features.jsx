@@ -272,13 +272,6 @@ const FeaturePage = ({ id }) => {
   return (
     <main className="features-page">
       <MarketingNav currentId={id} />
-      <div className="px-5" style={{ padding: "0 28px" }}>
-        <div className="features-breadcrumb" style={{ paddingTop: 28 }}>
-          <a href="/features">All features</a>
-          <ChevronRight size={12} />
-          <span style={{ color: "#17171f" }}>{feature.name}</span>
-        </div>
-      </div>
       <FeatureHero feature={feature} />
       <FeatureBullets feature={feature} />
       <FeatureSpotlight feature={feature} />
