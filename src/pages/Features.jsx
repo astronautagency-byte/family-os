@@ -28,11 +28,11 @@ const FeatureHero = ({ feature }) => {
     >
       <div className="features-module-hero-grid">
         <div className="features-module-hero-copy">
-          <div className="features-breadcrumb features-breadcrumb-inline">
+          <nav className="features-breadcrumb" aria-label="Breadcrumb">
             <a href="/features">All features</a>
             <ChevronRight size={12} />
-            <span style={{ color: "#17171f" }}>{feature.name}</span>
-          </div>
+            <span style={{ color: "#17171f" }} aria-current="page">{feature.name}</span>
+          </nav>
           <p>{feature.eyebrow}</p>
           <h1>{feature.title}</h1>
           <span className="lede">{feature.lede}</span>
