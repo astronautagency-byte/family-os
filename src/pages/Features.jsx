@@ -30,7 +30,7 @@ const FeatureHero = ({ feature }) => {
         <div className="features-module-hero-copy">
           <nav className="features-breadcrumb" aria-label="Breadcrumb">
             <a href="/features">All features</a>
-            <ChevronRight size={12} />
+            <span className="features-breadcrumb-sep" aria-hidden="true"><ChevronRight size={12} /></span>
             <span style={{ color: "#17171f" }} aria-current="page">{feature.name}</span>
           </nav>
           <p>{feature.eyebrow}</p>
