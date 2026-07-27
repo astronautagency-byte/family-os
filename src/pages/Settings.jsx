@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { AlertCircle, Bell, Bot, Bug, CalendarDays, CheckCircle2, ChevronRight, Eye, EyeOff, ExternalLink, ImagePlus, Info, Link2, Mail, MapPin, Megaphone, Pencil, Phone, Plus, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Ticket, Trash2, Upload, Users, Utensils } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { AlertCircle, Bell, Bot, Bug, CalendarDays, CheckCircle2, ChevronRight, Clipboard, Eye, EyeOff, ExternalLink, ImagePlus, Info, Link2, Mail, MapPin, Megaphone, Pencil, Phone, Plus, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Ticket, Trash2, Upload, Users, Utensils } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, Card, Modal, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
@@ -421,14 +421,11 @@ export default function Settings() {
           // `await invitePartner(...)` boundary — clipboard.writeText
           // can no-op silently — so chain a then/catch so we can show
           // a copyable textarea as a fallback.
-          const success = (mod = "auto") => setSmsFallbackCopied({ phone: originalPhone, message, mode: mod });
+          const setCopied = (mode) => setSmsFallbackCopied({ phone: originalPhone, message, mode });
           if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-            navigator.clipboard.writeText(message).then(
-              () => success("auto"),
-              () => success("manual"),
-            );
+            navigator.clipboard.writeText(message).then(() => setCopied("auto"), () => setCopied("manual"));
           } else {
-            success("manual");
+            setCopied("manual");
           }
         } else {
           setSmsFallbackUrl(`sms:${normalizedPhone}?body=${encodeURIComponent(message)}`);
@@ -561,6 +558,14 @@ export default function Settings() {
   const [subscription, setSubscription] = useState(null);
   const [billingBusy, setBillingBusy] = useState(false);
   const [billingError, setBillingError] = useState("");
+
+  // Auto-select the manual-mode clipboard textarea on mount so the
+  // user lands with text already selected — next long-press → Copy
+  // works without an intermediate tap to focus.
+  const manualCopyRef = useRef(null);
+  useEffect(() => {
+    if (smsFallbackCopied?.mode === "manual") manualCopyRef.current?.select();
+  }, [smsFallbackCopied?.mode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -751,14 +756,14 @@ export default function Settings() {
               )}
               {smsFallbackCopied?.mode === "manual" && (
                 <div className="notification-test-status" role="status">
-                  <CheckCircle2 size={14} />
+                  <Clipboard size={14} />
                   <p>Tap and hold the message below to copy, then open Messages, paste into a new text to <strong>{smsFallbackCopied.phone}</strong>, and send.</p>
                   <textarea
+                    ref={manualCopyRef}
                     readOnly
                     value={smsFallbackCopied.message}
                     rows={4}
                     className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-sunken)] px-3 py-2 text-[13px] text-[var(--color-ink)] font-sans leading-relaxed"
-                    onFocus={(event) => event.currentTarget.select()}
                     aria-label="Invitation message"
                   />
                 </div>
