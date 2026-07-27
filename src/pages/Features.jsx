@@ -55,16 +55,22 @@ const FeatureHero = ({ feature }) => {
 const FeatureHeroStage = ({ feature, hero }) => {
   const screenshot = hero.screenshot;
   const cards = hero.cards || [];
+  // The iPhone frame is rendered on EVERY feature hero (and the
+  // /features index hero). Inside the bezel we either drop in an actual
+  // FamOS screenshot (Today / Calendar today) or a compact, module-
+  // specific PhoneMockPanel that uses feature.preview data — so every
+  // /features/<id> page reads as a real device in a phone, not just a
+  // generic mock card.
   return (
     <div className="feature-hero-stage" data-tone={feature.tone}>
-      {screenshot ? (
-        <div className="feature-hero-phone">
-          <span className="feature-hero-phone-btn feature-hero-phone-btn-action" aria-hidden="true" />
-          <span className="feature-hero-phone-btn feature-hero-phone-btn-volup" aria-hidden="true" />
-          <span className="feature-hero-phone-btn feature-hero-phone-btn-voldn" aria-hidden="true" />
-          <span className="feature-hero-phone-btn feature-hero-phone-btn-power" aria-hidden="true" />
-          <div className="feature-hero-phone-bezel">
-            <span className="feature-hero-phone-notch" aria-hidden="true" />
+      <div className="feature-hero-phone" data-tone={feature.tone}>
+        <span className="feature-hero-phone-btn feature-hero-phone-btn-action" aria-hidden="true" />
+        <span className="feature-hero-phone-btn feature-hero-phone-btn-volup" aria-hidden="true" />
+        <span className="feature-hero-phone-btn feature-hero-phone-btn-voldn" aria-hidden="true" />
+        <span className="feature-hero-phone-btn feature-hero-phone-btn-power" aria-hidden="true" />
+        <div className="feature-hero-phone-bezel">
+          <span className="feature-hero-phone-notch" aria-hidden="true" />
+          {screenshot ? (
             <img
               className="feature-hero-phone-screen"
               src={screenshot.src}
@@ -72,11 +78,11 @@ const FeatureHeroStage = ({ feature, hero }) => {
               loading="eager"
               decoding="async"
             />
-          </div>
+          ) : (
+            <PhoneMockPanel feature={feature} tone={feature.tone} />
+          )}
         </div>
-      ) : (
-        <FeatureMockPanel feature={feature} />
-      )}
+      </div>
       {cards.length > 0 && cards.map((card, idx) => (
         <div
           key={`${card.title}-${idx}`}
@@ -95,40 +101,45 @@ const FeatureHeroStage = ({ feature, hero }) => {
   );
 };
 
-const FeatureMockPanel = ({ feature }) => {
+/* A compact, feature-data-driven mock that fits inside the iPhone bezel.
+ * Used when no real screenshot exists for a module. Pulls the existing
+ * feature.preview data (title, kicker, pills, rows) — no new copy —
+ * and renders a small status bar + module title + 2 pills + 3 rows
+ * that scale to the bezel. Tinted to the feature tone so it sits
+ * visually inside the same gradient surface as the hero stage. */
+const PhoneMockPanel = ({ feature, tone }) => {
   if (!feature.preview) return null;
   const { title, kicker, pills, rows } = feature.preview;
-  const Icon = feature.icon;
   return (
-    <div className="features-mock-panel">
-      <div className="features-mock-bar">
-        <span><Icon size={18} /></span>
-        <div>
-          <small>{kicker}</small>
-          <strong>{title}</strong>
-        </div>
-        <i />
+    <div className="feature-hero-phone-mock" data-tone={tone}>
+      <div className="feature-hero-phone-mock-status" aria-hidden="true">
+        <span>9:41</span>
+        <span>●●●● 100%</span>
+      </div>
+      <div className="feature-hero-phone-mock-hero">
+        <strong>{title}</strong>
+        <small>{kicker}</small>
       </div>
       {pills?.length > 0 && (
-        <div className="features-mock-buttons">
-          {pills.map((pill) => <b key={pill}>{pill}</b>)}
+        <div className="feature-hero-phone-mock-pills">
+          {pills.slice(0, 2).map((p, idx) => <span key={`${p}-${idx}`}>{p}</span>)}
         </div>
       )}
-      <div className="features-mock-rows">
-        {rows?.map((row, idx) => (
-          <div className="features-mock-row" key={`${row.name}-${idx}`}>
+      <div className="feature-hero-phone-mock-rows">
+        {rows?.slice(0, 3).map((row, idx) => (
+          <div className="feature-hero-phone-mock-row" key={`${row.name}-${idx}`}>
             <b data-accent={row.accent}>{row.avatar}</b>
-            <span>
+            <div>
               <strong>{row.name}</strong>
               <small>{row.meta}</small>
-            </span>
-            <em data-accent="pink" />
+            </div>
           </div>
         ))}
       </div>
     </div>
   );
 };
+
 
 /* ── Bullets section ─────────────────────────────────────────────────── */
 
