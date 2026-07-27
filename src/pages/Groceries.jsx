@@ -209,6 +209,8 @@ export default function Groceries() {
   const [scannerError, setScannerError] = useState("");
   const [returnToFocus, setReturnToFocus] = useState(false);
   const [photoDraft, setPhotoDraft] = useState(emptyPhoto);
+  const [saveBusy, setSaveBusy] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const photoCameraInputRef = useRef(null);
   const photoLibraryInputRef = useRef(null);
 
@@ -415,6 +417,7 @@ export default function Groceries() {
     abandonDraftPhoto();
     setDraft(emptyDraft);
     setPhotoDraft(emptyPhoto);
+    setSaveError("");
     setEditingId("new");
   };
 
@@ -422,6 +425,7 @@ export default function Groceries() {
     abandonDraftPhoto();
     setDraft({ name: item.name, category: item.category, quantity: item.quantity ?? 1, unit: item.unit ?? "" });
     setPhotoDraft({ file: null, previewUrl: "", remoteUrl: item.photoUrl || "", uploading: false, error: "" });
+    setSaveError("");
     setEditingId(item.id);
   };
 
@@ -449,18 +453,26 @@ export default function Groceries() {
     }));
   };
 
-  const submit = () => {
-    if (!draft.name.trim()) return;
+  const submit = async () => {
+    if (!draft.name.trim() || saveBusy) return;
+    setSaveBusy(true);
+    setSaveError("");
     const photoUrl = photoDraft.remoteUrl || "";
     const previousPhotoUrl = editingId !== "new" ? (groceries.find((g) => g.id === editingId)?.photoUrl || "") : "";
-    if (editingId === "new") {
-      addGrocery({ name: draft.name.trim(), category: draft.category, quantity: draft.quantity, unit: draft.unit.trim(), addedBy: null, photoUrl });
-    } else {
-      updateGrocery(editingId, { name: draft.name.trim(), category: draft.category, quantity: draft.quantity, unit: draft.unit.trim(), photoUrl, previousPhotoUrl });
+    try {
+      if (editingId === "new") {
+        await addGrocery({ name: draft.name.trim(), category: draft.category, quantity: draft.quantity, unit: draft.unit.trim(), addedBy: null, photoUrl });
+      } else {
+        await updateGrocery(editingId, { name: draft.name.trim(), category: draft.category, quantity: draft.quantity, unit: draft.unit.trim(), photoUrl, previousPhotoUrl });
+      }
+      setEditingId(null);
+      if (photoDraft.previewUrl) URL.revokeObjectURL(photoDraft.previewUrl);
+      setPhotoDraft(emptyPhoto);
+    } catch (error) {
+      setSaveError(error?.message || "This item couldn't be saved. Try again.");
+    } finally {
+      setSaveBusy(false);
     }
-    setEditingId(null);
-    if (photoDraft.previewUrl) URL.revokeObjectURL(photoDraft.previewUrl);
-    setPhotoDraft(emptyPhoto);
   };
 
   const addStapleToList = async (staple) => {
@@ -1022,10 +1034,11 @@ export default function Groceries() {
               Remove
             </SecondaryButton>
           )}
-          <PrimaryButton onClick={submit} disabled={!draft.name.trim()}>
-            {editingId === "new" ? "Add it" : "Save"}
+          <PrimaryButton onClick={submit} disabled={!draft.name.trim() || saveBusy || photoDraft.uploading}>
+            {saveBusy ? "Saving…" : editingId === "new" ? "Add it" : "Save"}
           </PrimaryButton>
         </div>
+        {saveError && <p className="text-[12px] text-[var(--color-warn)] mt-3">{saveError}</p>}
       </Modal>
       <Modal open={clearing} onClose={()=>setClearing(false)} title="Clear the grocery list?"><p className="reset-confirm-copy">This clears the active list. Your saved staples stay ready for next time.</p><div className="reset-confirm-actions"><button onClick={()=>setClearing(false)}>Cancel</button><PrimaryButton onClick={async()=>{await clearGroceries();setClearing(false)}}>Clear list</PrimaryButton></div></Modal>
       <ConfirmAction

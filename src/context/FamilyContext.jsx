@@ -610,7 +610,22 @@ export function FamilyProvider({ children, tabletMode = false }) {
         photo_uploaded_by: item.photoUrl ? user.id : null,
         photo_uploaded_at: item.photoUrl ? new Date().toISOString() : null,
       };
-      const { data, error } = await supabase.from("grocery_items").insert(row).select().single();
+      let { data, error } = await supabase.from("grocery_items").insert(row).select().single();
+      // Production households can briefly be on the base grocery schema
+      // while the optional barcode/photo migrations are still rolling out.
+      // A plain item must still save in that window: retry using only the
+      // original required columns when PostgREST rejects a newer column.
+      if (error && /schema cache|column|barcode|brand|price|image_url|photo_/i.test(error.message || "")) {
+        const baseRow = {
+          household_id: row.household_id,
+          name: row.name,
+          category: row.category,
+          quantity: row.quantity,
+          unit: row.unit,
+          added_by: row.added_by,
+        };
+        ({ data, error } = await supabase.from("grocery_items").insert(baseRow).select().single());
+      }
       if (error) {
         // Rollback: remove optimistic item.
         setGroceries((prev) => prev.filter((item) => item.id !== tempId));
