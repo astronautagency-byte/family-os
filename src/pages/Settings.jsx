@@ -278,6 +278,7 @@ export default function Settings() {
   const [inviteSmsConsent, setInviteSmsConsent] = useState(false);
   const [inviteStatus, setInviteStatus] = useState("");
   const [smsFallbackUrl, setSmsFallbackUrl] = useState("");
+  const [smsFallbackCopied, setSmsFallbackCopied] = useState(null);
   const [inviting, setInviting] = useState(false);
   const [pendingInvites, setPendingInvites] = useState([]);
   const [inviteActionStatus, setInviteActionStatus] = useState("");
@@ -401,6 +402,7 @@ export default function Settings() {
     setInviting(true);
     setInviteStatus("");
     setSmsFallbackUrl("");
+    setSmsFallbackCopied(null);
     try {
       const normalizedInvitePhone = invitePhone.trim() ? normalizePhoneE164(invitePhone) : "";
       const result = await invitePartner(inviteEmail, normalizedInvitePhone, inviteName);
@@ -409,8 +411,28 @@ export default function Settings() {
         const normalizedPhone = normalizePhoneE164(invitePhone);
         const joinUrl = `${window.location.origin}/signin?invited=1&email=${encodeURIComponent(inviteEmail.trim().toLowerCase())}`;
         const message = `You’re invited to ${household?.name || "a family home"} on FamOS. Join your family home: ${joinUrl} Reply STOP to opt out.`;
-        const separator = /iPad|iPhone|iPod/.test(navigator.userAgent) ? "&" : "?";
-        setSmsFallbackUrl(`sms:${normalizedPhone}${separator}body=${encodeURIComponent(message)}`);
+        const originalPhone = invitePhone.trim();
+        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+          // iOS Safari silently strips the body fragment on sms: URIs
+          // (and on some versions refuses the scheme outright), so the
+          // "Send with Messages" link would land the user in Messages
+          // with an empty compose. Fall back to the clipboard. iOS
+          // Safari may not preserve user activation across the
+          // `await invitePartner(...)` boundary — clipboard.writeText
+          // can no-op silently — so chain a then/catch so we can show
+          // a copyable textarea as a fallback.
+          const success = (mod = "auto") => setSmsFallbackCopied({ phone: originalPhone, message, mode: mod });
+          if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(message).then(
+              () => success("auto"),
+              () => success("manual"),
+            );
+          } else {
+            success("manual");
+          }
+        } else {
+          setSmsFallbackUrl(`sms:${normalizedPhone}?body=${encodeURIComponent(message)}`);
+        }
       }
       setInviteName("");
       setInviteEmail("");
@@ -511,8 +533,13 @@ export default function Settings() {
   const openNotificationSettings = () => {
     const isAppleMobile = /iPhone|iPad|iPod/i.test(navigator.userAgent);
     if (isAppleMobile) {
-      window.location.href = "app-settings:";
-      setNotificationTestStatus("In Settings, open Apps → FamOS (or Safari) → Notifications and turn Allow Notifications on.");
+      // iOS Safari does NOT honour the `app-settings:` URL scheme. Setting
+      // window.location.href to it produces "Safari cannot open the page
+      // because the address is invalid". Web pages cannot deep-link into
+      // Settings.app — the user has to navigate there themselves. Show a
+      // copy-pasteable walkthrough (consistent with the .notification-help
+      // Home-Screen-install prerequisite shown elsewhere on the page).
+      setNotificationTestStatus("Install FamOS to your iPhone's Home Screen first, open the installed app, then in iOS Settings tap FamOS → Notifications → turn on Allow Notifications. Apple's web push only works for Home Screen-installed apps.");
       return;
     }
     setNotificationTestStatus("Open this site’s permissions from the icon beside the address bar, allow Notifications, then reload FamOS.");
@@ -716,6 +743,26 @@ export default function Settings() {
               </form>
               {inviteStatus && <p className="text-[12px] text-[var(--color-ink-soft)] mt-2">{inviteStatus}</p>}
               {smsFallbackUrl && <a className="m3-button m3-button-outlined w-full mt-2" href={smsFallbackUrl}>Send with Messages instead</a>}
+              {smsFallbackCopied?.mode === "auto" && (
+                <div className="notification-test-status" role="status">
+                  <CheckCircle2 size={14} />
+                  <p>Invitation text copied. Open Messages on this iPhone, paste into a new text to <strong>{smsFallbackCopied.phone}</strong>, and send.</p>
+                </div>
+              )}
+              {smsFallbackCopied?.mode === "manual" && (
+                <div className="notification-test-status" role="status">
+                  <CheckCircle2 size={14} />
+                  <p>Tap and hold the message below to copy, then open Messages, paste into a new text to <strong>{smsFallbackCopied.phone}</strong>, and send.</p>
+                  <textarea
+                    readOnly
+                    value={smsFallbackCopied.message}
+                    rows={4}
+                    className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-sunken)] px-3 py-2 text-[13px] text-[var(--color-ink)] font-sans leading-relaxed"
+                    onFocus={(event) => event.currentTarget.select()}
+                    aria-label="Invitation message"
+                  />
+                </div>
+              )}
             </Card>
           )}
         </section>
