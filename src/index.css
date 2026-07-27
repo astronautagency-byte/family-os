@@ -3775,12 +3775,57 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .marketing-nav-join{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 20px;border-radius:var(--radius-pill);background:var(--landing-color-primary);color:#fff;font-size:14px;font-weight:850;text-decoration:none;box-shadow:0 12px 26px rgba(121,82,232,.26);transition:transform .18s ease,box-shadow .18s ease,background-color .2s ease}
 .marketing-nav-join:hover{background:#5b3fc7;transform:translateY(-1px);box-shadow:0 16px 32px rgba(121,82,232,.32)}
 .marketing-nav-join svg{width:15px;height:15px}
+
+/* Mobile-first: hamburger is hidden by default, swaps in below 900px.
+   On the desktop tier the right-side link row + sign-in + join CTA stay
+   visible — the hamburger would be visual noise. */
+.marketing-nav-menu{display:none;align-items:center;justify-content:center;min-width:42px;min-height:42px;padding:0;border:1px solid transparent;border-radius:999px;background:transparent;color:var(--landing-color-surface-dark);cursor:pointer;transition:background-color .2s ease,border-color .2s ease}
+.marketing-nav-menu:hover{background:var(--landing-color-lavender-soft)}
+.marketing-nav-menu:focus-visible{outline:0;border-color:var(--landing-color-primary);background:var(--landing-color-lavender-soft)}
+.marketing-nav-menu:active{transform:scale(.94)}
+.marketing-nav-menu-bars{position:relative;display:block;width:18px;height:14px}
+.marketing-nav-menu-bars i{position:absolute;left:0;right:0;height:2px;border-radius:2px;background:currentColor;transition:transform .26s cubic-bezier(.22,1,.36,1),opacity .18s ease,top .26s cubic-bezier(.22,1,.36,1)}
+.marketing-nav-menu-bars i:nth-child(1){top:0}
+.marketing-nav-menu-bars i:nth-child(2){top:6px}
+.marketing-nav-menu-bars i:nth-child(3){top:12px}
+.marketing-nav-menu.is-open .marketing-nav-menu-bars i.is-top{top:6px;transform:rotate(45deg)}
+.marketing-nav-menu.is-open .marketing-nav-menu-bars i.is-mid{opacity:0}
+.marketing-nav-menu.is-open .marketing-nav-menu-bars i.is-bot{top:6px;transform:rotate(-45deg)}
+
+.marketing-drawer{position:fixed;inset:0;z-index:120;pointer-events:none}
+.marketing-drawer.is-open{pointer-events:auto}
+.marketing-drawer-backdrop{position:absolute;inset:0;background:rgba(20,16,40,.42);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:0;transition:opacity .24s ease;border:0;padding:0;cursor:pointer}
+.marketing-drawer.is-open .marketing-drawer-backdrop{opacity:1}
+.marketing-drawer-panel{position:absolute;top:0;right:0;bottom:0;width:min(360px,86vw);background:#fffdf9;border-left:1px solid rgba(121,82,232,.08);box-shadow:-22px 0 60px rgba(20,16,40,.18);padding:64px 22px max(28px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:22px;transform:translateX(102%);opacity:0;transition:transform .38s cubic-bezier(.22,1,.36,1),opacity .24s ease;pointer-events:none;overflow-y:auto;overscroll-behavior:contain}
+.marketing-drawer.is-open .marketing-drawer-panel{transform:translateX(0);opacity:1;pointer-events:auto}
+.marketing-drawer-brand{display:flex;align-items:center;gap:11px;text-decoration:none;color:var(--landing-color-surface-dark);font:760 18px/1 var(--font-display);letter-spacing:-.04em}
+.marketing-drawer-brand img{width:38px;height:38px;border-radius:11px;border:1px solid var(--color-border);text-shadow:none}
+.marketing-drawer-brand strong{display:inline-block}
+.marketing-drawer-brand span{color:var(--landing-color-primary)}
+.marketing-drawer-links{display:flex;flex-direction:column;gap:2px;margin:0;padding:0;list-style:none}
+.marketing-drawer-links>a,.marketing-drawer-links .features-dropdown>a,.marketing-drawer-links .features-dropdown .features-dropdown-trigger{display:flex;align-items:center;justify-content:flex-start;width:100%;padding:12px 14px;border-radius:14px;color:var(--landing-color-surface-dark);font-size:16px;font-weight:650;text-decoration:none;transition:background-color .18s ease,color .18s ease}
+.marketing-drawer-links>a:hover,.marketing-drawer-links .features-dropdown-trigger:hover{background:var(--landing-color-lavender-soft);color:var(--landing-color-primary-dark)}
+.marketing-drawer-links .features-dropdown{display:block}
+.marketing-drawer-links .features-dropdown-trigger{justify-content:flex-start;width:100%;border-radius:14px}
+.marketing-drawer-links .features-dropdown-panel{position:static;display:none;min-width:0;width:auto;padding:6px 0 10px 14px}
+.marketing-drawer-links .features-dropdown.is-open .features-dropdown-panel{display:block}
+.marketing-drawer-actions{display:flex;flex-direction:column;gap:10px;margin-top:auto;padding-top:16px;border-top:1px solid var(--color-border)}
+.marketing-drawer-signin{display:inline-flex;align-items:center;justify-content:center;width:100%;min-height:48px;border-radius:var(--radius-pill);border:1px solid var(--color-border);color:var(--landing-color-surface-dark);font-size:15px;font-weight:700;text-decoration:none;transition:background-color .2s ease,border-color .2s ease,color .2s ease}
+.marketing-drawer-signin:hover{background:var(--landing-color-lavender-soft);color:var(--landing-color-primary-dark);border-color:var(--landing-color-primary)}
+.marketing-drawer-join{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:52px;border-radius:var(--radius-pill);background:var(--landing-color-primary);color:#fff;font-size:15px;font-weight:850;text-decoration:none;box-shadow:0 12px 26px rgba(121,82,232,.26);transition:transform .18s ease,box-shadow .18s ease,background-color .2s ease}
+.marketing-drawer-join:hover{background:#5b3fc7;transform:translateY(-1px);box-shadow:0 16px 32px rgba(121,82,232,.32)}
+.marketing-drawer-join svg{width:16px;height:16px}
+.marketing-drawer-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.marketing-drawer-close{display:grid;place-items:center;width:40px;height:40px;flex:none;border:0;border-radius:999px;background:transparent;color:var(--landing-color-surface-dark);cursor:pointer;transition:background-color .18s ease,transform .18s ease}
+.marketing-drawer-close:hover{background:var(--landing-color-lavender-soft);color:var(--landing-color-primary-dark)}
+.marketing-drawer-close:focus-visible{outline:0;background:var(--landing-color-lavender-soft);color:var(--landing-color-primary-dark);box-shadow:0 0 0 3px rgba(121,82,232,.28)}
+.marketing-drawer-close:active{transform:scale(.92)}
+
 @media (max-width:900px){
   .marketing-nav{grid-template-columns:auto 1fr auto;padding:12px 18px;gap:14px}
   .marketing-nav-links{display:none}
-  .marketing-nav-actions{gap:6px}
-  .marketing-nav-signin{padding:0 10px;font-size:13px}
-  .marketing-nav-join{padding:0 14px;font-size:13px}
+  .marketing-nav-actions{display:none}
+  .marketing-nav-menu{display:inline-flex}
 }
 @media (max-width:540px){
   .marketing-nav{padding:10px 14px;gap:8px}

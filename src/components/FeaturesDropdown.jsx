@@ -22,7 +22,14 @@ import { FEATURES, MARKETING_FEATURES } from "../data/featureData";
  * the matching item in the panel also gets a `.is-current` class so
  * visitors see which module deep-dive they're currently on. */
 
-const FeaturesDropdown = ({ active = false, label = "Features", currentId = null }) => {
+// `onItemClick` lets a parent (e.g. MarketingNav's mobile drawer) close
+// itself when a menu item activates — without that, tapping a feature
+// while the drawer is open would close the dropdown but leave the drawer
+// sitting on top of the destination page. `onDismiss` fires on every other
+// close path (Escape, outside-click) so a parent like the mobile drawer
+// can collapse alongside — closing the inner Features dropdown should not
+// leave the user with the outer drawer still open one ESC press away.
+const FeaturesDropdown = ({ active = false, label = "Features", currentId = null, onItemClick = null, onDismiss = null }) => {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef(null);
   const panelRef = useRef(null);
@@ -83,10 +90,18 @@ const FeaturesDropdown = ({ active = false, label = "Features", currentId = null
       const target = event.target;
       if (triggerRef.current && triggerRef.current.contains(target)) return;
       if (panelRef.current && panelRef.current.contains(target)) return;
+      if (!open) return;
       setOpen(false);
       restoreOpener();
+      onDismiss?.();
     };
-    const onKey = (event) => { if (event.key === "Escape") { setOpen(false); restoreOpener(); } };
+    const onKey = (event) => {
+      if (event.key !== "Escape") return;
+      if (!open) return;
+      setOpen(false);
+      restoreOpener();
+      onDismiss?.();
+    };
     document.addEventListener("mousedown", onPointerDown);
     document.addEventListener("touchstart", onPointerDown);
     document.addEventListener("keydown", onKey);
@@ -163,7 +178,7 @@ const FeaturesDropdown = ({ active = false, label = "Features", currentId = null
           href="/features"
           className="features-dropdown-overview"
           role="menuitem"
-          onClick={() => setOpen(false)}
+          onClick={() => { setOpen(false); onItemClick?.(); }}
         >
           <span className="features-dropdown-overview-icon" aria-hidden="true">
             <Sparkles size={17} />
@@ -187,7 +202,7 @@ const FeaturesDropdown = ({ active = false, label = "Features", currentId = null
                 role="menuitem"
                 data-tone={feature.tone}
                 aria-current={isCurrent ? "page" : undefined}
-                onClick={() => setOpen(false)}
+                onClick={() => { setOpen(false); onItemClick?.(); }}
               >
                 <span className="features-dropdown-item-icon" aria-hidden="true">
                   <Icon size={16} />
