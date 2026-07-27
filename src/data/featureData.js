@@ -9,6 +9,12 @@ import {
   Coins, ListChecks, MapPin, Megaphone, Mic, ShoppingCart, Sparkles, Users,
 } from "lucide-react";
 
+// Single source of truth for the on-device screenshot shown on a feature
+// hero. Today + Calendar have dedicated PNGs; the other five modules
+// rotate through the user's onboarding captures. New MARKETING_FEATURE
+// entries without a dedicated screenshot use this as a fallback.
+export const ONBOARDING_FALLBACK = { src: "/features/app-shots/01-signin.png", alt: "FamOS onboarding — step one of five" };
+
 // Per-feature hero metadata for /features and /features/<id>. The right
 // column of every module hero is now a framed phone showing an actual
 // FamOS screenshot (where we have one) with three floating product cards
@@ -18,7 +24,7 @@ import {
 export const FEATURE_HERO = {
   today: {
     pills: ["30-day free trial", "Cross-device sync", "Hands-free Cook Mode", "Weather built-in"],
-    screenshot: { src: "/features/today-dashboard.png", alt: "FamOS Today dashboard with broadcast composer and weather strip" },
+    screenshot: { src: "/features/app-shots/feature-today.png", alt: "FamOS home dashboard — local event discovery, search, and forecast in one view" },
     cards: [
       { emoji: "👋", title: "Evening, Alex",       subtitle: "Plan visible at a glance", accent: "lilac" },
       { emoji: "🌧️", title: "Rain · Newmarket",   subtitle: "26% · 23° · 8 km/h",      accent: "blue" },
@@ -27,7 +33,7 @@ export const FEATURE_HERO = {
   },
   calendar: {
     pills: ["Multiple Google Calendars", "Two-way sync", "Quick capture", "Find events nearby"],
-    screenshot: { src: "/features/calendar-month.png", alt: "FamOS Calendar month view with event density" },
+    screenshot: { src: "/features/app-shots/feature-calendar.png", alt: "FamOS Calendar — month grid with All-calendars toggle and dense event markers" },
     cards: [
       { emoji: "🔍", title: "Find something fun nearby", subtitle: "Searching Newmarket · next month", accent: "blue" },
       { emoji: "🔄", title: "Google calendar · Connected", subtitle: "Two-way sync live",                accent: "amber" },
@@ -36,7 +42,7 @@ export const FEATURE_HERO = {
   },
   meals: {
     pills: ["Hands-free Cook Mode", "Meal roulette · cuisine-aware", "Save & re-use recipes", "Ingredients → shopping"],
-    screenshot: null, // No dedicated Meals screenshot yet — fallback to mock panel
+    screenshot: { src: "/features/app-shots/feature-meals.png", alt: "FamOS Meals — Meal Roulette with cuisine filter, recipe cards, household preferences" },
     cards: [
       { emoji: "🍝", title: "Sheet-pan fajitas", subtitle: "Tonight · 35 min · 8 ingredients", accent: "rose" },
       { emoji: "🥗", title: "Weekly meal plan",  subtitle: "6/7 dinners planned",                  accent: "mint" },
@@ -45,7 +51,7 @@ export const FEATURE_HERO = {
   },
   shopping: {
     pills: ["Shared · attributed", "Barcode in-store", "Focus-shop mode", "Avocado fuzzy match"],
-    screenshot: null,
+    screenshot: { src: "/features/app-shots/feature-shopping.png", alt: "FamOS Shopping — shared list with Focus Shop, scan, delivery and 1-tap checkout" },
     cards: [
       { emoji: "🛒", title: "11 items",           subtitle: "Produce · Dairy · Pantry", accent: "mint" },
       { emoji: "🥑", title: "Avocados",           subtitle: "Produce · 4",              accent: "lime" },
@@ -54,7 +60,7 @@ export const FEATURE_HERO = {
   },
   tasks: {
     pills: ["Quick-add like Notes", "Assign any member", "Recurring chores", "Streak rewards"],
-    screenshot: null,
+    screenshot: { src: "/features/app-shots/feature-tasks.png", alt: "FamOS Tasks — quick-add bar, household group, share progress + weekly recap" },
     cards: [
       { emoji: "✅", title: "Feed the dog",        subtitle: "Daily · Lou · done",  accent: "mint" },
       { emoji: "📦", title: "Pack soccer bag",    subtitle: "Today · Mia",          accent: "sky" },
@@ -63,7 +69,10 @@ export const FEATURE_HERO = {
   },
   chat: {
     pills: ["Broadcasts · reactions", "Direct messages", "Smart shortcuts", "Quiet by default"],
-    screenshot: null,
+    // No chat mockup was supplied in the 6-image upload; reuse the
+    // single onboarding capture (the central source of truth) until
+    // a chat-specific mock ships.
+    screenshot: ONBOARDING_FALLBACK,
     cards: [
       { emoji: "📣", title: "Running 10 min late", subtitle: "Family · 3 ❤️ reactions", accent: "amber" },
       { emoji: "💬", title: "Direct message",       subtitle: "Alex → Mia",              accent: "peach" },
@@ -72,7 +81,7 @@ export const FEATURE_HERO = {
   },
   "fam-ai": {
     pills: ["Meal ideas · from groceries", "Calendar summary", "Weekly recap", "Stays quiet until asked"],
-    screenshot: null,
+    screenshot: { src: "/features/app-shots/feature-fam-ai.png", alt: "Fam AI — quiet chief of staff for meals, groceries, tasks, and the schedule" },
     cards: [
       { emoji: "🌮", title: "Avocado pasta",       subtitle: "Uses 4 grocery items", accent: "lime" },
       { emoji: "📊", title: "Weekly recap",         subtitle: "Done · Slipped · Up",  accent: "lilac" },

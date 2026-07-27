@@ -72,8 +72,8 @@
 .features-hero-pills b{display:inline-flex;align-items:center;gap:5px;padding:6px 11px;border-radius:10px;background:rgba(255,255,255,.7);border:1px solid rgba(23,23,47,.06);font:700 11.5px/1.1 var(--font-sans);color:#5f5a67}
 
 /* Module-hero colored surface to echo landing stage panels */
-.features-module-hero{padding:64px 28px 56px;background:linear-gradient(180deg,#fffdf9 0%,#f6f1ff 70%,#fffdf9 100%);border-bottom:1px solid rgba(121,82,232,.08)}
-.features-module-hero-grid{max-width:1240px;margin:auto;display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}
+.features-module-hero{padding:64px 28px 0;background:linear-gradient(180deg,#fffdf9 0%,#f6f1ff 70%,#fffdf9 100%);border-bottom:1px solid rgba(121,82,232,.08)}
+.features-module-hero-grid{max-width:1240px;margin:auto;display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:end}
 .features-module-hero-copy>p{margin-bottom:14px;color:#7952e8;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.12em}
 .features-module-hero-copy h1{font:760 clamp(34px,5vw,60px)/1.04 var(--font-display);letter-spacing:-.038em;margin:0 0 18px;color:#17171f}
 .features-module-hero-copy h1 em{font-style:normal;color:#7952e8}
@@ -109,11 +109,11 @@
 /* ── Index page ── */
 .features-index-hero{
   position:relative;
-  padding:88px 28px 56px;max-width:1240px;margin:0 auto;
+  padding:88px 28px 0;max-width:1240px;margin:0 auto;
   background:linear-gradient(180deg,#fffdf9 0%,#f6f1ff 60%,#fffdf9 100%);
   border-radius:0 0 32px 32px;
 }
-.features-index-hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:46px;align-items:center}
+.features-index-hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:46px;align-items:end}
 .features-index-hero-copy>p:first-child{margin-bottom:14px;color:#7952e8;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.12em}
 .features-index-hero-copy h1{font:760 clamp(40px,5.6vw,72px)/1.02 var(--font-display);letter-spacing:-.045em;margin:0 0 18px;color:#17171f}
 .features-index-hero-copy h1 em{font-style:normal;color:#7952e8}
@@ -435,17 +435,8 @@
 .feature-hero-pills{margin-top:24px;display:flex;flex-wrap:wrap;gap:8px}
 .feature-hero-pills b{display:inline-flex;align-items:center;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.78);border:1px solid rgba(121,82,232,.16);font:700 12px/1.15 var(--font-sans);color:#5d556a;letter-spacing:-.005em}
 
-.feature-hero-phone{position:relative;width:min(310px,86%);background:linear-gradient(180deg,#2c2c2e 0%,#1c1c1e 50%,#141416 100%);padding:9px 8px 10px;border-radius:46px;box-shadow:0 30px 56px rgba(20,20,40,.28),0 8px 18px rgba(20,20,40,.14),inset 0 1px 0 rgba(255,255,255,.07),inset 0 -1px 0 rgba(0,0,0,.5);z-index:1}
-.feature-hero-phone-bezel{position:relative;border-radius:38px;overflow:hidden;background:#000;box-shadow:inset 0 0 0 1px rgba(255,255,255,.04),inset 0 0 0 2px rgba(0,0,0,.7)}
-.feature-hero-phone-notch{position:absolute;left:50%;top:10px;transform:translateX(-50%);width:96px;height:26px;border-radius:18px;background:#000;z-index:3;box-shadow:inset 0 0 0 0.5px rgba(255,255,255,.05),0 1px 2px rgba(0,0,0,.6)}
-.feature-hero-phone-notch::before{content:"";position:absolute;right:9px;top:50%;transform:translateY(-50%);width:7px;height:7px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#2d4a78 0%,#0c1428 60%,#000 100%);box-shadow:inset 0 0 0 0.5px rgba(255,255,255,.08)}
-.feature-hero-phone-notch::after{content:"";position:absolute;left:24px;top:50%;transform:translateY(-50%);width:4px;height:4px;border-radius:50%;background:radial-gradient(circle,#1a1a1f 0%,#000 100%);opacity:.7}
-.feature-hero-phone-screen{display:block;width:100%;height:auto;border-radius:38px;background:#fffdf9;position:relative;z-index:1}
-.feature-hero-phone-btn{position:absolute;background:linear-gradient(90deg,rgba(0,0,0,.45) 0%,rgba(255,255,255,.05) 100%);z-index:4;pointer-events:none;display:block}
-.feature-hero-phone-btn-action{left:-2px;top:12%;width:2px;height:18px;border-radius:0 1px 1px 0}
-.feature-hero-phone-btn-volup{left:-2px;top:18%;width:2px;height:30px;border-radius:0 1px 1px 0}
-.feature-hero-phone-btn-voldn{left:-2px;top:24%;width:2px;height:30px;border-radius:0 1px 1px 0}
-.feature-hero-phone-btn-power{right:-2px;top:18%;width:2px;height:48px;border-radius:1px 0 0 1px}
+.feature-hero-phone{position:relative;width:min(420px,90%);padding:0;z-index:1}
+.feature-hero-phone-screen{display:block;width:100%;height:auto;background:transparent;position:relative;z-index:1}
 
 .feature-hero-card{position:absolute;display:flex;align-items:center;gap:11px;padding:13px 14px;border-radius:16px;background:#fff;border:1px solid rgba(121,82,232,.15);box-shadow:0 14px 28px rgba(42,34,65,.14);max-width:230px;animation:heroCardFloat 6s ease-in-out infinite;z-index:2}
 .feature-hero-card-1{top:-2px;left:-44px;animation-delay:-2s}
@@ -493,43 +484,3 @@
 @media (prefers-reduced-motion:reduce){
   .feature-hero-card{animation:none!important}
 }
-
-/* ── Compact phone-screen mock ──────────────────────────────────────────
- * Rendered inside `.feature-hero-phone-bezel` for module heroes that
- * don't have a dedicated screenshot yet. Pulls the existing
- * feature.preview data so no new copy is introduced. Sized for the
- * ~290px-wide inner bezel; status bar, hero title, 2 pills, 3 rows. */
-
-.feature-hero-phone-mock{position:relative;display:grid;gap:7px;width:100%;min-height:480px;padding:34px 11px 12px;background:#fffdf9}
-.feature-hero-phone[data-tone="lilac"]  .feature-hero-phone-mock{background:linear-gradient(180deg,#faf8ff,#fff)}
-.feature-hero-phone[data-tone="blue"]   .feature-hero-phone-mock{background:linear-gradient(180deg,#f6faff,#fff)}
-.feature-hero-phone[data-tone="pink"]   .feature-hero-phone-mock{background:linear-gradient(180deg,#fff8fb,#fff)}
-.feature-hero-phone[data-tone="mint"]   .feature-hero-phone-mock{background:linear-gradient(180deg,#f7fff9,#fff)}
-.feature-hero-phone[data-tone="yellow"] .feature-hero-phone-mock{background:linear-gradient(180deg,#fffdf3,#fff)}
-.feature-hero-phone[data-tone="peach"]  .feature-hero-phone-mock{background:linear-gradient(180deg,#fffbf6,#fff)}
-
-.feature-hero-phone-mock-status{position:absolute;top:11px;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:0 30px;font:850 9.5px/1 var(--font-sans);color:#1a1a1f;letter-spacing:-.01em}
-.feature-hero-phone-mock-status span:last-child{opacity:.75;font-size:8.5px}
-
-.feature-hero-phone-mock-hero{display:grid;gap:2px;margin-top:2px}
-.feature-hero-phone-mock-hero strong{font:760 16.5px/1.05 var(--font-display);letter-spacing:-.025em;color:#17171f}
-.feature-hero-phone-mock-hero small{font:750 8.5px/1.1 var(--font-sans);color:#716953;letter-spacing:.06em;text-transform:uppercase}
-
-.feature-hero-phone-mock-pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
-.feature-hero-phone-mock-pills span{padding:3px 8px;border-radius:7px;background:#faf6ff;color:#7952e8;font:750 8.5px/1.1 var(--font-sans);letter-spacing:-.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-
-.feature-hero-phone-mock-rows{display:grid;gap:6px;margin-top:8px}
-.feature-hero-phone-mock-row{display:grid;grid-template-columns:24px 1fr;align-items:center;gap:9px;padding:8px 9px;border-radius:11px;background:#fff;border:1px solid #ebe7f0}
-.feature-hero-phone-mock-row>b{width:24px;height:24px;display:grid;place-items:center;border-radius:7px;font:850 10px/1 var(--font-sans);color:#fff;background:#a99bff}
-.feature-hero-phone-mock-row>b[data-accent="coral"]{background:#ff8775}
-.feature-hero-phone-mock-row>b[data-accent="sky"]  {background:#6aaef7}
-.feature-hero-phone-mock-row>b[data-accent="mint"] {background:#69c294}
-.feature-hero-phone-mock-row>b[data-accent="violet"]{background:#9674e6}
-.feature-hero-phone-mock-row>b[data-accent="peach"]{background:#f0b27a;color:#6f3a12}
-.feature-hero-phone-mock-row>b[data-accent="rose"] {background:#e87b96}
-.feature-hero-phone-mock-row>b[data-accent="orange"]{background:#f0a061;color:#7a3a13}
-.feature-hero-phone-mock-row>b[data-accent="lime"] {background:#9cd06a;color:#3e5e1c}
-.feature-hero-phone-mock-row>b[data-accent="amber"]{background:#e8b85f;color:#74510f}
-.feature-hero-phone-mock-row>div{display:grid;gap:1px;min-width:0}
-.feature-hero-phone-mock-row>div strong{font:720 10.5px/1.1 var(--font-sans);color:#17171f;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.feature-hero-phone-mock-row>div small{font:600 8.5px/1.2 var(--font-sans);color:#9993a1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
