@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabase";
 import { canonicalIngredientName } from "../lib/mealIngredientCache";
 
 const EVENT = "famos:kitchen-inventory-changed";
+const REMOTE_EVENT = "famos:kitchen-inventory-remote-change";
 const keyFor = (householdId) => `famos:kitchen-inventory:v1:${householdId || "local"}`;
 const makeId = () => `inv_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 const mapRow = (row) => ({ id: row.id, name: row.name, quantity: Number(row.quantity || 1), unit: row.unit || "", location: row.location || "fridge", expiresOn: row.expires_on || "", sourceGroceryId: row.source_grocery_id || null });
@@ -31,6 +32,36 @@ export default function useKitchenInventory(householdId, userId) {
     window.addEventListener(EVENT, sync); window.addEventListener("storage", sync);
     return () => { window.removeEventListener(EVENT, sync); window.removeEventListener("storage", sync); };
   }, [householdId]);
+
+  useEffect(() => {
+    if (!householdId) return undefined;
+    const applyRemote = (event) => {
+      const payload = event.detail || {};
+      const row = payload.new;
+      setItems((current) => {
+        let next = current;
+        if (payload.eventType === "DELETE") next = current.filter((item) => item.id !== payload.old?.id);
+        else if (row?.id && payload.eventType === "UPDATE") next = current.map((item) => item.id === row.id ? mapRow(row) : item);
+        else if (row?.id && !current.some((item) => item.id === row.id)) next = [...current, mapRow(row)];
+        try { localStorage.setItem(keyFor(householdId), JSON.stringify(next)); } catch { /* storage unavailable */ }
+        return next;
+      });
+    };
+    window.addEventListener(REMOTE_EVENT, applyRemote);
+    return () => window.removeEventListener(REMOTE_EVENT, applyRemote);
+  }, [householdId]);
+
+  // Keep a direct Postgres Changes subscription as a compatibility fallback
+  // until every environment has the private Broadcast migration applied.
+  useEffect(() => {
+    if (!supabase || !householdId || !remoteReady) return undefined;
+    const channel = supabase.channel(`kitchen-inventory:${householdId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "kitchen_inventory", filter: `household_id=eq.${householdId}` }, (payload) => {
+        window.dispatchEvent(new CustomEvent(REMOTE_EVENT, { detail: payload }));
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [householdId, remoteReady]);
 
   const persistLocal = useCallback((next) => { setItems(next); writeLocal(householdId, next); }, [householdId]);
   const addItem = useCallback(async (input) => {

@@ -431,8 +431,24 @@ export function FamilyProvider({ children, tabletMode = false }) {
       case "messages": handle(setMessages, mapMessage); break;
       case "message_reactions": handle(setMessageReactions, mapReaction); break;
       case "expenses": handle(setExpenses, mapExpense); break;
+      case "kitchen_inventory":
+        window.dispatchEvent(new CustomEvent("famos:kitchen-inventory-remote-change", { detail: payload }));
+        break;
     }
   }, []); // map*/set* identities are stable across renders
+
+  // Supabase recommends private Broadcast for the lowest-latency database
+  // fan-out. Postgres Changes remains subscribed below as a durable fallback;
+  // matching row ids make the two delivery paths naturally idempotent.
+  const applyBroadcastChange = useCallback((eventType, envelope) => {
+    const change = envelope?.payload || envelope || {};
+    if (!change.table) return;
+    applyChange(change.table, {
+      eventType: change.operation || change.type || eventType,
+      new: change.record || change.new || null,
+      old: change.old_record || change.old || null,
+    });
+  }, [applyChange]);
 
   // Tracks realtime channel health so the visibility-change handler can
   // skip a full reload when the channel has been delivering events normally.
@@ -472,6 +488,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
     return ch;
   }, []); // Dependencies are captured via refs — don't re-create the channel on every render.
   const channelRef = useRef(null);
+  const fastChannelRef = useRef(null);
 
   useEffect(() => {
     if (!remote) return undefined;
@@ -482,6 +499,34 @@ export function FamilyProvider({ children, tabletMode = false }) {
       channelHealthyRef.current = false;
     };
   }, [remote, household?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!remote || !household?.id || !supabase?.realtime) return undefined;
+    let cancelled = false;
+    const start = async () => {
+      try {
+        await supabase.realtime.setAuth();
+        if (cancelled) return;
+        const topic = `household:${household.id}:changes`;
+        const ch = supabase.channel(topic, { config: { private: true } })
+          .on("broadcast", { event: "INSERT" }, (payload) => applyBroadcastChange("INSERT", payload))
+          .on("broadcast", { event: "UPDATE" }, (payload) => applyBroadcastChange("UPDATE", payload))
+          .on("broadcast", { event: "DELETE" }, (payload) => applyBroadcastChange("DELETE", payload))
+          .subscribe((status) => {
+            if (status === "SUBSCRIBED") fastChannelRef.current = ch;
+          });
+        fastChannelRef.current = ch;
+      } catch {
+        // The existing filtered Postgres Changes channel remains active.
+      }
+    };
+    start();
+    return () => {
+      cancelled = true;
+      if (fastChannelRef.current) supabase.removeChannel(fastChannelRef.current);
+      fastChannelRef.current = null;
+    };
+  }, [remote, household?.id, applyBroadcastChange]);
 
   const runRemote = async (query) => { const { error } = await query; if (error) { setDataError(error.message); throw error; } };
 
