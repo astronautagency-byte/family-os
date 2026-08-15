@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Baby, Bone, Camera, Carrot, Check, CheckCircle2, ChevronDown, Clipboard, Clock3, Coffee, Cookie, Croissant, CupSoda, Download, Drumstick, ExternalLink, FlaskConical, Globe2, GripVertical, HeartPulse, Image as ImageIcon, ListChecks, LoaderCircle, Maximize2, Milk, Package, Pencil, Plus, Refrigerator, RotateCcw, Sandwich, ScanLine, ScrollText, Share2, ShoppingBag, ShoppingBasket, Snowflake, Soup, Sparkles, SprayCan, Star, Store, Trash2, Truck, Upload, Wheat, Wine, X } from "lucide-react";
+import { Baby, Bone, Camera, Carrot, Check, CheckCircle2, ChevronDown, Clipboard, Clock3, Coffee, Cookie, Croissant, CupSoda, Download, Drumstick, ExternalLink, FlaskConical, Globe2, GripVertical, HeartPulse, Image as ImageIcon, ListChecks, LoaderCircle, Maximize2, Milk, Minus, Package, Pencil, Plus, Refrigerator, RotateCcw, Sandwich, ScanLine, ScrollText, Search, Share2, ShoppingBag, ShoppingBasket, Snowflake, Soup, Sparkles, SprayCan, Star, Store, Trash2, Truck, Upload, Wheat, Wine, X } from "lucide-react";
 import { uploadGroceryPhoto, isUploadableImage, deleteGroceryPhoto, compressImage } from "../lib/groceryPhotoUpload";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
@@ -19,7 +19,7 @@ import { inventoryExpiryStatus } from "../lib/inventoryExpiry";
 const emptyDraft = { name: "", category: GROCERY_CATEGORIES[0], quantity: 1, unit: "" };
 const emptyPhoto = { file: null, previewUrl: "", remoteUrl: "", uploading: false, error: "" };
 const emptyBarcodeDraft = { ...emptyDraft, code: "", brand: "", price: "", imageUrl: "" };
-const emptyInventoryDraft = { name: "", quantity: 1, unit: "", location: "fridge", expiresOn: "", sourceGroceryId: null };
+const emptyInventoryDraft = { name: "", quantity: 1, unit: "", location: "fridge", expiresOn: "", sourceGroceryId: null, category: "Other", brand: "", barcode: "", imageUrl: "" };
 const STAPLES_KEY = "family-os:grocery-staples:v1";
 const PRODUCT_LOOKUP_ENDPOINT = "https://world.openfoodfacts.org/api/v2/product";
 const safeRevokeObjectUrl = (url) => {
@@ -219,6 +219,8 @@ export default function Groceries() {
   const [inventoryDraft, setInventoryDraft] = useState(emptyInventoryDraft);
   const [inventorySaving, setInventorySaving] = useState(false);
   const [inventoryError, setInventoryError] = useState("");
+  const [inventoryQuery, setInventoryQuery] = useState("");
+  const [inventoryStatus, setInventoryStatus] = useState("all");
   const [editingId, setEditingId] = useState(null); // null closed, "new" for add, or item id
   const [draft, setDraft] = useState(emptyDraft);
   const [staples, setStaples] = useState(loadStaples);
@@ -360,13 +362,33 @@ export default function Groceries() {
   const checkedCount = groceries.filter((g) => g.checked).length;
   const inventoriedSourceIds = useMemo(() => new Set(inventoryItems.map((item) => item.sourceGroceryId).filter(Boolean)), [inventoryItems]);
   const purchasedForInventory = useMemo(() => groceries.filter((item) => item.checked && !inventoriedSourceIds.has(item.id)), [groceries, inventoriedSourceIds]);
-  const visibleInventory = useMemo(() => inventoryItems.filter((item) => item.location === inventoryLocation), [inventoryItems, inventoryLocation]);
+  const visibleInventory = useMemo(() => inventoryItems
+    .filter((item) => item.location === inventoryLocation)
+    .filter((item) => `${item.name} ${item.brand} ${item.category}`.toLowerCase().includes(inventoryQuery.trim().toLowerCase()))
+    .filter((item) => {
+      const expiry = inventoryExpiryStatus(item);
+      if (inventoryStatus === "use-soon") return expiry && expiry.state !== "expired";
+      if (inventoryStatus === "expired") return expiry?.state === "expired";
+      if (inventoryStatus === "no-date") return !item.expiresOn;
+      return true;
+    })
+    .sort((left, right) => {
+      const leftExpiry = inventoryExpiryStatus(left);
+      const rightExpiry = inventoryExpiryStatus(right);
+      if (leftExpiry || rightExpiry) return (leftExpiry?.urgency ?? 99) - (rightExpiry?.urgency ?? 99);
+      return left.name.localeCompare(right.name);
+    }), [inventoryItems, inventoryLocation, inventoryQuery, inventoryStatus]);
   const inventoryPulse = useMemo(() => inventoryItems.reduce((summary, item) => {
     const status = inventoryExpiryStatus(item);
     if (status?.state === "expired") summary.expired += 1;
     else if (status) summary.soon += 1;
     return summary;
   }, { expired: 0, soon: 0 }), [inventoryItems]);
+  const priorityInventory = useMemo(() => inventoryItems
+    .map((item) => ({ item, expiry: inventoryExpiryStatus(item) }))
+    .filter(({ expiry }) => expiry)
+    .sort((left, right) => left.expiry.urgency - right.expiry.urgency)
+    .slice(0, 4), [inventoryItems]);
   const openInventoryDraft = (item = null, location = inventoryLocation) => {
     setInventoryDraft(item ? {
       ...emptyInventoryDraft,
@@ -375,6 +397,10 @@ export default function Groceries() {
       unit: item.unit || "",
       location,
       sourceGroceryId: item.id,
+      category: item.category || categorizeGroceryItem(item.name, item.category),
+      brand: item.brand || "",
+      barcode: item.barcode || "",
+      imageUrl: item.imageUrl || "",
     } : { ...emptyInventoryDraft, location });
     setInventoryError("");
     setInventoryAdding(true);
@@ -393,6 +419,7 @@ export default function Groceries() {
     window.sessionStorage.setItem("famos:meal-ideas-intent:v1", JSON.stringify({ date: todayISO(), slot: "dinner", kitchenOnly: true }));
     window.location.hash = "meals";
   };
+  const changeInventoryQuantity = (item, delta) => updateInventoryItem(item.id, { quantity: Math.max(1, Number(item.quantity || 1) + delta) });
   const handleToggleGrocery = async (item) => {
     const completesList = !item.checked && groceries.filter((grocery) => !grocery.checked).length === 1;
     await toggleGrocery(item.id);
@@ -945,6 +972,7 @@ export default function Groceries() {
           <div><span><Package size={15}/></span><strong>{inventoryItems.length}</strong><small>At home</small></div>
           <button type="button" onClick={findMealsFromInventory} disabled={!inventoryItems.length}><Sparkles size={15}/><span>Cook with what’s here</span></button>
         </div>
+        {priorityInventory.length > 0 && <div className="inventory-use-first"><div><span><Clock3 size={15}/></span><div><strong>Use first</strong><small>Start here before the next grocery run.</small></div></div><div>{priorityInventory.map(({ item, expiry }) => <button type="button" key={item.id} onClick={() => { setInventoryLocation(item.location); setInventoryStatus(expiry.state === "expired" ? "expired" : "use-soon"); setInventoryQuery(item.name); }}><span>{item.name}</span><em>{expiry.label}</em></button>)}</div></div>}
         {purchasedForInventory.length > 0 && (
           <div className="inventory-purchased-strip">
             <strong>Just bought</strong>
@@ -957,19 +985,26 @@ export default function Groceries() {
             ))}
           </div>
         )}
+        <div className="inventory-tools">
+          <label className="inventory-search"><Search size={15}/><input value={inventoryQuery} onChange={(event) => setInventoryQuery(event.target.value)} placeholder="Search food, brand or category" aria-label="Search kitchen inventory"/>{inventoryQuery && <button type="button" onClick={() => setInventoryQuery("")} aria-label="Clear inventory search"><X size={13}/></button>}</label>
+          <div className="inventory-status-filter" role="group" aria-label="Filter inventory by expiry">
+            {[["all","All"],["use-soon","Use soon"],["expired","Expired"],["no-date","Needs date"]].map(([id,label]) => <button type="button" key={id} className={inventoryStatus === id ? "selected" : ""} onClick={() => setInventoryStatus(id)}>{label}</button>)}
+          </div>
+        </div>
         <div className="inventory-location-tabs" role="tablist" aria-label="Kitchen storage location">
           {[['fridge','Fridge',Refrigerator],['freezer','Freezer',Snowflake],['pantry','Pantry',Package]].map(([id,label,Icon]) => <button key={id} className={inventoryLocation === id ? "selected" : ""} onClick={() => setInventoryLocation(id)} role="tab" aria-selected={inventoryLocation === id}><Icon size={14}/>{label}<span>{inventoryItems.filter((item) => item.location === id).length}</span></button>)}
         </div>
         {visibleInventory.length ? <div className="inventory-item-grid">{visibleInventory.map((item) => { const expiry = inventoryExpiryStatus(item); const onList = isIngredientOnList(item.name, groceries); return <article key={item.id} className={expiry ? `is-${expiry.state}` : ""}>
-          <div className="inventory-item-copy"><strong>{item.name}</strong><small>{item.quantity}{item.unit ? ` ${item.unit}` : ""} · {item.location}</small>{expiry && <em>{expiry.label}</em>}</div>
+          <div className="inventory-item-copy">{item.imageUrl ? <img src={item.imageUrl} alt=""/> : <GroceryIcon category={item.category}/>}<div><span>{item.category || "Other"}</span><strong>{item.name}</strong>{item.brand && <small>{item.brand}</small>}{expiry && <em>{expiry.label}</em>}</div></div>
           <DateField compact label="Use by" value={item.expiresOn} onChange={(expiresOn) => updateInventoryItem(item.id, { expiresOn })}/>
-          <div className="inventory-item-actions">{expiry?.state === "expired" && <button type="button" disabled={onList} onClick={() => addMissingItem(item.name)}><RotateCcw size={13}/>{onList ? "On list" : "Replace"}</button>}<button type="button" onClick={() => removeInventoryItem(item.id)} aria-label={`Mark ${item.name} used up`}><Check size={13}/>Used up</button></div>
-        </article>;})}</div> : <div className="inventory-empty"><span><Refrigerator size={20}/></span><strong>Your {inventoryLocation} is ready to track.</strong><p>Add what is already at home, or check off shopping items and file them here.</p><button type="button" onClick={() => openInventoryDraft()}><Plus size={14}/> Add your first item</button></div>}
+          <div className="inventory-item-actions"><div className="inventory-quantity" aria-label={`${item.name} quantity`}><button type="button" onClick={() => changeInventoryQuantity(item, -1)} disabled={Number(item.quantity) <= 1} aria-label={`Decrease ${item.name} quantity`}><Minus size={12}/></button><strong>{item.quantity}{item.unit ? ` ${item.unit}` : ""}</strong><button type="button" onClick={() => changeInventoryQuantity(item, 1)} aria-label={`Increase ${item.name} quantity`}><Plus size={12}/></button></div>{expiry?.state === "expired" && <button type="button" disabled={onList} onClick={() => addMissingItem(item.name)}><RotateCcw size={13}/>{onList ? "On list" : "Replace"}</button>}<button type="button" onClick={() => removeInventoryItem(item.id)} aria-label={`Mark ${item.name} used up`}><Check size={13}/>Used up</button></div>
+        </article>;})}</div> : <div className="inventory-empty"><span>{inventoryQuery || inventoryStatus !== "all" ? <Search size={20}/> : <Refrigerator size={20}/>}</span><strong>{inventoryQuery || inventoryStatus !== "all" ? "No matching food here" : `Your ${inventoryLocation} is ready to track.`}</strong><p>{inventoryQuery || inventoryStatus !== "all" ? "Try another search or expiry filter." : "Add what is already at home, or check off shopping items and file them here."}</p>{inventoryQuery || inventoryStatus !== "all" ? <button type="button" onClick={() => { setInventoryQuery(""); setInventoryStatus("all"); }}>Clear filters</button> : <button type="button" onClick={() => openInventoryDraft()}><Plus size={14}/> Add your first item</button>}</div>}
       </section>
 
       <Modal open={inventoryAdding} onClose={() => { if (!inventorySaving) { setInventoryAdding(false); setInventoryError(""); } }} title="Add to kitchen inventory">
         <p className="inventory-add-intro">Log something already at home or something you just bought. A use-by date lets FamOS remind you before it goes to waste.</p>
         <TextField label="Item" placeholder="e.g. Mushrooms" value={inventoryDraft.name} onChange={(event) => setInventoryDraft((current) => ({ ...current, name: event.target.value }))}/>
+        <div className="inventory-add-grid"><label className="inventory-select-field"><span>Category</span><select value={inventoryDraft.category} onChange={(event) => setInventoryDraft((current) => ({ ...current, category: event.target.value }))}>{GROCERY_CATEGORIES.map((category) => <option key={category}>{category}</option>)}</select></label><TextField label="Brand (optional)" placeholder="e.g. Compliments" value={inventoryDraft.brand} onChange={(event) => setInventoryDraft((current) => ({ ...current, brand: event.target.value }))}/></div>
         <div className="inventory-add-grid"><TextField label="Quantity" inputMode="decimal" value={inventoryDraft.quantity} onChange={(event) => setInventoryDraft((current) => ({ ...current, quantity: Math.max(Number(event.target.value) || 1, 1) }))}/><TextField label="Unit (optional)" placeholder="bag, carton, lb" value={inventoryDraft.unit} onChange={(event) => setInventoryDraft((current) => ({ ...current, unit: event.target.value }))}/></div>
         <label className="inventory-add-location"><span>Store in</span><div>{[["fridge","Fridge",Refrigerator],["freezer","Freezer",Snowflake],["pantry","Pantry",Package]].map(([id,label,Icon]) => <button type="button" key={id} className={inventoryDraft.location === id ? "selected" : ""} onClick={() => setInventoryDraft((current) => ({ ...current, location: id }))}><Icon size={15}/>{label}</button>)}</div></label>
         <DateField label="Use by (optional)" value={inventoryDraft.expiresOn} onChange={(expiresOn) => setInventoryDraft((current) => ({ ...current, expiresOn }))}/>

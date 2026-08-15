@@ -18,3 +18,12 @@ test("kitchen inventory launches meal ideas using what is at home", () => {
   assert.match(groceries, /kitchenOnly:\s*true/);
   assert.match(meals, /Boolean\(intent\.kitchenOnly\)/);
 });
+
+test("kitchen inventory behaves like a practical food tracker", () => {
+  assert.match(groceries, /Use first/);
+  assert.match(groceries, /Search food, brand or category/);
+  assert.match(groceries, /Needs date/);
+  assert.match(groceries, /changeInventoryQuantity/);
+  assert.match(groceries, /Brand \(optional\)/);
+  assert.match(groceries, /GROCERY_CATEGORIES\.map/);
+});
