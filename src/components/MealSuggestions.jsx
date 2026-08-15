@@ -18,7 +18,7 @@ const ROULETTE_QUERIES = [
   { cuisine: "American Comfort", ingredients: "ground beef, cheese, onion" },
 ];
 
-// Pull a recipe list out of the recipe-search response — strict API Ninjas
+// Pull a normalized recipe list out of the Spoonacular-backed response.
 // shape `{recipes: [...]}` is the canonical one.
 const recipesFromSearch = (data) => {
   if (!data) return [];
@@ -196,7 +196,9 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType, dieta
   };
 
   return (
-    <div className="rounded-2xl bg-[var(--color-surface-sunken)] border border-[var(--color-border)] p-3.5 mb-5 notion-shadow meal-suggestions-card">        <Sparkles size={14} color="var(--color-accent)" />
+    <div className="rounded-2xl bg-[var(--color-surface-sunken)] border border-[var(--color-border)] p-3.5 mb-5 notion-shadow meal-suggestions-card">
+      <div className="flex items-center gap-2 mb-3">
+        <Sparkles size={14} color="var(--color-accent)" />
         <p className="text-[12.5px] font-semibold text-[var(--color-ink)]">Dinner brain stuck?</p>
         <span className="ml-auto text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-ink-faint)]">Recipe library</span>
       </div>
@@ -224,7 +226,7 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType, dieta
           <Dices aria-hidden="true" size={13} />
           <span>Next cuisine</span>
           <em aria-hidden="true">→</em>
-          <strong>{ROLETTE_QUERIES[(cuisineCursor + 1) % ROULETTE_QUERIES.length]?.cuisine || "Random"}</strong>
+          <strong>{ROULETTE_QUERIES[(cuisineCursor + 1) % ROULETTE_QUERIES.length]?.cuisine || "Random"}</strong>
         </button>
         <ul className="meal-roulette-cuisine-chips">
           {ROLETTE_QUERIES.map((entry) => (

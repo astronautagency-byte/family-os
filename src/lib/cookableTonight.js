@@ -3,7 +3,7 @@
 // Meals and FamAI suggestion flows, mirroring the muted-events soft-tier
 // pattern from Calendar.jsx.
 //
-// Matching is intentionally fuzzy at the token level because API Ninjas
+// Matching is intentionally fuzzy at the token level because recipe providers
 // returns ingredient strings like "1 lb ground beef (chopped)" while
 // groceries are bare names like "ground beef". A token-based substring
 // check (length ≥ 3) handles these cases without false negatives on the

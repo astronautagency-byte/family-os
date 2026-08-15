@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays, CalendarPlus, ChefHat, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, Clock3, Droplets, ExternalLink, Home, ListChecks, LoaderCircle, MapPin, Megaphone, Moon, PartyPopper, ShoppingCart, Sparkles, Sun, Ticket, TriangleAlert, Users, Wind, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Bell, CalendarPlus, ChefHat, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, Coffee, Droplets, ExternalLink, GripVertical, LayoutGrid, ListChecks, LoaderCircle, MapPin, Megaphone, MessageCircle, Moon, PartyPopper, Refrigerator, RotateCcw, ShoppingCart, Soup, Sparkles, Sun, Ticket, TriangleAlert, Wind, X } from "lucide-react";
 // ChefHat is already imported above for the Cook button icon.
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { BROADCAST_REACTIONS, useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
-import { Avatar, AvatarStack, Card, Checkbox, EmptyState, Tag, colorVar } from "../components/ui";
+import { Avatar, AvatarStack, Card, Checkbox, EmptyState } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import PullToRefresh from "../components/PullToRefresh";
-import { invokeEdgeFunction, supabase } from "../lib/supabase";
-import { addDays, dailyEncouragement, formatDayLabel, formatTime, fullDateLabel, greetingInfo, todayISO } from "../lib/dates";
+import { supabase } from "../lib/supabase";
+import { dailyEncouragement, formatTime, fullDateLabel, greetingInfo, todayISO } from "../lib/dates";
+import useKitchenInventory from "../hooks/useKitchenInventory";
+import { expiringInventory } from "../lib/inventoryExpiry";
 
 // Map a normalised weather "kind" (+ day/night) to a lucide icon and label.
 const WEATHER_KIND = {
@@ -22,11 +24,44 @@ const WEATHER_KIND = {
   snow: { day: CloudSnow, night: CloudSnow, label: "Snow" },
   thunder: { day: CloudLightning, night: CloudLightning, label: "Storms" },
 };
+const TODAY_MEAL_SLOTS = [
+  { id: "breakfast", label: "Breakfast", icon: Coffee },
+  { id: "lunch", label: "Lunch", icon: Soup },
+  { id: "dinner", label: "Dinner", icon: ChefHat },
+];
+const DASHBOARD_ORDER_KEY = "famos:today-card-order:v1";
+const DASHBOARD_CARDS = [
+  { id: "weather", label: "Weather" },
+  { id: "schedule", label: "Schedule" },
+  { id: "meals", label: "Meals" },
+  { id: "groceries", label: "Shopping" },
+  { id: "kitchen", label: "Kitchen" },
+  { id: "messages", label: "Messages" },
+  { id: "tasks", label: "Tasks" },
+];
+const defaultDashboardOrder = DASHBOARD_CARDS.map((card) => card.id);
+const readDashboardOrder = () => {
+  if (typeof window === "undefined") return defaultDashboardOrder;
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(DASHBOARD_ORDER_KEY) || "[]");
+    return saved.length === defaultDashboardOrder.length && defaultDashboardOrder.every((id) => saved.includes(id)) ? saved : defaultDashboardOrder;
+  } catch { return defaultDashboardOrder; }
+};
 const weatherKind = (kind) => WEATHER_KIND[kind] || WEATHER_KIND.cloudy;
 function WeatherGlyph({ kind, isDay = true, size = 20 }) {
   const meta = weatherKind(kind);
   const Icon = isDay ? meta.day : meta.night;
   return <Icon size={size} />;
+}
+
+function DashboardMoveHandle({ id, label, order, onMove }) {
+  const index = order.indexOf(id);
+  return <div className="today-card-move-handle" aria-label={`Move ${label}`}>
+    <GripVertical size={16} aria-hidden="true"/>
+    <span>Drag {label}</span>
+    <button type="button" onClick={() => onMove(id, -1)} disabled={index === 0} aria-label={`Move ${label} earlier`}><ArrowUp size={14}/></button>
+    <button type="button" onClick={() => onMove(id, 1)} disabled={index === order.length - 1} aria-label={`Move ${label} later`}><ArrowDown size={14}/></button>
+  </div>;
 }
 
 // Open-Meteo WMO weather codes → our kind vocabulary (used only in the keyless fallback).
@@ -44,19 +79,15 @@ const wmoToKind = (code) => {
 };
 
 const conditionLabel = (entry) => entry?.conditionText || weatherKind(entry?.kind).label;
-const dayLabel = (date) => {
-  const parsed = new Date(`${date}T00:00:00`);
-  return Number.isNaN(parsed.getTime()) ? "" : parsed.toLocaleDateString(undefined, { weekday: "short" });
-};
 const roundTemp = (value) => (Number.isFinite(Number(value)) ? Math.round(Number(value)) : "—");
 
 // Event type classification (mirrors Calendar.jsx for consistent carousel badges).
 const EVENT_TYPES = {
-  family: { label: "Family", color: "#5b55d6" },
-  school: { label: "School", color: "#4f8177" },
-  activity: { label: "Activities", color: "#dc9147" },
-  health: { label: "Health", color: "#d46b7a" },
-  work: { label: "Work", color: "#747184" },
+  family: { label: "Family", color: "var(--color-family)" },
+  school: { label: "School", color: "var(--color-calendar)" },
+  activity: { label: "Activities", color: "var(--color-shopping)" },
+  health: { label: "Health", color: "var(--color-chat)" },
+  work: { label: "Work", color: "var(--color-finance)" },
 };
 const eventType = (event) => {
   if (event.eventType && EVENT_TYPES[event.eventType]) return event.eventType;
@@ -143,62 +174,92 @@ function BroadcastBanner({ item, sender, reactions, currentUserId, onReact, onCl
   );
 }
 
-function percent(part, total) {
-  if (!total) return 0;
-  return Math.max(0, Math.min(100, Math.round((part / total) * 100)));
-}
-
-function MiniMetric({ icon: Icon, label, value, note, tone = "accent", onClick }) {
-  const toneClass = {
-    accent: "text-[var(--color-accent)]",
-    good: "text-[var(--color-good)]",
-    warn: "text-[var(--color-warn)]",
-    rose: "text-[var(--color-fam-rose)]",
-  }[tone] || "text-[var(--color-accent)]";
-  const body = (
-    <Card className={`today-metric-card today-metric-${tone} p-4 h-full active:scale-[0.99] transition-transform`}>
-      <div className="flex items-start justify-between gap-3">
-        <span className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-[var(--color-surface)] border border-[var(--color-border)] ${toneClass}`}>
-          <Icon size={19} />
-        </span>
-        {onClick && <ChevronRight size={17} color="var(--color-ink-faint)" />}
-      </div>
-      <p className="mt-4 text-[26px] leading-none font-[var(--font-display)] font-semibold tracking-[-0.04em] text-[var(--color-ink)]">{value}</p>
-      <p className="mt-1 text-[12px] font-semibold text-[var(--color-ink)]">{label}</p>
-      {note && <p className="mt-1 text-[11.5px] leading-snug text-[var(--color-ink-soft)]">{note}</p>}
-    </Card>
-  );
-  return onClick ? <button onClick={onClick} className="text-left w-full h-full">{body}</button> : body;
-}
-
-function ProgressLine({ label, value, total, color = "var(--color-accent)" }) {
-  const progress = percent(value, total);
-  return (
-    <div>
-      <div className="flex items-center justify-between gap-3 text-[12px] mb-1.5">
-        <span className="font-medium text-[var(--color-ink)]">{label}</span>
-        <span className="tabular-nums text-[var(--color-ink-soft)]">{value}/{total}</span>
-      </div>
-      <div className="h-2 rounded-full bg-[var(--color-surface-sunken)] overflow-hidden">
-        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progress}%`, backgroundColor: color }} />
-      </div>
-    </div>
-  );
-}
-
 export default function Today({ goTo }) {
-  const { members, memberById, events, googleEvents, feedEvents, meals, tasks, groceries, toggleTask, tabletMode, broadcasts, broadcastMessage, clearBroadcast, reactionsByMessage, reactToBroadcast, currentUserId, refreshData, syncGoogleCalendarNow, googleConnected } = useFamily();
-  const { profile, user, householdProfileExtra } = useAuth();
+  const { members, memberById, events, googleEvents, feedEvents, meals, tasks, groceries, messages, addGrocery, toggleTask, tabletMode, broadcasts, broadcastMessage, clearBroadcast, reactionsByMessage, reactToBroadcast, currentUserId, refreshData, syncGoogleCalendarNow, googleConnected, notificationPermission, requestNotifications } = useFamily();
+  const { profile, user, household, householdProfileExtra } = useAuth();
+  const { items: inventoryItems } = useKitchenInventory(household?.id, user?.id);
+  const expiryAlerts = useMemo(() => expiringInventory(inventoryItems), [inventoryItems]);
+  const [replacementIds, setReplacementIds] = useState(() => new Set());
   const [weather, setWeather] = useState(null);
   const [weatherError, setWeatherError] = useState("");
   const [broadcastText, setBroadcastText] = useState("");
   const [broadcasting, setBroadcasting] = useState(false);
   const [broadcastError, setBroadcastError] = useState("");
   const [broadcastFocused, setBroadcastFocused] = useState(false);
-  const [mealIdeas, setMealIdeas] = useState([]);
-  const [mealIdeasLoading, setMealIdeasLoading] = useState(false);
+  const [editingDashboard, setEditingDashboard] = useState(false);
+  const [dashboardOrder, setDashboardOrder] = useState(readDashboardOrder);
   const composeContainerRef = useRef(null);
+  const draggedDashboardCard = useRef(null);
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") window.localStorage.setItem(DASHBOARD_ORDER_KEY, JSON.stringify(dashboardOrder));
+  }, [dashboardOrder]);
+
+  const dashboardPosition = (id) => ({ order: dashboardOrder.indexOf(id) + 1 });
+  const moveDashboardCard = (id, direction) => {
+    setDashboardOrder((current) => {
+      const from = current.indexOf(id);
+      const to = from + direction;
+      if (from < 0 || to < 0 || to >= current.length) return current;
+      const next = [...current];
+      [next[from], next[to]] = [next[to], next[from]];
+      return next;
+    });
+  };
+  const dashboardDragProps = (id) => ({
+    draggable: editingDashboard,
+    "data-dashboard-card": id,
+    onDragStart: (event) => {
+      if (!editingDashboard) return;
+      draggedDashboardCard.current = id;
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", id);
+      event.currentTarget.classList.add("is-dragging");
+    },
+    onDragOver: (event) => { if (editingDashboard) { event.preventDefault(); event.dataTransfer.dropEffect = "move"; } },
+    onDrop: (event) => {
+      if (!editingDashboard) return;
+      event.preventDefault();
+      const source = draggedDashboardCard.current || event.dataTransfer.getData("text/plain");
+      if (!source || source === id) return;
+      setDashboardOrder((current) => {
+        const next = current.filter((cardId) => cardId !== source);
+        next.splice(next.indexOf(id), 0, source);
+        return next;
+      });
+    },
+    onDragEnd: (event) => {
+      event.currentTarget.classList.remove("is-dragging");
+      draggedDashboardCard.current = null;
+    },
+  });
+  const moveHandle = (id) => editingDashboard ? <DashboardMoveHandle id={id} label={DASHBOARD_CARDS.find((card) => card.id === id)?.label || id} order={dashboardOrder} onMove={moveDashboardCard}/> : null;
+
+  useEffect(() => {
+    if (!expiryAlerts.length || notificationPermission !== "granted" || typeof window === "undefined") return;
+    const dateKey = todayISO();
+    const reminderKey = `famos:inventory-expiry-reminder:v1:${household?.id || "local"}:${dateKey}`;
+    if (window.localStorage.getItem(reminderKey)) return;
+    const expiredCount = expiryAlerts.filter((item) => item.expiry.state === "expired").length;
+    const title = expiredCount ? `${expiredCount} kitchen item${expiredCount === 1 ? " needs" : "s need"} replacing` : "Kitchen items to use soon";
+    const body = expiryAlerts.slice(0, 3).map((item) => item.name).join(", ") + (expiryAlerts.length > 3 ? ` +${expiryAlerts.length - 3} more` : "");
+    const show = async () => {
+      try {
+        const registration = await navigator.serviceWorker?.ready;
+        if (registration) await registration.showNotification(title, { body, tag: `kitchen-expiry-${dateKey}`, icon: "/brand/famos-icon.png", data: { url: "/#today" } });
+        else if (typeof Notification !== "undefined") new Notification(title, { body, icon: "/brand/famos-icon.png" });
+        window.localStorage.setItem(reminderKey, "sent");
+      } catch { /* the Today card remains the durable reminder */ }
+    };
+    show();
+  }, [expiryAlerts, household?.id, notificationPermission]);
+
+  const replaceInventoryItem = async (item) => {
+    if (replacementIds.has(item.id) || groceries.some((grocery) => !grocery.checked && grocery.name.toLowerCase() === item.name.toLowerCase())) return;
+    await addGrocery({ name: item.name, quantity: 1, unit: item.unit || "" });
+    setReplacementIds((current) => new Set(current).add(item.id));
+  };
 
   // Cycle through friendly placeholders while the composer is "true empty"
   // (no focus, no text). The moment a user touches it, the cycling stops so
@@ -272,23 +333,12 @@ export default function Today({ goTo }) {
   };
 
   const today = todayISO();
-  const weekDays = Array.from({ length: 7 }, (_, index) => addDays(today, index));
-  const weekEnd = weekDays[weekDays.length - 1];
   const greeting = greetingInfo();
   const allEvents = [...events, ...googleEvents, ...feedEvents];
 
   const todaysEvents = allEvents
     .filter((e) => e.start.slice(0, 10) === today)
     .sort((a, b) => a.start.localeCompare(b.start));
-  const weekEvents = allEvents
-    .filter((e) => {
-      const date = e.start?.slice(0, 10);
-      return date >= today && date <= weekEnd;
-    })
-    .sort((a, b) => a.start.localeCompare(b.start));
-
-  const dinner = meals.find((m) => m.date === today && m.slot === "dinner");
-  const weekDinners = weekDays.map((date) => meals.find((m) => m.date === date && m.slot === "dinner" && m.title)).filter(Boolean);
 
   // Shared ingredient cache (same key/format as Meals.jsx) so the grocery
   // badge shows on today's meals without needing to open Cook Mode first.
@@ -314,42 +364,8 @@ export default function Today({ goTo }) {
     .filter((t) => t.due === today)
     .sort((a, b) => Number(a.done) - Number(b.done));
   const openTaskCount = todaysTasks.filter((t) => !t.done).length;
-  const weekTasks = tasks.filter((t) => t.due >= today && t.due <= weekEnd);
-  const weekDoneTasks = weekTasks.filter((t) => t.done);
 
   const activeGroceries = useMemo(() => groceries.filter((g) => !g.checked), [groceries]);
-
-  // Fetch meal ideas based on the current unchecked grocery list.
-  // Uses the recipe-search edge function to find recipes that use what
-  // the family already has in their shopping list.
-  useEffect(() => {
-    if (activeGroceries.length < 3) {
-      setMealIdeas([]);
-      setMealIdeasLoading(false);
-      return undefined;
-    }
-    let cancelled = false;
-    setMealIdeasLoading(true);
-    const ingredients = activeGroceries
-      .map((g) => g.name)
-      .filter(Boolean)
-      .slice(0, 8)
-      .join(", ");
-    const timer = setTimeout(async () => {
-      try {
-        const data = await invokeEdgeFunction("recipe-search", { query: ingredients, ingredients });
-        if (cancelled) return;
-        const root = data?.data && typeof data.data === "object" ? data.data : data;
-        const list = Array.isArray(root?.recipes) ? root.recipes : [];
-        setMealIdeas(list.slice(0, 3));
-      } catch {
-        if (!cancelled) setMealIdeas([]);
-      } finally {
-        if (!cancelled) setMealIdeasLoading(false);
-      }
-    }, 500);
-    return () => { cancelled = true; clearTimeout(timer); };
-  }, [activeGroceries]);
 
   const groceryCount = activeGroceries.length;
   const groceryCategories = Object.entries(
@@ -360,33 +376,7 @@ export default function Today({ goTo }) {
     }, {})
   ).sort((a, b) => b[1] - a[1]);
 
-  const memberStats = members.map((member) => {
-    const memberTasks = weekTasks.filter((task) => task.assigneeId === member.id);
-    const memberEvents = weekEvents.filter((event) => (event.memberIds || []).includes(member.id));
-    return {
-      member,
-      tasksTotal: memberTasks.length,
-      tasksOpen: memberTasks.filter((task) => !task.done).length,
-      events: memberEvents.length,
-      load: memberTasks.filter((task) => !task.done).length + memberEvents.length,
-    };
-  }).sort((a, b) => b.load - a.load);
-
-  const busiestDay = weekDays
-    .map((date) => ({
-      date,
-      count: weekEvents.filter((event) => event.start.slice(0, 10) === date).length + weekTasks.filter((task) => task.due === date && !task.done).length,
-    }))
-    .sort((a, b) => b.count - a.count)[0];
-  const mealCoverage = percent(weekDinners.length, 7);
-
   const nextEvent = todaysEvents.find((e) => new Date(e.end) > new Date());
-  const todayBrief = [
-    todaysEvents.length ? `${todaysEvents.length} event${todaysEvents.length === 1 ? "" : "s"}` : "No events",
-    openTaskCount ? `${openTaskCount} task${openTaskCount === 1 ? "" : "s"} left` : "Tasks clear",
-    dinner?.title ? "Dinner sorted" : "Dinner open",
-    groceryCount ? `${groceryCount} groceries` : "List clear",
-  ];
   const signedInMember = members.find((member) => member.id === user?.id);
   const firstName = (signedInMember?.name || profile?.display_name || "").trim().split(/\s+/)[0];
   const greetingName = firstName ? firstName.charAt(0).toUpperCase() + firstName.slice(1) : "";
@@ -484,6 +474,10 @@ export default function Today({ goTo }) {
   const weatherNow = weather?.current;
   const weatherRisk = weatherNow && (weatherNow.rainChance >= 50 || weatherNow.windKph >= 40);
   const disruptedEvents = weatherRisk ? todaysEvents.filter((event) => event.location) : [];
+  const latestMessages = useMemo(() => (messages || [])
+    .filter((message) => !message.broadcast && (!message.recipientId || message.senderId === currentUserId || message.recipientId === currentUserId))
+    .sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt))
+    .slice(0, 4), [messages, currentUserId]);
 
   const refreshAll = async () => {
     await refreshData();
@@ -498,40 +492,12 @@ export default function Today({ goTo }) {
         title={tabletMode ? `${greetingLabel}, family` : `${greetingLabel}${greetingName ? `, ${greetingName}` : ""}`}
         subtitle={dailyEncouragement(today)}
         illustration="home"
+        action={<button type="button" className={`today-customize-trigger ${editingDashboard ? "active" : ""}`} onClick={() => setEditingDashboard((current) => !current)} aria-expanded={editingDashboard}><LayoutGrid size={16}/>{editingDashboard ? "Done" : "Customize"}</button>}
       />
 
-      <div className="px-5 space-y-6 mt-2">
-        {/* ── Cook tonight hero CTA ── appears when today's dinner has a
-            planned title; tapping deep-links into Cook Mode via session
-            storage so the cook modal opens straight into the right meal
-            without forcing the family through a second tap. */}
-        {dinner?.title && (
-          <section className="cook-tonight-cta" aria-label="Cook tonight">
-            <div className="cook-tonight-cta-meta">
-              <span className="cook-tonight-cta-eyebrow">Tonight on the menu</span>
-              <strong className="cook-tonight-cta-title">{dinner.title}</strong>
-              <small className="cook-tonight-cta-sub">One tap takes you straight to hands-free cook mode.</small>
-            </div>
-            <button
-              type="button"
-              className="cook-tonight-cta-button"
-              onClick={() => {
-                try {
-                  window.sessionStorage.setItem(
-                    "famos:cook-intent:v1",
-                    dinner.id || `${dinner.date}:${dinner.slot}`,
-                  );
-                } catch { /* private mode */ }
-                goTo("meals");
-              }}
-              aria-label={`Cook tonight's ${dinner.title}`}
-            >
-              <ChefHat size={20} aria-hidden="true" />
-              <span>Cook tonight's <em>{dinner.title}</em></span>
-              <ChevronRight size={17} aria-hidden="true" />
-            </button>
-          </section>
-        )}
+      {editingDashboard && <div className="today-customize-hint mx-5"><span><GripVertical size={15}/> Drag cards to rearrange them. On touch screens, use the arrow buttons.</span><button type="button" onClick={() => setDashboardOrder(defaultDashboardOrder)}><RotateCcw size={14}/> Reset</button></div>}
+
+      <div className="px-5 mt-2 today-bento-grid">
         <section className="broadcast-home" aria-label="Family broadcast">
           <div className="broadcast-confetti-host" ref={composeContainerRef}>
             <form
@@ -574,7 +540,8 @@ export default function Today({ goTo }) {
             </div>
           )}
         </section>
-        <Card className="weather-now-card p-4">
+        <Card className={`weather-now-card p-4 ${editingDashboard ? "is-customizing" : ""}`} style={dashboardPosition("weather")} {...dashboardDragProps("weather")}>
+          {moveHandle("weather")}
           {weather?.alerts?.length > 0 && (
             <div className="weather-alerts">
               {weather.alerts.map((alert, index) => (
@@ -595,97 +562,45 @@ export default function Today({ goTo }) {
             </div>
             {weatherNow && <p>{weatherRefreshing && <span className="weather-refresh-dot" />}<Droplets size={13} /> {weatherNow.rainChance}% · Feels {roundTemp(weatherNow.feelsLikeC)}° · <Wind size={13} /> {Math.round(weatherNow.windKph)} km/h</p>}
           </div>
-          {weather?.daily?.length > 0 && (
-            <div className="weather-daily" aria-label="3-day forecast">
-              {weather.daily.map((day, index) => (
-                <div className="weather-day" key={day.date}>
-                  <span className="weather-day-label">{index === 0 ? "Today" : dayLabel(day.date)}</span>
-                  <WeatherGlyph kind={day.kind} isDay size={18} />
-                  <span className={`weather-day-rain ${day.rainChance >= 30 ? "wet" : ""}`}><Droplets size={11} /> {day.rainChance}%</span>
-                  <span className="weather-day-temps"><strong>{roundTemp(day.maxC)}°</strong> <em>{roundTemp(day.minC)}°</em></span>
-                </div>
-              ))}
-            </div>
-          )}
+          {weather?.daily?.length > 0 && <div className="weather-daily today-weather-outlook" aria-label="Three day weather outlook">
+            {weather.daily.slice(0, 3).map((day, index) => <div className="weather-day" key={day.date || index}>
+              <span className="weather-day-label">{index === 0 ? "Today" : new Date(`${day.date}T12:00:00`).toLocaleDateString(undefined, { weekday: "short" })}</span>
+              <WeatherGlyph kind={day.kind} isDay size={17}/>
+              <span className={`weather-day-rain ${day.rainChance >= 40 ? "wet" : ""}`}><Droplets size={11}/>{Math.round(day.rainChance || 0)}%</span>
+              <span className="weather-day-temps"><strong>{roundTemp(day.maxC)}°</strong><em>{roundTemp(day.minC)}°</em></span>
+            </div>)}
+          </div>}
           {!hasWeatherLocation && <button onClick={() => goTo("settings")} className="weather-address-action"><MapPin size={16} /><span><strong>Add an address to turn on weather</strong><small>FamOS will also flag today’s location-based events when weather may disrupt them.</small></span><ChevronRight size={16} /></button>}
           {disruptedEvents.length > 0 && <button onClick={() => goTo("calendar")} className="weather-event-warning"><CloudRain size={16} /><span><strong>Weather may affect {disruptedEvents.length} event{disruptedEvents.length === 1 ? "" : "s"} today</strong><small>{disruptedEvents.map((event) => event.title).join(", ")}</small></span><ChevronRight size={16} /></button>}
           {weatherError && <small className="address-autocomplete-warning">{weatherError}</small>}
         </Card>
-        <section className="m3-grid grid-cols-2 lg:grid-cols-4">
-          <MiniMetric icon={CalendarDays} label="Calendar today" value={todaysEvents.length} note={nextEvent ? `Next: ${formatTime(nextEvent.start)}` : "Beautifully empty"} onClick={() => goTo("calendar")} />
-          <MiniMetric icon={ListChecks} label="Open tasks" value={openTaskCount} note={openTaskCount ? "A few tiny missions remain" : "Nothing due today"} tone="rose" onClick={() => goTo("tasks")} />
-          <MiniMetric icon={ChefHat} label="Dinners this week" value={`${weekDinners.length}/7`} note={`${mealCoverage}% of dinner drama avoided`} tone="warn" onClick={() => goTo("meals")} />
-          <MiniMetric icon={ShoppingCart} label="Grocery list" value={groceryCount} note={groceryCategories[0] ? `${groceryCategories[0][0]} needs a look` : "List is clear"} tone="good" onClick={() => goTo("groceries")} />
-        </section>
-
-        <section className="m3-grid lg:grid-cols-[1.15fr_.85fr]">
-          <Card className="today-command-card p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-accent-strong)]">Today, sorted</p>
-                <h2 className="mt-2 font-[var(--font-display)] text-[28px] leading-[1.02] font-semibold tracking-[-0.045em] text-[var(--color-ink)]">
-                  {nextEvent ? "Today at a glance" : "Today is clear"}
-                </h2>
+        <section className={`today-bento-kitchen ${editingDashboard ? "is-customizing" : ""}`} aria-labelledby="kitchen-watch-title" style={dashboardPosition("kitchen")} {...dashboardDragProps("kitchen")}>
+          {moveHandle("kitchen")}
+          <Card className="today-kitchen-watch p-4">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="flex items-start gap-3">
+                <span className="w-10 h-10 rounded-xl bg-[var(--color-shopping-soft)] text-[var(--color-shopping-strong)] flex items-center justify-center shrink-0"><Refrigerator size={19} /></span>
+                <div><p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Kitchen watch</p><h2 id="kitchen-watch-title" className="ui-section-title">Use it or replace it</h2><p className="text-[12px] text-[var(--color-ink-soft)] mt-1">A gentle nudge before good groceries stage a disappearing act.</p></div>
               </div>
-              <span className="w-12 h-12 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center shrink-0">
-                <Home size={22} color="var(--color-accent)" />
-              </span>
+              {notificationPermission !== "granted" && <button type="button" onClick={requestNotifications} className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-2.5 py-2 text-[11px] font-semibold text-[var(--color-accent-strong)]"><Bell size={13} /> Remind me</button>}
             </div>
-            <div className="grid sm:grid-cols-4 gap-2 mt-5">
-              {todayBrief.map((item) => (
-                <div key={item} className="rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] px-3 py-2 text-[12px] font-semibold text-[var(--color-ink)]">
-                  {item}
-                </div>
-              ))}
-            </div>
-            {nextEvent ? (
-              <button onClick={() => goTo("calendar")} className="mt-5 w-full text-left rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 flex items-center gap-3 active:scale-[0.99] transition-transform">
-                <span className="w-11 h-11 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-accent)] flex items-center justify-center shrink-0">
-                  <Clock3 size={20} />
-                </span>
-                <span className="flex-1 min-w-0">
-                  <small className="block text-[11px] font-bold uppercase tracking-wide text-[var(--color-accent-strong)]">Up next · {formatTime(nextEvent.start)}</small>
-                  <strong className="block text-[15px] text-[var(--color-ink)] truncate">{nextEvent.title}</strong>
-                  {nextEvent.location && (
-                    // Same hardening as the schedule list row below: a long
-                    // address would otherwise claim min-content width past
-                    // the up-next card's right edge on narrow viewports.
-                    <em className="not-italic text-[12.5px] text-[var(--color-ink-soft)] flex items-center gap-1 mt-0.5 min-w-0">
-                      <MapPin size={11} className="shrink-0" />
-                      <span className="truncate">{nextEvent.location}</span>
-                    </em>
-                  )}
-                </span>
-                <AvatarStack members={(nextEvent.memberIds || []).map((id) => memberById[id]).filter(Boolean)} />
-              </button>
-            ) : (
-              <p className="mt-5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-[14px] text-[var(--color-ink-soft)]">Nothing urgent on the calendar. Take the win.</p>
-            )}
-          </Card>
-
-          <Card className="today-pulse-card p-5">
-            <div className="flex items-center justify-between gap-3 mb-4">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">This week</p>
-                <h2 className="ui-section-title">This week</h2>
-              </div>
-              <span className="w-10 h-10 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center shrink-0">
-                <Sparkles size={18} color="var(--color-accent)" />
-              </span>
-            </div>
-            <div className="space-y-4">
-              <ProgressLine label="Dinner plan coverage" value={weekDinners.length} total={7} color="var(--color-warn)" />
-              <ProgressLine label="Task completion" value={weekDoneTasks.length} total={weekTasks.length || 1} color="var(--color-good)" />
-              <div className="rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] p-3">
-                <p className="text-[12px] font-semibold text-[var(--color-ink)]">Busiest day</p>
-                <p className="text-[13px] text-[var(--color-ink-soft)]">{busiestDay?.count ? `${formatDayLabel(busiestDay.date)} has ${busiestDay.count} moving piece${busiestDay.count === 1 ? "" : "s"}.` : "No heavy days in the next week."}</p>
-              </div>
-            </div>
+            {expiryAlerts.length > 0 ? <div className="grid gap-2">
+              {expiryAlerts.slice(0, 4).map((item) => {
+                const alreadyListed = replacementIds.has(item.id) || groceries.some((grocery) => !grocery.checked && grocery.name.toLowerCase() === item.name.toLowerCase());
+                return <article key={item.id} className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+                  <div className="min-w-0 flex-1"><strong className="block truncate text-[13px] text-[var(--color-ink)]">{item.name}</strong><span className={`text-[11px] font-semibold ${item.expiry.state === "expired" ? "text-[var(--color-warn)]" : "text-[var(--color-shopping-strong)]"}`}>{item.expiry.label} · {item.location}</span></div>
+                  <button type="button" disabled={alreadyListed} onClick={() => replaceInventoryItem(item)} className="shrink-0 rounded-lg bg-[var(--color-accent-soft)] px-2.5 py-2 text-[11px] font-semibold text-[var(--color-accent-strong)] disabled:opacity-60">{alreadyListed ? "On list" : "Replace"}</button>
+                </article>;
+              })}
+            </div> : inventoryItems.length > 0 ? <div className="today-inventory-preview">
+              {inventoryItems.slice(0, 4).map((item) => <article key={item.id}><span><Refrigerator size={14}/></span><div><strong>{item.name}</strong><small>{item.location || "kitchen"}{item.expiresOn ? ` · use by ${new Date(`${item.expiresOn}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" })}` : ""}</small></div></article>)}
+            </div> : <button type="button" className="today-kitchen-empty" onClick={() => goTo("groceries")}><Refrigerator size={18}/><span><strong>Your kitchen tracker is ready</strong><small>Check off shopping items, then move them into the fridge, freezer, or pantry.</small></span><ChevronRight size={15}/></button>}
+            <button type="button" onClick={() => goTo("groceries")} className="mt-3 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--color-accent-strong)]">Open kitchen inventory <ChevronRight size={13} /></button>
           </Card>
         </section>
-
-        <section className="m3-grid lg:grid-cols-3">
-          <Card className="today-flow-card p-4 lg:col-span-2">
+        <section className={`today-bento-schedule ${editingDashboard ? "is-customizing" : ""}`} style={dashboardPosition("schedule")} {...dashboardDragProps("schedule")}>
+          {moveHandle("schedule")}
+          <Card className="today-flow-card p-4">
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Today’s schedule</p>
@@ -732,35 +647,11 @@ export default function Today({ goTo }) {
             )}
           </Card>
 
-          <Card className="today-load-card p-4">
-            <div className="flex items-center justify-between gap-3 mb-3">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Family load</p>
-                <h2 className="ui-section-title">Family workload</h2>
-              </div>
-              <Users size={18} color="var(--color-accent)" />
-            </div>
-            <div className="space-y-3">
-              {memberStats.length === 0 ? (
-                <EmptyState title="No members yet" subtitle="Invite your family from Settings." />
-              ) : memberStats.map(({ member, tasksOpen, events }) => (
-                <div key={member.id} className="flex items-center gap-3">
-                  <Avatar member={member} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold text-[var(--color-ink)] truncate">{member.name}</p>
-                    <p className="text-[11.5px] text-[var(--color-ink-soft)]">{events} events · {tasksOpen} open tasks</p>
-                  </div>
-                  <div className="w-20 h-1.5 rounded-full bg-[var(--color-surface-sunken)] overflow-hidden">
-                    <div className="h-full rounded-full" style={{ width: `${Math.min((tasksOpen + events) * 18, 100)}%`, backgroundColor: colorVar(member.color) }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
         </section>
 
-        <section className="m3-grid lg:grid-cols-2">
-          <Card className="today-meals-card p-4">
+        <section className="m3-grid lg:grid-cols-2 today-bento-meal-grid">
+          <Card className={`today-meals-card p-4 ${editingDashboard ? "is-customizing" : ""}`} style={dashboardPosition("meals")} {...dashboardDragProps("meals")}>
+            {moveHandle("meals")}
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Meals</p>
@@ -770,42 +661,54 @@ export default function Today({ goTo }) {
                 Meal planner <ChevronRight size={14} />
               </button>
             </div>
-            <div className="space-y-2">
-              {weekDays.slice(0, 5).map((date) => {
-                const meal = meals.find((m) => m.date === date && m.slot === "dinner" && m.title);
+            <div className="today-daily-meals">
+              {TODAY_MEAL_SLOTS.map(({ id: slot, label, icon: SlotIcon }) => {
+                const meal = meals.find((m) => m.date === today && m.slot === slot && m.title);
                 const adder = meal?.createdBy ? memberById[meal.createdBy] : null;
+                const openIdeas = () => {
+                  try { window.sessionStorage.setItem("famos:meal-ideas-intent:v1", JSON.stringify({ date: today, slot })); } catch { /* private mode */ }
+                  goTo("meals");
+                };
+                const openCook = () => {
+                  try { window.sessionStorage.setItem("famos:cook-intent:v1", meal.id || `${today}:${slot}`); } catch { /* private mode */ }
+                  goTo("meals");
+                };
                 return (
-                  <button
-                    key={date}
-                    type="button"
-                    onClick={() => goTo("meals")}
-                    className="w-full flex items-center gap-3 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] px-3 py-2.5 text-left hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-soft)] transition-colors"
-                    aria-label={meal?.title ? `Open ${meal.title} in meal planner` : `Open meal planner for ${date === today ? "today" : formatDayLabel(date, { withWeekday: true })}`}
-                  >
-                    <span className="w-12 shrink-0 text-[11.5px] font-bold uppercase text-[var(--color-accent-strong)]">{date === today ? "Today" : formatDayLabel(date, { withWeekday: true }).split(",")[0]}</span>
-                    <div className="flex-1 min-w-0">
-                      <span className="block text-[13px] text-[var(--color-ink)] truncate">{meal?.title || "Open dinner slot"}</span>
-                      {adder && <Avatar member={adder} size="xs" className="ml-1 mt-0.5" aria-label={`Added by ${adder.name}`} />}
+                  <article key={slot} className={`today-daily-meal ${meal ? "is-planned" : "is-open"}`}>
+                    <span className="today-daily-meal-icon"><SlotIcon size={16} /></span>
+                    <div className="today-daily-meal-copy">
+                      <span>{label}</span>
+                      <strong>{meal?.title || `Nothing planned for ${label.toLowerCase()}`}</strong>
+                      {adder && <small><Avatar member={adder} size="xs" /> Added by {adder.name}</small>}
                     </div>
                     {(() => {
                       const badge = meal?.id && mealMissingCount[meal.id];
                       if (!badge) return null;
                       return (
                         <span className={`today-meal-badge ${badge.missing === 0 ? "covered" : "needs"}`}>
-                          <ShoppingCart size={9} />
-                          {badge.missing === 0 ? "✓" : badge.missing}
+                          <ShoppingCart size={11} />
+                          {badge.missing === 0 ? "Groceries ready" : `${badge.missing} missing`}
                         </span>
                       );
                     })()}
-                    {meal?.cookIds?.length ? <AvatarStack members={meal.cookIds.map((id) => memberById[id]).filter(Boolean)} size="sm" /> : <Tag tone="neutral">Plan</Tag>}
-                    <ChefHat size={15} className="today-meal-cook-hint" aria-hidden="true" />
-                  </button>
+                    <div className={`today-daily-meal-actions ${meal ? "is-single" : ""}`}>
+                      {meal ? (
+                        <button type="button" className="cook" onClick={openCook}><ChefHat size={14} /> Cook</button>
+                      ) : (
+                        <>
+                          <button type="button" className="ideas" onClick={openIdeas}><Sparkles size={14} /> Meal ideas</button>
+                          <button type="button" onClick={() => goTo("meals")}><CalendarPlus size={14} /> Plan</button>
+                        </>
+                      )}
+                    </div>
+                  </article>
                 );
               })}
             </div>
           </Card>
 
-          <Card className="today-groceries-card p-4">
+          <Card className={`today-groceries-card p-4 ${editingDashboard ? "is-customizing" : ""}`} style={dashboardPosition("groceries")} {...dashboardDragProps("groceries")}>
+            {moveHandle("groceries")}
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Shopping</p>
@@ -837,54 +740,8 @@ export default function Today({ goTo }) {
           </Card>
         </section>
 
-        {mealIdeas.length > 0 && (
-          <section className="today-ideas-section">
-            <Card className="today-ideas-card p-4">
-              <div className="flex items-center justify-between gap-3 mb-3">
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Meal ideas</p>
-                  <h2 className="ui-section-title">Make this from your list</h2>
-                </div>
-                <span className="w-10 h-10 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center shrink-0">
-                  <ChefHat size={18} color="var(--color-accent)" />
-                </span>
-              </div>
-              <p className="text-[12px] text-[var(--color-ink-soft)] mb-3">Recipes that use ingredients already on your grocery list.</p>
-              <div className="today-ideas-grid">
-                {mealIdeas.map((recipe, index) => (
-                  <button
-                    key={`${recipe.title}-${index}`}
-                    className="today-idea-card"
-                    onClick={() => goTo("meals")}
-                  >
-                    <span className="today-idea-index">{index + 1}</span>
-                    <div className="today-idea-copy">
-                      <strong>{recipe.title}</strong>
-                      <small>
-                        {recipe.readyInMinutes ? `${recipe.readyInMinutes} min` : ""}
-                        {recipe.servings ? ` · Serves ${recipe.servings}` : ""}
-                      </small>
-                    </div>
-                    <ChevronRight size={14} className="today-idea-arrow" />
-                  </button>
-                ))}
-              </div>
-            </Card>
-          </section>
-        )}
-
-        {mealIdeasLoading && activeGroceries.length >= 3 && (
-          <section className="today-ideas-section">
-            <Card className="today-ideas-card p-4">
-              <div className="flex items-center gap-2 text-[12.5px] text-[var(--color-ink-soft)]">
-                <LoaderCircle size={14} className="animate-spin" />
-                <span>Finding recipes from your groceries…</span>
-              </div>
-            </Card>
-          </section>
-        )}
-
-        <section>
+        <section className={`today-bento-tasks ${editingDashboard ? "is-customizing" : ""}`} style={dashboardPosition("tasks")} {...dashboardDragProps("tasks")}>
+          {moveHandle("tasks")}
           <Card className="today-tasks-card p-4">
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
@@ -917,6 +774,20 @@ export default function Today({ goTo }) {
                 })}
               </ul>
             )}
+          </Card>
+        </section>
+        <section className={`today-bento-messages ${editingDashboard ? "is-customizing" : ""}`} aria-labelledby="latest-family-messages" style={dashboardPosition("messages")} {...dashboardDragProps("messages")}>
+          {moveHandle("messages")}
+          <Card className="today-messages-card p-4">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div><p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Family chat</p><h2 id="latest-family-messages" className="ui-section-title">Latest messages</h2></div>
+              <button onClick={() => goTo("chat")} className="text-[13px] font-semibold text-[var(--color-accent)] flex items-center gap-0.5">Open chat <ChevronRight size={14}/></button>
+            </div>
+            {latestMessages.length ? <div className="today-message-list">{latestMessages.map((message) => {
+              const sender = memberById[message.senderId];
+              const direct = Boolean(message.recipientId);
+              return <button type="button" key={message.id} onClick={() => goTo("chat")}><Avatar member={sender || { name: "Family" }} size="sm"/><span><strong>{sender?.name || "Family member"}{direct ? " · Direct" : ""}</strong><small>{message.text}</small></span><time>{new Date(message.sentAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</time></button>;
+            })}</div> : <button type="button" className="today-message-empty" onClick={() => goTo("chat")}><MessageCircle size={18}/><span><strong>The family chat is quiet</strong><small>Start a conversation without turning it into a broadcast.</small></span></button>}
           </Card>
         </section>
       </div>

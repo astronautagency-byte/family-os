@@ -1,11 +1,11 @@
 import { useEffect, useRef, useMemo, useState } from "react";
-import { CalendarDays, CalendarPlus, ChevronDown, ChevronLeft, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, ExternalLink, Eye, EyeOff, LoaderCircle, MapPin, Moon, Plus, RefreshCw, Search, Settings2, Share2, Sparkles, Sun, Ticket, Trash2, TriangleAlert, Users, X } from "lucide-react";
+import { CalendarDays, CalendarPlus, ChevronDown, ChevronLeft, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, ExternalLink, Eye, EyeOff, LoaderCircle, MapPin, Moon, Pencil, Plus, RefreshCw, Search, Settings2, Share2, Sparkles, Sun, Ticket, Trash2, TriangleAlert, Users, X } from "lucide-react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabase";
-import { AvatarStack, DateField, Modal, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
+import { AvatarStack, DateField, Modal, PrimaryButton, SecondaryButton, SegmentedControl, SelectField, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import PullToRefresh from "../components/PullToRefresh";
 import ConfirmAction from "../components/ConfirmAction";
@@ -24,12 +24,16 @@ const iso = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}
 // family-friendly query so the search can't get stuck on a too-narrow term
 // while still tilting results toward family-appropriate events.
 const CATEGORY_FOR_DISCOVERY = "family-friendly events";
+// Temporarily retired from the product surface. Keeping the implementation
+// behind one local switch makes it reversible without exposing a half-owned
+// discovery experience or continuing to spend third-party search quota.
+const LOCAL_EVENT_FINDER_ENABLED = false;
 const EVENT_TYPES = {
-  family: { label: "Family", color: "#5b55d6" },
-  school: { label: "School", color: "#4f8177" },
-  activity: { label: "Activities", color: "#dc9147" },
-  health: { label: "Health", color: "#d46b7a" },
-  work: { label: "Work", color: "#747184" },
+  family: { label: "Family", color: "var(--color-family)" },
+  school: { label: "School", color: "var(--color-calendar)" },
+  activity: { label: "Activities", color: "var(--color-shopping)" },
+  health: { label: "Health", color: "var(--color-chat)" },
+  work: { label: "Work", color: "var(--color-finance)" },
 };
 const eventType = (event) => {
   if (event.eventType && EVENT_TYPES[event.eventType]) return event.eventType;
@@ -67,6 +71,53 @@ function WeatherGlyph({ kind, isDay = true, size = 14 }) {
   const meta = weatherKind(kind);
   const Icon = isDay ? meta.day : meta.night;
   return <Icon size={size} />;
+}
+
+const CALENDAR_START_HOUR = 6;
+const CALENDAR_END_HOUR = 22;
+const minutesFromStart = (dateValue) => {
+  const date = new Date(dateValue);
+  return (date.getHours() - CALENDAR_START_HOUR) * 60 + date.getMinutes();
+};
+
+function CalendarTimeGrid({ dates, events, selectedDate, onSelectDate, onSelectEvent }) {
+  const hours = Array.from({ length: CALENDAR_END_HOUR - CALENDAR_START_HOUR + 1 }, (_, index) => CALENDAR_START_HOUR + index);
+  const now = new Date();
+  const today = iso(now);
+  const showNow = dates.some((date) => iso(date) === today) && now.getHours() >= CALENDAR_START_HOUR && now.getHours() <= CALENDAR_END_HOUR;
+  return (
+    <div className="apple-timegrid-shell">
+      <div className="apple-timegrid-head" style={{ "--calendar-days": dates.length }}>
+        <span className="apple-timegrid-zone">GMT</span>
+        {dates.map((date) => {
+          const key = iso(date);
+          return <button type="button" key={key} className={`${key === selectedDate ? "selected" : ""} ${key === today ? "today" : ""}`} onClick={() => onSelectDate(key)}><small>{date.toLocaleDateString("en-CA", { weekday: "short" })}</small><strong>{date.getDate()}</strong></button>;
+        })}
+      </div>
+      <div className="apple-timegrid-scroll">
+        <div className="apple-timegrid" style={{ "--calendar-days": dates.length }}>
+          <div className="apple-time-labels">{hours.map((hour) => <span key={hour} style={{ top: `${(hour - CALENDAR_START_HOUR) * 60}px` }}>{new Date(2000, 0, 1, hour).toLocaleTimeString("en-CA", { hour: "numeric" })}</span>)}</div>
+          <div className="apple-time-columns">
+            {dates.map((date) => {
+              const key = iso(date);
+              const dateEvents = events.filter((event) => event.start.slice(0, 10) === key);
+              return <div className={`apple-time-column ${key === today ? "today" : ""}`} key={key}>
+                {hours.map((hour) => <i className="apple-hour-line" key={hour} style={{ top: `${(hour - CALENDAR_START_HOUR) * 60}px` }} />)}
+                {dateEvents.map((event) => {
+                  const start = Math.max(0, minutesFromStart(event.start));
+                  const rawDuration = event.end ? (new Date(event.end) - new Date(event.start)) / 60000 : 60;
+                  const height = Math.max(34, Math.min(180, rawDuration || 60));
+                  const type = EVENT_TYPES[eventType(event)];
+                  return <button type="button" className="apple-time-event" key={event.id} style={{ top: `${start}px`, height: `${height}px`, "--event-color": type.color }} onClick={() => onSelectEvent(event)}><strong>{event.title}</strong><span>{formatTime(event.start)}{event.end ? `–${formatTime(event.end)}` : ""}</span>{event.location && <small>{event.location}</small>}</button>;
+                })}
+              </div>;
+            })}
+          </div>
+          {showNow && <div className="apple-now-line" style={{ top: `${minutesFromStart(now)}px` }}><span>{now.toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit" })}</span></div>}
+        </div>
+      </div>
+    </div>
+  );
 }
 const conditionLabel = (entry) => entry?.conditionText || weatherKind(entry?.kind).label;
 const roundTemp = (value) => (Number.isFinite(Number(value)) ? Math.round(Number(value)) : "—");
@@ -185,16 +236,18 @@ function LocationAutocompleteField({ value, onChange }) {
 }
 
 export default function CalendarPage() {
-  const { members, memberById, events, googleEvents, feedEvents, calendarFeeds, googleConnected, googleCalendars, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleStatus, googleError, googleLastSynced, addEvent, addGoogleCalendarEvent, deleteGoogleCalendarEvent, removeEvent, clearEvents, refreshData, syncGoogleCalendarNow, connectGoogleCalendar, disconnectGoogleCalendar, toggleGoogleCalendar, toggleGoogleCalendarSharing } = useFamily();
+  const { members, memberById, events, googleEvents, feedEvents, calendarFeeds, googleConnected, googleCalendars, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleStatus, googleError, googleLastSynced, addEvent, updateEvent, addGoogleCalendarEvent, updateGoogleCalendarEvent, deleteGoogleCalendarEvent, removeEvent, clearEvents, refreshData, syncGoogleCalendarNow, connectGoogleCalendar, disconnectGoogleCalendar, toggleGoogleCalendar, toggleGoogleCalendarSharing } = useFamily();
   const { householdProfileExtra } = useAuth();
   const todayStr = todayISO();
   const [selectedDate, setSelectedDate] = useState(todayStr);
+  const [viewMode, setViewMode] = useState("month");
   const selected = new Date(`${selectedDate}T12:00:00`);
   const [month, setMonth] = useState(new Date(selected.getFullYear(), selected.getMonth(), 1));
   const [sourceFilter, setSourceFilter] = useState("all");
   const [weather, setWeather] = useState(null);
   const [weatherError, setWeatherError] = useState("");
   const [adding, setAdding] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [clearing, setClearing] = useState(false);
@@ -316,9 +369,9 @@ export default function CalendarPage() {
   [allEvents, sourceFilter]);
 
   const sources = useMemo(() => [
-    { id: "all", label: "All calendars" }, { id: "family", label: "Family" },
+    { id: "all", label: "All calendars", color: "var(--color-calendar)" }, { id: "family", label: "Family", color: "var(--color-family)" },
     ...(googleConnected ? googleCalendars.filter(calendar => selectedGoogleCalendarIds.includes(calendar.id)).map(calendar => ({ id: `google:${calendar.id}`, label: calendar.summary, color: calendar.backgroundColor })) : []),
-    ...calendarFeeds.map((feed) => ({ id: `feed:${feed.id}`, label: feed.source === "file" ? feed.name : `${feed.name} · iCal` })),
+    ...calendarFeeds.map((feed) => ({ id: `feed:${feed.id}`, label: feed.source === "file" ? feed.name : `${feed.name} · iCal`, color: "var(--color-meals)" })),
   ], [calendarFeeds, googleConnected, googleCalendars, selectedGoogleCalendarIds]);
 
   const cells = useMemo(() => {
@@ -364,8 +417,10 @@ export default function CalendarPage() {
       return d;
     });
   }, [selectedDate]);
+  const timeGridDates = useMemo(() => viewMode === "day" ? [selected] : Array.from({ length: 7 }, (_, index) => { const date = new Date(selected); date.setDate(selected.getDate() + index); return date; }), [viewMode, selectedDate]);
 
   const openAdd = (prefill) => {
+    setEditingEvent(null);
     setDraft({
       title: "",
       date: selectedDate,
@@ -377,6 +432,16 @@ export default function CalendarPage() {
       destination: "family",
       ...(prefill || {}),
     });
+    setSaveError("");
+    setAdding(true);
+  };
+
+  const openEdit = (event) => {
+    const start = new Date(event.start);
+    const end = new Date(event.end || event.start);
+    setDraft({ title:event.title || "", date:iso(start), start:`${String(start.getHours()).padStart(2,"0")}:${String(start.getMinutes()).padStart(2,"0")}`, end:`${String(end.getHours()).padStart(2,"0")}:${String(end.getMinutes()).padStart(2,"0")}`, location:event.location || "", memberIds:event.memberIds || [], eventType:eventType(event), destination:event.source === "google" ? `google:${event.calendarId}` : "family" });
+    setEditingEvent(event);
+    setSelectedEvent(null);
     setSaveError("");
     setAdding(true);
   };
@@ -574,9 +639,12 @@ export default function CalendarPage() {
     setSaving(true); setSaveError("");
     const payload = { title: draft.title.trim(), start: new Date(`${draft.date}T${draft.start}:00`).toISOString(), end: new Date(`${draft.date}T${draft.end}:00`).toISOString(), location: draft.location, memberIds: draft.memberIds, eventType: draft.eventType };
     try {
-      if (draft.destination.startsWith("google:")) await addGoogleCalendarEvent({ ...payload, calendarId: draft.destination.slice(7) });
+      if (editingEvent?.source === "google") await updateGoogleCalendarEvent({ ...editingEvent, ...payload, calendarId: editingEvent.calendarId });
+      else if (editingEvent) await updateEvent(editingEvent.id, payload);
+      else if (draft.destination.startsWith("google:")) await addGoogleCalendarEvent({ ...payload, calendarId: draft.destination.slice(7) });
       else await addEvent(payload);
       setAdding(false);
+      setEditingEvent(null);
     } catch (error) { setSaveError(error.message || "Could not save this event."); }
     finally { setSaving(false); }
   };
@@ -708,15 +776,14 @@ export default function CalendarPage() {
     <>
     <PullToRefresh onRefresh={refreshAll}>
       <div className="pb-28 calendar-page famos-noscroll">
-        {/* ── Header with prominent date ── */}
-        <div className="calendar-hero">
+        <div className="calendar-hero apple-calendar-toolbar">
           <div className="calendar-hero-date">
-            <span className="calendar-hero-dayname">{dayName}</span>
-            <span className="calendar-hero-daynum" ref={heroNumRef}>{dayNum}</span>
-            <span className="calendar-hero-month">{monthDayLabel} · {dayEventCount} event{dayEventCount === 1 ? "" : "s"}</span>
+            <button type="button" className="apple-calendar-today" onClick={() => { setSelectedDate(todayStr); const now = new Date(); setMonth(new Date(now.getFullYear(), now.getMonth(), 1)); }}>Today</button>
+            <span className="calendar-hero-dayname">{monthLabel}</span>
+            <span className="calendar-hero-month">{dayName}, {monthDayLabel} · {dayEventCount} event{dayEventCount === 1 ? "" : "s"}</span>
           </div>
           <div className="calendar-hero-actions">
-            <button className="calendar-hero-action calendar-hero-action-settings" onClick={() => {
+            {LOCAL_EVENT_FINDER_ENABLED && <button className="calendar-hero-action calendar-hero-action-settings" onClick={() => {
               setDiscovering(true);
               const initialCities = discoverCities.length ? discoverCities : (discoverLocation ? [discoverLocation] : []);
               setDiscoverCities(initialCities);
@@ -737,7 +804,7 @@ export default function CalendarPage() {
               }
             }} aria-label="Discover local events">
               <Sparkles size={16} />
-            </button>
+            </button>}
             <button className="calendar-hero-action" onClick={() => setCalendarManagerOpen(true)} aria-label="Manage calendars">
               <Settings2 size={17} />
             </button>
@@ -748,10 +815,26 @@ export default function CalendarPage() {
         </div>
 
         <div className="px-5">
+          <div className="apple-calendar-controls">
+            <div className="apple-calendar-navigation"><button type="button" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} aria-label="Previous month"><ChevronLeft size={18}/></button><button type="button" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} aria-label="Next month"><ChevronRight size={18}/></button></div>
+            <SegmentedControl options={[{value:"month",label:"Month"},{value:"week",label:"Week"},{value:"day",label:"Day"}]} value={viewMode} onChange={setViewMode} label="Calendar view" />
+          </div>
+          {sources.length > 1 && (
+            <div className="calendar-sources calendar-sources-primary">
+              <div className="calendar-sources-heading"><span>Calendars</span><button type="button" onClick={() => setCalendarManagerOpen(true)}>Manage</button></div>
+              <div className="calendar-sources-tabs" role="tablist" aria-label="Choose a calendar">
+                {sources.map(source => {
+                  const count = source.id === "all" ? allEvents.length : allEvents.filter(event => sourceId(event) === source.id).length;
+                  return <button type="button" role="tab" aria-selected={sourceFilter === source.id} key={source.id} className={`calendar-sources-tab ${sourceFilter === source.id ? "selected" : ""}`} style={{"--calendar-tone":source.color}} onClick={() => setSourceFilter(source.id)}><i style={{ backgroundColor: source.color }} /><span>{source.label}</span><em>{count}</em></button>;
+                })}
+              </div>
+            </div>
+          )}
+          <div className="apple-date-strip" aria-label="Selected week">{dayStrip.map((date) => { const key=iso(date); return <button type="button" key={key} className={`${key===selectedDate?"selected":""} ${key===todayStr?"today":""}`} onClick={()=>{setSelectedDate(key);setMonth(new Date(date.getFullYear(),date.getMonth(),1));}}><small>{date.toLocaleDateString("en-CA",{weekday:"narrow"})}</small><strong>{date.getDate()}</strong><i>{visibleEvents.some(event=>event.start.slice(0,10)===key)?"•":""}</i></button>;})}</div>
           {/* ── Month grid (always shown — the grid IS the date picker now) ── */}
 
           {/* ── Month grid ── */}
-          <div className="calendar-month">
+          {viewMode === "month" && <div className="calendar-month apple-calendar-month">
               <div className="calendar-month-header">
                 <button onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}><ChevronLeft size={16} /></button>
                 <strong>{monthLabel}</strong>
@@ -789,33 +872,12 @@ export default function CalendarPage() {
                   })}
                 </div>
               </div>
-            </div>
+            </div>}
 
-          {/* ── Source filter pills ── */}
-          {sources.length > 1 && (
-            <div className="calendar-sources">
-              <div className="calendar-sources-tabs" aria-label="Filter calendars">
-                {sources.slice(0, 6).map(source => (
-                  <button
-                    key={source.id}
-                    className={`calendar-sources-tab ${sourceFilter === source.id ? "selected" : ""}`}
-                    onClick={() => setSourceFilter(source.id)}
-                  >
-                    {source.color && <i style={{ backgroundColor: source.color }} />}
-                    {source.label}
-                  </button>
-                ))}
-                {sources.length > 6 && (
-                  <button className="calendar-sources-more" onClick={() => setCalendarManagerOpen(true)}>
-                    +{sources.length - 6}
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
+          {viewMode !== "month" && <CalendarTimeGrid dates={timeGridDates} events={visibleEvents} selectedDate={selectedDate} onSelectDate={setSelectedDate} onSelectEvent={setSelectedEvent} />}
 
           {/* ── Agenda below the grid — iOS-style list with section header + inline weather ── */}
-          <div className="calendar-agenda-section" ref={agendaRef}>
+          {viewMode === "month" && <div className="calendar-agenda-section" ref={agendaRef}>
             <div className="calendar-agenda-header">
               <span className="calendar-agenda-label">{selectedLabel}</span>
               {selectedDate === todayStr && weather && (
@@ -827,8 +889,8 @@ export default function CalendarPage() {
             {dayEvents.length === 0 ? (
               <div className="calendar-empty">
                 <div className="calendar-empty-icon"><CalendarDays size={28} /></div>
-                <strong>Nothing on the books</strong>
-                <p>Enjoy the quiet, or tap + to add something.</p>
+                <strong>A rare patch of open sky</strong>
+                <p>Enjoy the quiet, or tap + before real life fills it.</p>
               </div>
             ) : (
               <div className="calendar-agenda">
@@ -873,11 +935,11 @@ export default function CalendarPage() {
                 })}
               </div>
             )}
-          </div>
+          </div>}
         </div>
 
         {/* ── Modals (all preserved from original) ── */}
-        <Modal open={adding} onClose={() => setAdding(false)} title="Add something to the calendar">
+        <Modal open={adding} onClose={() => { setAdding(false); setEditingEvent(null); }} title={editingEvent ? "Edit calendar event" : "Add something to the calendar"}>
           <TextField label="Event" value={draft.title} onChange={e => setDraft({ ...draft, title: e.target.value })} />
           <div className="calendar-form-row">
             <DateField label="Date" value={draft.date} onChange={date => setDraft({ ...draft, date })} />
@@ -885,22 +947,18 @@ export default function CalendarPage() {
             <TextField label="Ends" type="time" value={draft.end} onChange={e => setDraft({ ...draft, end: e.target.value })} />
           </div>
           <LocationAutocompleteField value={draft.location} onChange={(location) => setDraft((current) => ({ ...current, location }))} />
-          <label className="calendar-select-label"><span>Event type</span>
-            <select value={draft.eventType} onChange={e => setDraft({ ...draft, eventType: e.target.value })}>
+          <SelectField label="Event type" className="calendar-select-label" value={draft.eventType} onChange={e => setDraft({ ...draft, eventType: e.target.value })}>
               {Object.entries(EVENT_TYPES).map(([key, type]) => <option key={key} value={key}>{type.label}</option>)}
-            </select>
-          </label>
-          <label className="calendar-select-label"><span>Add to</span>
-            <select value={draft.destination} onChange={e => setDraft({ ...draft, destination: e.target.value })}>
+          </SelectField>
+          <SelectField label="Add to" className="calendar-select-label" value={draft.destination} disabled={Boolean(editingEvent)} onChange={e => setDraft({ ...draft, destination: e.target.value })}>
               <option value="family">FamOS calendar</option>
               {googleConnected && googleCalendars.filter(calendar => selectedGoogleCalendarIds.includes(calendar.id) && ["owner", "writer"].includes(calendar.accessRole)).map(calendar => (
                 <option key={calendar.id} value={`google:${calendar.id}`}>{calendar.summary} · Google</option>
               ))}
-            </select>
-          </label>
+          </SelectField>
           {calendarFeeds.length > 0 && <p className="calendar-readonly-note">Imported calendars are available in the filters above, but remain read-only.</p>}
           {saveError && <p className="calendar-save-error">{saveError}</p>}
-          <PrimaryButton onClick={save} disabled={saving}>{saving ? "Adding…" : "Add it"}</PrimaryButton>
+          <PrimaryButton onClick={save} disabled={saving}>{saving ? "Saving…" : editingEvent ? "Save changes" : "Add it"}</PrimaryButton>
         </Modal>
 
         <Modal open={calendarManagerOpen} onClose={() => setCalendarManagerOpen(false)} title="Calendar management">
@@ -976,7 +1034,7 @@ export default function CalendarPage() {
           </div>
         </Modal>
 
-        <Modal open={discovering} onClose={() => setDiscovering(false)} title="Find something fun nearby">
+        {LOCAL_EVENT_FINDER_ENABLED && <Modal open={discovering} onClose={() => setDiscovering(false)} title="Find something fun nearby">
           <div className="event-discovery-intro">
             <span><Sparkles /></span>
             <div>
@@ -1289,7 +1347,7 @@ export default function CalendarPage() {
             </>
           )}
           <small className="event-discovery-source">Event details come from public web sources and may change. Confirm times, availability, suitability, and prices with the event provider before making plans.</small>
-        </Modal>
+        </Modal>}
 
         <Modal open={!!selectedEvent} onClose={() => setSelectedEvent(null)} title={selectedEvent?.title || "Event details"}>
           {selectedEvent && (
@@ -1311,6 +1369,7 @@ export default function CalendarPage() {
                     url,
                   });
                 }} aria-label={`Share ${selectedEvent.title}`}><Share2 size={15} /> Share with family</button>
+                {canDeleteEvent(selectedEvent) && <button className="event-edit-button" onClick={() => openEdit(selectedEvent)}><Pencil size={15}/> Edit event</button>}
                 <SecondaryButton onClick={() => setSelectedEvent(null)}>Close</SecondaryButton>
                 {canDeleteEvent(selectedEvent) && <button className="event-danger-button" onClick={() => setDeleteTarget(selectedEvent)}><Trash2 size={16} /> Delete event</button>}
               </div>

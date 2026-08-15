@@ -22,6 +22,10 @@ function memberProfileKey(householdId, userId) {
   return `family-os:member-profile:${householdId}:${userId}`;
 }
 
+function personalOnboardingPendingKey(userId) {
+  return `family-os:personal-onboarding-pending:${userId}`;
+}
+
 function householdProfileExtraKey(householdId) {
   return `family-os:household-profile-extra:${householdId}`;
 }
@@ -163,9 +167,11 @@ export function AuthProvider({ children }) {
   });
   const [onboardingRequired, setOnboardingRequired] = useState(false);
   const [googleProviderToken, setGoogleProviderToken] = useState(() => localStorage.getItem("family-os:google-provider-token"));
+  const loadedAccountUserIdRef = useRef(null);
 
   const refreshAccount = useCallback(async (nextSession) => {
     if (!supabase || !nextSession?.user) {
+      loadedAccountUserIdRef.current = null;
       setProfile(null);
       setHousehold(null);
       setHouseholdProfile(null);
@@ -179,7 +185,7 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    if (!hasLoadedOnce.current) setLoading(true);
+    if (!hasLoadedOnce.current || loadedAccountUserIdRef.current !== nextSession.user.id) setLoading(true);
     setError(null);
     try {
       // A household creator is the permanent master owner. Repairing this
@@ -251,18 +257,29 @@ export function AuthProvider({ children }) {
         } : localHouseholdExtra;
 
         const localMemberFallback = readJson(memberProfileKey(membership.household_id, nextSession.user.id), null);
-        const { data: memberProfileRow, error: memberProfileError } = await supabase
+        let { data: memberProfileRow, error: memberProfileError } = await supabase
           .from("household_member_profiles")
-          .select("profile_type, calendar_preference, completed_at")
+          .select("profile_type, calendar_preference, age, date_of_birth, dietary_restrictions, completed_at")
           .eq("household_id", membership.household_id)
           .eq("user_id", nextSession.user.id)
           .maybeSingle();
+        if (memberProfileError && /age|date_of_birth|dietary_restrictions|schema cache|column/i.test(memberProfileError.message || "")) {
+          ({ data: memberProfileRow, error: memberProfileError } = await supabase
+            .from("household_member_profiles")
+            .select("profile_type, calendar_preference, completed_at")
+            .eq("household_id", membership.household_id)
+            .eq("user_id", nextSession.user.id)
+            .maybeSingle());
+        }
         if (memberProfileError && memberProfileError.code !== "42P01" && !/does not exist|schema cache/i.test(memberProfileError.message || "")) {
           throw memberProfileError;
         }
         localMemberProfile = memberProfileRow ? {
           profileType: memberProfileRow.profile_type,
           calendarPreference: memberProfileRow.calendar_preference,
+          age: memberProfileRow.age ?? null,
+          dateOfBirth: memberProfileRow.date_of_birth || "",
+          dietaryRestrictions: memberProfileRow.dietary_restrictions || [],
           completedAt: memberProfileRow.completed_at,
         } : localMemberFallback;
       }
@@ -370,7 +387,8 @@ export function AuthProvider({ children }) {
           setOnboardingRequired(!skippedInvites && (memberCount || 0) < 2 && (inviteCount || 0) === 0);
         }
       } else if (membership?.household_id) {
-        setOnboardingRequired(!localMemberProfile?.completedAt);
+        const personalOnboardingPending = localStorage.getItem(personalOnboardingPendingKey(nextSession.user.id)) === "true";
+        setOnboardingRequired(personalOnboardingPending && !localMemberProfile?.completedAt);
       } else {
         setOnboardingRequired(false);
       }
@@ -422,6 +440,7 @@ export function AuthProvider({ children }) {
         localStorage.setItem("family-os:google-provider-token", data.session.provider_token);
         setGoogleProviderToken(data.session.provider_token);
       }
+      loadedAccountUserIdRef.current = nextSession.user.id;
       captureGoogleRefreshToken(data.session);
       refreshAccount(data.session);
     });
@@ -676,6 +695,7 @@ export function AuthProvider({ children }) {
   const createHousehold = async (name) => {
     const householdName = name.trim();
     if (!householdName) throw new Error("Household name is required.");
+    localStorage.setItem(personalOnboardingPendingKey(session.user.id), "true");
     const { error: createError } = await supabase.rpc("create_household", { household_name: householdName });
     if (createError && !/already belong to a household|already have an invitation/i.test(createError.message || "")) throw createError;
     await refreshAccount(session);
@@ -863,19 +883,35 @@ export function AuthProvider({ children }) {
     const payload = {
       profileType: profileInput.profileType || "parent",
       calendarPreference: profileInput.calendarPreference || "family",
+      age: profileInput.age === "" || profileInput.age == null ? null : Number(profileInput.age),
+      dateOfBirth: profileInput.dateOfBirth || "",
+      dietaryRestrictions: profileInput.dietaryRestrictions || [],
       completedAt,
     };
-    const { error: memberProfileError } = await supabase.from("household_member_profiles").upsert({
+    let { error: memberProfileError } = await supabase.from("household_member_profiles").upsert({
       household_id: household.id,
       user_id: session.user.id,
       profile_type: payload.profileType,
       calendar_preference: payload.calendarPreference,
+      age: payload.age,
+      date_of_birth: payload.dateOfBirth || null,
+      dietary_restrictions: payload.dietaryRestrictions,
       completed_at: payload.completedAt,
     }, { onConflict: "household_id,user_id" });
+    if (memberProfileError && /age|date_of_birth|dietary_restrictions|schema cache|column/i.test(memberProfileError.message || "")) {
+      ({ error: memberProfileError } = await supabase.from("household_member_profiles").upsert({
+        household_id: household.id,
+        user_id: session.user.id,
+        profile_type: payload.profileType,
+        calendar_preference: payload.calendarPreference,
+        completed_at: payload.completedAt,
+      }, { onConflict: "household_id,user_id" }));
+    }
     if (memberProfileError && memberProfileError.code !== "42P01" && !/does not exist|schema cache/i.test(memberProfileError.message || "")) {
       throw memberProfileError;
     }
     localStorage.setItem(memberProfileKey(household.id, session.user.id), JSON.stringify(payload));
+    localStorage.removeItem(personalOnboardingPendingKey(session.user.id));
     setMemberProfile(payload);
     await saveOwnAvatar(profileInput.avatarUrl);
     setOnboardingRequired(false);
@@ -883,6 +919,7 @@ export function AuthProvider({ children }) {
 
   const acceptInvitation = async () => {
     if (!invitation) return;
+    localStorage.setItem(personalOnboardingPendingKey(session.user.id), "true");
     const { error: acceptError } = await supabase.rpc("accept_household_invitation", { invitation_id: invitation.id });
     if (acceptError) throw acceptError;
     await refreshAccount(session);

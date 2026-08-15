@@ -432,7 +432,7 @@
 
 .feature-hero-stage{position:relative;display:grid;place-items:end center;width:100%;max-width:440px;margin:auto;min-height:560px;padding:0}
 
-.feature-hero-pills{margin-top:24px;display:flex;flex-wrap:wrap;gap:8px}
+.feature-hero-pills{margin-top:24px;margin-bottom:44px;display:flex;flex-wrap:wrap;gap:8px}
 .feature-hero-pills b{display:inline-flex;align-items:center;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.78);border:1px solid rgba(121,82,232,.16);font:700 12px/1.15 var(--font-sans);color:#5d556a;letter-spacing:-.005em}
 
 .feature-hero-phone{position:relative;width:min(420px,90%);padding:0;z-index:1}
@@ -441,8 +441,8 @@
 /* The feature-* artwork contains a wide photographic backdrop to the
  * right of the device. Crop that portion away and use the phone itself
  * as the hero silhouette, flush with the section's bottom edge. */
-.feature-hero-phone.is-composite{width:252px;height:565px;overflow:hidden;border-radius:58px;background:#09090b;box-shadow:0 18px 42px rgba(23,23,31,.16)}
-.feature-hero-phone.is-composite .feature-hero-phone-screen{width:auto;max-width:none;height:624px;transform:translateY(-59px);object-fit:contain;object-position:left bottom}
+.feature-hero-phone.is-composite{width:270px;height:565px;overflow:hidden;border-radius:58px;background:#09090b;box-shadow:0 18px 42px rgba(23,23,31,.16)}
+.feature-hero-phone.is-composite .feature-hero-phone-screen{width:auto;max-width:none;height:624px;transform:translate(-2px,-59px);object-fit:contain;object-position:left bottom}
 .feature-hero-phone.is-composite::after{content:"";position:absolute;z-index:2;inset:auto 0 0;height:8px;background:#09090b;border-radius:0 0 52px 52px}
 
 .feature-hero-card{display:none}
@@ -478,7 +478,7 @@
 
 @media (max-width:1080px){
   .feature-hero-stage{min-height:485px;max-width:400px}
-  .feature-hero-phone.is-composite{width:216px;height:485px;border-radius:50px}
+  .feature-hero-phone.is-composite{width:232px;height:485px;border-radius:50px}
   .feature-hero-phone.is-composite .feature-hero-phone-screen{height:535px;transform:translateY(-50px)}
   .feature-hero-card-1{left:-20px}
   .feature-hero-card-2{right:-22px}
@@ -486,8 +486,26 @@
 }
 @media (max-width:760px){
   .feature-hero-stage{min-height:471px;padding-bottom:0}
-  .feature-hero-phone.is-composite{width:210px;height:471px;border-radius:48px}
+  .feature-hero-phone.is-composite{width:226px;height:471px;border-radius:48px}
   .feature-hero-phone.is-composite .feature-hero-phone-screen{height:520px;transform:translateY(-49px)}
+}
+
+/* One marketing button scale across module heroes and closing CTAs. */
+.features-page :is(.features-module-hero-actions,.features-index-hero-actions,.features-final-actions) a,
+.features-page :is(.features-module-hero-actions,.features-index-hero-actions,.features-final-actions) button{
+  box-sizing:border-box;
+  min-height:48px;
+  height:48px;
+  min-width:132px;
+  padding:0 22px;
+  justify-content:center;
+  border-radius:8px;
+  line-height:1;
+}
+
+@media(max-width:900px){
+  .features-module-hero-copy{padding-bottom:0}
+  .feature-hero-pills{margin-bottom:32px}
 }
 @media (prefers-reduced-motion:reduce){
   .feature-hero-card{animation:none!important}

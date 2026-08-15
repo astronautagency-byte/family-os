@@ -1,4 +1,4 @@
-import { FEATURES, MARKETING_FEATURES } from "../data/featureData";
+import { MARKETING_FEATURES } from "../data/featureData";
 
 /* ── MarketingFooter ──────────────────────────────────────────────────────
  * Single canonical footer for every public marketing surface: Landing,
@@ -11,9 +11,8 @@ import { FEATURES, MARKETING_FEATURES } from "../data/featureData";
  * Styled by the existing .features-footer rules in src/feature.css — dark
  * surface, 4-column grid, bottom row with copyright + secondary nav. ─── */
 const MarketingFooter = ({ signedIn = false }) => {
-  // Only surface the six marketing modules in the footer columns; the
-  // remaining FEATURES entries are internal deep-link targets and
-  // shouldn't appear here. Split them into two roughly equal columns so
+  // Surface the current marketing products in the footer columns; supporting
+  // catalog entries remain available as deep links. Split the list evenly so
   // neither column runs off the page on tablet widths.
   const half = Math.ceil(MARKETING_FEATURES.length / 2);
   const featuresCol = MARKETING_FEATURES.slice(0, half);

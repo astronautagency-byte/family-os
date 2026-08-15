@@ -1,7 +1,7 @@
--- Broadcast messages: a household message pinned to every member's home screen.
+-- Broadcast messages: a household announcement shown on recipients' home screens.
 -- A broadcast is a normal household message (recipient_id null) with broadcast=true.
--- It stays on the Today screen for everyone until a family member clears it,
--- which flips broadcast back to false (the message remains in chat history).
+-- The application always excludes these records from chat. Each recipient dismisses
+-- the home-screen banner independently; the broadcast flag is never cleared.
 
 alter table public.messages
   add column if not exists broadcast boolean not null default false;

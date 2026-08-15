@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Camera, Pencil, Plus, ReceiptText, Sparkles, Trash2, TrendingDown, Upload, WalletCards } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import PageHeader from "../components/PageHeader";
-import { Card, DateField, EmptyState, Modal, PrimaryButton, TextField } from "../components/ui";
+import { Card, DateField, EmptyState, Modal, PrimaryButton, ProgressBar, SegmentedControl, TextField } from "../components/ui";
 import { todayISO } from "../lib/dates";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 
@@ -217,14 +217,10 @@ export default function Finance() {
   const canSubmit = draft.description.trim() && Number(draft.amount) > 0;
 
   return (
-    <div className="pb-24 famos-noscroll">
+    <div className="pb-24 famos-noscroll reference-finance">
       <PageHeader eyebrow={range.label} title="Money without the mystery." illustration="finance" subtitle={`A calmer look at real dollars this ${financePeriod === "monthly" ? "month" : "week"}.`} />
       <div className="px-5 mt-2 space-y-5">
-        <div className="grid grid-cols-2 gap-1 rounded-xl bg-[var(--color-surface-sunken)] border border-[var(--color-border)] p-1">
-          {["weekly", "monthly"].map((period) => (
-            <button key={period} onClick={() => setFinancePeriod(period)} className="rounded-lg py-2 text-[12.5px] font-semibold capitalize transition-colors" style={{ backgroundColor: financePeriod === period ? "white" : "transparent", color: financePeriod === period ? "var(--color-accent-strong)" : "var(--color-ink-soft)", boxShadow: financePeriod === period ? "0 1px 3px rgba(25,25,25,.08)" : "none" }}>{period}</button>
-          ))}
-        </div>
+        <SegmentedControl options={[{ value: "weekly", label: "Weekly" }, { value: "monthly", label: "Monthly" }]} value={financePeriod} onChange={setFinancePeriod} label="Budget period" />
 
         <Card className="p-4">
           <div className="flex items-start justify-between gap-4">
@@ -236,7 +232,7 @@ export default function Finance() {
           </div>
           {activeBudget > 0 ? (
             <>
-              <div className="h-2 rounded-full bg-[var(--color-surface-sunken)] overflow-hidden mt-4"><div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, backgroundColor: remaining < 0 ? "var(--color-warn)" : "var(--color-accent)" }} /></div>
+              <ProgressBar className="mt-4" value={Math.min(spent, activeBudget)} max={activeBudget} color={remaining < 0 ? "var(--color-warn)" : "var(--color-accent)"} />
               <div className="flex justify-between mt-2 text-[12px]"><span className={remaining < 0 ? "text-[var(--color-warn)] font-medium" : "text-[var(--color-good)] font-medium"}>{remaining < 0 ? `${money.format(Math.abs(remaining))} over budget` : `${money.format(remaining)} remaining`}</span><span className="text-[var(--color-ink-faint)]">{money.format(activeBudget)} budget</span></div>
             </>
           ) : (
@@ -261,7 +257,7 @@ export default function Finance() {
             <Card className="p-4 space-y-3">{byCategory.map((category) => (
               <div key={category.id}>
                 <div className="flex justify-between text-[12.5px] mb-1.5"><span className="flex items-center gap-2 font-medium"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: category.color }} />{category.id}</span><span>{money.format(category.total)}</span></div>
-                <div className="h-1.5 rounded-full bg-[var(--color-surface-sunken)] overflow-hidden"><div className="h-full rounded-full" style={{ width: `${(category.total / spent) * 100}%`, backgroundColor: category.color }} /></div>
+                <ProgressBar value={category.total} max={spent || 1} color={category.color} size="sm" />
               </div>
             ))}</Card>
           </section>
@@ -273,7 +269,7 @@ export default function Finance() {
             <span className="text-[12px] text-[var(--color-ink-faint)]">{periodExpenses.length} logged</span>
           </div>
           <Card className="p-1">
-            {periodExpenses.length === 0 ? <EmptyState icon={<WalletCards size={25} />} title={`No expenses this ${financePeriod === "monthly" ? "month" : "week"}`} subtitle="Connect real spending later, or log the occasional purchase for now." /> : (
+            {periodExpenses.length === 0 ? <EmptyState icon={<WalletCards size={25} />} title={`No expenses this ${financePeriod === "monthly" ? "month" : "week"}`} subtitle="Either wonderfully thrifty or nobody has logged the snack run yet." /> : (
               <ul>{periodExpenses.map((expense) => {
                 const category = CATEGORIES.find((item) => item.id === expense.category) || CATEGORIES.at(-1);
                 return (

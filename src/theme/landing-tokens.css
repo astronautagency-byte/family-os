@@ -35,6 +35,14 @@
   --landing-color-gray-muted: #6D6874;    /* 3 sites; muted gray text on light surfaces */
   --landing-color-sage-solid: #397B66;    /* 3 sites; deeper sage green accent */
 
+  /* ── Marketing component system (Untitled anatomy, FamOS colour) ── */
+  --landing-control-radius: 8px;
+  --landing-card-radius: 12px;
+  --landing-control-height: 44px;
+  --landing-border: #E4E0EC;
+  --landing-shadow-xs: 0 1px 2px rgba(28, 24, 48, .06);
+  --landing-shadow-sm: 0 2px 8px rgba(42, 34, 65, .08);
+
   /* ── Radii (landing-specific) ────────────────────────────────── */
   --landing-radius-stage: 28px;          /* .stage-panel, .landing-ai-art */
   --landing-radius-preview: 26px;       /* .auth-preview, product preview card */

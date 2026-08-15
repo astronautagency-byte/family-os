@@ -15,6 +15,7 @@ import InstallPrompt from "./components/InstallPrompt";
 import { useAuth } from "./context/AuthContext";
 import { AuthLoading, HouseholdOnboarding, ResetPassword, SignIn } from "./pages/Auth";
 import { supabase } from "./lib/supabase";
+import { classifySharedContent, SHARED_RECIPE_KEY, sharedRecipeTitle } from "./lib/sharedContent";
 
 // Route/page-level code splitting: each page is its own chunk, so the initial
 // bundle isn't the whole app. Signed-out visitors load only Landing; signed-in
@@ -76,6 +77,7 @@ export default function App() {
   });
   const [route, setRoute] = useState(routeFromLocation);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("familyos:theme") === "dark");
+  const [colorScheme, setColorScheme] = useState(() => localStorage.getItem("familyos:color-scheme") || "famos");
   // Fam AI is now a global overlay accessible from every page via the top bar
   // Sparkles button (no more floating FAB). The boolean below drives the
   // controlled-mode `open` prop on <FamAI />.
@@ -122,6 +124,9 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("familyos:theme", darkMode ? "dark" : "light");
   }, [darkMode]);
+  useEffect(() => {
+    localStorage.setItem("familyos:color-scheme", colorScheme);
+  }, [colorScheme]);
   useEffect(() => {
     localStorage.setItem("familyos:tablet-mode", String(tabletMode));
     document.documentElement.dataset.tabletMode = effectiveTabletMode ? "true" : "false";
@@ -208,18 +213,23 @@ export default function App() {
     const taskId = params.get("task");
     const eventId = params.get("event");
     const listId = params.get("list");
+    const sharedTitle = params.get("shared_title");
     const sharedText = params.get("shared_text");
     const sharedUrl = params.get("shared_url");
-    if (!cookId && !taskId && !eventId && !listId && !sharedText && !sharedUrl) return;
+    if (!cookId && !taskId && !eventId && !listId && !sharedTitle && !sharedText && !sharedUrl) return;
     try {
       if (cookId && typeof window !== "undefined") {
         window.sessionStorage.setItem(COOK_INTENT_KEY, cookId);
+      }
+      if ((sharedTitle || sharedText || sharedUrl) && classifySharedContent({ title: sharedTitle, text: sharedText, url: sharedUrl }) === "recipe") {
+        window.sessionStorage.setItem(SHARED_RECIPE_KEY, JSON.stringify({ title: sharedRecipeTitle({ title: sharedTitle, text: sharedText, url: sharedUrl }), text: sharedText || "", url: sharedUrl || "" }));
       }
     } catch { /* private mode */ }
     if (cookId) setTab("meals");
     else if (taskId) setTab("tasks");
     else if (eventId) setTab("calendar");
-    else if (listId || sharedText || sharedUrl) setTab("groceries");
+    else if ((sharedTitle || sharedText || sharedUrl) && classifySharedContent({ title: sharedTitle, text: sharedText, url: sharedUrl }) === "recipe") setTab("meals");
+    else if (listId || sharedTitle || sharedText || sharedUrl) setTab("groceries");
     const cleanUrl = window.location.pathname + window.location.hash;
     window.history.replaceState({}, "", cleanUrl);
   }, [session]);
@@ -234,7 +244,7 @@ export default function App() {
   if (configured && !session && publicRoute === "signin") return <SignIn key="signin" initialCreating={false} />;
   if (configured && !session && publicRoute === "signup") return <SignIn key="signup" initialCreating />;
   if (configured && !session) return <Suspense fallback={<PageFallback />}><Landing /></Suspense>;
-  if (configured && (!household || onboardingRequired)) return <HouseholdOnboarding />;
+  if (configured && (!household || onboardingRequired)) return <HouseholdOnboarding colorScheme={colorScheme} onColorSchemeChange={setColorScheme} />;
   if (["suspended", "disabled"].includes(runtimeConfig.status)) return (
     <main className="admin-denied">
       <ShieldCheck />
@@ -246,7 +256,7 @@ export default function App() {
 
   return (
     <FamilyProvider tabletMode={effectiveTabletMode}>
-      <div className={`app-shell ${darkMode ? "theme-dark" : ""} ${effectiveTabletMode ? "tablet-mode" : ""}`} ref={shellRef}>
+      <div className={`app-shell ${darkMode ? "theme-dark" : ""} ${effectiveTabletMode ? "tablet-mode" : ""}`} data-color-scheme={colorScheme} ref={shellRef}>
         <BottomNav active={tab} onChange={setTab} features={runtimeConfig.features} tabletMode={effectiveTabletMode} />
         <main className="app-content">
           <AppTopBar
@@ -266,7 +276,7 @@ export default function App() {
             {tab === "groceries" && <Groceries />}
             {tab === "tasks" && <Tasks />}
             {tab === "chat" && <Chat />}
-            {tab === "settings" && <Settings />}
+            {tab === "settings" && <Settings colorScheme={colorScheme} onColorSchemeChange={setColorScheme} />}
           </Suspense>
         </main>
         {/* Fam AI is now a global overlay controlled by the AppTopBar Sparkles

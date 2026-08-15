@@ -215,11 +215,11 @@ export default function Chat() {
   };
 
   return (
-    <PullToRefresh onRefresh={refreshData}><div className="h-screen pb-20 flex flex-col famos-noscroll">
-      <PageHeader eyebrow="Private conversations" title="Chat, minus the chaos." illustration="chat" subtitle="Quick decisions, saved from the scroll." />
+    <PullToRefresh onRefresh={refreshData}><div className="h-screen pb-20 flex flex-col famos-noscroll reference-chat">
+      <PageHeader eyebrow="Private conversations" title="Chat, minus the chaos." illustration="chat" subtitle="Fewer message archaeology expeditions. More actual answers." />
 
       <div className="px-5 mt-1 mb-2 flex gap-2 overflow-x-auto pb-1">
-        <button onClick={() => { setActiveThread("household"); setSendError(""); }} className="shrink-0 flex items-center gap-2 rounded-full border pl-2 pr-3 py-1.5 transition-colors" style={{ borderColor: activeThread === "household" ? "var(--color-accent)" : "var(--color-border)", backgroundColor: activeThread === "household" ? "var(--color-accent-soft)" : "var(--color-surface)", color: activeThread === "household" ? "var(--color-accent-strong)" : "var(--color-ink-soft)" }}><span className="w-7 h-7 rounded-full bg-[var(--pastel-mint)] grid place-items-center"><UsersRound size={14} /></span><span className="text-[12.5px] font-semibold">Everyone</span></button>
+        <button onClick={() => { setActiveThread("household"); setSendError(""); }} className="shrink-0 flex items-center gap-2 rounded-full border pl-2 pr-3 py-1.5 transition-colors" style={{ borderColor: activeThread === "household" ? "var(--color-chat)" : "var(--color-border)", backgroundColor: activeThread === "household" ? "var(--color-chat-soft)" : "var(--color-surface)", color: activeThread === "household" ? "var(--color-chat-strong)" : "var(--color-ink-soft)" }}><span className="w-7 h-7 rounded-full bg-[var(--pastel-mint)] grid place-items-center"><UsersRound size={14} /></span><span className="text-[12.5px] font-semibold">Everyone</span></button>
         {!tabletMode&&chatMembers.map((member) => {
           const active = member.id === activeThread;
           return <button key={member.id} onClick={() => { setActiveThread(member.id); setSendError(""); }} className="shrink-0 flex items-center gap-2 rounded-full border pl-1.5 pr-3 py-1.5 transition-colors" style={{ borderColor: active ? "var(--color-accent)" : "var(--color-border)", backgroundColor: active ? "var(--color-accent-soft)" : "var(--color-surface)", color: active ? "var(--color-accent-strong)" : "var(--color-ink-soft)" }}><Avatar member={member} size="sm" /><span className="text-[12.5px] font-semibold">{member.name}</span></button>;
@@ -252,11 +252,11 @@ export default function Chat() {
               {!mine && sender && <Avatar member={sender} size="sm" />}
               <div className={`max-w-[78%] ${mine ? "items-end" : "items-start"} flex flex-col`}>
                 <div
-                  className="px-3.5 py-2.5 text-[14px] leading-relaxed"
+                  className={`chat-message-bubble ${mine ? "mine" : "theirs"} px-3.5 py-2.5 text-[14px] leading-relaxed`}
                   style={{
                     borderRadius: mine ? "18px 18px 5px 18px" : "18px 18px 18px 5px",
                     background: mine ? "var(--color-accent)" : "var(--color-surface)",
-                    color: mine ? "white" : "var(--color-ink)",
+                    color: mine ? "var(--color-on-accent)" : "var(--color-ink)",
                     border: mine ? "none" : "1px solid var(--color-border)",
                   }}
                 >
@@ -278,7 +278,7 @@ export default function Chat() {
             </div>
           );
         })}
-        {threadMessages.length === 0 && <div className="h-full min-h-40 flex flex-col items-center justify-center text-center px-8">{activeMember ? <Avatar member={activeMember} size="lg" /> : <span className="w-14 h-14 rounded-full bg-[var(--pastel-mint)] grid place-items-center text-[var(--color-ink)"><UsersRound size={24} /></span>}<p className="text-[14px] font-medium mt-3">{activeMember ? `Say hi to ${activeMember.name}` : "Start the household chat"}</p><p className="text-[12px] text-[var(--color-ink-faint)] mt-1">Messages stay inside your shared home space.</p></div>}
+        {threadMessages.length === 0 && <div className="h-full min-h-40 flex flex-col items-center justify-center text-center px-8">{activeMember ? <Avatar member={activeMember} size="lg" /> : <span className="w-14 h-14 rounded-full bg-[var(--pastel-mint)] grid place-items-center text-[var(--color-ink)"><UsersRound size={24} /></span>}<p className="text-[14px] font-medium mt-3">{activeMember ? `Say hi to ${activeMember.name}` : "The family chat is suspiciously quiet"}</p><p className="text-[12px] text-[var(--color-ink-faint)] mt-1">Messages stay private to your household. Start the plot.</p></div>}
         <div ref={endRef} />
       </div>
 

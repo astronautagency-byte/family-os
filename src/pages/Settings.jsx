@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, Bell, Bot, Bug, CalendarDays, CheckCircle2, ChevronRight, Clipboard, Eye, EyeOff, ExternalLink, ImagePlus, Info, Link2, Mail, MapPin, Megaphone, Pencil, Phone, Plus, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Ticket, Trash2, Upload, Users, Utensils } from "lucide-react";
+import { AlertCircle, Bell, Bot, Bug, CalendarDays, Check, CheckCircle2, ChevronRight, Clipboard, Eye, EyeOff, ExternalLink, ImagePlus, Info, Lightbulb, Link2, Mail, MapPin, Megaphone, Palette, Pencil, Phone, Plus, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Ticket, Trash2, Upload, Users, Utensils } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
-import { Avatar, Card, Modal, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
+import { Alert, Avatar, Card, Modal, PrimaryButton, SecondaryButton, TextAreaField, TextField } from "../components/ui";
 import ConfirmAction from "../components/ConfirmAction";
 import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
 import PageHeader from "../components/PageHeader";
@@ -14,6 +14,8 @@ import { PRICING_PLAN, formatMoney } from "../data/pricingPlan";
 import { supabase } from "../lib/supabase";
 import AddressAutocomplete from "../components/AddressAutocomplete";
 import { formatPhoneInput, isValidPhoneNumber, normalizePhoneE164 } from "../utils/phone";
+import { parseTaskImportText } from "../utils/appleTaskImport";
+import { APP_COLOR_SCHEMES } from "../data/appColorSchemes";
 
 const HOUSEHOLD_DIETARY_OPTIONS = ["Vegetarian", "Vegan", "Gluten-free", "Dairy-free", "Nut-free", "Shellfish-free", "Low sugar"];
 
@@ -56,12 +58,13 @@ function resizeAvatarImage(file) {
 function GoogleCalendarCard() {
   const {
     googleClientId, setGoogleClientId,
-    googleConnected, googleStatus, googleError, googleLastSynced, googleEvents, googleCalendars, selectedGoogleCalendarIds, sharedGoogleCalendarIds,
+    googleConnected, googleStatus, googleError, googleLastSynced, googleEvents, googleCalendars, selectedGoogleCalendarIds, sharedGoogleCalendarIds, calendarFeeds,
     googleUsesAccount,
     connectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, toggleGoogleCalendar, toggleGoogleCalendarSharing,
   } = useFamily();
   const [showSetup, setShowSetup] = useState(!googleClientId);
   const isBusy = googleStatus === "connecting" || googleStatus === "syncing";
+  const connectedCount = selectedGoogleCalendarIds.length + calendarFeeds.length;
 
   return (
     <Card className="p-4">
@@ -91,15 +94,15 @@ function GoogleCalendarCard() {
 
       {googleConnected && googleCalendars.length > 0 && (
         <div className="google-calendar-picker">
-          <div><strong>Your Google calendars</strong><span>{selectedGoogleCalendarIds.length} connected</span></div>
-          <p className="google-calendar-help">Connect as many calendars as you need, then choose which ones the household can see.</p>
+          <div><strong>Connected calendars</strong><span>{connectedCount} of 5 used</span></div>
+          <p className="google-calendar-help">Choose up to five calendars and decide whether each stays private or appears for your household.</p>
           <ul>
             {googleCalendars.map((calendar) => {
               const connected = selectedGoogleCalendarIds.includes(calendar.id);
               const shared = sharedGoogleCalendarIds.includes(calendar.id);
               return (
                 <li key={calendar.id} className={connected ? "is-connected" : ""}>
-                  <button className="google-calendar-main" onClick={() => toggleGoogleCalendar(calendar.id)} disabled={isBusy} aria-pressed={connected}>
+                  <button className="google-calendar-main" onClick={() => toggleGoogleCalendar(calendar.id)} disabled={isBusy || (!connected && connectedCount >= 5)} aria-pressed={connected}>
                     <i style={{ backgroundColor: calendar.backgroundColor }} />
                     <span>
                       <b>{calendar.summary}</b>
@@ -115,7 +118,7 @@ function GoogleCalendarCard() {
                     title={connected ? "Change household visibility" : "Connect this calendar first"}
                   >
                     {shared ? <Users size={15} /> : <EyeOff size={15} />}
-                    <span>{shared ? "Shared with household" : "Private to you"}</span>
+                    <span>{shared ? "Shared" : "Private"}</span>
                   </button>
                 </li>
               );
@@ -140,13 +143,20 @@ function GoogleCalendarCard() {
       )}
 
       {googleConnected ? (
-        <div className="flex gap-2">
+        <div className="grid gap-2 sm:grid-cols-2">
           <SecondaryButton onClick={disconnectGoogleCalendar} disabled={isBusy}>
             Disconnect
           </SecondaryButton>
           <PrimaryButton onClick={(googleStatus === "error" || googleStatus === "expired") ? connectGoogleCalendar : syncGoogleCalendarNow} disabled={isBusy}>
             {googleStatus === "syncing" ? "Syncing…" : (googleStatus === "error" || googleStatus === "expired") ? "Reconnect Google" : "Sync now"}
           </PrimaryButton>
+          <SecondaryButton
+            className="sm:col-span-2 flex items-center justify-center gap-2"
+            onClick={() => window.dispatchEvent(new CustomEvent("famos:add-calendar-feed", { detail: { provider: "google" } }))}
+            disabled={isBusy}
+          >
+            <Plus size={15} /> Add another Google account
+          </SecondaryButton>
         </div>
       ) : (
         <PrimaryButton onClick={connectGoogleCalendar} disabled={isBusy || (!googleUsesAccount && !googleClientId.trim())}>
@@ -166,7 +176,8 @@ function GoogleCalendarCard() {
 function CalendarFeedsCard() {
   const {
     calendarFeeds, calendarFeedStatus, calendarFeedError,
-    addCalendarFeed, importCalendarFile, syncCalendarFeed, removeCalendarFeed,
+    addCalendarFeed, importCalendarFile, syncCalendarFeed, removeCalendarFeed, toggleCalendarFeedSharing,
+    selectedGoogleCalendarIds,
   } = useFamily();
   const [adding, setAdding] = useState(false);
   const [provider, setProvider] = useState("apple");
@@ -175,6 +186,20 @@ function CalendarFeedsCard() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [fileBusy, setFileBusy] = useState(false);
   const busy = calendarFeedStatus === "syncing";
+  const connectedCount = selectedGoogleCalendarIds.length + calendarFeeds.length;
+  const atLimit = connectedCount >= 5;
+  const providerLabel = provider === "google" ? "Google account" : provider === "apple" ? "Apple / iCloud" : provider === "outlook" ? "Outlook / Microsoft 365" : provider === "school" ? "your school" : provider === "sports" ? "your team or league" : "Calendar";
+
+  useEffect(() => {
+    const openForProvider = (event) => {
+      setProvider(event.detail?.provider || "ical");
+      setAdding(true);
+      setShowAdvanced(true);
+      window.setTimeout(() => document.getElementById("additional-calendar-form")?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
+    };
+    window.addEventListener("famos:add-calendar-feed", openForProvider);
+    return () => window.removeEventListener("famos:add-calendar-feed", openForProvider);
+  }, []);
 
   const connect = async () => {
     if (!url.trim()) return;
@@ -205,14 +230,14 @@ function CalendarFeedsCard() {
   };
 
   return (
-    <Card className="p-4 mt-3">
+    <Card className="p-4 mt-3" id="additional-calendar-form">
       <div className="flex items-center gap-3 mb-3">
         <div className="w-10 h-10 rounded-lg bg-[var(--color-surface-sunken)] border border-[var(--color-border)] flex items-center justify-center shrink-0">
           <Link2 size={18} color="var(--color-ink)" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-medium text-[14.5px] text-[var(--color-ink)]">Apple, Outlook & iCal</p>
-          <p className="text-[12.5px] text-[var(--color-ink-soft)]">Sync read-only published calendar feeds</p>
+          <p className="font-medium text-[14.5px] text-[var(--color-ink)]">Additional calendars</p>
+          <p className="text-[12.5px] text-[var(--color-ink-soft)]">Google, Apple, Outlook, school and sports · {connectedCount}/5 connected</p>
         </div>
         {calendarFeeds.length > 0 && <CheckCircle2 size={18} color="var(--color-good)" />}
       </div>
@@ -226,6 +251,10 @@ function CalendarFeedsCard() {
                 <p className="text-[13.5px] font-medium truncate">{feed.name}</p>
                 <p className="text-[11px] text-[var(--color-ink-faint)]">{feed.source === "file" ? `Imported from ${feed.fileName || "calendar file"}` : feed.lastSynced ? `Synced ${new Date(feed.lastSynced).toLocaleString()}` : "Not synced yet"}</p>
               </div>
+              <button className={`google-calendar-visibility ${feed.sharedWithHousehold ? "is-shared" : ""}`} onClick={() => toggleCalendarFeedSharing(feed.id)} aria-pressed={Boolean(feed.sharedWithHousehold)} title="Change household visibility">
+                {feed.sharedWithHousehold ? <Users size={15} /> : <EyeOff size={15} />}
+                <span>{feed.sharedWithHousehold ? "Shared" : "Private"}</span>
+              </button>
               {feed.source !== "file" && <button disabled={busy} onClick={() => syncCalendarFeed(feed.id)} className="p-2 text-[var(--color-accent)] disabled:opacity-40" aria-label={`Sync ${feed.name}`}><RefreshCw size={15} className={busy ? "animate-spin" : ""} /></button>}
               <button disabled={busy} onClick={() => removeCalendarFeed(feed.id)} className="p-2 text-[var(--color-ink-faint)] disabled:opacity-40" aria-label={`Remove ${feed.name}`}><Trash2 size={15} /></button>
             </li>
@@ -240,28 +269,110 @@ function CalendarFeedsCard() {
         </div>
       )}
 
+      {atLimit && !adding && <p className="calendar-limit-note"><CheckCircle2 size={15}/>Five calendars connected. Remove one to add another.</p>}
+
       {adding ? (
         <div>
           <label className="block text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-1.5">Calendar type</label>
           <select value={provider} onChange={(event) => setProvider(event.target.value)} className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 text-[14px] mb-3">
             <option value="apple">Apple / iCloud</option>
+            <option value="google">Another Google account</option>
             <option value="outlook">Outlook / Microsoft 365</option>
+            <option value="school">School calendar subscription</option>
+            <option value="sports">Sports / team calendar subscription</option>
             <option value="ical">Other iCal feed</option>
           </select>
-          <TextField label="Calendar name (optional)" placeholder="e.g. Kat's work calendar" value={name} onChange={(event) => setName(event.target.value)} />
-          <label className="calendar-file-import"><input type="file" accept=".ics,text/calendar" onChange={importFile} disabled={fileBusy}/><Upload/><strong>{fileBusy ? "Importing…" : "Choose calendar export"}</strong><span>Select an .ics file from Apple Calendar, Outlook, or another calendar app.</span></label>
-          <button className="advanced-calendar-toggle" onClick={() => setShowAdvanced((value) => !value)}>{showAdvanced ? "Hide advanced sync" : "Advanced: sync with a subscription link"}</button>
-          {showAdvanced && <div className="advanced-calendar-fields"><TextField label="Published calendar URL" placeholder="https://…/calendar.ics or webcal://…" value={url} onChange={(event) => setUrl(event.target.value)} inputMode="url" /><p>Use this only if your calendar provider gives you a published or subscription link.</p><PrimaryButton disabled={busy || !url.trim()} onClick={connect}>{busy ? "Connecting…" : "Connect synced feed"}</PrimaryButton></div>}
+          <TextField label="Calendar name (optional)" placeholder={provider === "google" ? "e.g. Alex's work Google Calendar" : "e.g. Kat's work calendar"} value={name} onChange={(event) => setName(event.target.value)} />
+          {provider !== "google" && <label className="calendar-file-import"><input type="file" accept=".ics,text/calendar" onChange={importFile} disabled={fileBusy}/><Upload/><strong>{fileBusy ? "Importing…" : "Choose calendar export"}</strong><span>Select an .ics file from Apple Calendar, Outlook, or another calendar app.</span></label>}
+          {provider === "google" && (
+            <div className="additional-google-help">
+              <div><ShieldCheck size={17} /><p><strong>Private, read-only connection</strong><span>In that Google account, open Calendar settings → select a calendar → Integrate calendar → copy the Secret address in iCal format.</span></p></div>
+              <p>Anyone with this secret link can read that calendar. FamOS stores it in this browser; remove the connection here or reset the secret in Google at any time.</p>
+            </div>
+          )}
+          {provider !== "google" && <button className="advanced-calendar-toggle" onClick={() => setShowAdvanced((value) => !value)}>{showAdvanced ? "Hide subscription link" : "Sync with a subscription link"}</button>}
+          {(showAdvanced || provider === "google") && <div className="advanced-calendar-fields"><TextField label={provider === "google" ? "Secret iCal address" : "Published calendar URL"} placeholder="https://…/calendar.ics or webcal://…" value={url} onChange={(event) => setUrl(event.target.value)} inputMode="url" /><p>{provider === "google" ? "This adds a calendar from another Google account without replacing your primary Google connection." : `Paste the subscription link provided by ${providerLabel}.`}</p><PrimaryButton disabled={busy || !url.trim()} onClick={connect}>{busy ? "Connecting…" : provider === "google" ? "Add Google calendar" : "Connect synced feed"}</PrimaryButton></div>}
           <SecondaryButton disabled={busy || fileBusy} onClick={() => setAdding(false)}>Cancel</SecondaryButton>
         </div>
       ) : (
-        <SecondaryButton onClick={() => setAdding(true)} className="flex items-center justify-center gap-2"><Plus size={15} /> Add calendar feed</SecondaryButton>
+        <SecondaryButton disabled={atLimit} onClick={() => setAdding(true)} className="flex items-center justify-center gap-2"><Plus size={15} /> {atLimit ? "5 calendar limit reached" : "Add calendar or account"}</SecondaryButton>
       )}
     </Card>
   );
 }
 
-export default function Settings() {
+const TASK_IMPORT_SOURCES = {
+  apple: { label: "Apple", name: "Imported from Apple", help: "Copy items from Notes or Reminders, or upload a TXT/CSV export." },
+  google: { label: "Google Tasks", name: "Imported from Google Tasks", help: "Paste task titles or upload the TXT/CSV file you exported from Google." },
+  microsoft: { label: "Microsoft To Do", name: "Imported from Microsoft To Do", help: "Paste task titles or upload a TXT/CSV export from Microsoft To Do." },
+};
+
+function TaskImportCard() {
+  const { taskLists, addTask, addTaskList } = useFamily();
+  const [sourceText, setSourceText] = useState("");
+  const [items, setItems] = useState([]);
+  const [selected, setSelected] = useState([]);
+  const [targetListId, setTargetListId] = useState("");
+  const [status, setStatus] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [source, setSource] = useState("apple");
+  const sourceMeta = TASK_IMPORT_SOURCES[source];
+
+  const review = () => {
+    const parsed = parseTaskImportText(sourceText);
+    setItems(parsed);
+    setSelected(parsed.map((_, index) => index));
+    setStatus(parsed.length ? "Review what will be added. Nothing imports until you confirm." : "We couldn't find any list items yet.");
+  };
+
+  const readFile = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    setSourceText(text);
+    const parsed = parseTaskImportText(text);
+    setItems(parsed);
+    setSelected(parsed.map((_, index) => index));
+    setStatus(parsed.length ? `Found ${parsed.length} item${parsed.length === 1 ? "" : "s"}. Review them below.` : "We couldn't find any list items in that file.");
+    event.target.value = "";
+  };
+
+  const importItems = async () => {
+    const approved = items.filter((_, index) => selected.includes(index));
+    if (!approved.length) return;
+    setBusy(true);
+    setStatus("");
+    try {
+      let listId = targetListId;
+      if (!listId) listId = (await addTaskList({ name: sourceMeta.name, color: "#7F56D9" }))?.id || "";
+      for (const title of approved) await addTask({ title, listId: listId || null, taskType: "home" });
+      setSourceText("");
+      setItems([]);
+      setSelected([]);
+      setTargetListId(listId);
+      setStatus(`${approved.length} item${approved.length === 1 ? "" : "s"} added to Tasks.`);
+    } catch (error) {
+      setStatus(error?.message || "Those items could not be imported.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card className="apple-import-card">
+      <div className="apple-import-head"><span><Clipboard size={18}/></span><div><strong>Import tasks & lists</strong><small>Bring existing tasks into FamOS without connecting your whole account.</small></div></div>
+      <div className="task-import-source" role="group" aria-label="Import source">{Object.entries(TASK_IMPORT_SOURCES).map(([id, meta]) => <button type="button" key={id} className={source === id ? "is-selected" : ""} aria-pressed={source === id} onClick={() => setSource(id)}>{meta.label}</button>)}</div>
+      <ol className="apple-import-steps"><li>{sourceMeta.help}</li><li>Choose the destination list and review every item.</li><li>Confirm the import—FamOS never adds items automatically.</li></ol>
+      <textarea value={sourceText} onChange={(event) => setSourceText(event.target.value)} placeholder={'Paste a list here…\nPick up prescriptions\nBook the dentist\nReturn library books'} aria-label={`${sourceMeta.label} task list`} />
+      <div className="apple-import-actions"><label><Upload size={15}/><span>Choose file</span><input type="file" accept=".txt,.csv,text/plain,text/csv" onChange={readFile}/></label><SecondaryButton disabled={!sourceText.trim()} onClick={review}>Review items</SecondaryButton></div>
+      {items.length > 0 && <div className="apple-import-review"><div><strong>{selected.length} of {items.length} selected</strong><select value={targetListId} onChange={(event) => setTargetListId(event.target.value)} aria-label="Destination task list"><option value="">New “{sourceMeta.name}” list</option>{taskLists.map((list) => <option value={list.id} key={list.id}>{list.name}</option>)}</select></div><ul>{items.map((item, index) => <li key={`${item}-${index}`}><label><input type="checkbox" checked={selected.includes(index)} onChange={() => setSelected((current) => current.includes(index) ? current.filter((value) => value !== index) : [...current, index])}/><span>{item}</span></label></li>)}</ul><PrimaryButton disabled={busy || !selected.length} onClick={importItems}>{busy ? "Importing…" : `Import ${selected.length} to Tasks`}</PrimaryButton></div>}
+      {status && <p className="apple-import-status" role="status">{status}</p>}
+      <p className="apple-import-privacy"><ShieldCheck size={14}/>FamOS only reads the text or file you choose. Nothing is imported before review.</p>
+    </Card>
+  );
+}
+
+export default function Settings({ colorScheme = "famos", onColorSchemeChange = () => {} }) {
   const { members, addMember, updateMember, removeMember, resetToDemoData, notificationPermission, requestNotifications, sendTestNotification, refreshData } = useFamily();
   const { configured, user, household, householdProfileExtra, memberProfile, updateHouseholdSettings, updateHouseholdProfile, invitePartner, updatePassword, signOut, deleteAccount } = useAuth();
   const [editingMember, setEditingMember] = useState(null); // member object or "new"
@@ -294,7 +405,7 @@ export default function Settings() {
   const [deleting, setDeleting] = useState(false);
   const [notificationTestStatus, setNotificationTestStatus] = useState("");
   const [testingNotification, setTestingNotification] = useState(false);
-  const [supportForm, setSupportForm] = useState(null); // null | "email" | "bug" | "ticket"
+  const [supportForm, setSupportForm] = useState(null); // null | "email" | "bug" | "ticket" | "feature"
   const [supportSubject, setSupportSubject] = useState("");
   const [supportMessage, setSupportMessage] = useState("");
   const [supportEmail, setSupportEmail] = useState(user?.email || "");
@@ -302,6 +413,7 @@ export default function Settings() {
   const [supportSteps, setSupportSteps] = useState("");
   const [supportSending, setSupportSending] = useState(false);
   const [supportSent, setSupportSent] = useState(false);
+  const [supportError, setSupportError] = useState("");
   const [editingHousehold, setEditingHousehold] = useState(false);
   const [householdName, setHouseholdName] = useState("");
   const [householdCity, setHouseholdCity] = useState("");
@@ -641,6 +753,19 @@ export default function Settings() {
 
       <div className="px-5 space-y-6 mt-2">
         <section>
+          <div className="flex items-end justify-between mb-3"><h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)]">Appearance</h2></div>
+          <Card className="settings-color-scheme-card">
+            <div className="settings-color-scheme-head"><span><Palette size={18}/></span><div><strong>App colour</strong><small>Pick a palette that feels like home. Every option is tuned for light and dark mode.</small></div></div>
+            <div className="settings-color-schemes" role="radiogroup" aria-label="App colour scheme">
+              {APP_COLOR_SCHEMES.map((scheme) => {
+                const selected = colorScheme === scheme.id;
+                return <button key={scheme.id} type="button" role="radio" aria-checked={selected} className={selected ? "selected" : ""} onClick={() => onColorSchemeChange(scheme.id)}><span className="scheme-swatches" aria-hidden="true">{scheme.colors.map((color) => <i key={color} style={{ backgroundColor: color }}/>)}</span><span><strong>{scheme.label}</strong><small>{scheme.note}</small></span><em>{selected ? <Check size={14}/> : null}</em></button>;
+              })}
+            </div>
+          </Card>
+        </section>
+
+        <section>
           <div className="flex items-end justify-between mb-3">
             <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)]">Home space</h2>
           </div>
@@ -837,6 +962,7 @@ export default function Settings() {
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">Integrations</h2>
           <GoogleCalendarCard />
           <CalendarFeedsCard />
+          <TaskImportCard />
         </section>
 
         <section>
@@ -918,6 +1044,19 @@ export default function Settings() {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-[14px] text-[var(--color-ink)]">Email us</p>
                   <p className="text-[12px] text-[var(--color-ink-soft)]">Send us a message and we'll get back to you</p>
+                </div>
+                <ChevronRight size={16} color="var(--color-ink-faint)" />
+              </button>
+              <button
+                onClick={() => { setSupportSubject(""); setSupportMessage(""); setSupportError(""); setSupportSent(false); setSupportForm("feature"); }}
+                className="flex items-center gap-3 rounded-xl w-full px-3 py-3 hover:bg-[var(--color-surface-sunken)] transition-colors -mx-1 text-left"
+              >
+                <span className="w-10 h-10 rounded-xl bg-[var(--color-meals-soft)] flex items-center justify-center shrink-0">
+                  <Lightbulb size={18} color="var(--color-meals-strong)" />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-[14px] text-[var(--color-ink)]">Suggest a feature</p>
+                  <p className="text-[12px] text-[var(--color-ink-soft)]">Share an idea that could make family life easier</p>
                 </div>
                 <ChevronRight size={16} color="var(--color-ink-faint)" />
               </button>
@@ -1216,6 +1355,40 @@ export default function Settings() {
           >
             {supportSending ? "Sending…" : "Send message"}
           </PrimaryButton>
+        </div>
+      </Modal>
+
+      {/* ── Support: Suggest a feature ── */}
+      <Modal open={supportForm === "feature"} onClose={() => { if (!supportSending) setSupportForm(null); }} title="Suggest a feature">
+        <div className="w-11 h-11 rounded-xl bg-[var(--color-meals-soft)] flex items-center justify-center mb-4"><Lightbulb size={19} color="var(--color-meals-strong)" /></div>
+        <p className="text-[13px] text-[var(--color-ink-soft)] leading-relaxed mb-4">Got a “wouldn’t it be nice if…” moment? Send it straight to the FamOS product team.</p>
+        <TextField label="Feature idea" value={supportSubject} onChange={(event) => setSupportSubject(event.target.value)} placeholder="e.g. Shared school pickup rotation" maxLength={120} />
+        <TextAreaField label="How would this help your family?" value={supportMessage} onChange={(event) => setSupportMessage(event.target.value)} placeholder="Tell us what you want to do and what feels difficult today…" rows={5} maxLength={2000} />
+        {supportError && <Alert tone="error" className="mb-4">{supportError}</Alert>}
+        {supportSent && <Alert tone="success" className="mb-4" title="Idea sent">Thanks—your suggestion is now in the admin product inbox.</Alert>}
+        <div className="flex gap-2">
+          <SecondaryButton disabled={supportSending} onClick={() => setSupportForm(null)}>{supportSent ? "Close" : "Cancel"}</SecondaryButton>
+          {!supportSent && <PrimaryButton disabled={supportSending || !supportSubject.trim() || !supportMessage.trim()} onClick={async () => {
+            setSupportSending(true);
+            setSupportError("");
+            try {
+              const { error } = await supabase.functions.invoke("send-support-message", { body: {
+                category: "feature",
+                subject: supportSubject.trim(),
+                message: supportMessage.trim(),
+                senderEmail: user?.email || "",
+                userId: user?.id || null,
+                householdId: household?.id || null,
+                householdName: household?.name || "",
+              } });
+              if (error) throw error;
+              setSupportSent(true);
+            } catch (error) {
+              setSupportError(error?.message || "Could not send your suggestion. Please try again.");
+            } finally {
+              setSupportSending(false);
+            }
+          }}>{supportSending ? "Sending…" : "Send idea"}</PrimaryButton>}
         </div>
       </Modal>
 

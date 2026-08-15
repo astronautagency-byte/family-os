@@ -50,6 +50,12 @@ export default defineConfig({
         orientation: 'portrait',
         start_url: '/',
         scope: '/',
+        share_target: {
+          action: '/',
+          method: 'GET',
+          enctype: 'application/x-www-form-urlencoded',
+          params: { title: 'shared_title', text: 'shared_text', url: 'shared_url' }
+        },
         categories: ['lifestyle', 'productivity'],
         icons: [
           { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

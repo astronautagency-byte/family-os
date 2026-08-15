@@ -68,11 +68,11 @@ test("src/theme/famos-tokens.css declares every original @theme token (no silent
 test("src/theme/famos-tokens.css adds the deduplicated radius tokens", () => {
   const added = [
     { name: "--radius-pill", value: "999px" },
-    { name: "--radius-md", value: "14px" },
-    { name: "--radius-sm", value: "12px" },
-    { name: "--radius-section", value: "18px" },
-    { name: "--radius-xs", value: "11px" },
-    { name: "--radius-pill-sm", value: "13px" },
+    { name: "--radius-md", value: "8px" },
+    { name: "--radius-sm", value: "8px" },
+    { name: "--radius-section", value: "12px" },
+    { name: "--radius-xs", value: "6px" },
+    { name: "--radius-pill-sm", value: "8px" },
   ];
   for (const { name, value } of added) {
     assert.ok(
@@ -87,6 +87,58 @@ test("src/theme/famos-tokens.css adds --motion-normal (was previously dangling)"
     /--motion-normal\s*:\s*200ms/.test(tokensBare),
     "--motion-normal must be declared (200ms is the natural midpoint between --motion-fast and --motion-base)",
   );
+});
+
+function relativeLuminance(hex) {
+  const channels = hex.replace("#", "").match(/.{2}/g).map((value) => parseInt(value, 16) / 255);
+  const [r, g, b] = channels.map((value) => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function contrastRatio(foreground, background) {
+  const a = relativeLuminance(foreground);
+  const b = relativeLuminance(background);
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
+function tokenValue(block, name) {
+  return block.match(new RegExp(`${name}\\s*:\\s*(#[0-9A-Fa-f]{6})`))?.[1];
+}
+
+test("semantic foreground tokens pass WCAG AA against their filled backgrounds", () => {
+  const light = tokensBare.match(/@theme\s*\{([\s\S]*?)\n\}/)?.[1] || "";
+  const dark = tokensBare.match(/\.theme-dark\s*\{([\s\S]*?)\n\}/)?.[1] || "";
+  for (const [mode, block] of [["light", light], ["dark", dark]]) {
+    const pairs = [
+      ["--color-on-accent", "--color-accent"],
+      ["--color-on-status", "--color-warn"],
+      ["--color-on-vibrant", "--color-calendar"],
+      ["--color-on-vibrant", "--color-meals"],
+      ["--color-on-vibrant", "--color-shopping"],
+      ["--color-on-vibrant", "--color-chat"],
+    ];
+    for (const [foregroundName, backgroundName] of pairs) {
+      const foreground = tokenValue(block, foregroundName);
+      const background = tokenValue(block, backgroundName);
+      assert.ok(foreground && background, `${mode}: missing ${foregroundName} or ${backgroundName}`);
+      const ratio = contrastRatio(foreground, background);
+      assert.ok(ratio >= 4.5, `${mode}: ${foregroundName} on ${backgroundName} is ${ratio.toFixed(2)}:1; expected at least 4.5:1`);
+    }
+  }
+});
+
+test("category components use WCAG AA soft-surface and strong-foreground pairs", () => {
+  const light = tokensBare.match(/@theme\s*\{([\s\S]*?)\n\}/)?.[1] || "";
+  const dark = tokensBare.match(/\.theme-dark\s*\{([\s\S]*?)\n\}/)?.[1] || "";
+  for (const [mode, block] of [["light", light], ["dark", dark]]) {
+    for (const category of ["calendar", "meals", "shopping", "chat", "finance", "family"]) {
+      const foreground = tokenValue(block, `--color-${category}-strong`);
+      const background = tokenValue(block, `--color-${category}-soft`);
+      assert.ok(foreground && background, `${mode}: missing ${category} soft/strong pairing`);
+      const ratio = contrastRatio(foreground, background);
+      assert.ok(ratio >= 4.5, `${mode}: ${category} strong on soft is ${ratio.toFixed(2)}:1; expected at least 4.5:1`);
+    }
+  }
 });
 
 test("src/theme/famos-tokens.css keeps all three :root[data-daypart=…] overrides for --sunrise-gradient", () => {
@@ -131,20 +183,18 @@ test("src/index.css no longer declares the inline daypart selectors (moved to to
   }
 });
 
-test("src/index.css radius values were swept to var(--radius-*) for the prominent duplicates", () => {
-  // Before: 46 × `border-radius:999px`, 30 × `border-radius:14px`, 25 × `border-radius:12px`,
-  // 15 × `border-radius:18px`, 11 × `border-radius:11px`, 11 × `border-radius:13px`.
-  // After the sweep, the literal values must be largely replaced.
-  const rawPill = (index.match(/border-radius:999px/g) || []).length;
+test("src/index.css consumes the shared Untitled UI-derived radius scale", () => {
+  // Legacy 14px/18px radii should stay rare now that controls and containers
+  // use the 8px/12px Untitled UI-derived semantic tokens. Full pills remain valid
+  // for avatars, status counters, and other genuinely circular UI.
   const rawMd = (index.match(/border-radius:14px/g) || []).length;
-  const rawSm = (index.match(/border-radius:12px/g) || []).length;
   const rawSection = (index.match(/border-radius:18px/g) || []).length;
   assert.ok(
-    rawPill + rawMd + rawSm + rawSection <= 4,
-    `expected most literal radius values to be swept to var(--radius-*); saw pill=${rawPill} md=${rawMd} sm=${rawSm} section=${rawSection}`,
+    rawMd + rawSection <= 6,
+    `expected legacy 14px/18px radii to stay exceptional; saw md=${rawMd} section=${rawSection}`,
   );
   // Confirm readers exist in src/index.css.
   assert.ok(/border-radius:var\(--radius-pill\)/.test(index), "var(--radius-pill) reader missing in src/index.css");
-  assert.ok(/border-radius:var\(--radius-md\)/.test(index), "var(--radius-md) reader missing in src/index.css");
-  assert.ok(/border-radius:var\(--radius-sm\)/.test(index), "var(--radius-sm) reader missing in src/index.css");
+  assert.ok(/border-radius:var\(--radius-control\)/.test(index), "var(--radius-control) reader missing in src/index.css");
+  assert.ok(/border-radius:var\(--radius-card\)/.test(index), "var(--radius-card) reader missing in src/index.css");
 });

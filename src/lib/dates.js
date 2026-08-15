@@ -63,18 +63,18 @@ export function fullDateLabel(dateStr) {
 }
 
 const dailyEncouragements = [
-  "You’ve got enough on your plate — let Fam OS hold the plan.",
-  "Small bits of coordination count. You’re keeping the rhythm going.",
-  "One shared plan is already a calmer day.",
-  "You don’t have to remember everything alone today.",
-  "A little structure now, a little more ease later.",
-  "Your family’s day has a soft place to land.",
-  "Keep it simple today — the next right thing is enough.",
-  "The house runs better when the plan is visible.",
-  "You’re building the kind of calm everyone can feel.",
-  "Tiny check-ins can save a dozen group texts.",
-  "Today’s goal: fewer loose ends, more breathing room.",
-  "You’re doing the quiet work that makes family life flow.",
+  "FamOS remembered the plan, so your brain doesn’t have to.",
+  "One shared plan. Approximately twelve fewer “wait, what?” texts.",
+  "The family circus has a clipboard now.",
+  "Tiny check-ins today, fewer plot twists tonight.",
+  "You bring the people. FamOS will hold the moving pieces.",
+  "Today’s forecast: organized with a chance of snacks.",
+  "A visible plan is basically household telepathy.",
+  "Keeping everyone in sync—without becoming the family switchboard.",
+  "Less remembering. More being there. Excellent trade.",
+  "The plan is here. The missing shoe remains a separate investigation.",
+  "A few taps now can prevent a kitchen-table summit later.",
+  "Family life: delightfully chaotic, slightly more coordinated.",
 ];
 
 export function dailyEncouragement(dateStr = todayISO()) {

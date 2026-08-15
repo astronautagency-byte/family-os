@@ -39,7 +39,7 @@ export default function BottomNav({ active, onChange, features = {}, tabletMode 
             <button
               key={tab.id}
               onClick={() => onChange(tab.id)}
-              className={`nav-item m3-navigation-item ${isActive ? "is-active" : ""}`}
+              className={`nav-item nav-item-${tab.id} m3-navigation-item ${isActive ? "is-active" : ""}`}
               aria-current={isActive ? "page" : undefined}
               aria-label={badge ? `${tab.label}, ${badge} unread message${badge === 1 ? "" : "s"}` : `${tab.label}${tab.hint ? ` — ${tab.hint}` : ""}`}
               title={tab.hint || tab.label}

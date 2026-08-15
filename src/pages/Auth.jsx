@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Baby, Bell, BellRing, BriefcaseBusiness, CalendarDays, Check, CheckSquare, ChefHat, ChevronLeft, Eye, EyeOff, HeartHandshake, House, ImagePlus, Leaf, LoaderCircle, LockKeyhole, Mail, MessageCircle, Palette, Phone, Plus, Salad, Send, ShieldCheck, ShoppingCart, Smartphone, Sparkles, Trash2, UserRound, UsersRound, WalletCards, WheatOff } from "lucide-react";
+import { Baby, Bell, BellRing, BriefcaseBusiness, CalendarDays, Check, CheckSquare, ChefHat, ChevronLeft, Eye, EyeOff, HeartHandshake, House, ImagePlus, Leaf, LoaderCircle, LockKeyhole, Mail, MessageCircle, MilkOff, Palette, Phone, Plus, Salad, Send, ShieldCheck, ShoppingCart, Smartphone, Sparkles, Trash2, UserRound, UsersRound, WalletCards, WheatOff } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { Card, PrimaryButton, SecondaryButton, TextField } from "../components/ui";
+import { Card, DateField, PrimaryButton, ProgressBar, SecondaryButton, TextField } from "../components/ui";
 import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
 // Namespace import (vs. named `passwordError`) makes every call a property
 // access — esbuild/Terser can no longer minify `passwordError` and a local
@@ -17,10 +17,10 @@ function base64UrlToUint8Array(value) {
   const raw = atob((value + padding).replace(/-/g, "+").replace(/_/g, "/"));
   return Uint8Array.from([...raw].map((character) => character.charCodeAt(0)));
 }
-import { FAMILY_COLORS } from "../data/mockData";
 import { AVATAR_PRESETS } from "../data/avatarLibrary";
 import AddressAutocomplete from "../components/AddressAutocomplete";
 import { formatPhoneInput, isValidPhoneNumber, normalizePhoneE164 } from "../utils/phone";
+import { APP_COLOR_SCHEMES } from "../data/appColorSchemes";
 
 function resizeAvatarImage(file) {
   return new Promise((resolve, reject) => {
@@ -311,7 +311,7 @@ export function ResetPassword() {
   );
 }
 
-export function HouseholdOnboarding() {
+export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange = () => {} }) {
   const {
     invitation,
     household,
@@ -343,6 +343,8 @@ export function HouseholdOnboarding() {
   const [primaryColor, setPrimaryColor] = useState("plum");
   const [profileType, setProfileType] = useState("parent");
   const [calendarPreference, setCalendarPreference] = useState("family");
+  const [age, setAge] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [dietaryRestrictions, setDietaryRestrictions] = useState([]);
   const [avoidIngredients, setAvoidIngredients] = useState("");
   const [mealNotes, setMealNotes] = useState("");
@@ -365,8 +367,8 @@ export function HouseholdOnboarding() {
   const [error, setError] = useState("");
 
   const profileComplete = Boolean(householdProfile?.completed_at);
-  const ownerProfileStep = household?.role === "owner" && !profileComplete;
-  const memberProfileStep = household && household.role !== "owner" && !memberProfile?.completedAt;
+  const ownerProfileStep = household?.role === "owner" && !profileComplete && Boolean(memberProfile?.completedAt);
+  const memberProfileStep = household && !memberProfile?.completedAt;
   const draftKey = household?.id && session?.user?.id ? `family-os:onboarding-draft:${household.id}:${session.user.id}` : "";
 
   useEffect(() => {
@@ -383,6 +385,8 @@ export function HouseholdOnboarding() {
         setPrimaryColor(draft.primaryColor || "plum");
         setProfileType(draft.profileType || "parent");
         setCalendarPreference(draft.calendarPreference || "family");
+        setAge(draft.age ?? "");
+        setDateOfBirth(draft.dateOfBirth || "");
         setDietaryRestrictions(draft.dietaryRestrictions || []);
         setAvoidIngredients(draft.avoidIngredients || "");
         setMealNotes(draft.mealNotes || "");
@@ -402,8 +406,8 @@ export function HouseholdOnboarding() {
           setInviteMembers(draft.inviteEmails.split(/[\n,;]+/).filter(Boolean).map((email) => ({ ...newInviteMember(), email: email.trim() })));
         }
         setNotificationsSkipped(Boolean(draft.notificationsSkipped));
-        setOwnerStep(Math.max(0, Math.min(Number(draft.ownerStep) || 0, 6)));
-        setMemberStep(Math.max(0, Math.min(Number(draft.memberStep) || 0, 2)));
+        setOwnerStep(Math.max(0, Math.min(Number(draft.ownerStep) || 0, 7)));
+        setMemberStep(Math.max(0, Math.min(Number(draft.memberStep) || 0, 3)));
       }
     } catch {
       localStorage.removeItem(draftKey);
@@ -415,14 +419,14 @@ export function HouseholdOnboarding() {
     if (!draftKey || !draftLoaded) return;
     localStorage.setItem(draftKey, JSON.stringify({
       familySize, adultCount, childCount, familyDynamic, lifeStage, planningPriorities,
-      primaryColor, profileType, calendarPreference, dietaryRestrictions, avoidIngredients,
+      primaryColor, profileType, calendarPreference, age, dateOfBirth, dietaryRestrictions, avoidIngredients,
       mealNotes, groceryImportText, partnerPersonalizationOptIn, avatarUrl, inviteMembers,
       city, region, postalCode, country, address, latitude, longitude,
       ownerStep, memberStep, notificationsSkipped,
     }));
   }, [
     draftKey, draftLoaded, familySize, adultCount, childCount, familyDynamic, lifeStage,
-    planningPriorities, primaryColor, profileType, calendarPreference, dietaryRestrictions,
+    planningPriorities, primaryColor, profileType, calendarPreference, age, dateOfBirth, dietaryRestrictions,
     avoidIngredients, mealNotes, groceryImportText, partnerPersonalizationOptIn, avatarUrl,
     inviteMembers, city, region, postalCode, country, address, latitude, longitude, ownerStep, memberStep, notificationsSkipped,
   ]);
@@ -430,14 +434,20 @@ export function HouseholdOnboarding() {
   const title = useMemo(() => {
     if (invitation && !household) return "Come on in";
     if (!household) return "What should we call home?";
-    if (ownerProfileStep) return ["Who’s at home?", "Where is home? (optional)", "What matters most?", "Make meals easier", "Bring your grocery list", "One last thing", "Never miss an update"][ownerStep];
-    if (memberProfileStep) return ["How should we set you up?", "Choose your calendar view", "Never miss an update"][memberStep];
+    if (memberProfileStep) return ["Tell us about you", "Food preferences", "Add your calendar", "Make it yours"][memberStep];
+    if (ownerProfileStep) return ["Who’s at home?", "Where is home? (optional)", "What matters most?", "Make meals easier", "Bring your grocery list", "Connect your calendar", "Make it yours", "Never miss an update"][ownerStep];
     return "Invite your people";
   }, [household, invitation, memberProfileStep, memberStep, ownerProfileStep, ownerStep]);
 
   const intro = useMemo(() => {
     if (invitation && !household) return `You’ve been invited to ${invitation.households?.name}. Join the shared home for calendars, lists, tasks, meals, and chat.`;
     if (!household) return "Create the private home space everyone will share. Cozy, but organized.";
+    if (memberProfileStep) return [
+      "Everything here is optional. These details help FamOS tailor schedules, meals, and suggestions to you.",
+      "Share only what is useful. Dietary preferences help personalize meal ideas and shopping suggestions.",
+      "Connect a calendar if you want your schedule in FamOS. You can always do this later in Settings.",
+      "Choose the look you like. It only changes FamOS for you, and everything here is optional.",
+    ][memberStep];
     if (ownerProfileStep) return [
       "Start with the basics. You can change these later in Settings.",
       "Optional. Choose a Google Maps suggestion to add local weather and weather-sensitive event alerts, or skip this for now.",
@@ -445,13 +455,9 @@ export function HouseholdOnboarding() {
       "Optional details that make meal ideas more useful.",
       "Optional. Paste what you already buy and we’ll organize it.",
       "Connect your calendar now or come back to it anytime.",
+      "Choose your personal app colours and profile picture. Other household members can choose their own.",
       "Get notified about tasks, meals, messages, and calendar updates from your household.",
     ][ownerStep];
-    if (memberProfileStep) return [
-      `You’re joining ${household.name}. First, choose your profile type.`,
-      "Choose what you want to see first. You can always switch views later.",
-      "Get notified about tasks, meals, messages, and calendar updates from your household.",
-    ][memberStep];
     return `Invite people to ${household.name} now, or skip and add them later from Settings.`;
   }, [household, invitation, memberProfileStep, memberStep, ownerProfileStep, ownerStep]);
 
@@ -506,7 +512,8 @@ export function HouseholdOnboarding() {
   });
 
   const saveMember = () => run(async () => {
-    await saveMemberProfile({ profileType, calendarPreference, avatarUrl });
+    await saveMemberProfile({ profileType, calendarPreference, age, dateOfBirth, dietaryRestrictions, avatarUrl });
+    if (household?.role === "owner") markOnboardingComplete();
     if (draftKey) localStorage.removeItem(draftKey);
   });
 
@@ -549,8 +556,6 @@ export function HouseholdOnboarding() {
             setLongitude={setLongitude}
             planningPriorities={planningPriorities}
             togglePriority={togglePriority}
-            primaryColor={primaryColor}
-            setPrimaryColor={setPrimaryColor}
             dietaryRestrictions={dietaryRestrictions}
             toggleRestriction={toggleRestriction}
             avoidIngredients={avoidIngredients}
@@ -574,6 +579,8 @@ export function HouseholdOnboarding() {
             step={ownerStep}
             setStep={setOwnerStep}
             session={session}
+            colorScheme={colorScheme}
+            onColorSchemeChange={onColorSchemeChange}
           />
         ) : memberProfileStep ? (
           <MemberProfileStep
@@ -581,6 +588,12 @@ export function HouseholdOnboarding() {
             setProfileType={setProfileType}
             calendarPreference={calendarPreference}
             setCalendarPreference={setCalendarPreference}
+            age={age}
+            setAge={setAge}
+            dateOfBirth={dateOfBirth}
+            setDateOfBirth={setDateOfBirth}
+            dietaryRestrictions={dietaryRestrictions}
+            toggleRestriction={toggleRestriction}
             signInWithGoogle={signInWithGoogle}
             googleProviderToken={googleProviderToken}
             busy={busy}
@@ -593,6 +606,9 @@ export function HouseholdOnboarding() {
             avatarStatus={avatarStatus}
             setAvatarStatus={setAvatarStatus}
             session={session}
+            onSkip={saveMember}
+            colorScheme={colorScheme}
+            onColorSchemeChange={onColorSchemeChange}
           />
         ) : (
           <InviteStep
@@ -655,7 +671,7 @@ function OwnerProfileStep(props) {
     ["Vegetarian", Leaf], ["Vegan", Salad], ["Gluten-free", WheatOff], ["Dairy-free", ChefHat],
     ["Nut-free", HeartHandshake], ["Shellfish-free", ShieldCheck], ["Low sugar", Sparkles],
   ];
-  const steps = ["Household", "Address", "Priorities", "Food", "Shopping", "Connect", "Notifications"];
+  const steps = ["Household", "Address", "Priorities", "Food", "Shopping", "Calendar", "Your look", "Notifications"];
   const next = () => {
     if (props.step === 0 && props.adultCount + props.childCount !== props.familySize) return;
     props.setStep((step) => Math.min(step + 1, steps.length - 1));
@@ -732,20 +748,15 @@ function OwnerProfileStep(props) {
 
         {props.step === 5 && <>
           <GoogleCalendarStep signInWithGoogle={props.signInWithGoogle} googleProviderToken={props.googleProviderToken} busy={props.busy} run={props.run} />
-          <div className="onboarding-choice-group">
-            <span><Palette size={15} /> Your colour</span>
-            <div className="onboarding-colors">
-              {FAMILY_COLORS.map((color) => <button type="button" key={color.id} className={props.primaryColor === color.id ? "selected" : ""} onClick={() => props.setPrimaryColor(color.id)} style={{ backgroundColor: color.value }} aria-label={color.label} />)}
-            </div>
-          </div>
-          <AvatarPicker avatarUrl={props.avatarUrl} setAvatarUrl={props.setAvatarUrl} status={props.avatarStatus} setStatus={props.setAvatarStatus} />
           <label className="partner-consent">
             <input type="checkbox" checked={props.partnerPersonalizationOptIn} onChange={(event) => props.setPartnerPersonalizationOptIn(event.target.checked)} />
             <span><strong>Personalize suggestions for my household</strong><small>Optional. Uses the preferences you entered to improve meal and grocery suggestions.</small></span>
           </label>
         </>}
 
-        {props.step === 6 && <NotificationStep user={props.session?.user} busy={props.busy} run={props.run} />}
+        {props.step === 6 && <><OnboardingColourScheme value={props.colorScheme} onChange={props.onColorSchemeChange} /><AvatarPicker avatarUrl={props.avatarUrl} setAvatarUrl={props.setAvatarUrl} status={props.avatarStatus} setStatus={props.setAvatarStatus} /></>}
+
+        {props.step === 7 && <NotificationStep user={props.session?.user} busy={props.busy} run={props.run} />}
       </div>
       <OnboardingActions
         step={props.step}
@@ -773,23 +784,49 @@ function OwnerProfileStep(props) {
   );
 }
 
-function MemberProfileStep({ profileType, setProfileType, calendarPreference, setCalendarPreference, signInWithGoogle, googleProviderToken, busy, run, onSave, step, setStep, avatarUrl, setAvatarUrl, avatarStatus, setAvatarStatus, session }) {
-  const steps = ["Profile", "Calendar", "Notifications"];
+function MemberProfileStep({ profileType, setProfileType, calendarPreference, setCalendarPreference, age, setAge, dateOfBirth, setDateOfBirth, dietaryRestrictions, toggleRestriction, signInWithGoogle, googleProviderToken, busy, run, onSave, onSkip, step, setStep, avatarUrl, setAvatarUrl, avatarStatus, setAvatarStatus, colorScheme, onColorSchemeChange }) {
+  const steps = ["About you", "Food", "Calendar", "Your look"];
+  const restrictions = [["Vegetarian", Leaf], ["Vegan", Salad], ["Gluten-free", WheatOff], ["Dairy-free", MilkOff], ["Nut-free", ShieldCheck]];
   return (
     <div className="guided-onboarding">
       <OnboardingProgress steps={steps} current={step} />
+      <div className="personal-onboarding-note"><Sparkles size={16} /><p><strong>Personalize your FamOS profile</strong><span>All fields are optional. This information helps us tailor your experience to you.</span></p></div>
       <div className="guided-onboarding-panel">
         {step === 0 && <>
-          <OnboardingChoiceGroup icon={<UsersRound size={15} />} label="Profile type" value={profileType} onChange={setProfileType} options={[["parent", "Parent / guardian", UserRound], ["child", "Child", Baby]]} />
-          <AvatarPicker avatarUrl={avatarUrl} setAvatarUrl={setAvatarUrl} status={avatarStatus} setStatus={setAvatarStatus} />
+          <OnboardingChoiceGroup icon={<UsersRound size={15} />} label="Family member type" value={profileType} onChange={setProfileType} options={[["parent", "Parent / guardian", UserRound], ["child", "Child", Baby], ["grandparent", "Grandparent", HeartHandshake]]} />
+          <div className="onboarding-grid onboarding-grid-two personal-profile-fields">
+            <TextField type="number" min="0" max="120" inputMode="numeric" label="Age (optional)" placeholder="e.g. 34" value={age} onChange={(event) => setAge(event.target.value)} />
+            <DateField label="Date of birth (optional)" value={dateOfBirth} onChange={setDateOfBirth} max={new Date().toISOString().slice(0, 10)} />
+          </div>
         </>}
-        {step === 1 && <>
+        {step === 1 && <div className="onboarding-choice-group">
+          <span><Salad size={15} /> Dietary preferences (optional)</span>
+          <div>{restrictions.map(([restriction, Icon]) => <button type="button" key={restriction} className={dietaryRestrictions.includes(restriction) ? "selected" : ""} onClick={() => toggleRestriction(restriction)}><Icon size={15} />{restriction}{dietaryRestrictions.includes(restriction) && <Check size={13} />}</button>)}</div>
+          <small className="personal-onboarding-helper">Used to tailor meal and shopping suggestions. You can change this anytime in Settings.</small>
+        </div>}
+        {step === 2 && <>
           <OnboardingChoiceGroup icon={<CalendarDays size={15} />} label="Default calendar view" value={calendarPreference} onChange={setCalendarPreference} options={[["family", "Shared family calendar", UsersRound], ["personal", "My calendar first", UserRound]]} />
           <GoogleCalendarStep signInWithGoogle={signInWithGoogle} googleProviderToken={googleProviderToken} busy={busy} run={run} />
         </>}
-        {step === 2 && <NotificationStep user={session?.user} busy={busy} run={run} />}
+        {step === 3 && <><OnboardingColourScheme value={colorScheme} onChange={onColorSchemeChange} /><AvatarPicker avatarUrl={avatarUrl} setAvatarUrl={setAvatarUrl} status={avatarStatus} setStatus={setAvatarStatus} /></>}
       </div>
-      <OnboardingActions step={step} lastStep={2} busy={busy} onBack={() => setStep((prev) => Math.max(0, prev - 1))} onNext={() => setStep((prev) => Math.min(prev + 1, 2))} onFinish={onSave} finishLabel="Enter shared home" />
+      <OnboardingActions step={step} lastStep={3} busy={busy} onBack={() => setStep((prev) => Math.max(0, prev - 1))} onNext={() => setStep((prev) => Math.min(prev + 1, 3))} onFinish={onSave} finishLabel="Enter FamOS" />
+      <button type="button" className="personal-onboarding-skip" disabled={busy} onClick={onSkip}>Skip for now and enter FamOS</button>
+    </div>
+  );
+}
+
+function OnboardingColourScheme({ value, onChange }) {
+  return (
+    <div className="onboarding-scheme-picker">
+      <span><Palette size={15}/> Make it yours</span>
+      <p>Choose the app colours you’ll see. This only changes your view, not anyone else’s.</p>
+      <div role="radiogroup" aria-label="Choose your app colour scheme">
+        {APP_COLOR_SCHEMES.map((scheme) => {
+          const selected = value === scheme.id;
+          return <button type="button" role="radio" aria-checked={selected} key={scheme.id} className={selected ? "selected" : ""} onClick={() => onChange(scheme.id)}><span className="onboarding-scheme-swatches" aria-hidden="true">{scheme.colors.map((color) => <i key={color} style={{ backgroundColor: color }}/>)}</span><strong>{scheme.label}</strong><small>{scheme.note}</small>{selected && <Check size={14}/>}</button>;
+        })}
+      </div>
     </div>
   );
 }
@@ -798,7 +835,7 @@ function OnboardingProgress({ steps, current }) {
   return (
     <div className="onboarding-progress" aria-label={`Step ${current + 1} of ${steps.length}`}>
       <div className="onboarding-progress-copy"><span>Step {current + 1} of {steps.length}</span><strong>{steps[current]}</strong></div>
-      <div className="onboarding-progress-track"><i style={{ width: `${((current + 1) / steps.length) * 100}%` }} /></div>
+      <ProgressBar value={current + 1} max={steps.length} size="sm" />
       <div className="onboarding-progress-labels">{steps.map((step, index) => <span key={step} className={index <= current ? "active" : ""}>{step}</span>)}</div>
     </div>
   );

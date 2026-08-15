@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, BarChart3, Bookmark, CalendarPlus, CandyOff, Check, ChefHat, Clock, Coffee, Dices, FishOff, Leaf, ListChecks, LoaderCircle, Mic, MicOff, MilkOff, NutOff, ShoppingCart, Soup, Sparkles, Sprout, Trash2, Users, WheatOff, X } from "lucide-react";
+import { ArrowLeft, BarChart3, Bookmark, CalendarPlus, Check, ChefHat, Clock, Coffee, Dices, Image as ImageIcon, ListChecks, Mic, MicOff, Refrigerator, ShoppingCart, Soup, Sparkles, Trash2, Users, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
-import { Avatar, AvatarStack, Card, Modal, PrimaryButton, SecondaryButton, TextField, colorVar } from "../components/ui";
+import { Avatar, AvatarStack, Card, Modal, PrimaryButton, ProgressBar, SecondaryButton, TextField, colorVar } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import PullToRefresh from "../components/PullToRefresh";
 import ConfirmAction from "../components/ConfirmAction";
@@ -11,8 +11,11 @@ import ErrorBoundary from "../components/ErrorBoundary";
 import { MEAL_SLOTS } from "../data/mockData";
 import { buildCookSearchLadder, recipeSearchProfileForMeal } from "../data/recipeBox";
 import { addDays, formatDayLabel, todayISO } from "../lib/dates";
-import { supabase } from "../lib/supabase";
+import { canonicalIngredientName, isIngredientOnList } from "../lib/mealIngredientCache";
+import { invokeEdgeFunction, supabase } from "../lib/supabase";
 import useVoiceCommands, { requestScreenWakeLock } from "../hooks/useVoiceCommands";
+import useKitchenInventory from "../hooks/useKitchenInventory";
+import { SHARED_RECIPE_KEY } from "../lib/sharedContent";
 
 const SLOT_META = {
   breakfast: { label: "Breakfast", icon: Coffee },
@@ -21,16 +24,16 @@ const SLOT_META = {
 };
 
 const SAVED_RECIPES_KEY = "famos:saved-recipes:v1";
+const RECIPE_DETAIL_CACHE_KEY = "famos:recipe-details:v1";
 const DIETARY_PREFERENCES_KEY = "famos:dietary-preferences:v1";
-const DIETARY_OPTIONS = ["Vegetarian", "Vegan", "Gluten-free", "Dairy-free", "Nut-free", "Shellfish-free", "Low sugar"];
-const DIETARY_META = {
-  Vegetarian: { icon: Leaf, tone: "green" },
-  Vegan: { icon: Sprout, tone: "mint" },
-  "Gluten-free": { icon: WheatOff, tone: "amber" },
-  "Dairy-free": { icon: MilkOff, tone: "blue" },
-  "Nut-free": { icon: NutOff, tone: "rose" },
-  "Shellfish-free": { icon: FishOff, tone: "aqua" },
-  "Low sugar": { icon: CandyOff, tone: "grape" },
+
+const friendlyRecipeSearchError = (error) => {
+  const message = error?.message || String(error || "");
+  if (/quota|429|402/i.test(message)) return "Recipe suggestions have reached today’s provider limit. Your existing meal plan is safe—try again a little later.";
+  if (/configured|api.?key/i.test(message)) return "Recipe suggestions need the Spoonacular connection configured by your FamOS admin.";
+  if (/session|sign in|401|403/i.test(message)) return "Your session needs refreshing. Sign in again, then retry the meal ideas.";
+  if (/reach|network|offline|fetch/i.test(message)) return "Recipe suggestions are temporarily offline. Check your connection and try again.";
+  return "Recipe suggestions could not refresh right now. Your current options are still here—try again in a moment.";
 };
 const DEFAULT_DIETARY_PREFERENCES = { restrictions: [], avoidIngredients: "", notes: "" };
 
@@ -58,12 +61,12 @@ const normaliseSavedRecipe = (recipe = {}) => ({
   servings: recipe.servings || 4,
   ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : [],
   instructions: Array.isArray(recipe.instructions) ? recipe.instructions : [],
-  source: recipe.source || "api-ninjas",
+  source: recipe.source || "spoonacular",
   sourceUrl: recipe.sourceUrl || "",
   savedAt: recipe.savedAt || new Date().toISOString(),
 });
 
-// Pull a single recipe out of a recipe-search response — strict API Ninjas
+// Pull a single recipe out of a recipe-search response — normalized Spoonacular
 // shape (returns `{recipes: [...]}`; older clients/tests may wrap that in
 // `{data: {recipes}}`).
 const recipeFromSearch = (data) => {
@@ -81,7 +84,7 @@ const recipesFromSearch = (data) => {
   return Array.isArray(root?.recipes) ? root.recipes : [];
 };
 
-// Skinny recipe used while we wait for API Ninjas. Cook Mode renders the
+// Skinny recipe used while we wait for Spoonacular. Cook Mode renders the
 // title alone so the family still gets a holdable target even when the
 // instructions blob hasn't arrived yet.
 const placeholderRecipe = (title, slot) => ({
@@ -109,62 +112,44 @@ const saveIngredientCache = (cache) => {
   try { window.localStorage.setItem(INGREDIENT_CACHE_KEY, JSON.stringify(cache)); } catch { /* storage unavailable */ }
 };
 
-const THE_MEAL_DB = "https://www.themealdb.com/api/json/v1/1";
+const recipeTitleKey = (title) => String(title || "").trim().toLowerCase();
+const cacheRecipeDetail = (recipe) => {
+  const key = recipeTitleKey(recipe?.title);
+  if (!key) return;
+  try {
+    const current = JSON.parse(window.localStorage.getItem(RECIPE_DETAIL_CACHE_KEY) || "{}");
+    const next = { ...current, [key]: normaliseSavedRecipe(recipe) };
+    const entries = Object.entries(next).slice(-30);
+    window.localStorage.setItem(RECIPE_DETAIL_CACHE_KEY, JSON.stringify(Object.fromEntries(entries)));
+  } catch { /* storage unavailable */ }
+};
+const cachedRecipeDetail = (title) => {
+  try {
+    const current = JSON.parse(window.localStorage.getItem(RECIPE_DETAIL_CACHE_KEY) || "{}");
+    return current[recipeTitleKey(title)] || null;
+  } catch { return null; }
+};
 
 const CUISINE_LIST = [
   "Italian", "Mexican", "Indian", "Japanese", "Chinese",
   "Thai", "Mediterranean", "American Comfort",
 ];
 
-const CUISINE_TO_MEALDB_AREA = {
-  Italian: "Italian",
-  Mexican: "Mexican",
-  Indian: "Indian",
-  Japanese: "Japanese",
-  Chinese: "Chinese",
-  Thai: "Thai",
-  Mediterranean: "Greek",
-  "American Comfort": "American",
-};
-
-const MEAL_TYPE_TO_MEALDB_CATEGORY = {
-  breakfast: "Breakfast",
-};
-
-// Map a TheMealDB meal object to our internal recipe shape.
-const mealDbToRecipe = (meal) => {
-  if (!meal?.idMeal || !meal?.strMeal) return null;
-  const ingredients = [];
-  for (let i = 1; i <= 20; i++) {
-    const name = meal[`strIngredient${i}`];
-    const measure = meal[`strMeasure${i}`];
-    if (!name || !name.trim()) continue;
-    const label = measure && measure.trim() ? `${measure.trim()} ${name.trim()}` : name.trim();
-    ingredients.push(label);
-  }
-  const instructions = (meal.strInstructions || "")
-    .split(/\r?\n|\.\s+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-  return {
-    id: `the-meal-db-${meal.idMeal}`,
-    title: meal.strMeal,
-    cuisine: meal.strArea || meal.strCategory || "International",
-    readyInMinutes: 35,
-    servings: 4,
-    ingredients,
-    instructions,
-    source: "themealdb",
-    sourceUrl: `https://www.themealdb.com/meal/${meal.idMeal}`,
-    thumbnail: meal.strMealThumb || "",
-  };
-};
-
 const titleFromMeal = (meal) => String(meal?.title || "").trim();
+
+const youtubeEmbedUrl = (value = "") => {
+  try {
+    const url = new URL(value);
+    const host = url.hostname.replace(/^www\./, "");
+    const id = host === "youtu.be" ? url.pathname.slice(1) : host.endsWith("youtube.com") ? url.searchParams.get("v") : "";
+    return id && /^[A-Za-z0-9_-]{6,20}$/.test(id) ? `https://www.youtube-nocookie.com/embed/${id}` : "";
+  } catch { return ""; }
+};
 
 export default function Meals() {
   const { members, memberById, meals, groceries, addGrocery, setMealForSlot, removeMeal, clearMeals, refreshData } = useFamily();
-  const { householdProfileExtra } = useAuth();
+  const { householdProfileExtra, household, user } = useAuth();
+  const { items: inventoryItems, ingredientNames: inventoryIngredientNames, removeItem: removeInventoryItem } = useKitchenInventory(household?.id, user?.id);
   const [horizon, setHorizon] = useState(7);
   const [clearing, setClearing] = useState(false);
   const [editing, setEditing] = useState(null); // { date, slot }
@@ -179,10 +164,17 @@ export default function Meals() {
   const [cookIngredientsAdded, setCookIngredientsAdded] = useState(false);
   const [cookNutrition, setCookNutrition] = useState(null);
   const [cookNutritionLoading, setCookNutritionLoading] = useState(false);
+  const [consumeReview, setConsumeReview] = useState(null);
+  const [consumeSelection, setConsumeSelection] = useState([]);
   // Voice-hands-free cook navigation. Bound to next/previous/finish so a
   // flour-covered hand never has to tap the phone screen.
   const wakeLockRef = useRef(null);
-  const finishCookMode = useCallback(() => setCookMeal(null), []);
+  const finishCookMode = useCallback(() => {
+    const recipeNames = new Set((cookRecipe?.ingredients || []).map((item) => canonicalIngredientName(typeof item === "string" ? item : item?.name)).filter(Boolean));
+    const matched = inventoryItems.filter((item) => recipeNames.has(canonicalIngredientName(item.name)));
+    setCookMeal(null);
+    if (matched.length) { setConsumeReview(matched); setConsumeSelection(matched.map((item) => item.id)); }
+  }, [cookRecipe?.ingredients, inventoryItems]);
   const advanceCookStep = useCallback((delta) => {
     setCookStep((step) => {
       const total = cookRecipe?.instructions?.length || 0;
@@ -225,6 +217,19 @@ export default function Meals() {
     if (!cookMeal || !cookMode) releaseWakeLock();
   }, [cookMeal, cookMode, releaseWakeLock]);
   useEffect(() => () => releaseWakeLock(), [releaseWakeLock]);
+  useEffect(() => {
+    if (!cookMeal) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setCookMeal(null);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [cookMeal]);
   // Deep-link intent: when Today taps "Cook tonight's ___" it writes the
   // meal id to sessionStorage and routes to /meals. We consume the intent
   // here so the cook modal opens straight into the requested meal, then
@@ -246,6 +251,16 @@ export default function Meals() {
   // still finds its target. The intent is single-use (we remove the key
   // above before looking it up) so this won't loop.
   }, [meals]);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = window.sessionStorage.getItem("famos:meal-ideas-intent:v1");
+    if (!raw) return;
+    window.sessionStorage.removeItem("famos:meal-ideas-intent:v1");
+    try {
+      const intent = JSON.parse(raw);
+      if (intent?.date && MEAL_SLOTS.includes(intent?.slot)) rouletteForSlot(intent.date, intent.slot);
+    } catch { /* ignore malformed intent */ }
+  }, []);
   // Cached ingredient names per meal ID — populated once a recipe has been
   // looked up, persists across sessions so the grocery badge works immediately.
   const [mealIngredientsCache, setMealIngredientsCache] = useState(() => loadIngredientCache());
@@ -256,15 +271,11 @@ export default function Meals() {
   useEffect(() => () => { if (badgeTimerRef.current) window.clearTimeout(badgeTimerRef.current); }, []);
   const [rouletteOptions, setRouletteOptions] = useState(null); // { date, slot, recipes[] }
   const [rouletteBusy, setRouletteBusy] = useState(false);
+  const [rouletteError, setRouletteError] = useState("");
   const [rouletteCuisine, setRouletteCuisine] = useState(null); // null = any cuisine
   const [savedRecipes, setSavedRecipes] = useState(() => readStoredJson(SAVED_RECIPES_KEY, []));
   const [planningRecipe, setPlanningRecipe] = useState(null);
-  // Ingredient-based recipe search in the editor modal.
-  const [recipeSearchQuery, setRecipeSearchQuery] = useState("");
-  const [recipeSearchResults, setRecipeSearchResults] = useState([]);
-  const [recipeSearchBusy, setRecipeSearchBusy] = useState(false);
-  const [recipeSearchError, setRecipeSearchError] = useState("");
-  const [dietaryPreferences, setDietaryPreferences] = useState(() => {
+  const [dietaryPreferences] = useState(() => {
     const onboardingPreferences = householdProfileExtra ? {
       restrictions: householdProfileExtra.dietaryRestrictions || [],
       avoidIngredients: householdProfileExtra.avoidIngredients || "",
@@ -281,64 +292,40 @@ export default function Meals() {
     if (typeof window !== "undefined") window.localStorage.setItem(SAVED_RECIPES_KEY, JSON.stringify(savedRecipes));
   }, [savedRecipes]);
 
-  useEffect(() => {
-    if (typeof window !== "undefined") window.localStorage.setItem(DIETARY_PREFERENCES_KEY, JSON.stringify(dietaryPreferences));
-  }, [dietaryPreferences]);
-
-  // Debounced recipe search by ingredient. When the user types an ingredient
-  // in the meal editor, API Ninjas searches for matching recipes and shows
-  // results as a picker. Selecting one fills in the title and caches the
-  // ingredients so the grocery badge works immediately.
-  useEffect(() => {
-    const query = recipeSearchQuery.trim();
-    if (query.length < 2) {
-      setRecipeSearchResults([]);
-      setRecipeSearchError("");
-      return undefined;
-    }
-    let cancelled = false;
-    setRecipeSearchBusy(true);
-    setRecipeSearchError("");
-    const timer = setTimeout(async () => {
-      if (!supabase) {
-        if (!cancelled) setRecipeSearchError("Recipe search is not configured.");
-        if (!cancelled) setRecipeSearchBusy(false);
-        return;
-      }
-      try {
-        // Pass only ingredients — the user is searching by ingredient, not recipe name.
-        const { data, error } = await supabase.functions.invoke("recipe-search", { body: { ingredients: query } }).catch(() => ({ data: null, error: new Error("offline") }));
-        if (cancelled) return;
-        const err = data?.error || error?.message;
-        if (err) { setRecipeSearchError(err); setRecipeSearchResults([]); return; }
-        const list = recipesFromSearch(data);
-        setRecipeSearchResults(list);
-        if (!list.length) setRecipeSearchError("No recipes match that ingredient yet. Try a broader term.");
-      } catch {
-        if (!cancelled) setRecipeSearchError("Recipe search failed.");
-      } finally {
-        if (!cancelled) setRecipeSearchBusy(false);
-      }
-    }, 350);
-    return () => { cancelled = true; clearTimeout(timer); };
-  }, [recipeSearchQuery]);
-
-  // Reset search state when the editor opens/closes
-  useEffect(() => {
-    if (!editing) { setRecipeSearchQuery(""); setRecipeSearchResults([]); setRecipeSearchError(""); }
-  }, [editing]);
-
   // For each meal with cached ingredients, compute how many are missing from the
   // grocery list. Returns { missing, total } or null when no cache entry exists.
   const mealMissingCount = useMemo(() => {
     const result = {};
     for (const [mealId, names] of Object.entries(mealIngredientsCache)) {
-      const namesList = Array.isArray(names) ? names : [];
-      const missing = namesList.filter((name) => !groceries.some((grocery) => grocery.name.toLowerCase() === name));
+      const namesList = Array.isArray(names) ? Array.from(new Set(names.map(canonicalIngredientName).filter(Boolean))) : [];
+      const missing = namesList.filter((name) => !isIngredientOnList(name, groceries));
       result[mealId] = { missing: missing.length, total: namesList.length };
     }
     return result;
   }, [mealIngredientsCache, groceries]);
+
+  // Checked shopping items represent food that made it home. Reuse that
+  // household-owned data for PicMeal-style "cook from what we have" ideas;
+  // nothing leaves the existing Spoonacular recipe request.
+  const kitchenIngredients = useMemo(() => Array.from(new Set(inventoryIngredientNames)).slice(0, 15), [inventoryIngredientNames]);
+
+  const addMissingGroceriesForMeal = (meal, badge) => {
+    if (!meal?.id || !badge || badgeAddedRef.current.has(meal.id)) return;
+    const names = mealIngredientsCache[meal.id];
+    if (!Array.isArray(names)) return;
+    const missingNames = Array.from(new Set(names.map(canonicalIngredientName).filter(Boolean)))
+      .filter((name) => !isIngredientOnList(name, groceries));
+    if (!missingNames.length) return;
+    for (const name of missingNames) addGrocery({ name, quantity: 1, unit: "" });
+    badgeAddedRef.current.add(meal.id);
+    forceUpdate((n) => n + 1);
+    if (badgeTimerRef.current) window.clearTimeout(badgeTimerRef.current);
+    badgeTimerRef.current = window.setTimeout(() => {
+      badgeAddedRef.current.delete(meal.id);
+      forceUpdate((n) => n + 1);
+      badgeTimerRef.current = null;
+    }, 2000);
+  };
 
   const weekDays = useMemo(() => Array.from({ length: horizon }, (_, i) => addDays(todayISO(), i)), [horizon]);
 
@@ -351,82 +338,72 @@ export default function Meals() {
     setEditing({ date, slot, mealId: existing?.id || null });
   };
 
+  useEffect(() => {
+    try {
+      const raw = window.sessionStorage.getItem(SHARED_RECIPE_KEY);
+      if (!raw) return;
+      window.sessionStorage.removeItem(SHARED_RECIPE_KEY);
+      const shared = JSON.parse(raw);
+      setDraft({ title: shared.title || "Shared recipe", notes: shared.url || shared.text || "", cookIds: [] });
+      setShowSavedRecipes(false);
+      setEditing({ date: todayISO(), slot: "dinner", mealId: null, shared: true });
+    } catch { /* sharing remains optional when storage is unavailable */ }
+  }, []);
+
   const toggleCook = (id) =>
     setDraft((d) => ({ ...d, cookIds: d.cookIds.includes(id) ? d.cookIds.filter((x) => x !== id) : [...d.cookIds, id] }));
 
-  const rouletteForSlot = async (date, slot) => {
+  const rouletteForSlot = async (date, slot, kitchenOnly = false, cuisineOverride) => {
     setRouletteBusy(true);
-    const chosenCuisine = rouletteCuisine;
-    const mealdbArea = chosenCuisine ? CUISINE_TO_MEALDB_AREA[chosenCuisine] : null;
-    const mealdbCategory = MEAL_TYPE_TO_MEALDB_CATEGORY[slot] || null;
-    // Try TheMealDB first — it's free, no API key needed, and returns rich
-    // recipes with full instructions, ingredients, and thumbnails.
-    // When a cuisine is selected, filter by area. When breakfast, filter by
-    // Breakfast category so the roulette only returns appropriate meals.
-    // Otherwise fetch 3 random meals for the family to choose from.
+    setRouletteError("");
+    const chosenCuisine = cuisineOverride !== undefined ? cuisineOverride : rouletteCuisine;
     try {
-      let responses;
-      const filterBy = mealdbArea || mealdbCategory;
-      if (filterBy) {
-        const param = mealdbArea ? `a=${encodeURIComponent(mealdbArea)}` : `c=${encodeURIComponent(filterBy)}`;
-        const filterRes = await fetch(`${THE_MEAL_DB}/filter.php?${param}`).then((r) => r.json());
-        const mealList = filterRes?.meals || [];
-        if (mealList.length > 0) {
-          // Shuffle and pick up to 3, then fetch full details for each.
-          const shuffled = [...mealList].sort(() => Math.random() - 0.5).slice(0, 3);
-          responses = await Promise.all(
-            shuffled.map((m) =>
-              fetch(`${THE_MEAL_DB}/lookup.php?i=${m.idMeal}`).then((r) => r.json())
-            )
-          );
-        } else {
-          responses = [];
+      const cuisine = chosenCuisine || "Any cuisine";
+      setRouletteOptions((current) => ({
+        date,
+        slot,
+        recipes: current?.date === date && current?.slot === slot ? current.recipes : [],
+        cuisine,
+        source: "spoonacular",
+        kitchenOnly,
+      }));
+      const baseRequest = {
+        ingredients: kitchenOnly ? kitchenIngredients.join(", ") : "",
+        mealType: slot,
+        offset: Math.floor(Math.random() * 12),
+        dietaryRestrictions: dietaryPreferences.restrictions || [],
+        avoidIngredients: dietaryPreferences.avoidIngredients || "",
+      };
+      const data = await invokeEdgeFunction("recipe-search", {
+        ...baseRequest,
+        query: chosenCuisine ? `${chosenCuisine} ${slot}` : slot,
+        cuisine: chosenCuisine === "American Comfort" ? "American" : chosenCuisine || "",
+      });
+      let list = recipesFromSearch(data);
+      if (!list.length && chosenCuisine) {
+        const broadData = await invokeEdgeFunction("recipe-search", { ...baseRequest, query: slot, cuisine: "" });
+        list = recipesFromSearch(broadData);
+        if (list.length) {
+          setRouletteCuisine(null);
+          setRouletteError(`No ${chosenCuisine} ${slot} ideas matched those preferences, so here are a few from any cuisine instead.`);
+          setRouletteOptions({ date, slot, recipes: list.slice(0, 3), cuisine: "Any cuisine", source: "spoonacular", kitchenOnly });
+          return;
         }
-      } else {
-        responses = await Promise.all(
-          Array.from({ length: 3 }, () =>
-            fetch(`${THE_MEAL_DB}/random.php`).then((r) => r.json())
-          )
-        );
       }
-      const meals = responses
-        .map((res) => mealDbToRecipe(res?.meals?.[0]))
-        .filter(Boolean);
-      if (meals.length > 0) {
-        const cuisines = [...new Set(meals.map((m) => m.cuisine))];
-        setRouletteOptions({
-          date,
-          slot,
-          recipes: meals.slice(0, 3),
-          cuisine: cuisines.join(", ") || chosenCuisine || "Random picks",
-          source: "themealdb",
-        });
-        setRouletteBusy(false);
+      if (!list.length) {
+        setRouletteError(`No ${slot} ideas matched ${chosenCuisine ? `${chosenCuisine} and ` : ""}those preferences. Try another cuisine or Any cuisine.`);
+        setRouletteOptions((current) => ({ ...(current || {}), date, slot, recipes: [], cuisine, source: "spoonacular", kitchenOnly }));
         return;
       }
-    } catch {
-      // TheMealDB failed — fall through to API Ninjas below.
-    }
-    // Fallback: try API Ninjas via the recipe-search edge function.
-    const choices = CUISINE_LIST;
-    const cuisine = chosenCuisine || choices[Math.floor(Math.random() * choices.length)];
-    const ingredientsPool = ["chicken", "rice", "pasta", "tofu", "salmon", "beef", "eggs", "lentils"];
-    const ingredient = ingredientsPool[Math.floor(Math.random() * ingredientsPool.length)];
-    const query = `${cuisine} ${ingredient}`.trim().slice(0, 120);
-    const { data, error } = await supabase.functions.invoke("recipe-search", { body: { query, mealType: slot } }).catch(() => ({ data: null, error: new Error("offline") }));
-    const recipeErr = data?.error || error?.message;
-    const list = !recipeErr ? recipesFromSearch(data) : [];
-    if (list.length === 0) {
-      await setMealForSlot(date, slot, {
-        title: `${cuisine} ${slot} pick`,
-        notes: recipeErr ? "Add a title above and tap Cook to look up steps." : "Add a title above and tap Cook.",
-        cookIds: [],
-      });
+      setRouletteOptions({ date, slot, recipes: list.slice(0, 3), cuisine, source: "spoonacular", kitchenOnly });
+    } catch (error) {
+      setRouletteError(friendlyRecipeSearchError(error));
+      if (!rouletteOptions) {
+        setRouletteOptions({ date, slot, recipes: [], cuisine: chosenCuisine || "Any cuisine", source: "spoonacular", kitchenOnly });
+      }
+    } finally {
       setRouletteBusy(false);
-      return;
     }
-    setRouletteOptions({ date, slot, recipes: list.slice(0, 3), cuisine, source: "api-ninjas" });
-    setRouletteBusy(false);
   };
 
   const chooseSavedRecipe = async (recipeToPlan) => {
@@ -446,15 +423,14 @@ export default function Meals() {
   };
 
   const missingIngredients = (cookRecipe?.ingredients || []).filter((ingredient) => {
-    if (typeof ingredient === "string") return !groceries.some((grocery) => grocery.name.toLowerCase() === ingredient.trim().toLowerCase());
-    if (ingredient && typeof ingredient === "object" && ingredient.name) return !groceries.some((grocery) => grocery.name.toLowerCase() === ingredient.name.toLowerCase());
-    return false;
+    const name = typeof ingredient === "string" ? ingredient : ingredient?.name;
+    return name ? !isIngredientOnList(name, groceries) : false;
   });
 
   const addCookIngredients = async () => {
     for (const raw of cookRecipe?.ingredients || []) {
-      const name = typeof raw === "string" ? raw.trim() : raw?.name;
-      if (!name) continue;
+      const name = canonicalIngredientName(typeof raw === "string" ? raw : raw?.name);
+      if (!name || isIngredientOnList(name, groceries)) continue;
       await addGrocery({ name, quantity: 1, unit: "" });
     }
     setCookIngredientsAdded(true);
@@ -481,22 +457,8 @@ export default function Meals() {
     }
 
     try {
-      let recipe = null;
+      let recipe = cachedRecipeDetail(meal.title);
       let lastError = "";
-      // Rung 0: try TheMealDB search first — free, no API key, great
-      // coverage for common dish names. Uses the full meal title so even
-      // meals like "Vegan Chocolate Cake" find a match when API Ninjas
-      // has no listing. Falls through to the API Ninjas ladder below.
-      try {
-        const cleanTitle = (meal.title || "").trim();
-        if (cleanTitle) {
-          const mealdbRes = await fetch(`${THE_MEAL_DB}/search.php?s=${encodeURIComponent(cleanTitle)}`).then((r) => r.json());
-          const mealdbMeal = mealDbToRecipe(mealdbRes?.meals?.[0]);
-          if (mealdbMeal?.instructions?.length) recipe = mealdbMeal;
-        }
-      } catch {
-        // TheMealDB offline — fall through to API Ninjas ladder.
-      }
       if (!recipe) {
         const ladder = buildCookSearchLadder(meal, dietaryPreferences);
         for (const rung of ladder) {
@@ -512,11 +474,11 @@ export default function Meals() {
         return;
       }
       setCookRecipe({ ...placeholderRecipe(meal.title, meal.slot), ...recipe });
+      cacheRecipeDetail(recipe);
 
-      // Auto-enter Cook Mode once the recipe has real instructions — so the
-      // user doesn't need a second tap on the "Start Cook Mode" button if
-      // they already know they want to cook this meal.
-      if (recipe?.instructions?.length) setCookMode(true);
+      // Show the complete recipe first so the family can review the photo,
+      // ingredients, nutrition and all steps before starting focused mode.
+      setCookMode(false);
 
       // Cache ingredient names for the grocery badge on the meal card.
       const ingredientNames = recipe.ingredients
@@ -533,7 +495,7 @@ export default function Meals() {
       // Fetch nutrition data in parallel with the recipe display.
       setCookNutritionLoading(true);
       supabase.functions.invoke("recipe-nutrition", {
-        body: { ingredients: recipe.ingredients },
+        body: { title: recipe.title, servings: recipe.servings, ingredients: recipe.ingredients },
       }).then(({ data: nutData, error: nutError }) => {
         if (!nutError && nutData?.totals) setCookNutrition(nutData.totals);
         setCookNutritionLoading(false);
@@ -550,27 +512,7 @@ export default function Meals() {
     : [];
   const currentCookStep = Math.min(cookStep, Math.max(cookSteps.length - 1, 0));
   const cookProgress = cookSteps.length ? ((currentCookStep + 1) / cookSteps.length) * 100 : 0;
-
-  const dietarySummary = useMemo(() => {
-    const restrictions = dietaryPreferences.restrictions || [];
-    const pieces = [
-      ...restrictions,
-      dietaryPreferences.avoidIngredients ? `avoiding ${dietaryPreferences.avoidIngredients}` : "",
-      dietaryPreferences.notes,
-    ].filter(Boolean);
-    return pieces.length ? pieces.join(" · ") : "No restrictions set yet — everything is on the table.";
-  }, [dietaryPreferences]);
-
-  const toggleRestriction = (option) => {
-    setDietaryPreferences((current) => {
-      const restrictions = current.restrictions || [];
-      const active = restrictions.includes(option);
-      return {
-        ...current,
-        restrictions: active ? restrictions.filter((item) => item !== option) : [...restrictions, option],
-      };
-    });
-  };
+  const cookVideoEmbed = youtubeEmbedUrl(cookRecipe?.videoUrl || "");
 
   const savedRecipeIds = useMemo(() => new Set(savedRecipes.map((recipe) => recipeKey(recipe))), [savedRecipes]);
   const cookRecipeSaved = cookRecipe ? savedRecipeIds.has(recipeKey(cookRecipe)) : false;
@@ -631,32 +573,22 @@ export default function Meals() {
 
   return (
     <PullToRefresh onRefresh={refreshData}><div className="pb-24 reference-meals">
-      <PageHeader eyebrow="Nourish & connect" title="Meal planner" illustration="meals" subtitle="Plan meals, save recipes, and start cook mode." action={meals.length?<button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button>:null} />
+      <PageHeader eyebrow="Nourish & connect" title="Meal planner" illustration="meals" subtitle="Answer “what’s for dinner?” before anyone asks it." action={meals.length?<button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button>:null} />
 
       <div className="meal-range-toggle px-5" aria-label="Meal planning range"><button className={horizon===7?"selected":""} onClick={()=>setHorizon(7)}>1 week</button><button className={horizon===14?"selected":""} onClick={()=>setHorizon(14)}>2 weeks</button></div>
 
-      <section className="meal-preferences-card" aria-label="Meal planning preferences">
-        <div className="meal-preferences-copy">
-          <p>Household tastes</p>
-          <h3>Cook for the people at the table.</h3>
-          <span>{dietarySummary}</span>
+      <section className="kitchen-ideas-card" aria-labelledby="kitchen-ideas-title">
+        <span className="kitchen-ideas-icon" aria-hidden="true"><Refrigerator size={21} /></span>
+        <div className="kitchen-ideas-copy">
+          <p>Kitchen ideas</p>
+          <h3 id="kitchen-ideas-title">Cook from what you have.</h3>
+          <span>{kitchenIngredients.length ? `${kitchenIngredients.length} recently purchased item${kitchenIngredients.length === 1 ? "" : "s"} can inspire the next meal.` : "Complete items on your shopping list to build your kitchen inventory."}</span>
         </div>
-        <div className="dietary-chip-row">
-          {DIETARY_OPTIONS.map((option) => {
-            const active = dietaryPreferences.restrictions?.includes(option);
-            const meta = DIETARY_META[option] || { icon: Leaf, tone: "green" };
-            const Icon = meta.icon;
-            return (
-              <button key={option} className={`dietary-chip dietary-chip--${meta.tone} ${active ? "active" : ""}`} onClick={() => toggleRestriction(option)}>
-                <span className="dietary-chip-icon" aria-hidden="true">{active ? <Check size={14} /> : <Icon size={14} />}</span>
-                <span>{option}</span>
-              </button>
-            );
+        <div className="kitchen-ideas-actions" aria-label="Find recipes from kitchen items">
+          {MEAL_SLOTS.map((slot) => {
+            const Icon = SLOT_META[slot].icon;
+            return <button key={slot} disabled={!kitchenIngredients.length} onClick={() => rouletteForSlot(todayISO(), slot, true)}><Icon size={15} /><span>{SLOT_META[slot].label}</span></button>;
           })}
-        </div>
-        <div className="meal-preferences-fields">
-          <input value={dietaryPreferences.avoidIngredients} onChange={(event) => setDietaryPreferences((current) => ({ ...current, avoidIngredients: event.target.value }))} placeholder="Avoid ingredients, e.g. peanuts, cilantro" />
-          <input value={dietaryPreferences.notes} onChange={(event) => setDietaryPreferences((current) => ({ ...current, notes: event.target.value }))} placeholder="Notes, e.g. quick school-night dinners" />
         </div>
       </section>
 
@@ -675,9 +607,14 @@ export default function Meals() {
               return (
                 <article className="saved-recipe-card" key={id}>
                   <button className="saved-recipe-main" onClick={() => openSavedRecipe(savedRecipe)}>
-                    <span>{savedRecipe.title}</span>
-                    <small>{savedRecipe.readyInMinutes || 35} min · {savedRecipe.cuisine || "Family favourite"}</small>
-                    <strong><ChefHat size={14} /> Cook this recipe</strong>
+                    <span className="saved-recipe-media">
+                      {savedRecipe.thumbnail ? <img src={savedRecipe.thumbnail} alt="" loading="lazy" /> : <ImageIcon size={22} aria-hidden="true" />}
+                    </span>
+                    <span className="saved-recipe-copy">
+                      <span>{savedRecipe.title}</span>
+                      <small><Clock size={12} /> {savedRecipe.readyInMinutes || 35} min <Users size={12} /> Serves {savedRecipe.servings || 4}</small>
+                      <strong><ChefHat size={14} /> View recipe</strong>
+                    </span>
                   </button>
                   <button className="saved-recipe-plan" onClick={() => setPlanningRecipe(savedRecipe)}>
                     <CalendarPlus size={14} /><span>Add to plan</span>
@@ -738,60 +675,37 @@ export default function Meals() {
                           <p className={`meal-slot-value text-[14px] truncate ${meal?.title ? "has-meal text-[var(--color-ink)] font-medium" : "is-empty text-[var(--color-ink-faint)]"}`}>
                             {meal?.title || "Add a meal"}
                           </p>
-                          {meal?.title && adder && <Avatar member={adder} size="xs" className="ml-1" aria-label={`Added by ${adder.name}`} />}
-                          {meal?.title && <span className="meal-cook-hint"><ChefHat size={12} /> Cook</span>}
-                          {(() => {
-                            const badge = meal?.id && mealMissingCount[meal.id];
-                            if (!badge) return null;
-                            const allCovered = badge.missing === 0;
-                            const justAdded = badgeAddedRef.current.has(meal.id);
-                            const interactive = !allCovered && !justAdded;
-                            const handleBadgeClick = (e) => {
-                              e.stopPropagation();
-                              if (!meal.id || badgeAddedRef.current.has(meal.id)) return;
-                              const names = mealIngredientsCache[meal.id];
-                              if (!Array.isArray(names)) return;
-                              const missingNames = names.filter(
-                                (name) => !groceries.some((grocery) => grocery.name.toLowerCase() === name)
-                              );
-                              if (!missingNames.length) return;
-                              for (const name of missingNames) {
-                                addGrocery({ name, quantity: 1, unit: "" });
-                              }
-                              badgeAddedRef.current.add(meal.id);
-                              forceUpdate((n) => n + 1);
-                              if (badgeTimerRef.current) window.clearTimeout(badgeTimerRef.current);
-                              badgeTimerRef.current = window.setTimeout(() => {
-                                badgeAddedRef.current.delete(meal.id);
-                                forceUpdate((n) => n + 1);
-                                badgeTimerRef.current = null;
-                              }, 2000);
-                            };
-                            return (
-                              <span
-                                className={`meal-grocery-badge ${justAdded ? "added" : allCovered ? "covered" : "needs"}`}
-                                onClick={interactive ? handleBadgeClick : undefined}
-                                role={interactive ? "button" : undefined}
-                                tabIndex={interactive ? 0 : undefined}
-                                onKeyDown={interactive ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleBadgeClick(e); } } : undefined}
-                                aria-label={justAdded ? "Ingredients added" : allCovered ? "All groceries covered" : `Add ${badge.missing} missing ingredients to list`}
-                                title={justAdded ? "Added!" : allCovered ? "All items already on grocery list" : `Tap to add ${badge.missing} missing ingredients`}
-                              >
-                                <ShoppingCart size={10} />
-                                {justAdded ? "✓ Added" : allCovered ? "✓" : badge.missing}
-                              </span>
-                            );
-                          })()}
+                          {meal?.title && <div className="meal-slot-meta">
+                            {adder && <span className="meal-slot-adder"><Avatar member={adder} size="xs" aria-label={`Added by ${adder.name}`} /><small>Added by {adder.name}</small></span>}
+                            <span className="meal-cook-hint"><ChefHat size={12} /> Cook</span>
+                          </div>}
                         </div>
                         {cooks.length > 0 && <AvatarStack members={cooks} size="sm" />}
                       </button>
                       <div className="meal-slot-actions">
+                        {(() => {
+                          const badge = meal?.id && mealMissingCount[meal.id];
+                          if (!badge) return null;
+                          const allCovered = badge.missing === 0;
+                          const justAdded = badgeAddedRef.current.has(meal.id);
+                          return (
+                            <button
+                              className={`meal-grocery-action ${justAdded ? "added" : allCovered ? "covered" : "needs"}`}
+                              onClick={() => addMissingGroceriesForMeal(meal, badge)}
+                              disabled={allCovered || justAdded}
+                              aria-label={justAdded ? "Ingredients added" : allCovered ? "Groceries ready" : `Add ${badge.missing} missing ingredients to shopping`}
+                            >
+                              <ShoppingCart size={15} />
+                              <span>{justAdded ? "Added" : allCovered ? "Groceries ready" : `${badge.missing} missing`}</span>
+                            </button>
+                          );
+                        })()}
                         {meal?.title && (
                           <button className="meal-start-cooking" onClick={() => openCookRecipe(meal)} aria-label={`Start cooking ${meal.title}`}>
                             <ChefHat size={15} /><span>Cook</span>
                           </button>
                         )}
-                        <button className="meal-slot-tool" onClick={() => rouletteForSlot(date, slot)} aria-label={`Choose a random ${SLOT_META[slot].label.toLowerCase()}`} title="Meal roulette">
+                        <button className="meal-slot-tool meal-surprise-action" onClick={() => rouletteForSlot(date, slot)} aria-label={`Surprise me with a random ${SLOT_META[slot].label.toLowerCase()}`} title="Get a fresh meal idea">
                           <Dices size={15} /><span>Surprise me</span>
                         </button>
                         <button className="meal-slot-tool" onClick={() => { openEditor(date, slot); setShowSavedRecipes(true); }} aria-label={`Choose a saved recipe for ${SLOT_META[slot].label.toLowerCase()}`} title="Saved recipes">
@@ -809,53 +723,13 @@ export default function Meals() {
 
       <Modal open={!!editing} onClose={() => setEditing(null)} title={editing ? `${SLOT_META[editing.slot].label} · ${formatDayLabel(editing.date)}` : ""}>
         <TextField
-          label="What's the plan?"
+          label="What are we cooking?"
           placeholder="e.g. Sheet-pan chicken fajitas"
           value={draft.title}
           onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
           autoFocus
         />
 
-        {/* Ingredient-based recipe search */}
-        <div className="meal-search-ingredient">
-          <input
-            className="meal-search-ingredient-input"
-            value={recipeSearchQuery}
-            onChange={(e) => setRecipeSearchQuery(e.target.value)}
-            placeholder="Or type an ingredient to find a recipe…"
-            aria-label="Search recipes by ingredient"
-          />
-          {recipeSearchBusy && (
-            <span className="meal-search-ingredient-spinner">
-              <LoaderCircle size={12} className="animate-spin" />
-            </span>
-          )}
-          {recipeSearchResults.length > 0 && (
-            <div className="meal-search-ingredient-results">
-              {recipeSearchResults.map((recipe, index) => (
-                <button
-                  key={`${recipe.title}-${index}`}
-                  className="meal-search-ingredient-result"
-                  onClick={() => {
-                    setDraft((d) => ({ ...d, title: recipe.title }));
-                    setRecipeSearchResults([]);
-                    setRecipeSearchQuery("");
-                    // Ingredients cache when Cook Mode opens — standard flow.
-                  }}
-                >
-                  <span className="meal-search-result-title">{recipe.title}</span>
-                  <span className="meal-search-result-meta">
-                    {recipe.readyInMinutes ? `${recipe.readyInMinutes} min` : ""}
-                    {recipe.servings ? ` · Serves ${recipe.servings}` : ""}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-          {recipeSearchError && !recipeSearchBusy && (
-            <p className="meal-search-ingredient-error">{recipeSearchError}</p>
-          )}
-        </div>
         <TextField
           label="Notes (optional)"
           placeholder="Prep notes, sides, reminders..."
@@ -924,7 +798,7 @@ export default function Meals() {
         confirmLabel={meals.length === 1 ? "Clear 1 meal" : `Clear ${meals.length} meals`}
       />
 
-      {/* Roulette picker — shows up to 3 recipe options from TheMealDB (free) or API Ninjas (fallback) */}
+      {/* Roulette picker — Spoonacular results are filtered to the selected meal slot. */}
       <Modal open={!!rouletteOptions} onClose={() => setRouletteOptions(null)} title={rouletteOptions ? `${SLOT_META[rouletteOptions.slot].label} roulette` : ""}>
         <div className="roulette-picker">
           {/* Cuisine chip row — filter the roulette to a specific cuisine type */}
@@ -932,7 +806,7 @@ export default function Meals() {
             <button
               type="button"
               className={`roulette-cuisine-chip ${rouletteCuisine === null ? "selected" : ""}`}
-              onClick={() => setRouletteCuisine(null)}
+              onClick={() => { setRouletteCuisine(null); rouletteForSlot(rouletteOptions.date, rouletteOptions.slot, rouletteOptions.kitchenOnly, null); }}
               aria-pressed={rouletteCuisine === null}
             >
               Any cuisine
@@ -942,7 +816,7 @@ export default function Meals() {
                 key={cuisine}
                 type="button"
                 className={`roulette-cuisine-chip ${rouletteCuisine === cuisine ? "selected" : ""}`}
-                onClick={() => setRouletteCuisine(cuisine)}
+                onClick={() => { setRouletteCuisine(cuisine); rouletteForSlot(rouletteOptions.date, rouletteOptions.slot, rouletteOptions.kitchenOnly, cuisine); }}
                 aria-pressed={rouletteCuisine === cuisine}
               >
                 {cuisine}
@@ -952,17 +826,20 @@ export default function Meals() {
           {rouletteOptions && (
             <>
               <p className="roulette-picker-intro">
-                {rouletteOptions.source === "themealdb"
-                  ? `${rouletteOptions.recipes.length} fresh idea${rouletteOptions.recipes.length === 1 ? "" : "s"} for your family. Pick one or spin again.`
-                  : `Found ${rouletteOptions.recipes.length} recipe${rouletteOptions.recipes.length === 1 ? "" : "s"} for <strong>${rouletteOptions.cuisine}</strong>. Pick one or spin again.`
-                }
+                {rouletteBusy
+                  ? `Spinning up fresh ${rouletteOptions.slot} ideas…`
+                  : rouletteOptions.kitchenOnly
+                    ? `Found ${rouletteOptions.recipes.length} ${rouletteOptions.slot} idea${rouletteOptions.recipes.length === 1 ? "" : "s"} using what is already in your kitchen.`
+                    : `Found ${rouletteOptions.recipes.length} ${rouletteOptions.slot} recipe${rouletteOptions.recipes.length === 1 ? "" : "s"} for ${rouletteOptions.cuisine}. Pick one or spin again.`}
               </p>
-              <div className="roulette-picker-list">
+              {rouletteError && <p className="roulette-picker-error" role="alert">{rouletteError}</p>}
+              <div className={`roulette-picker-list ${rouletteBusy ? "is-refreshing" : ""}`} aria-busy={rouletteBusy}>
                 {rouletteOptions.recipes.map((recipe, index) => (
                   <button
                     key={`${recipe.title}-${index}`}
                     className="roulette-picker-card"
                     onClick={async () => {
+                      cacheRecipeDetail(recipe);
                       await setMealForSlot(rouletteOptions.date, rouletteOptions.slot, {
                         title: recipe.title,
                         notes: `Roulette pick`,
@@ -1008,8 +885,8 @@ export default function Meals() {
                 ))}
               </div>
               <div className="roulette-picker-actions">
-                <button className="roulette-picker-spin" disabled={rouletteBusy} onClick={() => { setRouletteOptions(null); rouletteForSlot(rouletteOptions.date, rouletteOptions.slot); }}>
-                  <Dices size={14} /> Spin again
+                <button className="roulette-picker-spin" disabled={rouletteBusy} onClick={() => rouletteForSlot(rouletteOptions.date, rouletteOptions.slot, rouletteOptions.kitchenOnly, rouletteCuisine)}>
+                  <Dices size={14} /> {rouletteBusy ? "Spinning…" : "Spin again"}
                 </button>
                 <button className="roulette-picker-close" onClick={() => setRouletteOptions(null)}>Cancel</button>
               </div>
@@ -1041,7 +918,18 @@ export default function Meals() {
           ))}
         </div>
       </Modal>
+      <Modal open={!!consumeReview} onClose={() => setConsumeReview(null)} title="Update kitchen inventory?">
+        <div className="consume-review">
+          <p>FamOS found ingredients from this recipe in your kitchen. Review what was finished—nothing changes until you confirm.</p>
+          <div>{(consumeReview || []).map((item) => {
+            const selected = consumeSelection.includes(item.id);
+            return <button key={item.id} className={selected ? "selected" : ""} onClick={() => setConsumeSelection((current) => selected ? current.filter((id) => id !== item.id) : [...current, item.id])}><span>{selected ? <Check size={14}/> : null}</span><strong>{item.name}</strong><small>{item.quantity}{item.unit ? ` ${item.unit}` : ""} in {item.location}</small></button>;
+          })}</div>
+          <div className="consume-review-actions"><SecondaryButton onClick={() => setConsumeReview(null)}>Keep everything</SecondaryButton><PrimaryButton disabled={!consumeSelection.length} onClick={async () => { for (const id of consumeSelection) await removeInventoryItem(id); setConsumeReview(null); }}>Mark {consumeSelection.length} used</PrimaryButton></div>
+        </div>
+      </Modal>
       {cookMeal && cookRecipe && createPortal(
+        <div className={`app-shell cook-mode-portal ${document.querySelector(".app-shell")?.classList.contains("theme-dark") ? "theme-dark" : ""}`}>
         <ErrorBoundary
           fallback={(error) => (
             <div className="cook-focus-screen cook-focus-crash" role="alert">
@@ -1074,7 +962,9 @@ export default function Meals() {
               </div>
             </div>
 
-            <section className={`cook-focus-hero ${cookRecipe.image ? "" : "no-photo"}`}>
+            <section className={`cook-focus-hero ${cookRecipe.thumbnail ? "has-photo" : "no-photo"}`}>
+              {cookRecipe.thumbnail && <img className="cook-focus-hero-image" src={cookRecipe.thumbnail} alt={`Prepared ${cookRecipe.title}`} />}
+              {cookRecipe.thumbnail && <span className="cook-focus-hero-shade" aria-hidden="true" />}
               <div className="cook-focus-copy">
                 <p className="eyebrow">{cookMode ? "COOK MODE" : "READY TO COOK"}</p>
                 <h2>{cookRecipe.title}</h2>
@@ -1160,12 +1050,22 @@ export default function Meals() {
               </div>
             ) : (
               <div className="cook-guide-layout">
+                <section className="cook-step-media" aria-label="Recipe visual">
+                  {cookVideoEmbed ? (
+                    <iframe src={cookVideoEmbed} title={`${cookRecipe.title} cooking video`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                  ) : cookRecipe.thumbnail ? (
+                    <img src={cookRecipe.thumbnail} alt={`Prepared ${cookRecipe.title}`} />
+                  ) : (
+                    <span><ChefHat size={34} /><small>Step-by-step Cook Mode</small></span>
+                  )}
+                  <div className="cook-step-media-label"><span>Now cooking</span><strong>{cookRecipe.title}</strong></div>
+                </section>
                 <div className="cook-progress-card">
                   <div>
                     <span>Step {currentCookStep + 1} of {cookSteps.length}</span>
                     <strong>{Math.round(cookProgress)}%</strong>
                   </div>
-                  <div className="cook-progress-track"><i style={{ width: `${cookProgress}%` }} /></div>
+                  <ProgressBar value={cookProgress} color="var(--color-fam-coral)" size="lg" />
                 </div>
 
                 <Card className="cook-step-card">
@@ -1223,6 +1123,7 @@ export default function Meals() {
           </div>
         </div>
         </ErrorBoundary>
+        </div>
       , document.body)}
     </div></PullToRefresh>
   );

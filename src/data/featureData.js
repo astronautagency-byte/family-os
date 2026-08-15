@@ -6,7 +6,8 @@
 // product alongside the marketing copy.
 import {
   BellRing, CalendarDays, CalendarPlus, Camera, ChefHat, ClipboardList,
-  Coins, ListChecks, MapPin, Megaphone, Mic, ShoppingCart, Sparkles, Users,
+  Coins, FileInput, ListChecks, MapPin, Megaphone, Mic, Palette, Refrigerator,
+  ShoppingCart, Sparkles, Users,
 } from "lucide-react";
 
 // Single source of truth for the on-device screenshot shown on a feature
@@ -23,8 +24,8 @@ export const ONBOARDING_FALLBACK = { src: "/features/app-shots/01-signin.png", a
 // benefits for that module — separate from the deeper bullet list.
 export const FEATURE_HERO = {
   today: {
-    pills: ["30-day free trial", "Cross-device sync", "Hands-free Cook Mode", "Weather built-in"],
-    screenshot: { src: "/features/app-shots/feature-today.png", alt: "FamOS home dashboard — local event discovery, search, and forecast in one view" },
+    pills: ["Day-first bento", "Kitchen reminders", "All daily meals", "Family broadcasts"],
+    screenshot: { src: "/features/app-shots/feature-today.png", alt: "FamOS Today dashboard with the family schedule, daily meals, tasks, kitchen reminders, and forecast" },
     cards: [
       { emoji: "👋", title: "Evening, Alex",       subtitle: "Plan visible at a glance", accent: "lilac" },
       { emoji: "🌧️", title: "Rain · Newmarket",   subtitle: "26% · 23° · 8 km/h",      accent: "blue" },
@@ -32,16 +33,16 @@ export const FEATURE_HERO = {
     ],
   },
   calendar: {
-    pills: ["Multiple Google Calendars", "Two-way sync", "Quick capture", "Find events nearby"],
+    pills: ["Multiple Google Calendars", "Two-way sync", "Quick capture", "Shared family views"],
     screenshot: { src: "/features/app-shots/feature-calendar.png", alt: "FamOS Calendar — month grid with All-calendars toggle and dense event markers" },
     cards: [
-      { emoji: "🔍", title: "Find something fun nearby", subtitle: "Searching Newmarket · next month", accent: "blue" },
+      { emoji: "👨‍👩‍👧", title: "All family calendars", subtitle: "Shared view · privacy respected", accent: "blue" },
       { emoji: "🔄", title: "Google calendar · Connected", subtitle: "Two-way sync live",                accent: "amber" },
       { emoji: "🎟", title: "Family Fun at Bradley Museum", subtitle: "Saturday · Aug 1",                    accent: "peach" },
     ],
   },
   meals: {
-    pills: ["Hands-free Cook Mode", "Meal roulette · cuisine-aware", "Save & re-use recipes", "Ingredients → shopping"],
+    pills: ["Spoonacular recipes", "Hands-free Cook Mode", "Every daily meal", "Ingredients → shopping"],
     screenshot: { src: "/features/app-shots/feature-meals.png", alt: "FamOS Meals — Meal Roulette with cuisine filter, recipe cards, household preferences" },
     cards: [
       { emoji: "🍝", title: "Sheet-pan fajitas", subtitle: "Tonight · 35 min · 8 ingredients", accent: "rose" },
@@ -50,16 +51,16 @@ export const FEATURE_HERO = {
     ],
   },
   shopping: {
-    pills: ["Shared · attributed", "Barcode in-store", "Focus-shop mode", "Avocado fuzzy match"],
+    pills: ["Kitchen inventory", "Expiry reminders", "Photos + barcode brands", "Focus Shop"],
     screenshot: { src: "/features/app-shots/feature-shopping.png", alt: "FamOS Shopping — shared list with Focus Shop, scan, delivery and 1-tap checkout" },
     cards: [
-      { emoji: "🛒", title: "11 items",           subtitle: "Produce · Dairy · Pantry", accent: "mint" },
-      { emoji: "🥑", title: "Avocados",           subtitle: "Produce · 4",              accent: "lime" },
-      { emoji: "📸", title: "Scan barcode",       subtitle: "Auto-categorise",          accent: "blue" },
+      { emoji: "🧊", title: "Kitchen inventory", subtitle: "Fridge · Freezer · Pantry", accent: "mint" },
+      { emoji: "⏳", title: "Blueberries",       subtitle: "Use tomorrow",              accent: "lime" },
+      { emoji: "📸", title: "Scan or add a photo", subtitle: "Brand stays on the card", accent: "blue" },
     ],
   },
   tasks: {
-    pills: ["Quick-add like Notes", "Assign any member", "Recurring chores", "Streak rewards"],
+    pills: ["Custom task lists", "All-tasks view", "Review-first imports", "Recurring chores"],
     screenshot: { src: "/features/app-shots/feature-tasks.png", alt: "FamOS Tasks — quick-add bar, household group, share progress + weekly recap" },
     cards: [
       { emoji: "✅", title: "Feed the dog",        subtitle: "Daily · Lou · done",  accent: "mint" },
@@ -88,6 +89,15 @@ export const FEATURE_HERO = {
       { emoji: "🎙", title: "Voice in Cook Mode",   subtitle: "Hands-free next/back", accent: "violet" },
     ],
   },
+  family: {
+    pills: ["Optional onboarding", "Personal colour schemes", "Private/shared calendars", "Role-aware access"],
+    screenshot: ONBOARDING_FALLBACK,
+    cards: [
+      { emoji: "🎨", title: "Feels like your FamOS", subtitle: "Colour scheme · light + dark", accent: "lilac" },
+      { emoji: "🔒", title: "Work calendar", subtitle: "Private to Alex", accent: "blue" },
+      { emoji: "👨‍👩‍👧", title: "Family calendar", subtitle: "Shared with household", accent: "mint" },
+    ],
+  },
 };
 
 // Tones mirror the pastel-strengths used across landing.css so the
@@ -107,7 +117,7 @@ export const FEATURES = [
     name: "Today",
     eyebrow: "HOME DASHBOARD",
     title: "One screen for the whole household.",
-    lede: "Today is the quiet glance-and-go hub. Broadcasts, weather, tonight's plan, what's still open — one screen for everyone.",
+    lede: "Today is the quiet, day-first hub. Broadcasts, weather, every meal, open tasks, and kitchen items that need attention—without repeating the whole week.",
     icon: Sparkles,
     tone: "lilac",
     pill: "Home",
@@ -115,7 +125,7 @@ export const FEATURES = [
       { icon: Megaphone,  title: "Family broadcast",       copy: "Tap, type, send. Everyone in the household sees a celebration banner with one-tap emoji reactions (❤️ / 👍 / 😄 / 🎉)." },
       { icon: BellRing,   title: "Real-time sync",         copy: "Anything anyone changes — broadcast, task, meal, list — shows up on every phone in under a second." },
       { icon: ChefHat,    title: "Cook tonight, one tap",  copy: "If dinner is planned, the home screen jumps you straight into Cook Mode with hands-free voice navigation." },
-      { icon: Users,      title: "Family load",            copy: "See at a glance who has the most on their plate this week — and spread the work without asking." },
+      { icon: Refrigerator, title: "Kitchen watch",         copy: "See what is expired or needs using soon, then put a replacement back on the shopping list in one tap." },
     ],
     preview: {
       title: "Today",
@@ -133,27 +143,27 @@ export const FEATURES = [
       { headline: "One-tap Cook tonight", copy: "If dinner is planned, the hero CTA jumps straight into Cook Mode in one tap. No menu hunting, no friction." },
     ],
     ctaHeadline: "One screen for the whole household.",
-    ctaCopy: "Start your 30-day free trial and try the Today dashboard — broadcast, weather, upcoming events, and tonight's dinner on a single page.",
+    ctaCopy: "Start your 30-day free trial and try the Today dashboard—broadcasts, weather, today's schedule, every meal, tasks, and kitchen reminders on one page.",
   },
   {
     id: "calendar",
     name: "Calendar",
     eyebrow: "SHARED FAMILY CALENDAR",
     title: "Sync every calendar. Stop double-booking dinner.",
-    lede: "Bring in as many Google Calendars as your family uses, color-code them by source, share only what each person needs, and let FamOS surface the forecast for outdoor events automatically.",
+    lede: "Connect up to five Google, Apple, Outlook, school, sports, or iCal calendars, color-code each source, and choose whether each feed stays private or is shared with the household.",
     icon: CalendarDays,
     tone: "blue",
     pill: "Calendar",
     bullets: [
-      { icon: CalendarDays, title: "Multiple Google Calendars", copy: "Connect personal, work, kids' school, and shared family calendars — pick which to display and which are private to you." },
+      { icon: CalendarDays, title: "Up to five calendars", copy: "Bring in Google, Apple, Outlook, school, sports, or iCal calendars—then choose private or household-shared for each feed." },
       { icon: CalendarPlus, title: "Quick capture",             copy: "Type 'dentist 3pm Wed' — FamOS parses, prefill, save in two taps. The full form stays one tap away." },
-      { icon: MapPin,       title: "Local event discovery",     copy: "Find things to do nearby. FamOS pulls family-friendly events close to home, with a wider search when nothing's local." },
+      { icon: MapPin,       title: "Real places and directions", copy: "Pick a real place when creating an event, keep the address with the plan, and open directions when it is time to leave." },
       { icon: BellRing,     title: "Two-way Google sync",       copy: "Add it in FamOS — it shows up in Google Calendar. Delete it here — it's gone there. Owner-only events get a delete button right on the card." },
     ],
     preview: {
       title: "This week",
       kicker: "MAY · WEEK 21",
-      pills: ["🇨🇦 Toronto weather · 19°", "2 Google calendars", "+8 discovered"],
+      pills: ["🇨🇦 Toronto weather · 19°", "5 calendar limit", "Private + shared"],
       rows: [
         { avatar: "A", name: "Soccer practice",  meta: "Today · 5:30 PM · Riverside",      accent: "sky" },
         { avatar: "M", name: "Piano lesson",     meta: "Today · 4:00 PM · Studio",         accent: "violet" },
@@ -163,24 +173,24 @@ export const FEATURES = [
     tips: [
       { headline: "Color-code every calendar", copy: "One tint for kids' school, one for your work, one for the family shared calendar — at a glance you know whose event is whose." },
       { headline: "Weather forecasts are built-in", copy: "Outdoor events pull the forecast automatically, so 'soccer practice' comes with '☂️ light rain expected' badge." },
-      { headline: "Discover things to do nearby", copy: "Tap Discover to surface family-friendly events close to home. Recent searches are remembered, so reopening the list is instant." },
+      { headline: "Choose what the household sees", copy: "Keep a work feed private, share the school calendar, and switch between one calendar or the combined family view." },
     ],
     ctaHeadline: "Every calendar. One clear week.",
-    ctaCopy: "Try Calendar free for 30 days — as many calendars as you use, two-way sync, and a discover pane for things to do nearby.",
+    ctaCopy: "Try Calendar free for 30 days—connect up to five feeds, set private or shared visibility, and use two-way Google sync.",
   },
   {
     id: "meals",
     name: "Meals",
     eyebrow: "MEAL PLANNING & COOK MODE",
     title: "From 'what's for dinner?' to plated in four taps.",
-    lede: "Plan a week of meals in seconds, let the roulette pick a recipe from your cuisine preferences, then Cook Mode walks you through it hands-free — even from the grocery aisle.",
+    lede: "Plan breakfast, lunch, dinner, or snacks with pictured Spoonacular recipes and real instructions, then let Cook Mode walk through each step hands-free.",
     icon: ChefHat,
     tone: "pink",
     pill: "Meals",
     bullets: [
       { icon: ChefHat,       title: "Cook Mode, hands-free",   copy: "Big step-by-step screen with voice commands — say 'next', 'back', or 'finish' so a flour-covered hand never has to tap the phone." },
-      { icon: Sparkles,      title: "Meal roulette",            copy: "Three picks from our recipe library, filtered by meal type — breakfast, lunch, or dinner — and the cuisine you pinned." },
-      { icon: ListChecks,    title: "Save & re-use recipes",    copy: "Built-in browser for thousands of recipes by ingredient. One-tap save into your family library; ingredients cache for instant grocery badges next time." },
+      { icon: Sparkles,      title: "Meal ideas by meal type",  copy: "Discover pictured Spoonacular recipes that match breakfast, lunch, dinner, or snack instead of getting generic suggestions." },
+      { icon: ListChecks,    title: "Pictures and instructions", copy: "Save recipes with their image, ingredients, nutrition, and cooking steps so the family can return to them anytime." },
       { icon: ShoppingCart,  title: "Ingredients → groceries",  copy: "Each meal card shows a tap-to-add badge. Tap and every missing ingredient pushes into the shopping list — no editing required." },
     ],
     preview: {
@@ -194,27 +204,27 @@ export const FEATURES = [
       ],
     },
     tips: [
-      { headline: "Pin a cuisine", copy: "Pick Italian, Mexican, or anything else once. Meal Roulette respects it, and the search filter follows." },
+      { headline: "Use what is already home", copy: "Kitchen inventory helps surface useful meal ideas and Cook Mode asks before consuming tracked ingredients." },
       { headline: "Cook Mode is hands-free", copy: "Say 'next', 'back', or 'finish' from across the kitchen — your flour-covered hand never has to touch the phone." },
       { headline: "Tap-to-add missing ingredients", copy: "Every meal card has a grocery badge — tap it and every missing ingredient pushes straight into the shopping list." },
     ],
     ctaHeadline: "From 'what's for dinner?' to plated in four taps.",
-    ctaCopy: "Try Meals free for 30 days — plan a week, let the roulette pick a recipe that matches your cuisine and meal type, then cook hands-free.",
+    ctaCopy: "Try Meals free for 30 days—plan every meal type, save pictured recipes, add what is missing, then cook step by step.",
   },
   {
     id: "shopping",
     name: "Shopping",
     eyebrow: "SHARED SHOPPING LIST",
     title: "One list. Every hand contributes.",
-    lede: "Add from chat, from a recipe, from a barcode scan. Focus-shopping keeps one item on screen at a time so you never lose your place in aisle 7.",
+    lede: "Add from chat, a recipe, a photo, or a barcode scan. Focus Shop handles the aisle; Kitchen Inventory tracks what came home and what needs using soon.",
     icon: ShoppingCart,
     tone: "mint",
     pill: "Shopping",
     bullets: [
       { icon: ShoppingCart, title: "Shared, with attribution", copy: "Every item shows who added it. A quiet avatar dot keeps the list clean — and you still know whose idea that fancy cheese was." },
-      { icon: Camera,       title: "Barcode scanner",         copy: "Tap the camera icon — point, scan, save. The item name lands in the right category automatically, then in focus-shopping mode." },
+      { icon: Camera,       title: "Photos, brands, and barcodes", copy: "Attach a private household photo or scan a product so its image and brand stay visible on the grocery card." },
       { icon: Sparkles,     title: "Missing-ingredient add",  copy: "On any meal card, the grocery badge shows what's still needed. Tap to push all missing ingredients straight to the list." },
-      { icon: ListChecks,   title: "Focus-shopping mode",     copy: "One item, full-screen. Tap to check, swipe to next. Auto-arrives when you have one item left and need to find the shortest checkout line." },
+      { icon: Refrigerator, title: "Fridge, freezer, and pantry", copy: "Move purchased items into Kitchen Inventory, add a use-by date, and get reminders before food is forgotten." },
     ],
     preview: {
       title: "Shopping list",
@@ -229,10 +239,10 @@ export const FEATURES = [
     tips: [
       { headline: "Scan barcodes in-store", copy: "Tap the camera icon while shopping — point, scan, the item lands in the right category automatically, and Focus-shopping finds it next." },
       { headline: "Cook Mode ingredients → list", copy: "From any meal card, the grocery badge shows what's still missing — tap once and every ingredient pushes to the list." },
-      { headline: "Capitalized items stick", copy: "Avocado matches 'avocados' matches 'Avacado' — the list forgives fuzzy typing so kids spelling phonetically still get credit." },
+      { headline: "Use it, then replace it", copy: "Expiry reminders land on Today and include a one-tap option to add the item back to the shopping list." },
     ],
     ctaHeadline: "One list. Every hand contributes.",
-    ctaCopy: "Try Shopping free for 30 days — anyone in the household adds, scan to fill, and focus-shop keeps one item at a time in the aisles.",
+    ctaCopy: "Try Shopping free for 30 days—share the list, scan products, focus in the aisle, then track what reaches the kitchen.",
   },
   {
     id: "tasks",
@@ -244,10 +254,10 @@ export const FEATURES = [
     tone: "yellow",
     pill: "Tasks",
     bullets: [
-      { icon: ListChecks,   title: "Quick-add, like Notes",    copy: "Type a task, hit Enter. Then tap to edit the assignee, due date, category and recurring cadence — nothing blocking the first keystroke." },
+      { icon: ListChecks,   title: "Custom lists or everything", copy: "Create colour-coded task lists, switch between them, or use All Tasks when the whole household needs one view." },
       { icon: Users,        title: "Assign any member",        copy: "Tap a household member to put them on the hook. The color shows up everywhere — list, dashboard, weekly pulse." },
       { icon: BellRing,     title: "Realtime across phones",   copy: "Mark done on the porch, see the parent's screen update in the kitchen. No refresh, no manual sync." },
-      { icon: Coins,        title: "Earn points, redeem rewards", copy: "Opt-in rewards: completed tasks tick up points for each kid or partner. Top the leaderboard, then redeem for screen time, allowance, or the next family vote." },
+      { icon: FileInput,    title: "Review-first imports", copy: "Paste or upload selected Apple, Google Tasks, or Microsoft To Do items, choose a destination list, and confirm before anything is added." },
     ],
     preview: {
       title: "Today's tasks",
@@ -370,15 +380,15 @@ export const FEATURES = [
     id: "family",
     name: "Family & Settings",
     eyebrow: "HOUSEHOLD SETTINGS",
-    title: "Roles, dietary preferences, dark mode, every member welcome.",
-    lede: "A small admin surface that respects the household. Invite by email or SMS, set roles, drop in everyone's dietary preferences, and the app remembers — for everyone, instantly.",
+    title: "A private home that feels like yours.",
+    lede: "Invite each person securely, keep onboarding optional and intentional, choose a personal colour scheme, and control what every connected calendar shares.",
     icon: Users,
     tone: "mint",
     bullets: [
       { icon: Users,        title: "Invite by email or text",       copy: "Send an invite by email or SMS. The receiver picks their own password and lands in the household — no shared passwords in your group chat." },
-      { icon: ChefHat,      title: "Household dietary preferences", copy: "Vegetarian, gluten-free, peanut allergy — saved once, applied across meal roulette, recipe search, and grocery suggestions." },
-      { icon: MapPin,       title: "Home location + weather",       copy: "Your address powers the forecast, outage alerts, and nearby things to do. Set it once — it stays out of the way." },
-      { icon: Sparkles,     title: "Tablet kiosk mode",            copy: "Stick an iPad to the fridge. FamOS turns into a one-screen always-on display without locking the device." },
+      { icon: ChefHat,      title: "Optional personal profile", copy: "Add family role, birthday, age, calendar, and dietary needs only when useful. Existing household members skip home setup." },
+      { icon: Palette,      title: "Personal colour schemes", copy: "Each member can choose a subtle palette during onboarding or later in Settings, with matching light and dark modes." },
+      { icon: CalendarDays, title: "Calendar privacy per feed", copy: "See every connected calendar and mark each one private or shared with the household, up to five feeds." },
     ],
     preview: {
       title: "Settings",
@@ -392,11 +402,11 @@ export const FEATURES = [
     },
     tips: [
       { headline: "Invite by email or SMS — receiver picks a password", copy: "No shared credentials texted across the family. The invite arrives with a secure link, the new member lands in the household, picks their own password, and is in." },
-      { headline: "Dietary preferences travel everywhere", copy: "Vegetarian, gluten-free, peanut allergy — saved once on the household, applied across Meal Roulette, recipe search, and grocery suggestions automatically." },
-      { headline: "Tablet kiosk mode for the fridge", copy: "Stick an iPad to the fridge and Fam OS turns into a single-screen always-on display — without locking the device out for the rest of the household." },
+      { headline: "Profiles stay optional", copy: "Role, birthday, age, calendar, and dietary details help tailor FamOS, but none blocks a family member from getting into the app." },
+      { headline: "Make the palette personal", copy: "Every member can choose a calmer colour profile without changing the rest of the household's experience." },
     ],
-    ctaHeadline: "Roles, dietary needs, dark mode, every member welcome.",
-    ctaCopy: "Try Settings free for 30 days — invites by email or text, household dietary needs, dark mode, and tablet kiosk for the fridge.",
+    ctaHeadline: "A private home that feels like yours.",
+    ctaCopy: "Try FamOS free for 30 days—secure invites, optional profiles, personal colour schemes, and visibility controls for every connected calendar.",
   },
 ];
 
@@ -409,18 +419,18 @@ export const SITE_WIDE_FEATURES = [
   { icon: ChefHat,  label: "Cook Mode with hands-free voice" },
 ];
 
-// The six modules the public marketing surface highlights. Order is the
-// order shown in the nav dropdown, the footer columns, and the /features
-// index grid. Other entries in FEATURES (today, rewards, family) still
-// exist in the catalog for deep-link use, but are intentionally not
-// surfaced on the marketing site.
+// The current product surfaces highlighted across the public nav, footer,
+// and feature index. Rewards remains a supporting Tasks capability until it
+// is ready to stand alone in the primary app navigation.
 export const MARKETING_FEATURE_IDS = [
+  "today",
   "meals",
   "calendar",
   "fam-ai",
   "tasks",
   "chat",
   "shopping",
+  "family",
 ];
 
 export const MARKETING_FEATURES = MARKETING_FEATURE_IDS

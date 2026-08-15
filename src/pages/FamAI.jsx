@@ -6,7 +6,11 @@ import {
   CheckSquare,
   ChefHat,
   ChevronDown,
+  MessageSquare,
+  Plus,
+  Search,
   Send,
+  ShieldCheck,
   ShoppingBasket,
   ShoppingCart,
   Sparkles,
@@ -250,7 +254,7 @@ function calendarTaskSuggestions(events = [], tasks = [], members = []) {
   return uniqueActions(actions).slice(0, 8);
 }
 
-// Pulls every unchecked grocery name and asks API Ninjas (via the
+// Pulls every unchecked grocery name and asks Spoonacular (via the
 // `recipe-search` edge function) for recipes that match them. Returns
 // already-shaped `plan_meal` actions the Fam AI review panel can show.
 // **Only suggests meals for open dinner slots** (slots without a planned meal).
@@ -302,7 +306,7 @@ async function mealActionsFromGroceries(groceryList = [], existingMeals = []) {
 
 // Suggests common grocery items that are likely needed based on planned meals,
 // **filtered to only items not already on the grocery list**.
-// Uses category-based heuristics rather than calling API Ninjas per-meal.
+// Uses category-based heuristics rather than calling Spoonacular per meal.
 function groceryActionsFromMeals(plannedMeals = [], existingGroceries = []) {
   const today = todayISO();
   const existingNames = new Set(
@@ -383,10 +387,10 @@ function groceryActionsFromMeals(plannedMeals = [], existingGroceries = []) {
   return items.slice(0, 10);
 }
 
-// Returns recipe *titles* suggested by API Ninjas based on the current
+// Returns recipe *titles* suggested by Spoonacular based on the current
 // unchecked grocery list. Used to enrich the prompt context sent to the
 // fam-ai edge function so it can speak to the current kitchen.
-async function apiNinjasMealTitlesFromGroceries(groceryList = []) {
+async function spoonacularMealTitlesFromGroceries(groceryList = []) {
   const ingredients = groceryList
     .filter((item) => !item.checked && item.name)
     .map((item) => item.name)
@@ -437,7 +441,7 @@ export default function FamAI({ open: propOpen, onClose }) {
   } = useFamily();
 const INITIAL_FAM_AI_MESSAGE = {
   role: "assistant",
-  content: "Hi, I’m Fam AI. Tell me what you need and I’ll suggest the next step.",
+  content: "Hi, I’m Fam AI—part planner, part household detective. Tell me what needs untangling and I’ll suggest the next step for your review.",
 };
 
   const [messages, setMessages] = useState([INITIAL_FAM_AI_MESSAGE]);
@@ -660,7 +664,7 @@ const INITIAL_FAM_AI_MESSAGE = {
 
       if (wantsGroceryList(text) && projectedMeals.some((meal) => meal.title)) {
         const missingActions = groceryActionsFromMeals(projectedMeals, projectedGroceries);
-        const mealIdeas = (await apiNinjasMealTitlesFromGroceries(projectedGroceries)).slice(0, 3).map((recipe) => recipe.title);
+        const mealIdeas = (await spoonacularMealTitlesFromGroceries(projectedGroceries)).slice(0, 3).map((recipe) => recipe.title);
         setMessages((current) => [...current, {
           role: "assistant",
           content: missingActions.length
@@ -724,12 +728,12 @@ const INITIAL_FAM_AI_MESSAGE = {
               .map((item) => ({ date: item.date, slot: item.slot, title: item.title, notes: item.notes })),
             mealGroceryBridge: {
               pendingActions: pending.map((action) => ({ type: action.type, args: action.args })),
-              // Static recipeBox used to fill these in. With strict API Ninjas
+              // Static recipeBox used to fill these in. With Spoonacular
               // sourcing, missing groceries are only inferred inside Cook Mode
               // (where we have the live ingredients); here we surface a clean
               // empty list plus the API-Ninjas meal titles.
               missingGroceriesForMeals: [],
-              mealIdeasFromGroceries: (await apiNinjasMealTitlesFromGroceries(projectedGroceries)).slice(0, 8).map((recipe) => ({
+              mealIdeasFromGroceries: (await spoonacularMealTitlesFromGroceries(projectedGroceries)).slice(0, 8).map((recipe) => ({
                 title: recipe.title,
                 cuisine: recipe.cuisine || "Family favourite",
                 ingredients: recipe.ingredients,
@@ -853,6 +857,15 @@ const INITIAL_FAM_AI_MESSAGE = {
   );
   const cookablePlanMealIds = new Set(cookablePlanMealActions.map((action) => action.id));
   const primaryPending = pending.filter((action) => !cookablePlanMealIds.has(action.id));
+  const welcomeState = messages.length === 1 && !busy && pending.length === 0;
+  const recentPrompts = messages.filter((message) => message.role === "user").slice(-6).reverse();
+
+  const startNewChat = () => {
+    setMessages([INITIAL_FAM_AI_MESSAGE]);
+    setPending([]);
+    setError("");
+    setInput("");
+  };
 
   // Hide the FAB whenever another full-screen modal is up so it doesn't
   // crop over a recipe / event / invite sheet. The mesh is cheap (a few
@@ -883,21 +896,36 @@ const INITIAL_FAM_AI_MESSAGE = {
         <X size={18} />
       </button>
       <div className="fam-ai-page famos-noscroll">
+        <aside className="fam-ai-sidebar" aria-label="Fam AI conversations">
+          <div className="fam-ai-sidebar-brand"><span><Sparkles size={15} /></span><strong>Fam AI</strong></div>
+          <button className="fam-ai-new-chat" type="button" onClick={startNewChat}><Plus size={15} /> New chat</button>
+          <label className="fam-ai-history-search"><Search size={14} /><input type="search" placeholder="Search chats" aria-label="Search Fam AI chats" /></label>
+          <nav className="fam-ai-history">
+            <p>Recent</p>
+            {recentPrompts.length ? recentPrompts.map((message, index) => (
+              <button key={`${message.content}-${index}`} type="button"><MessageSquare size={13} /><span>{message.content}</span></button>
+            )) : <span className="fam-ai-history-empty">Your recent questions will appear here.</span>}
+          </nav>
+          <div className="fam-ai-sidebar-privacy"><ShieldCheck size={14} /><span>Private to your household</span></div>
+        </aside>
+        <main className={`fam-ai-workspace ${welcomeState ? "is-welcome" : ""}`}>
         {/* Minimal header */}
         <div className="fam-ai-header">
           <div className="fam-ai-header-inner">
             <div className="fam-ai-brand">
               <span className="fam-ai-brand-icon"><Sparkles size={16} /></span>
-              <strong>Fam AI</strong>
+              <div className="fam-ai-brand-copy"><strong>Fam AI</strong><span><i /> Household assistant</span></div>
               <em>Beta</em>
             </div>
-            <p className="fam-ai-header-tagline">Your assistant for meals, groceries, tasks, and schedules.</p>
+            <p className="fam-ai-header-tagline">Private help with meals, groceries, tasks, and schedules.</p>
           </div>
         </div>
 
+      {welcomeState && <div className="fam-ai-welcome"><span><Sparkles size={20} /></span><h2>What are we untangling?</h2><p>Meals, errands, schedules, or the mystery of who was meant to buy milk.</p></div>}
+
       {/* Chat area — scrollable */}
       <div className="fam-ai-chat" ref={chatRef}>
-        {messages.map((message, index) => (
+        {!welcomeState && messages.map((message, index) => (
           <div key={index} className={`fam-ai-msg ${message.role}`}>
             <div className="fam-ai-msg-row">
               {message.role === "assistant" ? (
@@ -910,6 +938,7 @@ const INITIAL_FAM_AI_MESSAGE = {
                 </span>
               )}
               <div className="fam-ai-msg-body">
+                <div className="fam-ai-msg-meta"><strong>{message.role === "assistant" ? "Fam AI" : (members[0]?.name || "You")}</strong><span>{message.role === "assistant" ? "Household assistant" : "You"}</span></div>
                 <p>{message.content}</p>
               </div>
             </div>
@@ -1032,12 +1061,14 @@ const INITIAL_FAM_AI_MESSAGE = {
             placeholder="Ask Fam AI…"
             rows="1"
           />
-          <button disabled={!input.trim() || busy} aria-label="Send message">
+          <span className="fam-ai-composer-context"><ShieldCheck size={12} /> Household context</span>
+          <button className="fam-ai-composer-send" disabled={!input.trim() || busy} aria-label="Send message">
             <Send size={17} />
           </button>
         </div>
-        <p className="fam-ai-composer-legal">AI uses household data from FamOS to create suggestions. No real-time external access.</p>
+        <div className="fam-ai-composer-foot"><span><Sparkles size={11}/> Ask naturally</span><p>Fam AI proposes changes for your review.</p><kbd>↵ Send · ⇧↵ New line</kbd></div>
       </form>
+      </main>
       </div>
     </div>
   );

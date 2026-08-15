@@ -7,15 +7,17 @@ import {
   initialTasks,
   initialMessages,
 } from "../data/mockData";
-import { createGoogleCalendarEvent, deleteGoogleCalendarEvent as deleteGoogleCalendarEventApi, fetchGoogleCalendarEvents, fetchGoogleCalendars, requestGoogleAccessToken, revokeGoogleAccessToken } from "../lib/googleCalendar";
+import { createGoogleCalendarEvent, updateGoogleCalendarEvent as updateGoogleCalendarEventApi, deleteGoogleCalendarEvent as deleteGoogleCalendarEventApi, fetchGoogleCalendarEvents, fetchGoogleCalendars, requestGoogleAccessToken, revokeGoogleAccessToken } from "../lib/googleCalendar";
 import { fetchIcalFeed, parseIcalEvents } from "../lib/icalCalendar";
 import { useAuth } from "./AuthContext";
 import { invokeEdgeFunction, supabase } from "../lib/supabase";
 import { pathFromPublicUrl as groceryPhotoPath } from "../lib/groceryPhotoUpload";
+import { categorizeGroceryItem } from "../lib/groceryCategories";
 
 const STORAGE_KEY = "family-os:v1";
 const GOOGLE_STORAGE_KEY = "family-os:google:v1";
 const CALENDAR_FEEDS_STORAGE_KEY = "family-os:calendar-feeds:v1";
+const TASK_LISTS_FALLBACK_KEY = "family-os:task-lists-fallback:v1";
 const AVATAR_OVERRIDES_KEY = "family-os:avatar-overrides:v1";
 const VAPID_PUBLIC_KEY = "BK4WksXI5RRZqDhurNH8v2VbinrSKrBLzOA6xni__siwCbKjhtJ1T0N3GOSVKKQPNAnENCacYtdlLW553fadxHQ";
 
@@ -81,6 +83,25 @@ function makeId(prefix) {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
+function readFallbackTaskLists(householdId) {
+  try {
+    const all = JSON.parse(localStorage.getItem(TASK_LISTS_FALLBACK_KEY) || "{}");
+    return Array.isArray(all[householdId]) ? all[householdId] : [];
+  } catch { return []; }
+}
+
+function writeFallbackTaskLists(householdId, lists) {
+  try {
+    const all = JSON.parse(localStorage.getItem(TASK_LISTS_FALLBACK_KEY) || "{}");
+    all[householdId] = lists;
+    localStorage.setItem(TASK_LISTS_FALLBACK_KEY, JSON.stringify(all));
+  } catch { /* storage unavailable */ }
+}
+
+function isMissingTaskListsSchema(error) {
+  return /task_lists|list_id|schema cache|relation .* does not exist|could not find the table/i.test(error?.message || "");
+}
+
 // Capitalise every word in a shopping list name so entries read consistently
 // ("sourdough bread" → "Sourdough Bread"). Preserves common brand-style
 // casing (e.g. "McCormick" stays as-is). Applied centrally in addGrocery so
@@ -134,6 +155,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
   const [meals, setMeals] = useState(saved?.meals ?? initialMeals);
   const [groceries, setGroceries] = useState(saved?.groceries ?? initialGroceries);
   const [tasks, setTasks] = useState(saved?.tasks ?? initialTasks);
+  const [taskLists, setTaskLists] = useState(saved?.taskLists ?? []);
   const [messages, setMessages] = useState(saved?.messages ?? initialMessages);
   const [messageReactions, setMessageReactions] = useState(saved?.messageReactions ?? []);
   const [expenses, setExpenses] = useState(saved?.expenses ?? []);
@@ -261,13 +283,13 @@ export function FamilyProvider({ children, tabletMode = false }) {
 
   useEffect(() => {
     if (remote) return;
-    const payload = JSON.stringify({ members, events, meals, groceries, tasks, messages, messageReactions, expenses, weeklyBudget, monthlyBudget, financePeriod });
+    const payload = JSON.stringify({ members, events, meals, groceries, tasks, taskLists, messages, messageReactions, expenses, weeklyBudget, monthlyBudget, financePeriod });
     try {
       localStorage.setItem(STORAGE_KEY, payload);
     } catch (e) {
       console.warn("Could not save Family OS data locally.", e);
     }
-  }, [members, events, meals, groceries, tasks, messages, messageReactions, expenses, weeklyBudget, monthlyBudget, financePeriod, remote]);
+  }, [members, events, meals, groceries, tasks, taskLists, messages, messageReactions, expenses, weeklyBudget, monthlyBudget, financePeriod, remote]);
 
   const mapProfile = (row, membershipRole) => ({
     id: row.id,
@@ -278,7 +300,8 @@ export function FamilyProvider({ children, tabletMode = false }) {
     initials: row.initials,
     avatarUrl: loadAvatarOverrides()[row.id] || row.avatar_url || (row.id === user?.id ? user.user_metadata?.avatar_url || user.user_metadata?.picture || "" : ""),
   });
-  const mapTask = (row) => ({ id: row.id, title: row.title, assigneeId: row.assignee_id, due: row.due_date, done: row.is_done, recurring: row.recurrence, taskType: row.task_type || "home", createdBy: row.created_by || null });
+  const mapTask = (row) => ({ id: row.id, title: row.title, assigneeId: row.assignee_id, due: row.due_date, done: row.is_done, recurring: row.recurrence, taskType: row.task_type || "home", listId: row.list_id || null, createdBy: row.created_by || null });
+  const mapTaskList = (row) => ({ id: row.id, name: row.name, color: row.color || "#6b5ce7", createdBy: row.created_by || null });
   // image_url = OpenFoodFacts product catalogue image (read-only metadata
   // from a barcode scan). photo_url = the household member's own upload,
   // stored in the grocery-photos bucket and synced realtime. Two fields
@@ -287,7 +310,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
   const mapGrocery = (row) => ({
     id: row.id,
     name: row.name,
-    category: row.category,
+    category: categorizeGroceryItem(row.name, row.category),
     quantity: Number(row.quantity),
     unit: row.unit,
     checked: row.is_checked,
@@ -300,9 +323,9 @@ export function FamilyProvider({ children, tabletMode = false }) {
     photoUploadedBy: row.photo_uploaded_by || null,
     photoUploadedAt: row.photo_uploaded_at || null,
   });
-  const mapEvent = (row) => ({ id: row.id, title: row.title, start: row.starts_at, end: row.ends_at, location: row.location, source: row.source === "familyos" ? "local" : row.source, externalId: row.external_id || null, calendarId: row.external_calendar_id || null, memberIds: (row.event_participants || []).map((p) => p.user_id) });
+  const mapEvent = (row) => ({ id: row.id, title: row.title, start: row.starts_at, end: row.ends_at, location: row.location, source: row.source === "familyos" ? "local" : row.source, externalId: row.external_id || null, googleEventId: row.source === "google" ? row.external_id || null : null, calendarId: row.external_calendar_id || null, memberIds: (row.event_participants || []).map((p) => p.user_id) });
   const mapMeal = (row) => ({ id: row.id, date: row.meal_date, slot: row.slot, title: row.title, notes: row.notes, cookIds: row.cook_ids || [], createdBy: row.created_by || null });
-  const mapMessage = (row) => ({ id: row.id, senderId: row.sender_id, recipientId: row.recipient_id || null, text: row.body, sentAt: row.created_at, source: row.source || "famos", sourceSender: row.source_sender || "", broadcast: row.broadcast === true });
+  const mapMessage = (row) => ({ id: row.id, senderId: row.sender_id, recipientId: row.recipient_id || null, text: row.body, sentAt: row.created_at, source: row.source || "famos", sourceSender: row.source_sender || "", broadcast: row.broadcast === true || row.source_sender === "__famos_broadcast__" });
   const mapReaction = (row) => ({ id: row.id, messageId: row.message_id, memberId: row.member_id, reaction: row.reaction, createdAt: row.created_at });
   const mapExpense = (row) => ({
     id: row.id,
@@ -334,6 +357,14 @@ export function FamilyProvider({ children, tabletMode = false }) {
       setMembers(membersResult.data.filter((item) => item.profiles).map((item) => mapProfile(item.profiles, item.role)));
       setTasks(tasksResult.data.map(mapTask)); setGroceries(groceriesResult.data.map(mapGrocery));
       setEvents(eventsResult.data.map(mapEvent)); setMeals(mealsResult.data.map(mapMeal)); setMessages(messagesResult.data.map(mapMessage));
+      const taskListsResult = await supabase.from("task_lists").select("*").eq("household_id", household.id).order("created_at");
+      if (!taskListsResult.error) {
+        const remoteLists = taskListsResult.data.map(mapTaskList);
+        const fallbackLists = readFallbackTaskLists(household.id);
+        setTaskLists([...remoteLists, ...fallbackLists.filter((local) => !remoteLists.some((saved) => saved.id === local.id))]);
+      } else if (isMissingTaskListsSchema(taskListsResult.error)) {
+        setTaskLists(readFallbackTaskLists(household.id));
+      }
       const [expensesResult, financeResult] = await Promise.all([
         supabase.from("expenses").select("*").eq("household_id", household.id).order("spent_on", { ascending: false }),
         supabase.from("household_finance_settings").select("weekly_budget, monthly_budget, tracking_period").eq("household_id", household.id).maybeSingle(),
@@ -393,6 +424,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
     };
     switch (table) {
       case "tasks": handle(setTasks, mapTask); break;
+      case "task_lists": handle(setTaskLists, mapTaskList); break;
       case "grocery_items": handle(setGroceries, mapGrocery); break;
       case "events": handle(setEvents, (r) => ({ ...mapEvent(r), memberIds: r.event_participants?.map?.((p) => p.user_id) || [] })); break;
       case "meals": handle(setMeals, mapMeal); break;
@@ -410,6 +442,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
     if (!supabase) return null;
     const ch = supabase.channel(`household:${household.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks", filter: `household_id=eq.${household.id}` }, (payload) => { notifyFromChange("tasks", payload); applyChange("tasks", payload); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "task_lists", filter: `household_id=eq.${household.id}` }, (payload) => applyChange("task_lists", payload))
       .on("postgres_changes", { event: "*", schema: "public", table: "grocery_items", filter: `household_id=eq.${household.id}` }, (payload) => { notifyFromChange("grocery_items", payload); applyChange("grocery_items", payload); })
       .on("postgres_changes", { event: "*", schema: "public", table: "events", filter: `household_id=eq.${household.id}` }, (payload) => { if (payload.eventType === "INSERT") notifyFromChange("events", payload); applyChange("events", payload); })
       .on("postgres_changes", { event: "*", schema: "public", table: "event_participants" }, (payload) => loadRemoteData())
@@ -531,10 +564,10 @@ export function FamilyProvider({ children, tabletMode = false }) {
     // Optimistic: show the task instantly in all views.
     setTasks((prev) => [...prev, { id: tempId, done: false, taskType: "home", ...task }]);
     if (remote) {
-      const row = { household_id: household.id, title: task.title, assignee_id: task.assigneeId || null, due_date: task.due || null, recurrence: task.recurring || "", task_type: task.taskType || "home", created_by: user.id };
+      const row = { household_id: household.id, title: task.title, assignee_id: task.assigneeId || null, due_date: task.due || null, recurrence: task.recurring || "", task_type: task.taskType || "home", list_id: task.listId || null, created_by: user.id };
       let result = await supabase.from("tasks").insert(row).select().single();
-      if (result.error && /task_type|schema cache/i.test(result.error.message || "")) {
-        const { task_type: _taskType, ...compatibleRow } = row;
+      if (result.error && /task_type|list_id|schema cache/i.test(result.error.message || "")) {
+        const { task_type: _taskType, list_id: _listId, ...compatibleRow } = row;
         result = await supabase.from("tasks").insert(compatibleRow).select().single();
       }
       if (result.error) {
@@ -556,6 +589,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
     if (patch.done !== undefined) dbPatch.is_done = patch.done;
     if (patch.recurring !== undefined) dbPatch.recurrence = patch.recurring;
     if (patch.taskType !== undefined) dbPatch.task_type = patch.taskType;
+    if (patch.listId !== undefined) dbPatch.list_id = patch.listId || null;
     if (remote) await runRemote(supabase.from("tasks").update(dbPatch).eq("id", id));
     if (remote && patch.assigneeId) sendHouseholdPush({ title: "Task assigned to you", body: patch.title || tasks.find((task) => task.id === id)?.title || "A household task", tag: `task-${id}`, url: "/#tasks" }, [patch.assigneeId]);
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
@@ -577,6 +611,26 @@ export function FamilyProvider({ children, tabletMode = false }) {
       if (error) { setTasks(snapshot); setDataError(error.message); throw error; }
     }
   };
+  const addTaskList = async ({ name, color = "#6b5ce7" }) => {
+    const cleanName = name.trim();
+    if (!cleanName) return null;
+    const local = { id: makeId("tasklist"), name: cleanName, color, createdBy: user?.id || "me" };
+    setTaskLists((prev) => [...prev, local]);
+    if (remote) {
+      const result = await supabase.from("task_lists").insert({ household_id: household.id, name: cleanName, color, created_by: user.id }).select().single();
+      if (result.error && isMissingTaskListsSchema(result.error)) {
+        const fallbackLists = [...readFallbackTaskLists(household.id).filter((list) => list.id !== local.id), local];
+        writeFallbackTaskLists(household.id, fallbackLists);
+        setDataError(null);
+        return local;
+      }
+      if (result.error) { setTaskLists((prev) => prev.filter((list) => list.id !== local.id)); setDataError(result.error.message); throw result.error; }
+      const savedList = mapTaskList(result.data);
+      setTaskLists((prev) => prev.map((list) => list.id === local.id ? savedList : list));
+      return savedList;
+    }
+    return local;
+  };
 
   // ---- Groceries ----
   const toggleGrocery = async (id) => {
@@ -591,14 +645,15 @@ export function FamilyProvider({ children, tabletMode = false }) {
   };
   const addGrocery = async (item) => {
     const capitalized = titleCaseGrocery(item.name);
+    const category = categorizeGroceryItem(capitalized, item.category);
     const tempId = makeId("gro");
     // Optimistic: show the item instantly.
-    setGroceries((prev) => [...prev, { id: tempId, checked: false, quantity: 1, unit: "", ...item, name: capitalized }]);
+    setGroceries((prev) => [...prev, { id: tempId, checked: false, quantity: 1, unit: "", ...item, name: capitalized, category }]);
     if (remote) {
       const row = {
         household_id: household.id,
         name: capitalized,
-        category: item.category,
+        category,
         quantity: item.quantity || 1,
         unit: item.unit || "",
         added_by: user.id,
@@ -979,30 +1034,40 @@ export function FamilyProvider({ children, tabletMode = false }) {
   // Unread = messages newer than last-read, not sent by me, in a thread I can see
   // (the household thread or a DM addressed to me). Computed from the full list.
   const unreadMessageCount = useMemo(() => messages.filter((message) => {
-    if (!message || message.senderId === currentUserId) return false;
+    if (!message || message.broadcast || message.senderId === currentUserId) return false;
     if (message.recipientId && message.recipientId !== currentUserId) return false;
     return new Date(message.sentAt).getTime() > chatLastRead;
   }).length, [messages, chatLastRead, currentUserId]);
 
-  // ---- Broadcasts (household messages pinned to everyone's home screen) ----
+  // ---- Broadcasts (recipient-only announcements pinned to the home screen) ----
+  const broadcastDismissKey = `famos:dismissed-broadcasts:${currentUserId || "local"}`;
+  const [dismissedBroadcastIds, setDismissedBroadcastIds] = useState([]);
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(broadcastDismissKey) || "[]");
+      setDismissedBroadcastIds(Array.isArray(stored) ? stored : []);
+    } catch { setDismissedBroadcastIds([]); }
+  }, [broadcastDismissKey]);
   const broadcasts = useMemo(
-    () => messages.filter((message) => message.broadcast).sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt)),
-    [messages]
+    () => messages
+      .filter((message) => message.broadcast && message.senderId !== currentUserId && !dismissedBroadcastIds.includes(message.id))
+      .sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt)),
+    [messages, currentUserId, dismissedBroadcastIds]
   );
   const broadcastMessage = async (text) => {
     const body = (text || "").trim();
     if (!body) return;
     const tempId = makeId("msg");
-    // Optimistic: show the broadcast instantly.
+    // Keep the optimistic record available for realtime sync, but the sender's
+    // own Today view intentionally filters it out.
     setMessages((prev) => [...prev, { id: tempId, senderId: currentUserId, recipientId: null, text: body, sentAt: new Date().toISOString(), broadcast: true }]);
     if (remote) {
       try {
-        const row = { household_id: household.id, sender_id: user.id, recipient_id: null, body, broadcast: true };
-        let result = await supabase.from("messages").insert(row).select().single();
-        if (result.error && /broadcast|schema cache|column/i.test(result.error.message || "")) {
-          const { broadcast: _broadcast, ...compatibleRow } = row;
-          result = await supabase.from("messages").insert(compatibleRow).select().single();
-        }
+        // `source_sender` already exists in the deployed schema. Its reserved
+        // value keeps announcements distinct without requiring the newer
+        // `broadcast` column to be present in Supabase's schema cache.
+        const row = { household_id: household.id, sender_id: user.id, recipient_id: null, body, source: "famos", source_sender: "__famos_broadcast__" };
+        const result = await supabase.from("messages").insert(row).select().single();
         if (result.error) throw result.error;
         setMessages((prev) => prev.map((item) => item.id === tempId ? mapMessage(result.data) : item));
         sendHouseholdPush({ title: `${memberById[user.id]?.name || "A family member"} broadcast a message`, body, tag: `broadcast-${result.data.id}`, url: "/#today" }, []);
@@ -1014,21 +1079,12 @@ export function FamilyProvider({ children, tabletMode = false }) {
     }
   };
   const clearBroadcast = async (id) => {
-    if (remote) {
-      const { data, error } = await supabase.from("messages").update({ broadcast: false }).eq("id", id).eq("household_id", household.id).select("id");
-      if (error) {
-        // Broadcast column not deployed yet — clear locally only.
-        if (/broadcast|schema cache|column/i.test(error.message || "")) {
-          setMessages((prev) => prev.map((message) => message.id === id ? { ...message, broadcast: false } : message));
-          return;
-        }
-        setDataError(error.message); throw error;
-      }
-      if (!data || data.length === 0) {
-        throw new Error("Broadcast could not be cleared right now. Please try again in a moment.");
-      }
-    }
-    setMessages((prev) => prev.map((message) => message.id === id ? { ...message, broadcast: false } : message));
+    if (!id) return;
+    setDismissedBroadcastIds((current) => {
+      const next = [...new Set([...current, id])].slice(-100);
+      try { localStorage.setItem(broadcastDismissKey, JSON.stringify(next)); } catch {}
+      return next;
+    });
   };
 
   // Reactions grouped by message id, so the Today banner can render counts + who-reacted.
@@ -1418,9 +1474,31 @@ export function FamilyProvider({ children, tabletMode = false }) {
     setGoogleEvents((current) => current.filter((item) => item.id !== event.id));
   }
 
+  const updateGoogleCalendarEvent = async (event) => {
+    if (!event?.calendarId) throw new Error("Cannot update an event without its Google calendar.");
+    const calendar = googleCalendars.find((item) => item.id === event.calendarId);
+    if (!calendar || !["owner", "writer"].includes(calendar.accessRole)) throw new Error("This Google calendar is view-only.");
+    let token = googleAccessToken || await getFreshGoogleToken();
+    if (!token) {
+      const result = await requestGoogleAccessToken(googleClientId, { silent: false });
+      token = result.accessToken;
+    }
+    setGoogleAccessTokenState(token);
+    const updated = await updateGoogleCalendarEventApi(token, event, calendar);
+    const nextEvents = googleEvents.map((item) => item.id === event.id || item.googleEventId === event.googleEventId ? updated : item);
+    setGoogleEvents(nextEvents);
+    if (sharedGoogleCalendarIds.includes(calendar.id)) await syncSharedGoogleEvents(nextEvents, [calendar.id], googleCalendars);
+    setGoogleLastSynced(new Date().toISOString());
+    return updated;
+  };
+
 
   const toggleGoogleCalendar = async (calendarId) => {
     const isConnected = !selectedGoogleCalendarIds.includes(calendarId);
+    if (isConnected && selectedGoogleCalendarIds.length + calendarFeeds.length >= 5) {
+      setGoogleError("You can connect up to 5 calendars. Remove one before adding another.");
+      return;
+    }
     const next = isConnected ? [...selectedGoogleCalendarIds, calendarId] : selectedGoogleCalendarIds.filter(id=>id!==calendarId);
     setSelectedGoogleCalendarIds(next);
     if (remote) {
@@ -1486,13 +1564,19 @@ export function FamilyProvider({ children, tabletMode = false }) {
 
   // ---- Published iCal feeds (Apple/iCloud, Outlook, and other calendar providers) ----
   const addCalendarFeed = async ({ name, provider, url }) => {
+    if (selectedGoogleCalendarIds.length + calendarFeeds.length >= 5) {
+      const message = "You can connect up to 5 calendars. Remove one before adding another.";
+      setCalendarFeedError(message);
+      throw new Error(message);
+    }
     const feed = {
       id: makeId("feed"),
-      name: name.trim() || (provider === "apple" ? "Apple Calendar" : provider === "outlook" ? "Outlook" : "iCal"),
+      name: name.trim() || (provider === "google" ? "Additional Google Calendar" : provider === "apple" ? "Apple Calendar" : provider === "outlook" ? "Outlook" : provider === "school" ? "School Calendar" : provider === "sports" ? "Sports Calendar" : "iCal"),
       provider,
       url: url.trim(),
-      color: provider === "outlook" ? "#1473E6" : provider === "apple" ? "#7C5CE5" : "#D45C94",
+      color: provider === "google" ? "#34A853" : provider === "outlook" ? "#1473E6" : provider === "school" ? "#E46B2C" : provider === "sports" ? "#16806A" : provider === "apple" ? "#7C5CE5" : "#D45C94",
       lastSynced: null,
+      sharedWithHousehold: false,
     };
     setCalendarFeedStatus("syncing");
     setCalendarFeedError(null);
@@ -1511,6 +1595,11 @@ export function FamilyProvider({ children, tabletMode = false }) {
   };
 
   const importCalendarFile = async ({ name, provider, fileName, text }) => {
+    if (selectedGoogleCalendarIds.length + calendarFeeds.length >= 5) {
+      const message = "You can connect up to 5 calendars. Remove one before adding another.";
+      setCalendarFeedError(message);
+      throw new Error(message);
+    }
     const feed = {
       id: makeId("feed"),
       name: name.trim() || fileName?.replace(/\.ics$/i, "") || (provider === "outlook" ? "Outlook Calendar" : "Imported Calendar"),
@@ -1520,6 +1609,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
       fileName,
       color: provider === "outlook" ? "#1473E6" : provider === "apple" ? "#7C5CE5" : "#D45C94",
       lastSynced: new Date().toISOString(),
+      sharedWithHousehold: false,
     };
     if (!/BEGIN:VCALENDAR/i.test(text)) {
       const message = "Choose a valid .ics calendar export file.";
@@ -1553,6 +1643,12 @@ export function FamilyProvider({ children, tabletMode = false }) {
     setCalendarFeeds((prev) => prev.filter((feed) => feed.id !== id));
     setFeedEvents((prev) => prev.filter((event) => event.sourceFeedId !== id));
     setCalendarFeedError(null);
+  };
+
+  const toggleCalendarFeedSharing = (id) => {
+    setCalendarFeeds((prev) => prev.map((feed) => feed.id === id
+      ? { ...feed, sharedWithHousehold: !feed.sharedWithHousehold }
+      : feed));
   };
 
   const calendarFeedConnectionKey = calendarFeeds.map((feed) => `${feed.id}:${feed.url}`).join("|");
@@ -1594,7 +1690,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
     events, addEvent, updateEvent, removeEvent, clearEvents,
     meals, setMealForSlot, removeMeal, clearMeals,
     groceries, addGrocery, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries, clearGroceries,
-    tasks: visibleTasks, addTask, toggleTask, updateTask, removeTask, clearTasks,
+    tasks: visibleTasks, taskLists, addTaskList, addTask, toggleTask, updateTask, removeTask, clearTasks,
     messages: visibleMessages, sendMessage, importMessages, clearFamilyChat, clearMyDirectMessages,
     unreadMessageCount, markChatRead, broadcasts, broadcastMessage, clearBroadcast, reactionsByMessage, reactToBroadcast, currentUserId,
     expenses, weeklyBudget, monthlyBudget, financePeriod, addExpense, removeExpense, setFinanceBudget, setFinancePeriod,
@@ -1605,10 +1701,10 @@ export function FamilyProvider({ children, tabletMode = false }) {
     googleClientId, setGoogleClientId,
     googleConnected, googleEvents: tabletMode ? [] : googleEvents, googleCalendars: tabletMode ? [] : googleCalendars, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleStatus, googleError, googleLastSynced,
     googleUsesAccount: configured,
-    connectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, addGoogleCalendarEvent, deleteGoogleCalendarEvent, toggleGoogleCalendar, toggleGoogleCalendarSharing,
+    connectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, addGoogleCalendarEvent, updateGoogleCalendarEvent, deleteGoogleCalendarEvent, toggleGoogleCalendar, toggleGoogleCalendarSharing,
     // Other calendar providers via published iCal feeds
     calendarFeeds: tabletMode ? [] : calendarFeeds, feedEvents: tabletMode ? [] : feedEvents, calendarFeedStatus, calendarFeedError,
-    addCalendarFeed, importCalendarFile, syncCalendarFeed, removeCalendarFeed,
+    addCalendarFeed, importCalendarFile, syncCalendarFeed, removeCalendarFeed, toggleCalendarFeedSharing,
   };
 
   return <FamilyContext.Provider value={value}>{children}</FamilyContext.Provider>;

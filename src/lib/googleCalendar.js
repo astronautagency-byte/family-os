@@ -179,6 +179,27 @@ export async function createGoogleCalendarEvent(accessToken, event, calendar = {
   return normalizeGoogleEvent(await res.json(), calendar);
 }
 
+export async function updateGoogleCalendarEvent(accessToken, event, calendar = { id:"primary", summary:"Google Calendar", accessRole:"owner" }) {
+  const googleEventId = event.googleEventId || event.externalId;
+  if (!googleEventId) throw new Error("Cannot determine the Google Calendar event ID to update.");
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendar.id)}/events/${encodeURIComponent(googleEventId)}`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      summary: event.title,
+      location: event.location || "",
+      start: { dateTime: event.start, timeZone },
+      end: { dateTime: event.end, timeZone },
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Google Calendar update returned ${res.status}: ${body.slice(0, 200)}`);
+  }
+  return normalizeGoogleEvent(await res.json(), calendar);
+}
+
 export async function deleteGoogleCalendarEvent(accessToken, event, calendar = { id:"primary", summary:"Google Calendar" }) {
   const googleEventId = event.googleEventId || event.id;
   if (!googleEventId) throw new Error("Cannot determine the Google Calendar event ID to delete.");

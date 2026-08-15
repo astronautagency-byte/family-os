@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Activity, Archive, ArrowLeft, BadgeDollarSign, Bug, Building2, CalendarDays, CheckCircle2, ChevronRight,
-  CircleDollarSign, CreditCard, Flag, LayoutDashboard, ListChecks, LogOut, Mail, MessageCircle,
+  CircleDollarSign, CreditCard, Flag, LayoutDashboard, Lightbulb, ListChecks, LogOut, Mail, MessageCircle,
   Search, Send, Settings2, ShieldCheck, ShoppingCart, Tag, Ticket, Trash2, TrendingUp, UserPlus, Users, Utensils,
   WalletCards, XCircle,
 } from "lucide-react";
@@ -199,6 +199,7 @@ function SupportMessagesTable({ messages, onOpen, categoryFilter, setCategoryFil
           <option value="email">Email</option>
           <option value="bug">Bug reports</option>
           <option value="ticket">Support tickets</option>
+          <option value="feature">Feature ideas</option>
         </select>
         <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
           <option value="">All statuses</option>
@@ -213,7 +214,7 @@ function SupportMessagesTable({ messages, onOpen, categoryFilter, setCategoryFil
     <div className="admin-table-scroll"><table><thead><tr><th>Subject</th><th>Category</th><th>From</th><th>Household</th><th>Priority</th><th>Status</th><th>Date</th><th /></tr></thead><tbody>
       {messages.map((message) => <tr key={message.id} onClick={() => onOpen(message.id)}>
         <td><strong>{message.subject}</strong></td>
-        <td><span className={`admin-support-cat admin-cat-${message.category}`}>{message.category === "bug" ? "Bug" : message.category === "ticket" ? "Ticket" : "Email"}</span></td>
+        <td><span className={`admin-support-cat admin-cat-${message.category}`}>{message.category === "feature" ? "Feature" : message.category === "bug" ? "Bug" : message.category === "ticket" ? "Ticket" : "Email"}</span></td>
         <td><small>{message.sender_email || (message.user_id ? "Signed in" : "Anonymous")}</small></td>
         <td><small>{message.household_name || "—"}</small></td>
         <td>{message.priority !== "normal" ? <span className={`admin-priority p-${message.priority}`}>{message.priority}</span> : <small className="text-[var(--color-ink-faint)]">Normal</small>}</td>
@@ -241,7 +242,7 @@ function SupportMessageDetail({ id, onClose, onChanged }) {
     setBusy("");
   };
   if (!message) return <div className="admin-detail-loading">Loading message…</div>;
-  const categoryIcon = message.category === "bug" ? Bug : message.category === "ticket" ? Ticket : Mail;
+  const categoryIcon = message.category === "feature" ? Lightbulb : message.category === "bug" ? Bug : message.category === "ticket" ? Ticket : Mail;
   return <div className="admin-detail"><header>
     <button onClick={onClose}><ArrowLeft size={18} /> Support messages</button>
     <div className="admin-support-detail-status">
@@ -257,7 +258,7 @@ function SupportMessageDetail({ id, onClose, onChanged }) {
         <span className="admin-support-detail-icon">{categoryIcon ? <categoryIcon size={22} /> : <Mail size={22} />}</span>
         <div>
           <div className="admin-support-detail-meta">
-            <span className={`admin-support-cat admin-cat-${message.category}`}>{message.category === "bug" ? "Bug report" : message.category === "ticket" ? "Support ticket" : "Email"}</span>
+            <span className={`admin-support-cat admin-cat-${message.category}`}>{message.category === "feature" ? "Feature idea" : message.category === "bug" ? "Bug report" : message.category === "ticket" ? "Support ticket" : "Email"}</span>
             {message.priority !== "normal" && <span className={`admin-priority p-${message.priority}`}>{message.priority} priority</span>}
           </div>
           <h1 style={{ fontSize: "clamp(1.3rem,2vw,1.8rem)", margin: "6px 0", font: "700 clamp(1.3rem,2vw,1.8rem)/1.2 var(--font-display)" }}>{message.subject}</h1>

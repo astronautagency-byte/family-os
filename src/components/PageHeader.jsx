@@ -2,7 +2,7 @@ import PageSpotIllustration from "./PageSpotIllustration";
 
 export default function PageHeader({ eyebrow, title, titleIcon, subtitle, action, illustration, liveHealth }) {
   return (
-    <header className="page-header m3-page-header safe-top">
+    <header className={`page-header m3-page-header safe-top ${illustration ? `page-header-${illustration}` : ""}`}>
       <div className="page-header-content">
         <div className="min-w-0">
           {eyebrow && (

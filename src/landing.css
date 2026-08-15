@@ -746,3 +746,196 @@
 @media(max-width:700px){
   .landing-sticky-cta{display:flex}
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   FamOS marketing design-system bridge
+   Untitled-style component anatomy with the website's playful colour coding.
+   ───────────────────────────────────────────────────────────────────────── */
+.landing-page{color:var(--landing-color-surface-dark)}
+.landing-page :where(button,a){-webkit-tap-highlight-color:transparent}
+.landing-page :where(button,a):focus-visible{outline:0;box-shadow:0 0 0 4px color-mix(in srgb,var(--landing-color-primary) 18%,transparent)}
+
+/* Buttons: one height, one radius, three clear levels. */
+.landing-page :where(.landing-hero-ctas,.purpose-actions) button,
+.landing-page :where(.landing-ai-cta,.comparison-cta button,.landing-community>button,.bento-copy button,.landing-final button,.landing-sticky-cta button),
+.landing-product-screen>button{
+  min-height:var(--landing-control-height);padding:0 18px;border:1px solid transparent;border-radius:var(--landing-control-radius);font-size:14px;font-weight:700;letter-spacing:0;box-shadow:var(--landing-shadow-xs);transition:transform .18s ease,background-color .18s ease,border-color .18s ease,box-shadow .18s ease
+}
+.landing-page :where(.landing-hero-ctas,.purpose-actions) button:first-child,
+.comparison-cta button,.landing-sticky-cta button{background:var(--landing-color-primary);border-color:var(--landing-color-primary);color:#fff}
+.landing-page :where(.landing-hero-ctas,.purpose-actions) button:last-child{background:#fff;border-color:var(--landing-border);color:var(--landing-color-surface-dark)}
+.landing-page :where(button):hover:not(:disabled){box-shadow:var(--landing-shadow-sm)}
+.landing-page :where(button):disabled{cursor:not-allowed;opacity:.5;box-shadow:none}
+
+/* Segmented controls and tabs use one selected-state grammar. */
+.stage-tabs,.product-tabs,.pricing-toggle{gap:4px;padding:4px;border:1px solid var(--landing-border);border-radius:10px;background:#F7F5FA;box-shadow:var(--landing-shadow-xs)}
+.stage-tabs,.product-tabs{width:max-content;max-width:calc(100% - 36px)}
+.stage-tabs button,.product-tabs button,.pricing-toggle button{min-height:36px;padding:7px 12px;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--landing-color-text-muted);font-size:12.5px;font-weight:650;box-shadow:none}
+.stage-tabs button.active,.product-tabs button.active,.pricing-toggle button.active{transform:none;border-color:var(--landing-border);background:#fff;color:var(--landing-color-primary-dark);box-shadow:var(--landing-shadow-xs)}
+
+/* Cards share structure; colour remains semantic and intentionally varied. */
+.landing-feature,.purpose-grid article,.capability-grid article,.comparison-highlights article,.landing-testimonials article,.pricing-card,.pricing-addons,.pricing-summary,.product-stage{
+  border:1px solid color-mix(in srgb,var(--landing-border) 86%,currentColor);box-shadow:var(--landing-shadow-xs)
+}
+.purpose-grid article,.capability-grid article,.comparison-highlights article,.pricing-card,.pricing-addons,.pricing-summary{border-radius:var(--landing-card-radius)}
+.landing-feature:hover,.purpose-grid article:hover,.capability-grid article:hover,.comparison-highlights article:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(42,34,65,.09)}
+.purpose-grid article:nth-child(1),.comparison-highlights article:nth-child(1){background:var(--landing-color-lavender-cool)}
+.purpose-grid article:nth-child(2),.comparison-highlights article:nth-child(2){background:#EEFAF5}
+.purpose-grid article:nth-child(3),.comparison-highlights article:nth-child(3){background:#FFF9DD}
+
+/* Badges, check chips and icon tiles retain the multi-colour family cues. */
+.stage-chips b,.landing-kicker,.addon-selected-badge{border:1px solid color-mix(in srgb,currentColor 16%,transparent);border-radius:var(--radius-pill);font-weight:650}
+.purpose-grid article>svg,.capability-grid article>svg,.comparison-highlights article>svg{padding:10px;width:42px;height:42px;border-radius:var(--landing-control-radius);background:#fff;border:1px solid var(--landing-border);box-shadow:var(--landing-shadow-xs)}
+.purpose-grid article:nth-child(1)>svg,.comparison-highlights article:nth-child(1)>svg{color:var(--landing-color-primary)}
+.purpose-grid article:nth-child(2)>svg,.comparison-highlights article:nth-child(2)>svg{color:var(--landing-color-sage-solid)}
+.purpose-grid article:nth-child(3)>svg,.comparison-highlights article:nth-child(3)>svg{color:#B7791F}
+
+/* Pricing behaves like a real form rather than a decorative illustration. */
+.family-size-control{border:1px solid var(--landing-border);border-radius:var(--landing-card-radius);background:#fff;box-shadow:var(--landing-shadow-xs)}
+.family-size-control>div:last-child{border:1px solid var(--landing-border);border-radius:var(--landing-control-radius);background:#F7F5FA}
+.family-size-control button{width:36px;height:36px;border-radius:6px;color:var(--landing-color-primary-dark)}
+.pricing-addons button{position:relative;border:1px solid var(--landing-border);border-radius:var(--landing-card-radius);background:#fff;box-shadow:var(--landing-shadow-xs)}
+.pricing-addons button:hover{border-color:color-mix(in srgb,var(--landing-color-primary) 34%,var(--landing-border))}
+.pricing-addons button.selected{border-color:var(--landing-color-primary);background:var(--landing-color-lavender-cool);box-shadow:0 0 0 3px color-mix(in srgb,var(--landing-color-primary) 12%,transparent)}
+.pricing-summary>button{min-height:var(--landing-control-height);border-radius:var(--landing-control-radius);box-shadow:var(--landing-shadow-xs)}
+.pricing-checkout-error{display:block;padding:10px 12px;border:1px solid #F7C9D3;border-radius:var(--landing-control-radius);background:#FFF1F4;color:#B42318}
+
+/* Progress indicators use the same flat, accessible construction as the app. */
+.preview-progress{height:8px;border-radius:var(--radius-pill);background:#DDE8E1;box-shadow:inset 0 0 0 1px rgba(57,123,102,.10)}
+.preview-progress span{border-radius:inherit;background:var(--landing-color-sage-solid);box-shadow:none}
+
+@media(max-width:600px){
+  .stage-tabs,.product-tabs{width:auto;max-width:none;margin-inline:0;border-left:0;border-right:0;border-radius:0;background:transparent;box-shadow:none}
+  .landing-page :where(.landing-hero-ctas,.purpose-actions) button{min-height:var(--landing-control-height)}
+}
+/* ── Product-to-marketing design-system cascade ──────────────────────────
+   The public site keeps its editorial layouts and illustrations, while all
+   reusable UI anatomy resolves from the same tokens as the signed-in app. */
+.landing-page{
+  --landing-color-primary:var(--color-accent);
+  --landing-color-primary-dark:var(--color-accent-strong);
+  --landing-color-surface-dark:var(--color-ink);
+  --landing-color-text-muted:var(--color-ink-soft);
+  --landing-border:var(--color-border);
+  --landing-control-radius:var(--radius-control);
+  --landing-card-radius:var(--radius-card);
+  --landing-shadow-xs:var(--shadow-xs,0 1px 2px rgba(16,24,40,.06));
+  --landing-shadow-sm:var(--shadow-sm,0 2px 8px rgba(16,24,40,.08));
+  background:var(--color-canvas);
+  color:var(--color-ink);
+}
+
+/* Shared app button anatomy: 44px target, 8px radius, strong focus ring. */
+.landing-page :is(.landing-hero-ctas,.purpose-actions,.comparison-cta,.landing-community,.landing-final,.landing-sticky-cta,.bento-copy) button,
+.landing-page :is(.landing-join,.landing-signin),
+.landing-page .landing-product-screen>button{
+  min-height:44px;
+  border-radius:var(--radius-control)!important;
+  border:1px solid var(--color-accent);
+  background:var(--color-accent);
+  color:var(--color-on-accent);
+  box-shadow:var(--landing-shadow-xs);
+  font-weight:700;
+  transition:background var(--motion-fast),border-color var(--motion-fast),box-shadow var(--motion-fast),transform var(--motion-fast);
+}
+.landing-page .landing-hero-ctas>button+button,
+.landing-page .purpose-actions>button+button,
+.landing-page .landing-signin{
+  border-color:var(--color-border-strong);
+  background:var(--color-surface);
+  color:var(--color-ink);
+}
+.landing-page :is(.landing-hero-ctas,.purpose-actions,.comparison-cta,.landing-community,.landing-final,.landing-sticky-cta,.bento-copy) button:hover,
+.landing-page .landing-product-screen>button:hover{
+  border-color:var(--color-accent-strong);
+  background:var(--color-accent-strong);
+  color:var(--color-on-accent);
+  box-shadow:var(--landing-shadow-sm);
+}
+
+/* Tabs remain compact selectors, matching task/calendar filter controls. */
+.landing-page :is(.stage-tabs,.product-tabs,.pricing-toggle) button{
+  min-height:40px;
+  border-radius:var(--radius-control);
+  border-color:var(--color-border);
+  background:var(--color-surface);
+  color:var(--color-ink-soft);
+  box-shadow:var(--landing-shadow-xs);
+}
+.landing-page :is(.stage-tabs,.product-tabs,.pricing-toggle) button.active{
+  border-color:var(--color-accent);
+  background:var(--color-accent-soft);
+  color:var(--color-accent-strong);
+}
+
+/* Shared app surface anatomy. Large hero/art stages intentionally stay
+   editorial; information cards use the product's 12px surface language. */
+.landing-page :is(.purpose-grid article,.landing-feature,.capability-grid article,.comparison-highlights article,.pricing-card,.pricing-summary,.product-screen-row,.community-facts article){
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-card)!important;
+  box-shadow:var(--landing-shadow-xs);
+}
+.landing-page :is(.landing-feature-top>span,.capability-grid article>span,.product-screen-bar>span){
+  border-radius:var(--radius-control);
+}
+
+/* Product semantic colour pairs: colour communicates the destination, never
+   just decoration, and every foreground/background pair meets AA. */
+.landing-page .landing-feature.blue .landing-feature-top>span{background:var(--color-calendar-soft);color:var(--color-calendar-strong)}
+.landing-page .landing-feature.peach .landing-feature-top>span{background:var(--color-meals-soft);color:var(--color-meals-strong)}
+.landing-page .landing-feature.yellow .landing-feature-top>span{background:var(--color-shopping-soft);color:var(--color-shopping-strong)}
+.landing-page .landing-feature.pink .landing-feature-top>span{background:var(--color-chat-soft);color:var(--color-chat-strong)}
+.landing-page .landing-feature.lilac .landing-feature-top>span{background:var(--color-family-soft);color:var(--color-family-strong)}
+
+.landing-page :is(button,a):focus-visible{
+  outline:3px solid color-mix(in srgb,var(--color-accent) 38%,transparent)!important;
+  outline-offset:2px;
+}
+
+@media(max-width:600px){
+  .landing-page :is(.purpose-grid article,.landing-feature,.capability-grid article,.comparison-highlights article,.pricing-card,.pricing-summary){border-radius:var(--radius-card)!important}
+}
+
+/* Marketing website QC: keep the shared component anatomy intact even when
+   earlier editorial rules target the same elements. */
+.landing-page .landing-kicker,
+.landing-page .landing-purpose>div:first-child>p{
+  justify-self:start;
+  align-self:start;
+  width:max-content;
+  max-width:100%;
+}
+
+.landing-page .purpose-grid article>svg{
+  box-sizing:border-box;
+  width:44px!important;
+  height:44px!important;
+  padding:10px!important;
+  flex:0 0 44px;
+  stroke-width:2;
+}
+
+.landing-page :is(.landing-hero-ctas,.purpose-actions) button{
+  box-sizing:border-box;
+  min-width:0!important;
+  min-height:48px!important;
+  height:48px;
+  padding:0 22px!important;
+  line-height:1;
+  white-space:nowrap;
+}
+
+.landing-page :is(.landing-hero-ctas,.purpose-actions) button:first-child{
+  min-width:184px!important;
+}
+
+.landing-page :is(.landing-hero-ctas,.purpose-actions) button+button{
+  min-width:104px!important;
+}
+
+@media(max-width:600px){
+  .landing-page :is(.landing-hero-ctas,.purpose-actions) button{
+    width:auto;
+    flex:1 1 auto;
+  }
+}

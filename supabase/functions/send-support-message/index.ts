@@ -38,7 +38,7 @@ Deno.serve(async (request) => {
   try {
     const body = await request.json();
     const {
-      category = "email",       // "email" | "bug" | "ticket"
+      category = "email",       // "email" | "bug" | "ticket" | "feature"
       subject = "",
       message = "",
       senderEmail = "",
@@ -104,7 +104,11 @@ Deno.serve(async (request) => {
     let emailSubject = subject.trim();
     let emailBody = message.trim();
 
-    if (category === "bug") {
+    if (category === "feature") {
+      emailSubject = `[Feature Idea] ${subject.trim()}`;
+      emailBody = `Feature idea:\n${message.trim()}`;
+      emailBody += `\n\n---\nCategory: Feature Suggestion`;
+    } else if (category === "bug") {
       emailSubject = `[Bug Report] ${subject.trim()}`;
       emailBody = `What happened:\n${message.trim()}`;
       if (steps.trim()) {
@@ -163,7 +167,7 @@ Deno.serve(async (request) => {
         // Auto-reply: send a brief confirmation to the sender when they provided an email.
         if (senderEmail) {
           try {
-            const autoReplyBody = `Hi there,\n\nThanks for reaching out to FamOS support.\n\nWe've received your ${category === "bug" ? "bug report" : category === "ticket" ? "support ticket" : "message"}${loggedId ? ` (#${loggedId})` : ""}.\n\nOur team will review it and get back to you as soon as possible.\n\n— The FamOS team`;
+            const autoReplyBody = `Hi there,\n\nThanks for reaching out to FamOS support.\n\nWe've received your ${category === "feature" ? "feature suggestion" : category === "bug" ? "bug report" : category === "ticket" ? "support ticket" : "message"}${loggedId ? ` (#${loggedId})` : ""}.\n\nOur team will review it and get back to you as soon as possible.\n\n— The FamOS team`;
             const autoReplySubject = category === "bug"
               ? `Re: [Bug Report] ${subject.trim()}`
               : category === "ticket"

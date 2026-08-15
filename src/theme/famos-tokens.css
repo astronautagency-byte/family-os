@@ -18,31 +18,59 @@
 @theme {
   /* ── Type ─────────────────────────────────────────────────────── */
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-display: "General Sans", "Inter Tight", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
 
   /* ── Surfaces ─────────────────────────────────────────────────── */
-  --color-canvas: #FBF8FF;
+  --color-canvas: #F9FAFB;
   --color-surface: #FFFFFF;
-  --color-surface-sunken: #F0EDFF;
-  --color-border: #E1DDFC;
-  --color-border-strong: #CFC9E6;
+  --color-surface-sunken: #F2F4F7;
+  --color-border: #EAECF0;
+  --color-border-strong: #D0D5DD;
 
   /* ── Ink ──────────────────────────────────────────────────────── */
-  --color-ink: #17172F;
-  --color-ink-soft: #565568;
-  --color-ink-faint: #9A99AA;
+  --color-ink: #101828;
+  --color-ink-soft: #475467;
+  --color-ink-faint: #667085;
 
   /* ── Accent + sunrise gradient ────────────────────────────────── */
-  --color-accent: #6759D9;
-  --color-accent-soft: #ECE9FF;
-  --color-accent-strong: #4E42B0;
+  --color-accent: #7F56D9;
+  --color-accent-soft: #F4EBFF;
+  --color-accent-strong: #6941C6;
+  --color-on-accent: #FFFFFF;
+  --color-on-vibrant: #0C111D;
+  --color-on-status: #FFFFFF;
   --sunrise-gradient: linear-gradient(120deg, #B8D8FF 0%, #8F82FF 32%, #D75EAA 60%, #FF5239 80%, #F2A08D 100%);
 
   /* ── Status ───────────────────────────────────────────────────── */
-  --color-warn: #D55A2A;
-  --color-warn-soft: #FFF0D4;
-  --color-good: #228766;
-  --color-good-soft: #DDF7E9;
+  --color-warn: #D92D20;
+  --color-warn-soft: #FEF3F2;
+  --color-good: #027A48;
+  --color-good-soft: #ECFDF3;
+
+  /* ── Product colour roles ────────────────────────────────────── */
+  --color-today: #7F56D9;
+  --color-calendar: #3478F6;
+  --color-meals: #E07A2F;
+  --color-tasks: #7F56D9;
+  --color-shopping: #169B62;
+  --color-chat: #D94F91;
+  --color-finance: #D65D49;
+  --color-family: #A463D8;
+
+  /* Category pairings follow the Untitled pattern: soft surface + strong ink.
+     Category base colors are reserved for charts, dots and decorative marks. */
+  --color-calendar-soft: #EFF8FF;
+  --color-calendar-strong: #175CD3;
+  --color-meals-soft: #FFF6ED;
+  --color-meals-strong: #9C4A10;
+  --color-shopping-soft: #ECFDF3;
+  --color-shopping-strong: #067647;
+  --color-chat-soft: #FDF2FA;
+  --color-chat-strong: #C11574;
+  --color-finance-soft: #FEF3F2;
+  --color-finance-strong: #B42318;
+  --color-family-soft: #F4EBFF;
+  --color-family-strong: #6941C6;
 
   /* ── Family colour palette (members, pastels, accents) ───────── */
   --color-fam-coral: #FF5239;
@@ -59,21 +87,21 @@
   --pastel-lilac: #E8E2FF;
 
   /* ── Type scale ───────────────────────────────────────────────── */
-  --text-xs: 11px;
-  --text-sm: 13px;
-  --text-body: 15px;
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-body: 14px;
   --text-section: 18px;
-  --text-page: 30px;
+  --text-page: 28px;
 
   /* ── Radius scale (deduplicated from 46+30+25+15+11+11 sites) ── */
   --radius-pill: 999px;          /* pill buttons, status chips              */
-  --radius-card: 24px;           /* main cards, modal corners              */
-  --radius-section: 18px;        /* section card corner (calendar etc.)    */
-  --radius-control: 16px;        /* form controls, surface cards           */
-  --radius-md: 14px;             /* tile, daypicker, broadcast chip        */
-  --radius-pill-sm: 13px;        /* small chip / pill-sm variant           */
-  --radius-sm: 12px;             /* micro tile / icon tile                 */
-  --radius-xs: 11px;             /* date-grid cell, micro inner            */
+  --radius-card: 12px;           /* elevated containers                    */
+  --radius-section: 12px;        /* grouped content                        */
+  --radius-control: 8px;         /* Preline default control                */
+  --radius-md: 8px;              /* compact surface                        */
+  --radius-pill-sm: 8px;         /* compact chip                           */
+  --radius-sm: 8px;              /* icon tile                              */
+  --radius-xs: 6px;              /* micro control                          */
 
   /* ── Motion durations ─────────────────────────────────────────── */
   --motion-fast: 160ms;          /* hover / focus / colour transitions      */
@@ -105,24 +133,48 @@
  *   ───────────────────────────────────────────────────────────────────────── */
 
 .theme-dark {
-  --color-canvas:           #0F1020;           /* page-level background                         */
-  --color-surface:          #232744;           /* cards (one elevation up from canvas)          */
-  --color-surface-sunken:   #16182A;           /* input fills (between canvas and cards)        */
-  --color-border:           #4D5175;           /* separators (1.7:1 vs canvas)                  */
-  --color-border-strong:    #6D719B;           /* emphasized separators (3.0:1 vs canvas)      */
+  --color-canvas:           #0C111D;
+  --color-surface:          #161B26;
+  --color-surface-sunken:   #1F242F;
+  --color-border:           #333741;
+  --color-border-strong:    #454A55;
 
-  --color-ink:              #ECEDFE;           /* primary text — 9.8:1 vs canvas                 */
-  --color-ink-soft:         #BBC0DA;           /* secondary text — 5.6:1 vs canvas              */
-  --color-ink-faint:        #B5B9D0;           /* captions / placeholders — 5.5:1 vs canvas    */
+  --color-ink:              #F5F5F6;
+  --color-ink-soft:         #CECFD2;
+  --color-ink-faint:        #94969C;
 
-  --color-accent:           #9087FF;           /* interactive / brand — 6.7:1 vs canvas        */
-  --color-accent-soft:      #2A2654;           /* accent-tinted surface for selected states    */
-  --color-accent-strong:    #C8BFFF;           /* emphasis links — 11.6:1 vs canvas            */
+  --color-accent:           #9E77ED;
+  --color-accent-soft:      #2C1C5F;
+  --color-accent-strong:    #B692F6;
+  --color-on-accent:        #101828;
+  --color-on-vibrant:       #0C111D;
+  --color-on-status:        #101828;
 
   --color-warn:             #FF7547;           /* warnings / failures — 4.7:1 vs canvas        */
   --color-warn-soft:        #3D1F0F;           /* warn-tinted surface                          */
   --color-good:             #52C996;           /* success — 6.1:1 vs canvas                    */
   --color-good-soft:        #163025;           /* good-tinted surface                          */
+
+  --color-today:            #B692F6;
+  --color-calendar:         #75A7FF;
+  --color-meals:            #F3A45F;
+  --color-tasks:            #B692F6;
+  --color-shopping:         #52C996;
+  --color-chat:             #F18BC0;
+  --color-finance:          #FF8A75;
+  --color-family:           #D6A7F5;
+  --color-calendar-soft:    #102A56;
+  --color-calendar-strong:  #B2CCFF;
+  --color-meals-soft:       #3B2614;
+  --color-meals-strong:     #FEC84B;
+  --color-shopping-soft:    #123B2B;
+  --color-shopping-strong:  #75E0A7;
+  --color-chat-soft:        #3B1730;
+  --color-chat-strong:      #F9A7D3;
+  --color-finance-soft:     #3B1A18;
+  --color-finance-strong:   #FDA29B;
+  --color-family-soft:      #2C1C5F;
+  --color-family-strong:    #D6BBFB;
 }
 
 /* ── Daypart overrides ─────────────────────────────────────────────────────

@@ -1,15 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Baby, Bone, Camera, Carrot, Check, ChevronDown, Clipboard, Coffee, Cookie, Croissant, CupSoda, Download, Drumstick, ExternalLink, FlaskConical, Globe2, GripVertical, HeartPulse, Image as ImageIcon, ListChecks, LoaderCircle, Maximize2, Milk, Package, Pencil, Plus, Sandwich, ScanLine, ScrollText, Share2, ShoppingBag, ShoppingBasket, Snowflake, Soup, SprayCan, Star, Store, Trash2, Truck, Upload, Wheat, Wine, X } from "lucide-react";
+import { Baby, Bone, Camera, Carrot, Check, CheckCircle2, ChevronDown, Clipboard, Coffee, Cookie, Croissant, CupSoda, Download, Drumstick, ExternalLink, FlaskConical, Globe2, GripVertical, HeartPulse, Image as ImageIcon, ListChecks, LoaderCircle, Maximize2, Milk, Package, Pencil, Plus, Refrigerator, Sandwich, ScanLine, ScrollText, Share2, ShoppingBag, ShoppingBasket, Snowflake, Soup, SprayCan, Star, Store, Trash2, Truck, Upload, Wheat, Wine, X } from "lucide-react";
 import { uploadGroceryPhoto, isUploadableImage, deleteGroceryPhoto } from "../lib/groceryPhotoUpload";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
-import { Avatar, Card, Checkbox, EmptyState, Modal, PrimaryButton, SecondaryButton, Stepper, TextField } from "../components/ui";
+import { Avatar, Card, Checkbox, DateField, EmptyState, Modal, PrimaryButton, SecondaryButton, Stepper, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import PullToRefresh from "../components/PullToRefresh";
 import ConfirmAction from "../components/ConfirmAction";
-import { isIngredientOnList, loadIngredientCache, saveIngredientCache } from "../lib/mealIngredientCache";
+import CelebrationConfetti from "../components/CelebrationConfetti";
+import { canonicalIngredientName, isIngredientOnList, loadIngredientCache, saveIngredientCache } from "../lib/mealIngredientCache";
 import { formatDayLabel } from "../lib/dates";
 import { GROCERY_CATEGORIES } from "../data/mockData";
+import useKitchenInventory from "../hooks/useKitchenInventory";
+import { supabase } from "../lib/supabase";
+import { categorizeGroceryItem } from "../lib/groceryCategories";
 
 const emptyDraft = { name: "", category: GROCERY_CATEGORIES[0], quantity: 1, unit: "" };
 const emptyPhoto = { file: null, previewUrl: "", remoteUrl: "", uploading: false, error: "" };
@@ -65,6 +69,20 @@ function GroceryIcon({ category, size = 16 }) {
   };
   const [background, foreground] = palette[category] || ["#F0E9FF", "#7255D9"];
   return <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: background }}><Icon size={size} color={foreground} /></span>;
+}
+
+function GroceryItemImage({ item, memberById, focus = false }) {
+  const src = item.photoUrl || item.imageUrl || "";
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [src]);
+  if (!src || failed) return <GroceryIcon category={item.category} />;
+  const uploader = item.photoUrl && item.photoUploadedBy ? memberById[item.photoUploadedBy] : null;
+  return (
+    <span className={`grocery-photo-thumb ${focus ? "grocery-photo-thumb-focus" : "grocery-photo-thumb-list"}`} role="img" aria-label={item.photoUrl ? `Photo of ${item.name}` : `Product image for ${item.name}`}>
+      <img src={src} alt="" onError={() => setFailed(true)} />
+      {uploader && <Avatar member={uploader} size="xs" className="grocery-photo-attribution" />}
+    </span>
+  );
 }
 
 const GROCERY_DELIVERY_APPS = [
@@ -190,6 +208,8 @@ export default function Groceries() {
   const { groceries, meals, addGrocery, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries, clearGroceries, memberById, refreshData } = useFamily();
   const auth = useAuth();
   const household = auth?.household;
+  const { items: inventoryItems, addItem: addInventoryItem, updateItem: updateInventoryItem, removeItem: removeInventoryItem } = useKitchenInventory(household?.id, auth?.user?.id);
+  const [inventoryLocation, setInventoryLocation] = useState("fridge");
   const [editingId, setEditingId] = useState(null); // null closed, "new" for add, or item id
   const [draft, setDraft] = useState(emptyDraft);
   const [staples, setStaples] = useState(loadStaples);
@@ -208,11 +228,13 @@ export default function Groceries() {
   const [scannerStarting, setScannerStarting] = useState(false);
   const [scannerError, setScannerError] = useState("");
   const [returnToFocus, setReturnToFocus] = useState(false);
+  const [listCelebration, setListCelebration] = useState(false);
   const [photoDraft, setPhotoDraft] = useState(emptyPhoto);
   const [saveBusy, setSaveBusy] = useState(false);
   const [saveError, setSaveError] = useState("");
   const photoCameraInputRef = useRef(null);
   const photoLibraryInputRef = useRef(null);
+  const celebrationTimerRef = useRef(null);
 
   const onPickPhotoFile = (event) => {
     const file = event.target.files?.[0];
@@ -304,13 +326,32 @@ export default function Groceries() {
     const map = {};
     for (const cat of GROCERY_CATEGORIES) map[cat] = [];
     for (const g of groceries) {
-      if (!map[g.category]) map[g.category] = [];
-      map[g.category].push(g);
+      const category = categorizeGroceryItem(g.name, g.category);
+      if (!map[category]) map[category] = [];
+      map[category].push(category === g.category ? g : { ...g, category });
     }
     return map;
   }, [groceries]);
 
   const checkedCount = groceries.filter((g) => g.checked).length;
+  const inventoriedSourceIds = useMemo(() => new Set(inventoryItems.map((item) => item.sourceGroceryId).filter(Boolean)), [inventoryItems]);
+  const purchasedForInventory = useMemo(() => groceries.filter((item) => item.checked && !inventoriedSourceIds.has(item.id)), [groceries, inventoriedSourceIds]);
+  const visibleInventory = useMemo(() => inventoryItems.filter((item) => item.location === inventoryLocation), [inventoryItems, inventoryLocation]);
+  const useSoonCount = useMemo(() => {
+    const soon = new Date(); soon.setDate(soon.getDate() + 3); soon.setHours(23, 59, 59, 999);
+    return inventoryItems.filter((item) => item.expiresOn && new Date(`${item.expiresOn}T23:59:59`) <= soon).length;
+  }, [inventoryItems]);
+  const handleToggleGrocery = async (item) => {
+    const completesList = !item.checked && groceries.filter((grocery) => !grocery.checked).length === 1;
+    await toggleGrocery(item.id);
+    if (!completesList) return;
+    window.clearTimeout(celebrationTimerRef.current);
+    setListCelebration(false);
+    window.requestAnimationFrame(() => setListCelebration(true));
+    celebrationTimerRef.current = window.setTimeout(() => setListCelebration(false), 2800);
+  };
+
+  useEffect(() => () => window.clearTimeout(celebrationTimerRef.current), []);
   const deliveryItems = useMemo(() => groceries.filter((item) => !item.checked), [groceries]);
   const deliveryListText = useMemo(() => {
     if (!deliveryItems.length) return "";
@@ -339,7 +380,8 @@ export default function Groceries() {
     for (const meal of meals) {
       const names = mealIngredientsCache[meal.id];
       if (!Array.isArray(names) || !names.length) continue;
-      const missing = names.filter((name) => !isIngredientOnList(name, groceries));
+      const missing = Array.from(new Set(names.map(canonicalIngredientName).filter(Boolean)))
+        .filter((name) => !isIngredientOnList(name, groceries));
       if (missing.length) {
         result.push({ meal, dateISO: meal.date, slot: meal.slot, title: meal.title || "Untitled meal", missing });
       }
@@ -368,9 +410,9 @@ export default function Groceries() {
   }, [missingByMeal]);
 
   const addMissingItem = async (rawName) => {
-    const name = String(rawName || "").trim();
+    const name = canonicalIngredientName(rawName);
     if (!name) return;
-    if (groceries.some((grocery) => String(grocery?.name || "").trim().toLowerCase() === name.toLowerCase())) {
+    if (isIngredientOnList(name, groceries)) {
       // Already on the list — no-op so the button doesn't re-add.
       return;
     }
@@ -767,10 +809,17 @@ export default function Groceries() {
 
   return (
     <PullToRefresh onRefresh={refreshData}><div className="pb-24 reference-groceries famos-noscroll">
+      {listCelebration && (
+        <><CelebrationConfetti intensity={52} /><div className="shopping-complete-celebration" role="status" aria-live="polite">
+          <span className="shopping-complete-particles" aria-hidden="true">{Array.from({ length: 8 }, (_, index) => <i key={index} />)}</span>
+          <span className="shopping-complete-icon" aria-hidden="true"><CheckCircle2 size={24} /></span>
+          <span><strong>Cart conquered</strong><small>Every last item. Nicely done.</small></span>
+        </div></>
+      )}
       <PageHeader
         title="Shopping"
         illustration="groceries"
-        subtitle="One shared list for staples, favourites, and store runs."
+        subtitle="A shared memory for everything the fridge forgot to mention."
         action={<div className="grocery-mode-actions">
           {totalMissingCount > 0 && (
             <button
@@ -789,8 +838,35 @@ export default function Groceries() {
         </div>}
       />
 
+      <section className="kitchen-inventory-card" aria-labelledby="kitchen-inventory-title">
+        <header>
+          <span className="kitchen-inventory-mark"><Refrigerator size={20} /></span>
+          <div><p>Kitchen inventory</p><h2 id="kitchen-inventory-title">What’s at home</h2><small>{inventoryItems.length} item{inventoryItems.length === 1 ? "" : "s"}{useSoonCount ? ` · ${useSoonCount} use soon` : ""}</small></div>
+        </header>
+        {purchasedForInventory.length > 0 && (
+          <div className="inventory-purchased-strip">
+            <strong>Just bought</strong>
+            {purchasedForInventory.slice(0, 4).map((item) => (
+              <div key={item.id}><span>{item.name}</span><div>
+                <button onClick={() => addInventoryItem({ name: item.name, quantity: item.quantity, unit: item.unit, location: "fridge", sourceGroceryId: item.id })}>Fridge</button>
+                <button onClick={() => addInventoryItem({ name: item.name, quantity: item.quantity, unit: item.unit, location: "freezer", sourceGroceryId: item.id })}>Freezer</button>
+                <button onClick={() => addInventoryItem({ name: item.name, quantity: item.quantity, unit: item.unit, location: "pantry", sourceGroceryId: item.id })}>Pantry</button>
+              </div></div>
+            ))}
+          </div>
+        )}
+        <div className="inventory-location-tabs" role="tablist" aria-label="Kitchen storage location">
+          {[['fridge','Fridge',Refrigerator],['freezer','Freezer',Snowflake],['pantry','Pantry',Package]].map(([id,label,Icon]) => <button key={id} className={inventoryLocation === id ? "selected" : ""} onClick={() => setInventoryLocation(id)} role="tab" aria-selected={inventoryLocation === id}><Icon size={14}/>{label}<span>{inventoryItems.filter((item) => item.location === id).length}</span></button>)}
+        </div>
+        {visibleInventory.length ? <div className="inventory-item-grid">{visibleInventory.map((item) => <article key={item.id}>
+          <div><strong>{item.name}</strong><small>{item.quantity}{item.unit ? ` ${item.unit}` : ""}{item.expiresOn ? ` · ${item.expiresOn}` : ""}</small></div>
+          <DateField compact label="Use by" value={item.expiresOn} onChange={(expiresOn) => updateInventoryItem(item.id, { expiresOn })}/>
+          <button onClick={() => removeInventoryItem(item.id)} aria-label={`Remove ${item.name} from inventory`}><X size={14}/></button>
+        </article>)}</div> : <p className="inventory-empty">Nothing in the {inventoryLocation} yet. Check off shopping items, then move them here.</p>}
+      </section>
+
       <div className="px-5 space-y-5 mt-2">
-        <Card
+        {false && <Card
           className="delivery-banner-card relative overflow-hidden p-5 border-white/10 shadow-[0_22px_55px_rgba(18,16,43,0.24)]"
         >
           <img src="/marketing/delivery-banner.png" alt="" className="delivery-banner-art" aria-hidden="true" />
@@ -834,7 +910,7 @@ export default function Groceries() {
               </div>
             </div>
           </div>
-        </Card>
+        </Card>}
 
         <section>
           <div className="flex items-end justify-between mb-3 px-1">
@@ -865,7 +941,7 @@ export default function Groceries() {
         <div onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={dropStaple} className={`rounded-2xl transition-all ${dragging ? "ring-2 ring-[var(--color-accent)] bg-[var(--color-accent-soft)] p-2" : ""}`}>
           {dragging && <p className="text-center text-[12px] font-semibold text-[var(--color-accent)] py-3">Drop here to add to your list</p>}
         {groceries.length === 0 ? (
-          <EmptyState title="List’s empty" subtitle="Add the first thing before someone remembers it at checkout." />
+          <EmptyState title="The list is gloriously empty" subtitle="Add the first thing before someone remembers it in the parking lot." />
         ) : (
           Object.entries(grouped).map(([cat, items]) =>
             items.length === 0 ? null : (
@@ -881,19 +957,10 @@ export default function Groceries() {
                       return (
                         <li
                           key={item.id}
-                          className="flex items-center gap-3 px-3 py-2.5 border-b border-[var(--color-border)] last:border-0"
+                          className={`grocery-list-row flex items-center gap-3 px-3 py-2.5 border-b border-[var(--color-border)] last:border-0 ${item.checked ? "is-checked" : ""}`}
                         >
-                          <Checkbox checked={item.checked} onChange={() => toggleGrocery(item.id)} />
-                          {item.photoUrl
-                            ? (
-                              <span className="grocery-photo-thumb grocery-photo-thumb-list" role="img" aria-label={item.photoUploadedBy && memberById[item.photoUploadedBy] ? `Photo of ${item.name}, added by ${memberById[item.photoUploadedBy].name}` : `Photo of ${item.name}`}>
-                                <img src={item.photoUrl} alt="" />
-                                {item.photoUploadedBy && memberById[item.photoUploadedBy] && (
-                                  <Avatar member={memberById[item.photoUploadedBy]} size="xs" className="grocery-photo-attribution" />
-                                )}
-                              </span>
-                            )
-                            : <GroceryIcon category={item.category} />}
+                          <Checkbox checked={item.checked} onChange={() => handleToggleGrocery(item)} />
+                          <GroceryItemImage item={item} memberById={memberById} />
                           <button onClick={() => openEdit(item)} className="flex-1 min-w-0 flex items-center gap-2 text-left">
                             <span
                               className={`min-w-0 text-[14.5px] ${
@@ -980,12 +1047,12 @@ export default function Groceries() {
           ))}
         </div>
 
-        <div className="flex items-end gap-3 mb-4">
-          <div>
-            <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-1.5">Quantity</p>
+        <div className="grocery-quantity-row mb-4">
+          <div className="form-field grocery-quantity-field">
+            <span className="form-label">Quantity</span>
             <Stepper value={draft.quantity} onChange={(v) => setDraft((d) => ({ ...d, quantity: v }))} />
           </div>
-          <div className="flex-1">
+          <div>
             <TextField
               label="Unit (optional)"
               placeholder="e.g. lb, bag, dozen"
@@ -1054,7 +1121,7 @@ export default function Groceries() {
         <TextField label="Item" placeholder="e.g. Greek yogurt" value={masterDraft.name} onChange={(e) => updateMasterName(e.target.value)} autoFocus />
         <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-2">Category</p>
         <div className="flex flex-wrap gap-2 mb-4">{GROCERY_CATEGORIES.map((category) => <button key={category} onClick={() => setMasterDraft((draft) => ({ ...draft, category }))} className="rounded-full px-3 py-1.5 text-[13px] font-medium border" style={{ borderColor: masterDraft.category === category ? "var(--color-accent)" : "var(--color-border)", backgroundColor: masterDraft.category === category ? "var(--color-accent-soft)" : "transparent" }}>{category}</button>)}</div>
-        <div className="flex items-end gap-3 mb-5"><div><p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-1.5">Default quantity</p><Stepper value={masterDraft.quantity} onChange={(quantity) => setMasterDraft((draft) => ({ ...draft, quantity }))} /></div><div className="flex-1"><TextField label="Unit" placeholder="bag, dozen, lb" value={masterDraft.unit} onChange={(e) => setMasterDraft((draft) => ({ ...draft, unit: e.target.value }))} /></div></div>
+        <div className="grocery-quantity-row mb-5"><div className="form-field grocery-quantity-field"><span className="form-label">Default quantity</span><Stepper value={masterDraft.quantity} onChange={(quantity) => setMasterDraft((draft) => ({ ...draft, quantity }))} /></div><div><TextField label="Unit" placeholder="bag, dozen, lb" value={masterDraft.unit} onChange={(e) => setMasterDraft((draft) => ({ ...draft, unit: e.target.value }))} /></div></div>
         <div className="flex gap-2">{masterEditing !== "new" && <SecondaryButton onClick={() => { setStaples((current) => current.filter((item) => item.id !== masterEditing)); setMasterEditing(null); }}>Remove</SecondaryButton>}<PrimaryButton onClick={saveMasterItem} disabled={!masterDraft.name.trim()}>Save favourite</PrimaryButton></div>
       </Modal>
 
@@ -1099,7 +1166,7 @@ export default function Groceries() {
         <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-2">Category</p>
         <div className="flex flex-wrap gap-2 mb-4">{GROCERY_CATEGORIES.map((category) => <button key={category} onClick={() => setBarcodeDraft((draft) => ({ ...draft, category }))} className="rounded-full px-3 py-1.5 text-[13px] font-medium border" style={{ borderColor: barcodeDraft.category === category ? "var(--color-accent)" : "var(--color-border)", backgroundColor: barcodeDraft.category === category ? "var(--color-accent-soft)" : "transparent" }}>{category}</button>)}</div>
         <div className="barcode-detail-grid">
-          <div><p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-1.5">Quantity</p><Stepper value={barcodeDraft.quantity} onChange={(quantity) => setBarcodeDraft((draft) => ({ ...draft, quantity }))} /></div>
+          <div className="form-field barcode-quantity-field"><span className="form-label">Quantity</span><Stepper value={barcodeDraft.quantity} onChange={(quantity) => setBarcodeDraft((draft) => ({ ...draft, quantity }))} /></div>
           <TextField label="Price (optional)" type="number" inputMode="decimal" min="0" step="0.01" placeholder="$0.00" value={barcodeDraft.price} onChange={(event) => setBarcodeDraft((draft) => ({ ...draft, price: event.target.value }))} />
         </div>
         <p className="barcode-price-note">Prices vary by store and are not encoded in UPC barcodes, so confirm the current shelf price.</p>
@@ -1110,7 +1177,7 @@ export default function Groceries() {
         </div>
       </Modal>
 
-      <Modal open={deliveryModal} onClose={() => setDeliveryModal(false)} title="Export grocery list">
+      {false && <Modal open={deliveryModal} onClose={() => setDeliveryModal(false)} title="Export grocery list">
         <div className="space-y-4">
           <div className="rounded-2xl bg-[var(--color-good-soft)] border border-[var(--color-border)] p-3 flex items-start gap-3">
             <Store size={18} color="var(--color-good)" className="mt-0.5 shrink-0" />
@@ -1167,7 +1234,7 @@ export default function Groceries() {
             </div>
           </div>
         </div>
-      </Modal>
+      </Modal>}
 
       {focusMode && (
         <div className="focus-shopping-overlay" role="dialog" aria-modal="true" aria-label="Focus shopping mode">
@@ -1195,9 +1262,9 @@ export default function Groceries() {
             {focusItems.map((item) => {
               const qtyLabel = [item.quantity > 1 || item.unit ? item.quantity : null, item.unit].filter(Boolean).join(" ");
               return (
-                <button key={item.id} className={`focus-shopping-item ${item.checked ? "is-checked" : ""}`} onClick={() => toggleGrocery(item.id)}>
+                <button key={item.id} className={`focus-shopping-item ${item.checked ? "is-checked" : ""}`} onClick={() => handleToggleGrocery(item)}>
                   <span className="focus-shopping-check" aria-hidden="true">{item.checked ? "✓" : ""}</span>
-                  {item.photoUrl ? <span className="grocery-photo-thumb grocery-photo-thumb-focus" aria-hidden="true"><img src={item.photoUrl} alt="" /></span> : <GroceryIcon category={item.category} />}
+                  <GroceryItemImage item={item} memberById={memberById} focus />
                   <span className="focus-shopping-copy"><strong>{item.name}</strong><small>{item.category}{qtyLabel ? ` · ${qtyLabel}` : ""}{item.brand ? ` · ${item.brand}` : ""}</small></span>
                 </button>
               );
