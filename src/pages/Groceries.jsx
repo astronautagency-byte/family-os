@@ -17,9 +17,10 @@ import { categorizeGroceryItem } from "../lib/groceryCategories";
 import { inventoryExpiryStatus } from "../lib/inventoryExpiry";
 
 const emptyDraft = { name: "", category: GROCERY_CATEGORIES[0], quantity: 1, unit: "" };
+const INVENTORY_CATEGORIES = GROCERY_CATEGORIES.filter((category) => !["Household & Cleaning", "Paper & Disposable", "Household"].includes(category));
 const emptyPhoto = { file: null, previewUrl: "", remoteUrl: "", uploading: false, error: "" };
 const emptyBarcodeDraft = { ...emptyDraft, code: "", brand: "", price: "", imageUrl: "" };
-const emptyInventoryDraft = { name: "", quantity: 1, unit: "", location: "fridge", expiresOn: "", sourceGroceryId: null, category: "Other", brand: "", barcode: "", imageUrl: "" };
+const emptyInventoryDraft = { name: "", quantity: 1, unit: "", location: "fridge", expiresOn: "", sourceGroceryId: null, category: INVENTORY_CATEGORIES[0], brand: "", barcode: "", imageUrl: "" };
 const STAPLES_KEY = "family-os:grocery-staples:v1";
 const PRODUCT_LOOKUP_ENDPOINT = "https://world.openfoodfacts.org/api/v2/product";
 const safeRevokeObjectUrl = (url) => {
@@ -390,6 +391,7 @@ export default function Groceries() {
     .sort((left, right) => left.expiry.urgency - right.expiry.urgency)
     .slice(0, 4), [inventoryItems]);
   const openInventoryDraft = (item = null, location = inventoryLocation) => {
+    const suggestedCategory = item ? (item.category || categorizeGroceryItem(item.name, item.category)) : INVENTORY_CATEGORIES[0];
     setInventoryDraft(item ? {
       ...emptyInventoryDraft,
       name: item.name,
@@ -397,7 +399,7 @@ export default function Groceries() {
       unit: item.unit || "",
       location,
       sourceGroceryId: item.id,
-      category: item.category || categorizeGroceryItem(item.name, item.category),
+      category: INVENTORY_CATEGORIES.includes(suggestedCategory) ? suggestedCategory : "Other",
       brand: item.brand || "",
       barcode: item.barcode || "",
       imageUrl: item.imageUrl || "",
@@ -407,6 +409,10 @@ export default function Groceries() {
   };
   const saveInventoryItem = async () => {
     if (!inventoryDraft.name.trim() || inventorySaving) return;
+    if (!inventoryDraft.expiresOn) {
+      setInventoryError("Add a use-by or best-before date so FamOS knows when to remind you.");
+      return;
+    }
     setInventorySaving(true); setInventoryError("");
     try {
       await addInventoryItem({ ...inventoryDraft, name: inventoryDraft.name.trim() });
@@ -963,15 +969,15 @@ export default function Groceries() {
       <section className="kitchen-inventory-card" aria-labelledby="kitchen-inventory-title">
         <header>
           <span className="kitchen-inventory-mark"><Refrigerator size={20} /></span>
-          <div><p>Kitchen inventory</p><h2 id="kitchen-inventory-title">Use what you have</h2><small>Track it, use it in time, replace it when it’s gone.</small></div>
-          <button type="button" className="inventory-add-button" onClick={() => openInventoryDraft()}><Plus size={15}/> Add item</button>
+          <div><p>Kitchen inventory</p><h2 id="kitchen-inventory-title">What’s at home</h2><small>Track food, drinks, pet supplies, and anything else with a use-by date.</small></div>
+          <button type="button" className="inventory-add-button" onClick={() => openInventoryDraft()}><Plus size={15}/> Add expiring item</button>
         </header>
         <div className="inventory-pulse" aria-label="Kitchen inventory summary">
           <div className={inventoryPulse.expired ? "urgent" : ""}><span><Clock3 size={15}/></span><strong>{inventoryPulse.expired}</strong><small>Expired</small></div>
           <div className={inventoryPulse.soon ? "soon" : ""}><span><HeartPulse size={15}/></span><strong>{inventoryPulse.soon}</strong><small>Use soon</small></div>
           <div><span><Package size={15}/></span><strong>{inventoryItems.length}</strong><small>At home</small></div>
-          <button type="button" onClick={findMealsFromInventory} disabled={!inventoryItems.length}><Sparkles size={15}/><span>Cook with what’s here</span></button>
         </div>
+        {inventoryItems.length > 0 && <div className="inventory-meal-ideas"><span><Sparkles size={16}/></span><div><strong>Need inspiration?</strong><small>Find recipes that use some of the food you already have.</small></div><button type="button" onClick={findMealsFromInventory}>Find meal ideas</button></div>}
         {priorityInventory.length > 0 && <div className="inventory-use-first"><div><span><Clock3 size={15}/></span><div><strong>Use first</strong><small>Start here before the next grocery run.</small></div></div><div>{priorityInventory.map(({ item, expiry }) => <button type="button" key={item.id} onClick={() => { setInventoryLocation(item.location); setInventoryStatus(expiry.state === "expired" ? "expired" : "use-soon"); setInventoryQuery(item.name); }}><span>{item.name}</span><em>{expiry.label}</em></button>)}</div></div>}
         {purchasedForInventory.length > 0 && (
           <div className="inventory-purchased-strip">
@@ -986,7 +992,7 @@ export default function Groceries() {
           </div>
         )}
         <div className="inventory-tools">
-          <label className="inventory-search"><Search size={15}/><input value={inventoryQuery} onChange={(event) => setInventoryQuery(event.target.value)} placeholder="Search food, brand or category" aria-label="Search kitchen inventory"/>{inventoryQuery && <button type="button" onClick={() => setInventoryQuery("")} aria-label="Clear inventory search"><X size={13}/></button>}</label>
+          <label className="inventory-search"><Search size={15}/><input value={inventoryQuery} onChange={(event) => setInventoryQuery(event.target.value)} placeholder="Search item, brand or category" aria-label="Search kitchen inventory"/>{inventoryQuery && <button type="button" onClick={() => setInventoryQuery("")} aria-label="Clear inventory search"><X size={13}/></button>}</label>
           <div className="inventory-status-filter" role="group" aria-label="Filter inventory by expiry">
             {[["all","All"],["use-soon","Use soon"],["expired","Expired"],["no-date","Needs date"]].map(([id,label]) => <button type="button" key={id} className={inventoryStatus === id ? "selected" : ""} onClick={() => setInventoryStatus(id)}>{label}</button>)}
           </div>
@@ -998,18 +1004,18 @@ export default function Groceries() {
           <div className="inventory-item-copy">{item.imageUrl ? <img src={item.imageUrl} alt=""/> : <GroceryIcon category={item.category}/>}<div><span>{item.category || "Other"}</span><strong>{item.name}</strong>{item.brand && <small>{item.brand}</small>}{expiry && <em>{expiry.label}</em>}</div></div>
           <DateField compact label="Use by" value={item.expiresOn} onChange={(expiresOn) => updateInventoryItem(item.id, { expiresOn })}/>
           <div className="inventory-item-actions"><div className="inventory-quantity" aria-label={`${item.name} quantity`}><button type="button" onClick={() => changeInventoryQuantity(item, -1)} disabled={Number(item.quantity) <= 1} aria-label={`Decrease ${item.name} quantity`}><Minus size={12}/></button><strong>{item.quantity}{item.unit ? ` ${item.unit}` : ""}</strong><button type="button" onClick={() => changeInventoryQuantity(item, 1)} aria-label={`Increase ${item.name} quantity`}><Plus size={12}/></button></div>{expiry?.state === "expired" && <button type="button" disabled={onList} onClick={() => addMissingItem(item.name)}><RotateCcw size={13}/>{onList ? "On list" : "Replace"}</button>}<button type="button" onClick={() => removeInventoryItem(item.id)} aria-label={`Mark ${item.name} used up`}><Check size={13}/>Used up</button></div>
-        </article>;})}</div> : <div className="inventory-empty"><span>{inventoryQuery || inventoryStatus !== "all" ? <Search size={20}/> : <Refrigerator size={20}/>}</span><strong>{inventoryQuery || inventoryStatus !== "all" ? "No matching food here" : `Your ${inventoryLocation} is ready to track.`}</strong><p>{inventoryQuery || inventoryStatus !== "all" ? "Try another search or expiry filter." : "Add what is already at home, or check off shopping items and file them here."}</p>{inventoryQuery || inventoryStatus !== "all" ? <button type="button" onClick={() => { setInventoryQuery(""); setInventoryStatus("all"); }}>Clear filters</button> : <button type="button" onClick={() => openInventoryDraft()}><Plus size={14}/> Add your first item</button>}</div>}
+        </article>;})}</div> : <div className="inventory-empty"><span>{inventoryQuery || inventoryStatus !== "all" ? <Search size={20}/> : <Refrigerator size={20}/>}</span><strong>{inventoryQuery || inventoryStatus !== "all" ? "No matching items here" : `Nothing logged in the ${inventoryLocation} yet`}</strong><p>{inventoryQuery || inventoryStatus !== "all" ? "Try another search or expiry filter." : <>Use <b>Add expiring item</b> for food, drinks, pet consumables, or other dated goods already at home. Checked shopping items also appear here for a quick review.</>}</p>{inventoryQuery || inventoryStatus !== "all" ? <button type="button" onClick={() => { setInventoryQuery(""); setInventoryStatus("all"); }}>Clear filters</button> : null}</div>}
       </section>
 
-      <Modal open={inventoryAdding} onClose={() => { if (!inventorySaving) { setInventoryAdding(false); setInventoryError(""); } }} title="Add to kitchen inventory">
-        <p className="inventory-add-intro">Log something already at home or something you just bought. A use-by date lets FamOS remind you before it goes to waste.</p>
-        <TextField label="Item" placeholder="e.g. Mushrooms" value={inventoryDraft.name} onChange={(event) => setInventoryDraft((current) => ({ ...current, name: event.target.value }))}/>
-        <div className="inventory-add-grid"><label className="inventory-select-field"><span>Category</span><select value={inventoryDraft.category} onChange={(event) => setInventoryDraft((current) => ({ ...current, category: event.target.value }))}>{GROCERY_CATEGORIES.map((category) => <option key={category}>{category}</option>)}</select></label><TextField label="Brand (optional)" placeholder="e.g. Compliments" value={inventoryDraft.brand} onChange={(event) => setInventoryDraft((current) => ({ ...current, brand: event.target.value }))}/></div>
+      <Modal open={inventoryAdding} onClose={() => { if (!inventorySaving) { setInventoryAdding(false); setInventoryError(""); } }} title="Add an expiring item">
+        <p className="inventory-add-intro">For food, drinks, pet food and treats, leftovers, baby items, supplements, or anything with a use-by or best-before date. Durable household supplies stay on the Shopping list.</p>
+        <TextField label="Item" placeholder="e.g. Orange juice or dog food" value={inventoryDraft.name} onChange={(event) => setInventoryDraft((current) => ({ ...current, name: event.target.value }))}/>
+        <div className="inventory-add-grid"><label className="inventory-select-field"><span>Category</span><select value={inventoryDraft.category} onChange={(event) => setInventoryDraft((current) => ({ ...current, category: event.target.value }))}>{INVENTORY_CATEGORIES.map((category) => <option key={category}>{category}</option>)}</select></label><TextField label="Brand (optional)" placeholder="e.g. Compliments" value={inventoryDraft.brand} onChange={(event) => setInventoryDraft((current) => ({ ...current, brand: event.target.value }))}/></div>
         <div className="inventory-add-grid"><TextField label="Quantity" inputMode="decimal" value={inventoryDraft.quantity} onChange={(event) => setInventoryDraft((current) => ({ ...current, quantity: Math.max(Number(event.target.value) || 1, 1) }))}/><TextField label="Unit (optional)" placeholder="bag, carton, lb" value={inventoryDraft.unit} onChange={(event) => setInventoryDraft((current) => ({ ...current, unit: event.target.value }))}/></div>
         <label className="inventory-add-location"><span>Store in</span><div>{[["fridge","Fridge",Refrigerator],["freezer","Freezer",Snowflake],["pantry","Pantry",Package]].map(([id,label,Icon]) => <button type="button" key={id} className={inventoryDraft.location === id ? "selected" : ""} onClick={() => setInventoryDraft((current) => ({ ...current, location: id }))}><Icon size={15}/>{label}</button>)}</div></label>
-        <DateField label="Use by (optional)" value={inventoryDraft.expiresOn} onChange={(expiresOn) => setInventoryDraft((current) => ({ ...current, expiresOn }))}/>
+        <DateField label="Use by or best before" value={inventoryDraft.expiresOn} onChange={(expiresOn) => setInventoryDraft((current) => ({ ...current, expiresOn }))}/>
         {inventoryError && <p className="inventory-add-error" role="alert">{inventoryError}</p>}
-        <PrimaryButton onClick={saveInventoryItem} disabled={inventorySaving || !inventoryDraft.name.trim()}>{inventorySaving ? "Adding…" : "Add to inventory"}</PrimaryButton>
+        <PrimaryButton onClick={saveInventoryItem} disabled={inventorySaving || !inventoryDraft.name.trim() || !inventoryDraft.expiresOn}>{inventorySaving ? "Adding…" : "Add to inventory"}</PrimaryButton>
       </Modal>
 
       <div className="px-5 space-y-5 mt-2">
