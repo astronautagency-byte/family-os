@@ -590,7 +590,20 @@ export function FamilyProvider({ children, tabletMode = false }) {
     if (patch.recurring !== undefined) dbPatch.recurrence = patch.recurring;
     if (patch.taskType !== undefined) dbPatch.task_type = patch.taskType;
     if (patch.listId !== undefined) dbPatch.list_id = patch.listId || null;
-    if (remote) await runRemote(supabase.from("tasks").update(dbPatch).eq("id", id));
+    if (remote) {
+      let result = await supabase.from("tasks").update(dbPatch).eq("id", id).select().single();
+      // Production may briefly trail the client while the custom-list schema
+      // migration is queued. Do not let an unavailable list_id/task_type field
+      // block ordinary edits such as assigning a task to another member.
+      if (result.error && /task_type|list_id|schema cache/i.test(result.error.message || "")) {
+        const { task_type: _taskType, list_id: _listId, ...compatiblePatch } = dbPatch;
+        result = await supabase.from("tasks").update(compatiblePatch).eq("id", id).select().single();
+      }
+      if (result.error) {
+        setDataError(result.error.message);
+        throw result.error;
+      }
+    }
     if (remote && patch.assigneeId) sendHouseholdPush({ title: "Task assigned to you", body: patch.title || tasks.find((task) => task.id === id)?.title || "A household task", tag: `task-${id}`, url: "/#tasks" }, [patch.assigneeId]);
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
   };
