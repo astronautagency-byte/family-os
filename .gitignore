@@ -7,3 +7,5 @@ supabase/.temp/
 
 # Freebuff desktop preview artefacts (local-only logs, sqlite, watch scripts).
 .freebuff/
+.vercel
+.env.local
