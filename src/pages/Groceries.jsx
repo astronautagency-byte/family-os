@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Baby, Bone, Camera, Carrot, Check, CheckCircle2, ChevronDown, Clipboard, Coffee, Cookie, Croissant, CupSoda, Download, Drumstick, ExternalLink, FlaskConical, Globe2, GripVertical, HeartPulse, Image as ImageIcon, ListChecks, LoaderCircle, Maximize2, Milk, Package, Pencil, Plus, Refrigerator, Sandwich, ScanLine, ScrollText, Share2, ShoppingBag, ShoppingBasket, Snowflake, Soup, SprayCan, Star, Store, Trash2, Truck, Upload, Wheat, Wine, X } from "lucide-react";
-import { uploadGroceryPhoto, isUploadableImage, deleteGroceryPhoto } from "../lib/groceryPhotoUpload";
+import { uploadGroceryPhoto, isUploadableImage, deleteGroceryPhoto, compressImage } from "../lib/groceryPhotoUpload";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
 import { Avatar, Card, Checkbox, DateField, EmptyState, Modal, PrimaryButton, SecondaryButton, Stepper, TextField } from "../components/ui";
@@ -20,6 +20,9 @@ const emptyPhoto = { file: null, previewUrl: "", remoteUrl: "", uploading: false
 const emptyBarcodeDraft = { ...emptyDraft, code: "", brand: "", price: "", imageUrl: "" };
 const STAPLES_KEY = "family-os:grocery-staples:v1";
 const PRODUCT_LOOKUP_ENDPOINT = "https://world.openfoodfacts.org/api/v2/product";
+const safeRevokeObjectUrl = (url) => {
+  if (url && typeof URL !== "undefined" && typeof URL.revokeObjectURL === "function") URL.revokeObjectURL(url);
+};
 const DEFAULT_STAPLES = [
   { id: "milk", name: "Milk", category: "Dairy & Eggs", quantity: 1, unit: "" },
   { id: "eggs", name: "Eggs", category: "Dairy & Eggs", quantity: 1, unit: "dozen" },
@@ -234,27 +237,39 @@ export default function Groceries() {
   const [saveError, setSaveError] = useState("");
   const photoCameraInputRef = useRef(null);
   const photoLibraryInputRef = useRef(null);
+  const photoPickIdRef = useRef(0);
   const celebrationTimerRef = useRef(null);
 
-  const onPickPhotoFile = (event) => {
+  const onPickPhotoFile = async (event) => {
     const file = event.target.files?.[0];
+    event.target.value = "";
     if (!file) return;
     const check = isUploadableImage(file);
     if (!check.ok) {
       setPhotoDraft((current) => ({ ...current, error: check.reason }));
-      event.target.value = "";
       return;
     }
-    const previewUrl = (typeof URL !== "undefined" && URL.createObjectURL) ? URL.createObjectURL(file) : "";
-    if (photoDraft.previewUrl && photoDraft.previewUrl !== previewUrl) URL.revokeObjectURL(photoDraft.previewUrl);
-    setPhotoDraft({ file, previewUrl, remoteUrl: "", uploading: true, error: "" });
-    // Auto-upload once the user picks a file — the preview flips to the
-    // persistent URL when the upload resolves so Submit can persist it.
-    uploadPhotoNow(file).catch(() => {});
-    event.target.value = "";
+    const pickId = ++photoPickIdRef.current;
+    setPhotoDraft((current) => ({ ...current, file: null, uploading: true, error: "" }));
+    try {
+      // Never decode the original 12–48 MP iPhone photo in the modal.
+      // Compress once first, then use the small blob for both preview and
+      // upload. This prevents iOS from terminating the PWA under memory
+      // pressure while the camera sheet is closing.
+      const prepared = await compressImage(file);
+      if (pickId !== photoPickIdRef.current) return;
+      const previewUrl = typeof URL !== "undefined" && URL.createObjectURL ? URL.createObjectURL(prepared) : "";
+      setPhotoDraft((current) => {
+        if (current.previewUrl && current.previewUrl !== previewUrl) safeRevokeObjectUrl(current.previewUrl);
+        return { file: prepared, previewUrl, remoteUrl: "", uploading: true, error: "" };
+      });
+      await uploadPhotoNow(prepared, pickId);
+    } catch (error) {
+      if (pickId === photoPickIdRef.current) setPhotoDraft((current) => ({ ...current, uploading: false, error: error?.message || "Could not prepare the photo." }));
+    }
   };
 
-  const uploadPhotoNow = async (file) => {
+  const uploadPhotoNow = async (file, pickId = photoPickIdRef.current) => {
     const householdId = household?.id;
     if (!householdId) {
       setPhotoDraft((current) => ({ ...current, uploading: false, error: "Sign in to attach a photo." }));
@@ -262,14 +277,15 @@ export default function Groceries() {
     }
     try {
       const { url } = await uploadGroceryPhoto({ householdId, file, supabase });
-      setPhotoDraft((current) => ({ ...current, uploading: false, remoteUrl: url }));
+      if (pickId === photoPickIdRef.current) setPhotoDraft((current) => ({ ...current, uploading: false, remoteUrl: url }));
     } catch (error) {
-      setPhotoDraft((current) => ({ ...current, uploading: false, error: error?.message || "Could not upload the photo." }));
+      if (pickId === photoPickIdRef.current) setPhotoDraft((current) => ({ ...current, uploading: false, error: error?.message || "Could not upload the photo." }));
     }
   };
 
   const clearPhoto = () => {
-    if (photoDraft.previewUrl && !photoDraft.remoteUrl) URL.revokeObjectURL(photoDraft.previewUrl);
+    photoPickIdRef.current += 1;
+    if (photoDraft.previewUrl && !photoDraft.remoteUrl) safeRevokeObjectUrl(photoDraft.previewUrl);
     setPhotoDraft(emptyPhoto);
   };
 
@@ -282,7 +298,8 @@ export default function Groceries() {
   // Best-effort: storage cleanup errors are non-fatal because the row
   // was never saved — leftover files are just bucket cost, not data.
   const closeEditorModal = () => {
-    if (photoDraft.previewUrl) URL.revokeObjectURL(photoDraft.previewUrl);
+    photoPickIdRef.current += 1;
+    safeRevokeObjectUrl(photoDraft.previewUrl);
     if (photoDraft.remoteUrl && editingId === "new") {
       deleteGroceryPhoto(photoDraft.remoteUrl, supabase).then(({ error }) => {
         if (error) console.warn("Could not remove orphaned grocery photo on cancel.", error);
@@ -294,6 +311,7 @@ export default function Groceries() {
   const scannerVideoRef = useRef(null);
   const scannerControlsRef = useRef(null);
   const scannerHandledRef = useRef(false);
+  const scannerSessionRef = useRef(0);
   const [deliveryModal, setDeliveryModal] = useState(false);
   const [deliveryStatus, setDeliveryStatus] = useState("");
   // Plan-aware ingredients: Groceries.jsx reads the same cache Meals.jsx
@@ -447,7 +465,8 @@ export default function Groceries() {
   // as closeEditorModal — revoke preview, fire-and-forget remove,
   // then drop the local draft.
   const abandonDraftPhoto = () => {
-    if (photoDraft.previewUrl) URL.revokeObjectURL(photoDraft.previewUrl);
+    photoPickIdRef.current += 1;
+    safeRevokeObjectUrl(photoDraft.previewUrl);
     if (photoDraft.remoteUrl && editingId === "new") {
       deleteGroceryPhoto(photoDraft.remoteUrl, supabase).then(({ error }) => {
         if (error) console.warn("Could not remove orphaned grocery photo on draft-switch.", error);
@@ -508,7 +527,8 @@ export default function Groceries() {
         await updateGrocery(editingId, { name: draft.name.trim(), category: draft.category, quantity: draft.quantity, unit: draft.unit.trim(), photoUrl, previousPhotoUrl });
       }
       setEditingId(null);
-      if (photoDraft.previewUrl) URL.revokeObjectURL(photoDraft.previewUrl);
+      photoPickIdRef.current += 1;
+      safeRevokeObjectUrl(photoDraft.previewUrl);
       setPhotoDraft(emptyPhoto);
     } catch (error) {
       setSaveError(error?.message || "This item couldn't be saved. Try again.");
@@ -551,6 +571,7 @@ export default function Groceries() {
   };
 
   const stopBarcodeScanner = useCallback(() => {
+    scannerSessionRef.current += 1;
     scannerControlsRef.current?.stop?.();
     scannerControlsRef.current = null;
     const stream = scannerVideoRef.current?.srcObject;
@@ -640,7 +661,7 @@ export default function Groceries() {
       try {
         result = await reader.decodeFromImageUrl(objectUrl);
       } finally {
-        URL.revokeObjectURL(objectUrl);
+        safeRevokeObjectUrl(objectUrl);
       }
       const code = result?.getText?.() || "";
       if (!code) {
@@ -655,19 +676,58 @@ export default function Groceries() {
   };
 
   const startBarcodeScanner = async () => {
+    if (scannerStarting || scannerOpen) return;
+    const sessionId = ++scannerSessionRef.current;
     setScannerOpen(true);
     setScannerStarting(true);
     setScannerError("");
     scannerHandledRef.current = false;
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     try {
+      const video = scannerVideoRef.current;
+      if (!video || !navigator.mediaDevices?.getUserMedia) throw new Error("Camera is unavailable in this browser.");
+      // Prefer the platform detector on supported phones. It avoids loading
+      // ZXing's continuous decoder beside a live camera stream — a combination
+      // that can exceed iOS PWA memory limits and reload the whole app.
+      if (typeof window.BarcodeDetector === "function") {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: { facingMode: { ideal: "environment" }, width: { ideal: 640, max: 960 }, height: { ideal: 480, max: 720 }, frameRate: { ideal: 12, max: 20 } },
+        });
+        if (sessionId !== scannerSessionRef.current) { stream.getTracks().forEach((track) => track.stop()); return; }
+        video.srcObject = stream;
+        await video.play();
+        const detector = new window.BarcodeDetector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"] });
+        let stopped = false;
+        const controls = { stop: () => { stopped = true; stream.getTracks().forEach((track) => track.stop()); } };
+        scannerControlsRef.current = controls;
+        const scan = async () => {
+          if (stopped || sessionId !== scannerSessionRef.current || scannerHandledRef.current) return;
+          try {
+            const matches = await detector.detect(video);
+            const code = matches?.[0]?.rawValue || "";
+            if (code) {
+              scannerHandledRef.current = true;
+              controls.stop();
+              scannerControlsRef.current = null;
+              setScannerOpen(false);
+              setBarcodeDraft((draft) => ({ ...draft, code }));
+              await lookupBarcodeProduct(code);
+              return;
+            }
+          } catch { /* A frame can be unavailable while Safari focuses. */ }
+          window.setTimeout(scan, 280);
+        };
+        window.setTimeout(scan, 280);
+        return;
+      }
       const { BrowserMultiFormatReader } = await import("@zxing/browser");
       const reader = new BrowserMultiFormatReader();
       const controls = await reader.decodeFromConstraints(
-        { audio: false, video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } } },
-        scannerVideoRef.current,
+        { audio: false, video: { facingMode: { ideal: "environment" }, width: { ideal: 640, max: 960 }, height: { ideal: 480, max: 720 }, frameRate: { ideal: 12, max: 20 } } },
+        video,
         async (result) => {
-          if (!result || scannerHandledRef.current) return;
+          if (!result || scannerHandledRef.current || sessionId !== scannerSessionRef.current) return;
           scannerHandledRef.current = true;
           const code = result.getText();
           stopBarcodeScanner();
@@ -676,6 +736,7 @@ export default function Groceries() {
           await lookupBarcodeProduct(code);
         }
       );
+      if (sessionId !== scannerSessionRef.current) { controls.stop?.(); return; }
       scannerControlsRef.current = controls;
     } catch (error) {
       stopBarcodeScanner();

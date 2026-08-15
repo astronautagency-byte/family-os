@@ -175,7 +175,7 @@ function BroadcastBanner({ item, sender, reactions, currentUserId, onReact, onCl
 }
 
 export default function Today({ goTo }) {
-  const { members, memberById, events, googleEvents, feedEvents, meals, tasks, groceries, messages, addGrocery, toggleTask, tabletMode, broadcasts, broadcastMessage, clearBroadcast, reactionsByMessage, reactToBroadcast, currentUserId, refreshData, syncGoogleCalendarNow, googleConnected, notificationPermission, requestNotifications } = useFamily();
+  const { members, memberById, events, googleEvents, feedEvents, meals, tasks, taskLists = [], groceries, messages, addGrocery, toggleTask, tabletMode, broadcasts, broadcastMessage, clearBroadcast, reactionsByMessage, reactToBroadcast, currentUserId, refreshData, syncGoogleCalendarNow, googleConnected, notificationPermission, requestNotifications } = useFamily();
   const { profile, user, household, householdProfileExtra } = useAuth();
   const { items: inventoryItems } = useKitchenInventory(household?.id, user?.id);
   const expiryAlerts = useMemo(() => expiringInventory(inventoryItems), [inventoryItems]);
@@ -363,6 +363,14 @@ export default function Today({ goTo }) {
   const todaysTasks = tasks
     .filter((t) => t.due === today)
     .sort((a, b) => Number(a.done) - Number(b.done));
+  const openTasks = tasks.filter((task) => !task.done);
+  const homeTasks = todaysTasks.length
+    ? todaysTasks
+    : openTasks.slice().sort((a, b) => (a.due || "9999-12-31").localeCompare(b.due || "9999-12-31")).slice(0, 6);
+  const taskListSummaries = taskLists.map((list) => ({
+    ...list,
+    count: openTasks.filter((task) => task.listId === list.id).length,
+  }));
   const openTaskCount = todaysTasks.filter((t) => !t.done).length;
 
   const activeGroceries = useMemo(() => groceries.filter((g) => !g.checked), [groceries]);
@@ -746,26 +754,31 @@ export default function Today({ goTo }) {
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Tasks</p>
-                <h2 className="ui-section-title">Today’s tasks</h2>
+                <h2 className="ui-section-title">Tasks & lists</h2>
               </div>
               <button onClick={() => goTo("tasks")} className="text-[13px] font-semibold text-[var(--color-accent)] flex items-center gap-0.5">
                 View tasks <ChevronRight size={14} />
               </button>
             </div>
-            {todaysTasks.length === 0 ? (
+            {taskListSummaries.length > 0 && <div className="today-task-lists" aria-label="Task lists">
+              {taskListSummaries.slice(0, 5).map((list) => <button type="button" key={list.id} onClick={() => goTo("tasks")} style={{ "--task-list-color": list.color || "var(--color-tasks)" }}><i/><span>{list.name}</span><em>{list.count}</em></button>)}
+            </div>}
+            {homeTasks.length === 0 ? (
               <div className="today-compact-empty">
-                <EmptyState title="No tasks due today" subtitle="You’re all caught up." />
+                <EmptyState title={taskLists.length ? "Your lists are clear" : "No tasks yet"} subtitle={taskLists.length ? "Nothing open right now." : "Create a list for the things your family keeps passing around."} />
               </div>
             ) : (
               <ul className="grid md:grid-cols-2 gap-2">
-                {todaysTasks.map((t) => {
+                {homeTasks.map((t) => {
                   const assignee = memberById[t.assigneeId];
                   const taskAdder = t.createdBy ? memberById[t.createdBy] : null;
+                  const taskList = taskLists.find((list) => list.id === t.listId);
                   return (
                     <li key={t.id} className="today-list-item flex items-center gap-3 px-3 py-2.5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)]">
                       <Checkbox checked={t.done} onChange={() => toggleTask(t.id)} color={assignee?.color} />
                       <div className="flex-1 min-w-0">
                         <span className={`block text-[14px] ${t.done ? "line-through text-[var(--color-ink-faint)]" : "text-[var(--color-ink)]"} truncate`}>{t.title}</span>
+                        <small className="today-task-meta">{[taskList?.name, t.due === today ? "Today" : t.due ? new Date(`${t.due}T12:00`).toLocaleDateString("en-CA", { month: "short", day: "numeric" }) : "No due date"].filter(Boolean).join(" · ")}</small>
                         {taskAdder && <Avatar member={taskAdder} size="xs" className="ml-1 mt-0.5" aria-label={`Added by ${taskAdder.name}`} />}
                       </div>
                       {assignee && <Avatar member={assignee} size="sm" />}

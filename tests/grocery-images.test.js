@@ -23,3 +23,10 @@ test("barcode metadata persists image and brand on grocery rows", () => {
   assert.match(family, /brand:\s*item\.brand/);
   assert.match(family, /image_url:\s*item\.imageUrl/);
 });
+
+test("mobile grocery capture avoids full-resolution previews and uses a bounded camera stream", () => {
+  assert.match(groceries, /const prepared = await compressImage\(file\)/);
+  assert.match(groceries, /width: \{ ideal: 640, max: 960 \}/);
+  assert.match(groceries, /scannerSessionRef\.current/);
+  assert.match(groceries, /window\.BarcodeDetector/);
+});
