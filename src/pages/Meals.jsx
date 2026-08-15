@@ -259,7 +259,7 @@ export default function Meals() {
     window.sessionStorage.removeItem("famos:meal-ideas-intent:v1");
     try {
       const intent = JSON.parse(raw);
-      if (intent?.date && MEAL_SLOTS.includes(intent?.slot)) rouletteForSlot(intent.date, intent.slot);
+      if (intent?.date && MEAL_SLOTS.includes(intent?.slot)) rouletteForSlot(intent.date, intent.slot, Boolean(intent.kitchenOnly));
     } catch { /* ignore malformed intent */ }
   }, []);
   // Cached ingredient names per meal ID — populated once a recipe has been

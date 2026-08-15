@@ -14,9 +14,10 @@ test("inventory supports household-scoped fridge, freezer and pantry storage", (
   assert.match(hook, /famos:kitchen-inventory:v1/);
 });
 
-test("purchased groceries require an explicit inventory location", () => {
+test("purchased groceries require an explicit location and expiry review", () => {
   assert.match(groceries, /Just bought/);
-  for (const location of ["fridge", "freezer", "pantry"]) assert.match(groceries, new RegExp(`location: "${location}"`));
+  for (const location of ["fridge", "freezer", "pantry"]) assert.match(groceries, new RegExp(`openInventoryDraft\\(item, "${location}"\\)`));
+  assert.match(groceries, /Use by \(optional\)/);
 });
 
 test("Cook Mode reviews inventory consumption before removal", () => {

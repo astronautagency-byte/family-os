@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Baby, Bone, Camera, Carrot, Check, CheckCircle2, ChevronDown, Clipboard, Coffee, Cookie, Croissant, CupSoda, Download, Drumstick, ExternalLink, FlaskConical, Globe2, GripVertical, HeartPulse, Image as ImageIcon, ListChecks, LoaderCircle, Maximize2, Milk, Package, Pencil, Plus, Refrigerator, Sandwich, ScanLine, ScrollText, Share2, ShoppingBag, ShoppingBasket, Snowflake, Soup, SprayCan, Star, Store, Trash2, Truck, Upload, Wheat, Wine, X } from "lucide-react";
+import { Baby, Bone, Camera, Carrot, Check, CheckCircle2, ChevronDown, Clipboard, Clock3, Coffee, Cookie, Croissant, CupSoda, Download, Drumstick, ExternalLink, FlaskConical, Globe2, GripVertical, HeartPulse, Image as ImageIcon, ListChecks, LoaderCircle, Maximize2, Milk, Package, Pencil, Plus, Refrigerator, RotateCcw, Sandwich, ScanLine, ScrollText, Share2, ShoppingBag, ShoppingBasket, Snowflake, Soup, Sparkles, SprayCan, Star, Store, Trash2, Truck, Upload, Wheat, Wine, X } from "lucide-react";
 import { uploadGroceryPhoto, isUploadableImage, deleteGroceryPhoto, compressImage } from "../lib/groceryPhotoUpload";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
@@ -9,15 +9,17 @@ import PullToRefresh from "../components/PullToRefresh";
 import ConfirmAction from "../components/ConfirmAction";
 import CelebrationConfetti from "../components/CelebrationConfetti";
 import { canonicalIngredientName, isIngredientOnList, loadIngredientCache, saveIngredientCache } from "../lib/mealIngredientCache";
-import { formatDayLabel } from "../lib/dates";
+import { formatDayLabel, todayISO } from "../lib/dates";
 import { GROCERY_CATEGORIES } from "../data/mockData";
 import useKitchenInventory from "../hooks/useKitchenInventory";
 import { supabase } from "../lib/supabase";
 import { categorizeGroceryItem } from "../lib/groceryCategories";
+import { inventoryExpiryStatus } from "../lib/inventoryExpiry";
 
 const emptyDraft = { name: "", category: GROCERY_CATEGORIES[0], quantity: 1, unit: "" };
 const emptyPhoto = { file: null, previewUrl: "", remoteUrl: "", uploading: false, error: "" };
 const emptyBarcodeDraft = { ...emptyDraft, code: "", brand: "", price: "", imageUrl: "" };
+const emptyInventoryDraft = { name: "", quantity: 1, unit: "", location: "fridge", expiresOn: "", sourceGroceryId: null };
 const STAPLES_KEY = "family-os:grocery-staples:v1";
 const PRODUCT_LOOKUP_ENDPOINT = "https://world.openfoodfacts.org/api/v2/product";
 const safeRevokeObjectUrl = (url) => {
@@ -213,6 +215,10 @@ export default function Groceries() {
   const household = auth?.household;
   const { items: inventoryItems, addItem: addInventoryItem, updateItem: updateInventoryItem, removeItem: removeInventoryItem } = useKitchenInventory(household?.id, auth?.user?.id);
   const [inventoryLocation, setInventoryLocation] = useState("fridge");
+  const [inventoryAdding, setInventoryAdding] = useState(false);
+  const [inventoryDraft, setInventoryDraft] = useState(emptyInventoryDraft);
+  const [inventorySaving, setInventorySaving] = useState(false);
+  const [inventoryError, setInventoryError] = useState("");
   const [editingId, setEditingId] = useState(null); // null closed, "new" for add, or item id
   const [draft, setDraft] = useState(emptyDraft);
   const [staples, setStaples] = useState(loadStaples);
@@ -355,10 +361,38 @@ export default function Groceries() {
   const inventoriedSourceIds = useMemo(() => new Set(inventoryItems.map((item) => item.sourceGroceryId).filter(Boolean)), [inventoryItems]);
   const purchasedForInventory = useMemo(() => groceries.filter((item) => item.checked && !inventoriedSourceIds.has(item.id)), [groceries, inventoriedSourceIds]);
   const visibleInventory = useMemo(() => inventoryItems.filter((item) => item.location === inventoryLocation), [inventoryItems, inventoryLocation]);
-  const useSoonCount = useMemo(() => {
-    const soon = new Date(); soon.setDate(soon.getDate() + 3); soon.setHours(23, 59, 59, 999);
-    return inventoryItems.filter((item) => item.expiresOn && new Date(`${item.expiresOn}T23:59:59`) <= soon).length;
-  }, [inventoryItems]);
+  const inventoryPulse = useMemo(() => inventoryItems.reduce((summary, item) => {
+    const status = inventoryExpiryStatus(item);
+    if (status?.state === "expired") summary.expired += 1;
+    else if (status) summary.soon += 1;
+    return summary;
+  }, { expired: 0, soon: 0 }), [inventoryItems]);
+  const openInventoryDraft = (item = null, location = inventoryLocation) => {
+    setInventoryDraft(item ? {
+      ...emptyInventoryDraft,
+      name: item.name,
+      quantity: item.quantity || 1,
+      unit: item.unit || "",
+      location,
+      sourceGroceryId: item.id,
+    } : { ...emptyInventoryDraft, location });
+    setInventoryError("");
+    setInventoryAdding(true);
+  };
+  const saveInventoryItem = async () => {
+    if (!inventoryDraft.name.trim() || inventorySaving) return;
+    setInventorySaving(true); setInventoryError("");
+    try {
+      await addInventoryItem({ ...inventoryDraft, name: inventoryDraft.name.trim() });
+      setInventoryDraft(emptyInventoryDraft); setInventoryAdding(false);
+    } catch (error) {
+      setInventoryError(error?.message || "This item could not be added.");
+    } finally { setInventorySaving(false); }
+  };
+  const findMealsFromInventory = () => {
+    window.sessionStorage.setItem("famos:meal-ideas-intent:v1", JSON.stringify({ date: todayISO(), slot: "dinner", kitchenOnly: true }));
+    window.location.hash = "meals";
+  };
   const handleToggleGrocery = async (item) => {
     const completesList = !item.checked && groceries.filter((grocery) => !grocery.checked).length === 1;
     await toggleGrocery(item.id);
@@ -902,16 +936,23 @@ export default function Groceries() {
       <section className="kitchen-inventory-card" aria-labelledby="kitchen-inventory-title">
         <header>
           <span className="kitchen-inventory-mark"><Refrigerator size={20} /></span>
-          <div><p>Kitchen inventory</p><h2 id="kitchen-inventory-title">What’s at home</h2><small>{inventoryItems.length} item{inventoryItems.length === 1 ? "" : "s"}{useSoonCount ? ` · ${useSoonCount} use soon` : ""}</small></div>
+          <div><p>Kitchen inventory</p><h2 id="kitchen-inventory-title">Use what you have</h2><small>Track it, use it in time, replace it when it’s gone.</small></div>
+          <button type="button" className="inventory-add-button" onClick={() => openInventoryDraft()}><Plus size={15}/> Add item</button>
         </header>
+        <div className="inventory-pulse" aria-label="Kitchen inventory summary">
+          <div className={inventoryPulse.expired ? "urgent" : ""}><span><Clock3 size={15}/></span><strong>{inventoryPulse.expired}</strong><small>Expired</small></div>
+          <div className={inventoryPulse.soon ? "soon" : ""}><span><HeartPulse size={15}/></span><strong>{inventoryPulse.soon}</strong><small>Use soon</small></div>
+          <div><span><Package size={15}/></span><strong>{inventoryItems.length}</strong><small>At home</small></div>
+          <button type="button" onClick={findMealsFromInventory} disabled={!inventoryItems.length}><Sparkles size={15}/><span>Cook with what’s here</span></button>
+        </div>
         {purchasedForInventory.length > 0 && (
           <div className="inventory-purchased-strip">
             <strong>Just bought</strong>
             {purchasedForInventory.slice(0, 4).map((item) => (
               <div key={item.id}><span>{item.name}</span><div>
-                <button onClick={() => addInventoryItem({ name: item.name, quantity: item.quantity, unit: item.unit, location: "fridge", sourceGroceryId: item.id })}>Fridge</button>
-                <button onClick={() => addInventoryItem({ name: item.name, quantity: item.quantity, unit: item.unit, location: "freezer", sourceGroceryId: item.id })}>Freezer</button>
-                <button onClick={() => addInventoryItem({ name: item.name, quantity: item.quantity, unit: item.unit, location: "pantry", sourceGroceryId: item.id })}>Pantry</button>
+                <button onClick={() => openInventoryDraft(item, "fridge")}>Fridge</button>
+                <button onClick={() => openInventoryDraft(item, "freezer")}>Freezer</button>
+                <button onClick={() => openInventoryDraft(item, "pantry")}>Pantry</button>
               </div></div>
             ))}
           </div>
@@ -919,12 +960,22 @@ export default function Groceries() {
         <div className="inventory-location-tabs" role="tablist" aria-label="Kitchen storage location">
           {[['fridge','Fridge',Refrigerator],['freezer','Freezer',Snowflake],['pantry','Pantry',Package]].map(([id,label,Icon]) => <button key={id} className={inventoryLocation === id ? "selected" : ""} onClick={() => setInventoryLocation(id)} role="tab" aria-selected={inventoryLocation === id}><Icon size={14}/>{label}<span>{inventoryItems.filter((item) => item.location === id).length}</span></button>)}
         </div>
-        {visibleInventory.length ? <div className="inventory-item-grid">{visibleInventory.map((item) => <article key={item.id}>
-          <div><strong>{item.name}</strong><small>{item.quantity}{item.unit ? ` ${item.unit}` : ""}{item.expiresOn ? ` · ${item.expiresOn}` : ""}</small></div>
+        {visibleInventory.length ? <div className="inventory-item-grid">{visibleInventory.map((item) => { const expiry = inventoryExpiryStatus(item); const onList = isIngredientOnList(item.name, groceries); return <article key={item.id} className={expiry ? `is-${expiry.state}` : ""}>
+          <div className="inventory-item-copy"><strong>{item.name}</strong><small>{item.quantity}{item.unit ? ` ${item.unit}` : ""} · {item.location}</small>{expiry && <em>{expiry.label}</em>}</div>
           <DateField compact label="Use by" value={item.expiresOn} onChange={(expiresOn) => updateInventoryItem(item.id, { expiresOn })}/>
-          <button onClick={() => removeInventoryItem(item.id)} aria-label={`Remove ${item.name} from inventory`}><X size={14}/></button>
-        </article>)}</div> : <p className="inventory-empty">Nothing in the {inventoryLocation} yet. Check off shopping items, then move them here.</p>}
+          <div className="inventory-item-actions">{expiry?.state === "expired" && <button type="button" disabled={onList} onClick={() => addMissingItem(item.name)}><RotateCcw size={13}/>{onList ? "On list" : "Replace"}</button>}<button type="button" onClick={() => removeInventoryItem(item.id)} aria-label={`Mark ${item.name} used up`}><Check size={13}/>Used up</button></div>
+        </article>;})}</div> : <div className="inventory-empty"><span><Refrigerator size={20}/></span><strong>Your {inventoryLocation} is ready to track.</strong><p>Add what is already at home, or check off shopping items and file them here.</p><button type="button" onClick={() => openInventoryDraft()}><Plus size={14}/> Add your first item</button></div>}
       </section>
+
+      <Modal open={inventoryAdding} onClose={() => { if (!inventorySaving) { setInventoryAdding(false); setInventoryError(""); } }} title="Add to kitchen inventory">
+        <p className="inventory-add-intro">Log something already at home or something you just bought. A use-by date lets FamOS remind you before it goes to waste.</p>
+        <TextField label="Item" placeholder="e.g. Mushrooms" value={inventoryDraft.name} onChange={(event) => setInventoryDraft((current) => ({ ...current, name: event.target.value }))}/>
+        <div className="inventory-add-grid"><TextField label="Quantity" inputMode="decimal" value={inventoryDraft.quantity} onChange={(event) => setInventoryDraft((current) => ({ ...current, quantity: Math.max(Number(event.target.value) || 1, 1) }))}/><TextField label="Unit (optional)" placeholder="bag, carton, lb" value={inventoryDraft.unit} onChange={(event) => setInventoryDraft((current) => ({ ...current, unit: event.target.value }))}/></div>
+        <label className="inventory-add-location"><span>Store in</span><div>{[["fridge","Fridge",Refrigerator],["freezer","Freezer",Snowflake],["pantry","Pantry",Package]].map(([id,label,Icon]) => <button type="button" key={id} className={inventoryDraft.location === id ? "selected" : ""} onClick={() => setInventoryDraft((current) => ({ ...current, location: id }))}><Icon size={15}/>{label}</button>)}</div></label>
+        <DateField label="Use by (optional)" value={inventoryDraft.expiresOn} onChange={(expiresOn) => setInventoryDraft((current) => ({ ...current, expiresOn }))}/>
+        {inventoryError && <p className="inventory-add-error" role="alert">{inventoryError}</p>}
+        <PrimaryButton onClick={saveInventoryItem} disabled={inventorySaving || !inventoryDraft.name.trim()}>{inventorySaving ? "Adding…" : "Add to inventory"}</PrimaryButton>
+      </Modal>
 
       <div className="px-5 space-y-5 mt-2">
         {false && <Card
