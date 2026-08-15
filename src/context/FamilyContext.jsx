@@ -144,7 +144,7 @@ function showLocalNotification(title, options) {
 const FamilyContext = createContext(null);
 
 export function FamilyProvider({ children, tabletMode = false }) {
-  const { configured, household, user, googleProviderToken, signInWithGoogle } = useAuth();
+  const { configured, household, user, googleProviderToken, signInWithGoogle, forceReconnectGoogle } = useAuth();
   const remote = Boolean(configured && household?.id && user?.id && supabase);
   const saved = loadState();
   const savedGoogle = loadGoogleState();
@@ -1383,6 +1383,21 @@ export function FamilyProvider({ children, tabletMode = false }) {
     }
   };
 
+  // Expired Google grants must go through a fresh consent flow. The ordinary
+  // connect action intentionally reuses a healthy linked identity, so using it
+  // for the reconnect button left an expired identity permanently stuck.
+  const reconnectGoogleCalendar = async () => {
+    if (!configured) return connectGoogleCalendar();
+    setGoogleStatus("connecting");
+    setGoogleError(null);
+    try {
+      await forceReconnectGoogle();
+    } catch (e) {
+      setGoogleStatus("expired");
+      setGoogleError(e.message || "Could not reconnect Google Calendar.");
+    }
+  };
+
   // Mint a fresh Google access token from the durable backend (survives the
   // ~1h provider-token expiry). Returns null when the backend isn't deployed
   // or the stored refresh token needs re-consent, so callers can fall back.
@@ -1701,7 +1716,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
     googleClientId, setGoogleClientId,
     googleConnected, googleEvents: tabletMode ? [] : googleEvents, googleCalendars: tabletMode ? [] : googleCalendars, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleStatus, googleError, googleLastSynced,
     googleUsesAccount: configured,
-    connectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, addGoogleCalendarEvent, updateGoogleCalendarEvent, deleteGoogleCalendarEvent, toggleGoogleCalendar, toggleGoogleCalendarSharing,
+    connectGoogleCalendar, reconnectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, addGoogleCalendarEvent, updateGoogleCalendarEvent, deleteGoogleCalendarEvent, toggleGoogleCalendar, toggleGoogleCalendarSharing,
     // Other calendar providers via published iCal feeds
     calendarFeeds: tabletMode ? [] : calendarFeeds, feedEvents: tabletMode ? [] : feedEvents, calendarFeedStatus, calendarFeedError,
     addCalendarFeed, importCalendarFile, syncCalendarFeed, removeCalendarFeed, toggleCalendarFeedSharing,

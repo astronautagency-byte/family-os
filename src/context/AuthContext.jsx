@@ -440,7 +440,10 @@ export function AuthProvider({ children }) {
         localStorage.setItem("family-os:google-provider-token", data.session.provider_token);
         setGoogleProviderToken(data.session.provider_token);
       }
-      loadedAccountUserIdRef.current = nextSession.user.id;
+      // `getSession()` does not have the `nextSession` variable used by the
+      // auth-state listener below. Referencing it here caused an intermittent
+      // ReferenceError when iOS restored a backgrounded PWA.
+      loadedAccountUserIdRef.current = data.session?.user?.id ?? null;
       captureGoogleRefreshToken(data.session);
       refreshAccount(data.session);
     });

@@ -60,7 +60,7 @@ function GoogleCalendarCard() {
     googleClientId, setGoogleClientId,
     googleConnected, googleStatus, googleError, googleLastSynced, googleEvents, googleCalendars, selectedGoogleCalendarIds, sharedGoogleCalendarIds, calendarFeeds,
     googleUsesAccount,
-    connectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, toggleGoogleCalendar, toggleGoogleCalendarSharing,
+    connectGoogleCalendar, reconnectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, toggleGoogleCalendar, toggleGoogleCalendarSharing,
   } = useFamily();
   const [showSetup, setShowSetup] = useState(!googleClientId);
   const isBusy = googleStatus === "connecting" || googleStatus === "syncing";
@@ -147,7 +147,7 @@ function GoogleCalendarCard() {
           <SecondaryButton onClick={disconnectGoogleCalendar} disabled={isBusy}>
             Disconnect
           </SecondaryButton>
-          <PrimaryButton onClick={(googleStatus === "error" || googleStatus === "expired") ? connectGoogleCalendar : syncGoogleCalendarNow} disabled={isBusy}>
+          <PrimaryButton onClick={(googleStatus === "error" || googleStatus === "expired") ? reconnectGoogleCalendar : syncGoogleCalendarNow} disabled={isBusy}>
             {googleStatus === "syncing" ? "Syncing…" : (googleStatus === "error" || googleStatus === "expired") ? "Reconnect Google" : "Sync now"}
           </PrimaryButton>
           <SecondaryButton

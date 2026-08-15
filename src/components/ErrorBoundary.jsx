@@ -14,15 +14,26 @@ export default class ErrorBoundary extends Component {
 
   componentDidCatch(error, info) {
     this.setState({ info });
-    // Log to console in dev, could send to an error service in prod
     console.error("[ErrorBoundary] Caught:", error, info);
-  }
 
-  componentDidMount() {
-    // Auto-retry once after 1.5s for transient loading failures
-    this._autoRetry = setTimeout(() => {
-      if (this.state.error) this.setState(initialState);
-    }, 1500);
+    const message = String(error?.message || error || "");
+    const isStaleAsset = /loading chunk|failed to fetch dynamically imported module|importing a module script failed/i.test(message);
+    if (isStaleAsset) {
+      const recoveryKey = "family-os:asset-recovery";
+      if (sessionStorage.getItem(recoveryKey) !== window.location.pathname) {
+        sessionStorage.setItem(recoveryKey, window.location.pathname);
+        window.location.reload();
+      }
+      return;
+    }
+
+    // A backgrounded mobile browser can resume while React or an API-backed
+    // provider is between states. Retry that render once before showing a
+    // blocking error screen; deterministic errors still surface normally.
+    if (!this._didAutoRetry) {
+      this._didAutoRetry = true;
+      this._autoRetry = setTimeout(() => this.setState(initialState), 750);
+    }
   }
 
   componentWillUnmount() {
@@ -30,6 +41,7 @@ export default class ErrorBoundary extends Component {
   }
 
   handleRetry = () => {
+    this._didAutoRetry = false;
     this.setState(initialState);
   };
 

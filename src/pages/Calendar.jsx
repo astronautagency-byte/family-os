@@ -236,7 +236,7 @@ function LocationAutocompleteField({ value, onChange }) {
 }
 
 export default function CalendarPage() {
-  const { members, memberById, events, googleEvents, feedEvents, calendarFeeds, googleConnected, googleCalendars, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleStatus, googleError, googleLastSynced, addEvent, updateEvent, addGoogleCalendarEvent, updateGoogleCalendarEvent, deleteGoogleCalendarEvent, removeEvent, clearEvents, refreshData, syncGoogleCalendarNow, connectGoogleCalendar, disconnectGoogleCalendar, toggleGoogleCalendar, toggleGoogleCalendarSharing } = useFamily();
+  const { members, memberById, events, googleEvents, feedEvents, calendarFeeds, googleConnected, googleCalendars, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleStatus, googleError, googleLastSynced, addEvent, updateEvent, addGoogleCalendarEvent, updateGoogleCalendarEvent, deleteGoogleCalendarEvent, removeEvent, clearEvents, refreshData, syncGoogleCalendarNow, connectGoogleCalendar, reconnectGoogleCalendar, disconnectGoogleCalendar, toggleGoogleCalendar, toggleGoogleCalendarSharing } = useFamily();
   const { householdProfileExtra } = useAuth();
   const todayStr = todayISO();
   const [selectedDate, setSelectedDate] = useState(todayStr);
@@ -990,7 +990,7 @@ export default function CalendarPage() {
                   <div className="calendar-manager-error"><TriangleAlert size={14} /><span>{googleError}</span></div>
                 )}
                 {googleStatus === "expired" && (
-                  <button className="calendar-manager-reconnect" onClick={connectGoogleCalendar}>Reconnect Google Calendar</button>
+                  <button className="calendar-manager-reconnect" onClick={reconnectGoogleCalendar}>Reconnect Google Calendar</button>
                 )}
                 <div className="calendar-manager-list-heading">
                   <strong>Your Google calendars</strong>

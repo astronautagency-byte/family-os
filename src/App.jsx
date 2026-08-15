@@ -148,10 +148,11 @@ export default function App() {
   const hasSession = !!session;
   useEffect(() => {
     if (!configured || !hasSession || !supabase) return undefined;
+    let refreshInFlight = false;
     const refreshActiveSession = () => {
-      if (document.visibilityState === "visible") {
-        supabase.auth.refreshSession().catch(() => {});
-      }
+      if (document.visibilityState !== "visible" || refreshInFlight) return;
+      refreshInFlight = true;
+      supabase.auth.refreshSession().catch(() => {}).finally(() => { refreshInFlight = false; });
     };
     const timer = window.setInterval(refreshActiveSession, 30 * 60 * 1000);
     window.addEventListener("focus", refreshActiveSession);
