@@ -21,6 +21,10 @@ function AdminLogin({ onSignedIn }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [recovering, setRecovering] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const themeClass = typeof window !== "undefined" && window.localStorage.getItem("familyos:theme") === "dark" ? "theme-dark" : "";
+  const colorScheme = typeof window !== "undefined" ? window.localStorage.getItem("familyos:color-scheme") || "famos" : "famos";
   const submit = async (event) => {
     event.preventDefault(); setBusy(true); setError("");
     const { data: resolvedEmail, error: resolveError } = await supabase.rpc("admin_login_email", { login_name: login.trim() });
@@ -29,14 +33,32 @@ function AdminLogin({ onSignedIn }) {
     if (signInError) setError(signInError.message); else onSignedIn();
     setBusy(false);
   };
-  return <main className="admin-login"><form onSubmit={submit} className="admin-login-card">
+  const requestReset = async (event) => {
+    event.preventDefault();
+    if (!login.trim() || busy) return;
+    setBusy(true); setError("");
+    try {
+      const { data: resolvedEmail } = await supabase.rpc("admin_login_email", { login_name: login.trim() });
+      if (resolvedEmail) {
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(resolvedEmail, { redirectTo: `${window.location.origin}/admin?recovery=1` });
+        if (resetError) throw resetError;
+      }
+      setResetSent(true);
+    } catch (resetError) {
+      setError(resetError?.message || "The recovery email could not be sent. Try again in a moment.");
+    } finally { setBusy(false); }
+  };
+  return <main className={`admin-login ${themeClass}`} data-color-scheme={colorScheme}><form onSubmit={recovering ? requestReset : submit} className="admin-login-card">
     <img src="/icons/icon-512.png" alt="FamOS" />
     <span className="admin-kicker"><ShieldCheck size={14} /> FamOS operations</span>
-    <h1>Admin sign in</h1><p>Secure access for authorized FamOS operators.</p>
+    <h1>{recovering ? "Reset admin password" : "Admin sign in"}</h1><p>{recovering ? "We’ll email a secure reset link to the authorized admin account." : "Secure access for authorized FamOS operators."}</p>
+    {resetSent ? <div className="admin-recovery-sent"><Mail size={20}/><strong>Check your inbox</strong><span>If that admin account exists, its secure reset link is on the way.</span></div> : <>
     <TextField label="Admin username or email" value={login} onChange={(event) => setLogin(event.target.value)} autoComplete="username" required />
-    <TextField label="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required />
+    {!recovering && <TextField label="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required />}
     {error && <div className="admin-error">{error}</div>}
-    <PrimaryButton type="submit" disabled={busy || !login || !password}>{busy ? "Checking access…" : "Open admin dashboard"}</PrimaryButton>
+    <PrimaryButton type="submit" disabled={busy || !login || (!recovering && !password)}>{busy ? (recovering ? "Sending…" : "Checking access…") : (recovering ? "Send reset link" : "Open admin dashboard")}</PrimaryButton>
+    </>}
+    <button type="button" className="admin-recovery-toggle" onClick={() => { setRecovering((current) => !current); setResetSent(false); setError(""); }}>{recovering ? "Back to admin sign in" : "Forgot password?"}</button>
     <button type="button" onClick={() => { window.location.href = "/"; }}>Back to FamOS</button>
   </form></main>;
 }
@@ -59,7 +81,7 @@ function AdminAccount({ session, onSessionChanged }) {
   return <div className="admin-account-grid">
     <Card className="admin-panel"><PanelHead eyebrow="Sign-in identity" title="Admin profile" icon={ShieldCheck} /><p className="admin-section-copy">Use a unique administrator username. This identity stays separate from family accounts.</p><div className="admin-account-form"><TextField label="Username" value={username} onChange={(event) => setUsername(event.target.value)} /><PrimaryButton disabled={busy || username.length < 3} onClick={() => run("username", supabase.rpc("admin_update_own_username", { next_username: username }), "Admin username updated.")}>Save username</PrimaryButton></div></Card>
     <Card className="admin-panel"><PanelHead eyebrow="Recovery & notices" title="Login email" icon={Mail} /><p className="admin-section-copy">We send a confirmation link to the new address before it becomes active.</p><div className="admin-account-form"><TextField label="Email address" type="email" value={email} onChange={(event) => setEmail(event.target.value)} /><PrimaryButton disabled={busy || !email || email === session.user.email} onClick={() => run("email", supabase.auth.updateUser({ email: email.trim().toLowerCase() }), "Check the new email address to confirm the change.")}>Change email</PrimaryButton></div></Card>
-    <Card className="admin-panel"><PanelHead eyebrow="Security" title="Change password" icon={Settings2} /><div className="admin-account-form"><TextField label="New password" type="password" placeholder="10+ characters" value={password} onChange={(event) => setPassword(event.target.value)} minLength={10} autoComplete="new-password" /><TextField label="Confirm password" type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} /><PasswordStrengthMeter value={password} compact /><PrimaryButton disabled={busy || !!passwordError(password) || password !== confirmPassword} onClick={async () => { await run("password", supabase.auth.updateUser({ password }), "Password updated successfully."); setPassword(""); setConfirmPassword(""); }}>Update password</PrimaryButton></div></Card>
+    <Card className="admin-panel"><PanelHead eyebrow="Security" title="Change password" icon={Settings2} /><div className="admin-account-form"><TextField label="New password" type="password" placeholder="8+ characters" value={password} onChange={(event) => setPassword(event.target.value)} minLength={8} autoComplete="new-password" /><TextField label="Confirm password" type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} /><PasswordStrengthMeter value={password} compact /><PrimaryButton disabled={busy || !!passwordError(password) || password !== confirmPassword} onClick={async () => { await run("password", supabase.auth.updateUser({ password }), "Password updated successfully."); setPassword(""); setConfirmPassword(""); }}>Update password</PrimaryButton></div></Card>
     {notice.text && <div className={notice.type === "error" ? "admin-error" : "admin-success"}>{notice.text}</div>}
   </div>;
 }
@@ -100,13 +122,13 @@ function TrendChart({ series = [], valueKey = "activity", currency = false, comp
 }
 
 function UsageBars({ overview }) {
-  const rows = [["Tasks", overview.tasks30d, ListChecks, "#7155df"], ["Chats", overview.messages30d, MessageCircle, "#4f8fc9"], ["Events", overview.events30d, CalendarDays, "#d58a35"], ["Groceries", overview.groceries30d, ShoppingCart, "#388b73"], ["Meals", overview.meals30d, Utensils, "#d36b83"]];
+  const rows = [["Tasks", overview.tasks30d, ListChecks, "var(--color-tasks)"], ["Chats", overview.messages30d, MessageCircle, "var(--color-chat)"], ["Events", overview.events30d, CalendarDays, "var(--color-calendar)"], ["Groceries", overview.groceries30d, ShoppingCart, "var(--color-shopping)"], ["Meals", overview.meals30d, Utensils, "var(--color-meals)"]];
   const max = Math.max(...rows.map((row) => row[1] || 0), 1);
   return <Card className="admin-panel"><PanelHead eyebrow="Last 30 days" title="Product activity" icon={Activity} /><div className="admin-bars">{rows.map(([label, value, Icon, color]) => <div key={label}><span><Icon size={15} />{label}</span><i><b style={{ width: `${Math.max(3, value / max * 100)}%`, background: color }} /></i><strong>{value || 0}</strong></div>)}</div></Card>;
 }
 
 function Adoption({ analytics, households }) {
-  const items = [["Tasks", "tasks", "#7257df"], ["Chat", "chat", "#5f9bc9"], ["Calendar", "calendar", "#dfa14d"], ["Groceries", "groceries", "#4aa487"], ["Meals", "meals", "#d97991"]];
+  const items = [["Tasks", "tasks", "var(--color-tasks)"], ["Chat", "chat", "var(--color-chat)"], ["Calendar", "calendar", "var(--color-calendar)"], ["Groceries", "groceries", "var(--color-shopping)"], ["Meals", "meals", "var(--color-meals)"]];
   const total = Math.max(Number(households || 0), 1);
   return <Card className="admin-panel admin-adoption"><PanelHead eyebrow="Across all families" title="Feature adoption" icon={CheckCircle2} /><div>{items.map(([label, key, color]) => {
     const count = Number(analytics.adoption?.[key] || 0); const percent = Math.round(count / total * 100);
@@ -285,7 +307,7 @@ function SupportMessageDetail({ id, onClose, onChanged }) {
 
 export default function Admin() {
   const [checking, setChecking] = useState(true); const [session, setSession] = useState(null); const [allowed, setAllowed] = useState(false);
-  const [section, setSection] = useState("overview"); const [overview, setOverview] = useState({}); const [analytics, setAnalytics] = useState({});
+  const [section, setSection] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("recovery") === "1" ? "account" : "overview"); const [overview, setOverview] = useState({}); const [analytics, setAnalytics] = useState({});
   const [households, setHouseholds] = useState([]); const [users, setUsers] = useState([]); const [audit, setAudit] = useState([]);
   const [search, setSearch] = useState(""); const [userSearch, setUserSearch] = useState(""); const [selected, setSelected] = useState(null);
   const [range, setRange] = useState(90); const [error, setError] = useState(""); const [deleteTarget, setDeleteTarget] = useState(null); const [deleteBusy, setDeleteBusy] = useState(false); const [deleteError, setDeleteError] = useState("");
@@ -297,6 +319,8 @@ export default function Admin() {
   const [supportRefreshKey, setSupportRefreshKey] = useState(0);
   const [supportCounts, setSupportCounts] = useState({});
   const [latestSupportMessages, setLatestSupportMessages] = useState([]);
+  const themeClass = typeof window !== "undefined" && window.localStorage.getItem("familyos:theme") === "dark" ? "theme-dark" : "";
+  const colorScheme = typeof window !== "undefined" ? window.localStorage.getItem("familyos:color-scheme") || "famos" : "famos";
   const check = async () => {
     const { data: { session: activeSession } } = await supabase.auth.getSession(); setSession(activeSession);
     if (!activeSession) { setAllowed(false); setChecking(false); return; }
@@ -346,14 +370,14 @@ export default function Admin() {
     else { setDeleteTarget(null); setSelected(null); await load(); }
     setDeleteBusy(false);
   };
-  if (checking) return <main className="admin-loading">Checking admin access…</main>;
+  if (checking) return <main className={`admin-loading ${themeClass}`} data-color-scheme={colorScheme}>Checking admin access…</main>;
   if (!session) return <AdminLogin onSignedIn={check} />;
-  if (!allowed) return <main className="admin-denied"><XCircle /><h1>Admin access required</h1><p>{error}</p><button onClick={async () => { await supabase.auth.signOut(); setSession(null); }}>Use another account</button></main>;
-  if (supportSelected) return <main className="admin-shell admin-detail-shell"><SupportMessageDetail id={supportSelected} onClose={() => setSupportSelected(null)} onChanged={() => setSupportRefreshKey((prev) => prev + 1)} /></main>;
-  if (selected) return <main className="admin-shell admin-detail-shell"><HouseholdDetail id={selected} onClose={() => setSelected(null)} onChanged={load} onDelete={setDeleteTarget} /><ConfirmDelete target={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={confirmDelete} busy={deleteBusy} error={deleteError} /></main>;
+  if (!allowed) return <main className={`admin-denied ${themeClass}`} data-color-scheme={colorScheme}><XCircle /><h1>Admin access required</h1><p>{error}</p><button onClick={async () => { await supabase.auth.signOut(); setSession(null); }}>Use another account</button></main>;
+  if (supportSelected) return <main className={`admin-shell admin-detail-shell ${themeClass}`} data-color-scheme={colorScheme}><SupportMessageDetail id={supportSelected} onClose={() => setSupportSelected(null)} onChanged={() => setSupportRefreshKey((prev) => prev + 1)} /></main>;
+  if (selected) return <main className={`admin-shell admin-detail-shell ${themeClass}`} data-color-scheme={colorScheme}><HouseholdDetail id={selected} onClose={() => setSelected(null)} onChanged={load} onDelete={setDeleteTarget} /><ConfirmDelete target={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={confirmDelete} busy={deleteBusy} error={deleteError} /></main>;
   const nav = [["overview", "Overview", LayoutDashboard], ["families", "Families", Building2], ["users", "Users", Users], ["revenue", "Revenue", BadgeDollarSign], ["support", "Support", MessageCircle, supportCounts.new], ["flags", "Feature flags", Flag], ["audit", "Audit log", ShieldCheck], ["account", "Admin account", Settings2]];
   const activePercent = overview.households ? Math.round(Number(analytics.activeHouseholds30d || 0) / Number(overview.households) * 100) : 0;
-  return <div className="admin-shell famos-noscroll">    <aside><div className="admin-brand"><span className="admin-brand-icon"><img src="/brand/famos-icon.png" alt="FamOS" /></span><strong>Fam<span>OS</span></strong><small>Admin</small></div><nav>{nav.map(([key, label, Icon, badge]) => <button key={key} className={section === key ? "active" : ""} onClick={() => setSection(key)}><Icon size={18} />{badge ? <span className="admin-dot" /> : null}{label}{badge ? <span className="admin-badge">{badge}</span> : null}</button>)}</nav><button className="admin-signout" onClick={async () => { await supabase.auth.signOut(); setSession(null); }}><LogOut size={17} /> Sign out</button></aside>
+  return <div className={`admin-shell famos-noscroll ${themeClass}`} data-color-scheme={colorScheme}>    <aside><div className="admin-brand"><span className="admin-brand-icon"><img src="/brand/famos-icon.png" alt="FamOS" /></span><strong>Fam<span>OS</span></strong><small>Admin</small></div><nav>{nav.map(([key, label, Icon, badge]) => <button key={key} className={section === key ? "active" : ""} onClick={() => setSection(key)}><Icon size={18} />{badge ? <span className="admin-dot" /> : null}{label}{badge ? <span className="admin-badge">{badge}</span> : null}</button>)}</nav><button className="admin-signout" onClick={async () => { await supabase.auth.signOut(); setSession(null); }}><LogOut size={17} /> Sign out</button></aside>
     <main><header className="admin-topbar"><div><span className="admin-kicker"><ShieldCheck size={13} /> Operations center</span><h1>{nav.find(([key]) => key === section)?.[1]}</h1></div><div className="admin-topbar-actions">{["overview", "revenue"].includes(section) && <select value={range} onChange={(event) => setRange(Number(event.target.value))}><option value="30">30 days</option><option value="90">90 days</option><option value="365">12 months</option></select>}<div className="admin-operator"><span>{session.user.email?.[0]?.toUpperCase()}</span><small>{session.user.email}</small></div></div></header>
       {error && <div className="admin-error">{error}</div>}
       {section === "overview" && <><section className="admin-metrics-grid">

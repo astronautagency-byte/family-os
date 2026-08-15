@@ -6,8 +6,8 @@
 // Pa$$w0rd) without meaningfully raising entropy.
 //
 // Tuning notes:
-//   * MIN_PASSWORD_LENGTH = 10 (down from 12) is a user-friendly middle ground
-//     between NIST's 8-char minimum and Bitwarden/1Password's 12-char default.
+//   * MIN_PASSWORD_LENGTH = 8 keeps signup approachable while meeting the
+//     baseline recommended for user-chosen passwords.
 //   * Score collapses to 3 tiers — Too short / Weak / Good — instead of 4.
 //   * passwordHint only nudges length; it never nags "add uppercase + a number"
 //     because that's a composition rule we deliberately don't gate on.
@@ -17,7 +17,7 @@
 // The offline list keeps the validator synchronous, deterministic, and free
 // of a network dependency at signup time.
 
-export const MIN_PASSWORD_LENGTH = 10;
+export const MIN_PASSWORD_LENGTH = 8;
 
 // Curated top worst-passwords list (subset of SecLists top-1m, filtered to
 // ≤14 chars and including common substitutions). 200+ entries keeps a
@@ -102,22 +102,22 @@ export function passwordError(value) {
  * the "Good" band.
  *
  *   0 = empty
- *   1 = 8–9 chars (Weak — under the floor but close)
- *   2 = 10+ chars (Good — meets the policy)
- *   3 = 10+ chars with 4 character classes (Strong — comfortably above)
+ *   1 = 8–9 chars (Weak — allowed, but worth improving)
+ *   2 = 10+ chars (Good)
+ *   3 = 12+ chars with 4 character classes (Strong)
  */
 export function passwordScore(value) {
   const pw = String(value || "");
   if (!pw) return 0;
   if (pw.length < 8) return 0;
-  if (pw.length < MIN_PASSWORD_LENGTH) return 1;
+  if (pw.length < 10) return 1;
   const classes = [
     /[a-z]/.test(pw),
     /[A-Z]/.test(pw),
     /\d/.test(pw),
     /[^a-zA-Z0-9]/.test(pw),
   ].filter(Boolean).length;
-  return classes >= 4 ? 3 : 2;
+  return classes >= 4 && pw.length >= 12 ? 3 : 2;
 }
 
 const SCORE_LABELS = ["Too short", "Weak", "Good", "Strong"];

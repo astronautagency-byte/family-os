@@ -23,16 +23,14 @@ test("passwordError: empty input is rejected with the empty-state message", () =
 });
 
 test("passwordError: below the minimum length is rejected with the length message", () => {
-  // Pick 9-char candidates that are not in the breach list — anything starting
+  // Pick candidates below the 8-character floor that are not in the breach list.
   // with "123456" will trip the breach check before the length check.
   assert.equal(passwordError("a".repeat(MIN_PASSWORD_LENGTH - 1)), `Use at least ${MIN_PASSWORD_LENGTH} characters.`);
-  assert.equal(passwordError("abcdefghi"), `Use at least ${MIN_PASSWORD_LENGTH} characters.`);
+  assert.equal(passwordError("abcdefg"), `Use at least ${MIN_PASSWORD_LENGTH} characters.`);
 });
 
-test("passwordError: breached passwords are rejected regardless of letter case (length-10+ candidates)", () => {
-  // Length-10+ breach candidates so the length floor passes first and the
-  // breach check fires. Short variants like "password" (8 chars) hit the
-  // length message first by design.
+test("passwordError: breached passwords are rejected regardless of letter case", () => {
+  assert.match(passwordError("password"), /widely used and unsafe/);
   assert.match(passwordError("password1234"), /widely used and unsafe/);
   assert.match(passwordError("PASSWORD1234"), /widely used and unsafe/);
   assert.match(passwordError("Password1234"), /widely used and unsafe/);
@@ -66,7 +64,7 @@ test("passwordScore: 3-tier ladder — too short / weak / good / strong", () => 
   // 1–7 chars → still 0 (well under the floor)
   assert.equal(passwordScore("abc"), 0);
   assert.equal(passwordScore("abcdefg"), 0);
-  // 8–9 chars → 1 (Weak). Just below the 10-char floor.
+  // 8–9 chars → 1 (Weak, but allowed by the approachable floor).
   assert.equal(passwordScore("abcdefgh"), 1);
   assert.equal(passwordScore("abcdefghi"), 1);
   // 10+ chars → at least 2 (Good)
@@ -74,11 +72,11 @@ test("passwordScore: 3-tier ladder — too short / weak / good / strong", () => 
   assert.equal(passwordScore("a".repeat(20)), 2);
 });
 
-test("passwordScore: 4 character classes unlocks the Strong tier", () => {
+test("passwordScore: 12+ characters and 4 character classes unlock Strong", () => {
   assert.equal(passwordScore("abcdefghij"), 2);                 // 1 class
   assert.equal(passwordScore("abcdefghij1"), 2);               // 2 classes
   assert.equal(passwordScore("abcdefghij1K"), 2);              // 3 classes
-  assert.equal(passwordScore("abcdefghij1K!"), 3);             // 4 classes → Strong
+  assert.equal(passwordScore("abcdefghij1K!"), 3);             // 13 chars, 4 classes → Strong
 });
 
 test("passwordScoreLabel: matches the 3-tier labels", () => {
@@ -93,10 +91,10 @@ test("passwordScoreLabel: matches the 3-tier labels", () => {
 test("passwordHint: only length nudges; composition is no longer nagged", () => {
   // Below the floor → single length nudge, regardless of how short.
   assert.match(passwordHint("abc"), new RegExp(`${MIN_PASSWORD_LENGTH}\\+ characters`));
-  assert.match(passwordHint("abcdefgh"), new RegExp(`${MIN_PASSWORD_LENGTH}\\+ characters`));
+  assert.match(passwordHint("abcdefg"), new RegExp(`${MIN_PASSWORD_LENGTH}\\+ characters`));
   // At or above the floor → no nudge. Composition rules are purely advisory
   // through the score label, not surfaced as a separate hint.
-  assert.equal(passwordHint("abcdefghij"), null);
+  assert.equal(passwordHint("abcdefgh"), null);
   assert.equal(passwordHint("abcdefghij1K!"), null);
 });
 

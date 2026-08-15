@@ -126,7 +126,7 @@ export function SignIn({ initialCreating = false }) {
         <form onSubmit={submit}>
           {creating && <TextField label="Your name" placeholder="e.g. Kat" value={displayName} onChange={(e) => setDisplayName(e.target.value)} autoComplete="name" required />}
           <TextField type="email" label="Email address" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
-          <TextField type={showPassword ? "text" : "password"} label="Password" placeholder="10+ characters" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={creating ? "new-password" : "current-password"} minLength={10} required />
+          <TextField type={showPassword ? "text" : "password"} label="Password" placeholder="8+ characters" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={creating ? "new-password" : "current-password"} minLength={8} required />
           <div className="password-actions">
             <button type="button" onClick={() => setShowPassword((value) => !value)}>
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />} {showPassword ? "Hide password" : "Show password"}
@@ -202,8 +202,8 @@ function InvitedPasswordSetup({ initialEmail, requestCode, completeSetup, onBack
       <Card className="minimal-auth-card">
         <form onSubmit={createPassword}>
           <TextField type="email" label="Invited email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required disabled={codeSent} />
-          <TextField type={showPassword ? "text" : "password"} label="Create password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" minLength={10} required />
-          <TextField type={showPassword ? "text" : "password"} label="Confirm password" value={confirm} onChange={(event) => setConfirm(event.target.value)} autoComplete="new-password" minLength={10} required />
+          <TextField type={showPassword ? "text" : "password"} label="Create password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" minLength={8} required />
+          <TextField type={showPassword ? "text" : "password"} label="Confirm password" value={confirm} onChange={(event) => setConfirm(event.target.value)} autoComplete="new-password" minLength={8} required />
           <div className="password-actions">
             <button type="button" onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff size={16} /> : <Eye size={16} />} {showPassword ? "Hide passwords" : "Show passwords"}</button>
           </div>
@@ -298,8 +298,8 @@ export function ResetPassword() {
       <p className="recovery-intro">Create your password here, then we’ll take you directly to the family home waiting for you.</p>
       <Card className="minimal-auth-card">
         <form onSubmit={submit}>
-          <TextField type={show ? "text" : "password"} label="New password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" minLength={10} required />
-          <TextField type={show ? "text" : "password"} label="Confirm password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" minLength={10} required />
+          <TextField type={show ? "text" : "password"} label="New password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" minLength={8} required />
+          <TextField type={show ? "text" : "password"} label="Confirm password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" minLength={8} required />
           <div className="password-actions"><button type="button" onClick={() => setShow((value) => !value)}>{show ? <EyeOff size={16} /> : <Eye size={16} />} {show ? "Hide passwords" : "Show passwords"}</button></div>
           {confirm && password !== confirm && <p className="text-[12.5px] text-[var(--color-warn)] mb-3">Those passwords are almost friends, but not quite.</p>}
           <PasswordStrengthMeter value={password} />

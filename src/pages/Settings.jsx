@@ -1011,7 +1011,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
         {configured && <section>
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">Account password</h2>
           <Card className="p-4">
-            <TextField type={showNewPassword ? "text" : "password"} label="New password" placeholder="10+ characters" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} minLength={10} autoComplete="new-password" />
+            <TextField type={showNewPassword ? "text" : "password"} label="New password" placeholder="8+ characters" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} minLength={8} autoComplete="new-password" />
             <button type="button" onClick={() => setShowNewPassword((value) => !value)} className="flex items-center gap-1.5 text-[12px] text-[var(--color-ink-soft)] -mt-1 mb-3">{showNewPassword ? <EyeOff size={14} /> : <Eye size={14} />} {showNewPassword ? "Hide password" : "Show password"}</button>
             <PasswordStrengthMeter value={newPassword} compact />
             <PrimaryButton disabled={!!passwordError(newPassword)} onClick={async () => { try { await updatePassword(newPassword); setNewPassword(""); setPasswordStatus("Password saved. You can now use it to sign in on your phone."); } catch (e) { setPasswordStatus(e.message); } }}>Save password</PrimaryButton>
