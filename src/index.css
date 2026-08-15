@@ -4366,6 +4366,11 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .apple-timegrid-head button{display:flex;align-items:center;justify-content:center;gap:7px;min-width:92px;padding:8px 4px;border-left:1px solid var(--color-border);color:var(--color-ink-soft)}
 .apple-timegrid-head button small{font-size:10px;font-weight:600;text-transform:uppercase}.apple-timegrid-head button strong{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;font-size:14px;font-weight:500}
 .apple-timegrid-head button.selected{color:var(--color-ink)}.apple-timegrid-head button.today strong{background:var(--color-accent);color:#fff;font-weight:700}
+.apple-all-day-row{display:grid;grid-template-columns:54px minmax(0,1fr);min-height:48px;border-bottom:1px solid var(--color-border);background:var(--color-surface)}
+.apple-all-day-row>span{display:flex;align-items:center;justify-content:flex-end;padding:8px;color:var(--color-ink-faint);font-size:9px;border-right:1px solid var(--color-border)}
+.apple-all-day-row>div{display:flex;align-items:center;gap:4px;overflow-x:auto;padding:6px;scrollbar-width:none}
+.apple-all-day-row button{flex:0 1 auto;min-width:0;max-width:280px;padding:6px 9px;border-left:3px solid var(--event-color);border-radius:5px;background:color-mix(in srgb,var(--event-color) 13%,var(--color-surface));color:color-mix(in srgb,var(--event-color) 70%,var(--color-ink));text-align:left}
+.apple-all-day-row button strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10.5px;font-weight:700}
 .apple-timegrid-scroll{overflow:auto;max-height:min(62vh,760px);overscroll-behavior:contain}
 .apple-timegrid{position:relative;display:grid;grid-template-columns:54px 1fr;min-width:calc(54px + var(--calendar-days,7) * 92px);height:1020px}
 .apple-time-labels{position:relative;border-right:1px solid var(--color-border)}
@@ -4380,11 +4385,21 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .theme-dark .apple-time-event{color:color-mix(in srgb,var(--event-color) 46%,#fff)}
 
 @media(max-width:639px){
-  .apple-calendar-toolbar{padding:10px 14px}.apple-calendar-toolbar .calendar-hero-dayname{font-size:18px}.apple-calendar-toolbar .calendar-hero-month{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .apple-calendar-controls{grid-template-columns:auto 1fr;padding-top:8px}.apple-calendar-controls .ui-segmented{max-width:260px;justify-self:end}.apple-calendar-controls .ui-segmented button{padding-inline:8px}
-  .apple-date-strip button{min-height:52px}.apple-date-strip strong{width:28px;height:28px}
-  .apple-timegrid-shell{margin-inline:-20px;border-left:0;border-right:0;border-radius:0}.apple-timegrid-scroll{max-height:calc(100vh - 300px)}
-  .apple-timegrid-head,.apple-timegrid{--calendar-days:2}.apple-timegrid-head button:nth-of-type(n+3),.apple-time-column:nth-child(n+3){display:none}
+  .calendar-page{padding-top:0}
+  .apple-calendar-toolbar{position:sticky;top:0;z-index:8;padding:10px 14px;background:color-mix(in srgb,var(--color-surface) 94%,transparent);backdrop-filter:blur(18px)}
+  .apple-calendar-toolbar .calendar-hero-dayname{font-size:18px}.apple-calendar-toolbar .calendar-hero-month{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .apple-calendar-today{border:0;border-radius:999px;background:var(--color-surface-sunken);box-shadow:none}
+  .calendar-hero-action{border:0;background:var(--color-surface-sunken)}.calendar-hero-action-primary{background:var(--color-accent)}
+  .apple-calendar-controls{grid-template-columns:1fr;padding:5px 0 3px}.apple-calendar-navigation{display:none}.apple-calendar-controls .ui-segmented{width:100%;max-width:none}.apple-calendar-controls .ui-segmented button{min-height:32px;padding:5px 8px}
+  .calendar-sources-primary{padding:4px 0 7px}.calendar-sources-heading{display:none}.calendar-sources-tab{min-height:30px;padding:5px 10px}
+  .apple-date-strip{margin-inline:-20px;padding:2px 20px 8px}.apple-date-strip button{min-height:50px}.apple-date-strip strong{width:30px;height:30px;font-size:16px}.apple-date-strip small{font-size:9px}
+  .apple-timegrid-shell{margin:0 -20px;border:0;border-top:1px solid var(--color-border);border-radius:0;box-shadow:none}.apple-timegrid-scroll{max-height:calc(100dvh - 280px);scrollbar-width:none}
+  .apple-timegrid-head{display:none}
+  .apple-timegrid,.apple-timegrid-head{--calendar-days:1}.apple-timegrid{min-width:100%;height:1020px;grid-template-columns:58px 1fr}.apple-timegrid-head button:nth-of-type(n+2),.apple-time-column:nth-child(n+2){display:none}
+  .apple-time-labels span{right:10px;font-size:11px}.apple-time-columns{grid-template-columns:1fr}.apple-hour-line{background:color-mix(in srgb,var(--color-border) 76%,transparent)}
+  .apple-time-column.today{background:var(--color-surface)}.apple-time-event{left:7px;right:7px;padding:7px 9px;border-left-width:4px;border-radius:7px}.apple-time-event strong{font-size:13px}.apple-time-event span,.apple-time-event small{font-size:10.5px}
+  .apple-now-line{left:50px;height:2px}.apple-now-line:before{left:4px;top:-4px;width:9px;height:9px}.apple-now-line span{right:calc(100% - 8px);top:-10px;padding:2px 6px;border-radius:999px;font-size:10px;font-weight:700}
+  .apple-all-day-row{grid-template-columns:58px 1fr;margin-inline:0}.apple-all-day-row>span{font-size:10px}.apple-all-day-row button{max-width:230px}
 }
 
 /* Intentional product colour language. Colour identifies meaning and area;

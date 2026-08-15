@@ -85,6 +85,12 @@ function CalendarTimeGrid({ dates, events, selectedDate, onSelectDate, onSelectE
   const now = new Date();
   const today = iso(now);
   const showNow = dates.some((date) => iso(date) === today) && now.getHours() >= CALENDAR_START_HOUR && now.getHours() <= CALENDAR_END_HOUR;
+  const isAllDay = (event) => {
+    const start = new Date(event.start);
+    const end = event.end ? new Date(event.end) : null;
+    return event.allDay === true || (start.getHours() === 0 && start.getMinutes() === 0 && (!end || end - start >= 23 * 60 * 60 * 1000));
+  };
+  const allDayEvents = events.filter((event) => dates.some((date) => event.start.slice(0, 10) === iso(date)) && isAllDay(event));
   return (
     <div className="apple-timegrid-shell">
       <div className="apple-timegrid-head" style={{ "--calendar-days": dates.length }}>
@@ -94,13 +100,24 @@ function CalendarTimeGrid({ dates, events, selectedDate, onSelectDate, onSelectE
           return <button type="button" key={key} className={`${key === selectedDate ? "selected" : ""} ${key === today ? "today" : ""}`} onClick={() => onSelectDate(key)}><small>{date.toLocaleDateString("en-CA", { weekday: "short" })}</small><strong>{date.getDate()}</strong></button>;
         })}
       </div>
+      {allDayEvents.length > 0 && (
+        <div className="apple-all-day-row">
+          <span>all-day</span>
+          <div>
+            {allDayEvents.map((event) => {
+              const type = EVENT_TYPES[eventType(event)];
+              return <button type="button" key={event.id} style={{ "--event-color": type.color }} onClick={() => onSelectEvent(event)}><strong>{event.title}</strong></button>;
+            })}
+          </div>
+        </div>
+      )}
       <div className="apple-timegrid-scroll">
         <div className="apple-timegrid" style={{ "--calendar-days": dates.length }}>
           <div className="apple-time-labels">{hours.map((hour) => <span key={hour} style={{ top: `${(hour - CALENDAR_START_HOUR) * 60}px` }}>{new Date(2000, 0, 1, hour).toLocaleTimeString("en-CA", { hour: "numeric" })}</span>)}</div>
           <div className="apple-time-columns">
             {dates.map((date) => {
               const key = iso(date);
-              const dateEvents = events.filter((event) => event.start.slice(0, 10) === key);
+              const dateEvents = events.filter((event) => event.start.slice(0, 10) === key && !isAllDay(event));
               return <div className={`apple-time-column ${key === today ? "today" : ""}`} key={key}>
                 {hours.map((hour) => <i className="apple-hour-line" key={hour} style={{ top: `${(hour - CALENDAR_START_HOUR) * 60}px` }} />)}
                 {dateEvents.map((event) => {
@@ -240,7 +257,7 @@ export default function CalendarPage() {
   const { householdProfileExtra } = useAuth();
   const todayStr = todayISO();
   const [selectedDate, setSelectedDate] = useState(todayStr);
-  const [viewMode, setViewMode] = useState("month");
+  const [viewMode, setViewMode] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches ? "day" : "month");
   const selected = new Date(`${selectedDate}T12:00:00`);
   const [month, setMonth] = useState(new Date(selected.getFullYear(), selected.getMonth(), 1));
   const [sourceFilter, setSourceFilter] = useState("all");
@@ -779,8 +796,8 @@ export default function CalendarPage() {
         <div className="calendar-hero apple-calendar-toolbar">
           <div className="calendar-hero-date">
             <button type="button" className="apple-calendar-today" onClick={() => { setSelectedDate(todayStr); const now = new Date(); setMonth(new Date(now.getFullYear(), now.getMonth(), 1)); }}>Today</button>
-            <span className="calendar-hero-dayname">{monthLabel}</span>
-            <span className="calendar-hero-month">{dayName}, {monthDayLabel} · {dayEventCount} event{dayEventCount === 1 ? "" : "s"}</span>
+            <span className="calendar-hero-dayname">{viewMode === "day" ? monthDayLabel : monthLabel}</span>
+            <span className="calendar-hero-month">{dayName} · {dayEventCount} event{dayEventCount === 1 ? "" : "s"}</span>
           </div>
           <div className="calendar-hero-actions">
             {LOCAL_EVENT_FINDER_ENABLED && <button className="calendar-hero-action calendar-hero-action-settings" onClick={() => {
