@@ -4,19 +4,24 @@ import test from "node:test";
 
 const mealsSource = readFileSync(new URL("../src/pages/Meals.jsx", import.meta.url), "utf8");
 const todaySource = readFileSync(new URL("../src/pages/Today.jsx", import.meta.url), "utf8");
+const recipeSearchSource = readFileSync(new URL("../src/lib/recipeSearch.js", import.meta.url), "utf8");
 
 test("meal roulette and Cook Mode use the Spoonacular edge function only", () => {
   assert.doesNotMatch(mealsSource, /themealdb|TheMealDB/i);
   assert.match(mealsSource, /functions\.invoke\("recipe-search"/);
 });
 
-test("roulette requests include the selected meal type", () => {
+test("meal ideas include the selected meal type and remain cacheable", () => {
   assert.match(mealsSource, /mealType:\s*slot/);
-  assert.match(mealsSource, /offset:\s*Math\.floor\(Math\.random\(\) \* 12\)/);
+  assert.match(mealsSource, /offset:\s*0/);
+  assert.match(mealsSource, /searchRecipes\(/);
+  assert.match(recipeSearchSource, /FRESH_FOR_MS/);
+  assert.match(recipeSearchSource, /pending\.has\(key\)/);
 });
 
-test("roulette re-spins in place and the ingredient search field is removed", () => {
-  assert.match(mealsSource, /onClick=\{\(\) => rouletteForSlot\(rouletteOptions\.date, rouletteOptions\.slot, rouletteOptions\.kitchenOnly, rouletteCuisine\)\}/);
+test("meal ideas shuffle in place without another provider request", () => {
+  assert.match(mealsSource, /Shuffle ideas/);
+  assert.match(mealsSource, /recipes:\s*\[\.\.\.current\.recipes\.slice\(1\), current\.recipes\[0\]\]/);
   assert.doesNotMatch(mealsSource, /Search recipes by ingredient|recipeSearchQuery/);
 });
 
@@ -26,10 +31,11 @@ test("cuisine chips immediately rerun the active roulette with an explicit filte
   assert.match(mealsSource, /query:\s*chosenCuisine \? `\$\{chosenCuisine\} \$\{slot\}` : slot/);
 });
 
-test("cuisine suggestions preserve useful errors and broaden only after a valid empty result", () => {
-  assert.match(mealsSource, /invokeEdgeFunction\("recipe-search"/);
-  assert.match(mealsSource, /if \(!list\.length && chosenCuisine\)/);
-  assert.match(mealsSource, /here are a few from any cuisine instead/);
+test("meal suggestions avoid quota-amplifying broad retries and preserve useful fallbacks", () => {
+  assert.match(mealsSource, /searchRecipes\(/);
+  assert.doesNotMatch(mealsSource, /broadData/);
+  assert.match(mealsSource, /savedFallback/);
+  assert.match(recipeSearchSource, /providerLimited:\s*true/);
   assert.match(mealsSource, /friendlyRecipeSearchError/);
   assert.doesNotMatch(mealsSource, /setRouletteError\(error\?\.message \|\| "Meal roulette/);
 });

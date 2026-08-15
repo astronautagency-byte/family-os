@@ -13,6 +13,7 @@ import { buildCookSearchLadder, recipeSearchProfileForMeal } from "../data/recip
 import { addDays, formatDayLabel, todayISO } from "../lib/dates";
 import { canonicalIngredientName, isIngredientOnList } from "../lib/mealIngredientCache";
 import { invokeEdgeFunction, supabase } from "../lib/supabase";
+import { searchRecipes } from "../lib/recipeSearch";
 import useVoiceCommands, { requestScreenWakeLock } from "../hooks/useVoiceCommands";
 import useKitchenInventory from "../hooks/useKitchenInventory";
 import { SHARED_RECIPE_KEY } from "../lib/sharedContent";
@@ -370,26 +371,16 @@ export default function Meals() {
       const baseRequest = {
         ingredients: kitchenOnly ? kitchenIngredients.join(", ") : "",
         mealType: slot,
-        offset: Math.floor(Math.random() * 12),
+        offset: 0,
         dietaryRestrictions: dietaryPreferences.restrictions || [],
         avoidIngredients: dietaryPreferences.avoidIngredients || "",
       };
-      const data = await invokeEdgeFunction("recipe-search", {
+      const data = await searchRecipes({
         ...baseRequest,
         query: chosenCuisine ? `${chosenCuisine} ${slot}` : slot,
         cuisine: chosenCuisine === "American Comfort" ? "American" : chosenCuisine || "",
       });
-      let list = recipesFromSearch(data);
-      if (!list.length && chosenCuisine) {
-        const broadData = await invokeEdgeFunction("recipe-search", { ...baseRequest, query: slot, cuisine: "" });
-        list = recipesFromSearch(broadData);
-        if (list.length) {
-          setRouletteCuisine(null);
-          setRouletteError(`No ${chosenCuisine} ${slot} ideas matched those preferences, so here are a few from any cuisine instead.`);
-          setRouletteOptions({ date, slot, recipes: list.slice(0, 3), cuisine: "Any cuisine", source: "spoonacular", kitchenOnly });
-          return;
-        }
-      }
+      const list = recipesFromSearch(data);
       if (!list.length) {
         setRouletteError(`No ${slot} ideas matched ${chosenCuisine ? `${chosenCuisine} and ` : ""}those preferences. Try another cuisine or Any cuisine.`);
         setRouletteOptions((current) => ({ ...(current || {}), date, slot, recipes: [], cuisine, source: "spoonacular", kitchenOnly }));
@@ -397,10 +388,18 @@ export default function Meals() {
       }
       setRouletteOptions({ date, slot, recipes: list.slice(0, 3), cuisine, source: "spoonacular", kitchenOnly });
     } catch (error) {
-      setRouletteError(friendlyRecipeSearchError(error));
-      if (!rouletteOptions) {
-        setRouletteOptions({ date, slot, recipes: [], cuisine: chosenCuisine || "Any cuisine", source: "spoonacular", kitchenOnly });
-      }
+      const quotaLimited = /quota|429|402/i.test(error?.message || "");
+      const savedFallback = quotaLimited ? savedRecipes.slice(0, 3) : [];
+      setRouletteError(savedFallback.length
+        ? "The recipe provider is taking a breather, so here are ideas you already saved."
+        : friendlyRecipeSearchError(error));
+      setRouletteOptions((current) => ({
+        ...(current || {}), date, slot,
+        recipes: current?.recipes?.length ? current.recipes : savedFallback,
+        cuisine: chosenCuisine || "Any cuisine",
+        source: savedFallback.length ? "saved" : "spoonacular",
+        kitchenOnly,
+      }));
     } finally {
       setRouletteBusy(false);
     }
@@ -705,8 +704,8 @@ export default function Meals() {
                             <ChefHat size={15} /><span>Cook</span>
                           </button>
                         )}
-                        <button className="meal-slot-tool meal-surprise-action" onClick={() => rouletteForSlot(date, slot)} aria-label={`Surprise me with a random ${SLOT_META[slot].label.toLowerCase()}`} title="Get a fresh meal idea">
-                          <Dices size={15} /><span>Surprise me</span>
+                        <button className="meal-slot-tool meal-surprise-action" onClick={() => rouletteForSlot(date, slot)} aria-label={`Find ${SLOT_META[slot].label.toLowerCase()} meal ideas`} title="Find meal ideas">
+                          <Sparkles size={15} /><span>Find Meal Ideas</span>
                         </button>
                         <button className="meal-slot-tool" onClick={() => { openEditor(date, slot); setShowSavedRecipes(true); }} aria-label={`Choose a saved recipe for ${SLOT_META[slot].label.toLowerCase()}`} title="Saved recipes">
                           <Bookmark size={15} /><span>Saved</span>
@@ -798,8 +797,8 @@ export default function Meals() {
         confirmLabel={meals.length === 1 ? "Clear 1 meal" : `Clear ${meals.length} meals`}
       />
 
-      {/* Roulette picker — Spoonacular results are filtered to the selected meal slot. */}
-      <Modal open={!!rouletteOptions} onClose={() => setRouletteOptions(null)} title={rouletteOptions ? `${SLOT_META[rouletteOptions.slot].label} roulette` : ""}>
+      {/* Meal ideas — Spoonacular results are filtered to the selected meal slot. */}
+      <Modal open={!!rouletteOptions} onClose={() => setRouletteOptions(null)} title={rouletteOptions ? `${SLOT_META[rouletteOptions.slot].label} meal ideas` : ""}>
         <div className="roulette-picker">
           {/* Cuisine chip row — filter the roulette to a specific cuisine type */}
           <div className="roulette-cuisine-chips" role="group" aria-label="Filter roulette by cuisine">
@@ -827,10 +826,10 @@ export default function Meals() {
             <>
               <p className="roulette-picker-intro">
                 {rouletteBusy
-                  ? `Spinning up fresh ${rouletteOptions.slot} ideas…`
+                  ? `Finding ${rouletteOptions.slot} ideas…`
                   : rouletteOptions.kitchenOnly
                     ? `Found ${rouletteOptions.recipes.length} ${rouletteOptions.slot} idea${rouletteOptions.recipes.length === 1 ? "" : "s"} using what is already in your kitchen.`
-                    : `Found ${rouletteOptions.recipes.length} ${rouletteOptions.slot} recipe${rouletteOptions.recipes.length === 1 ? "" : "s"} for ${rouletteOptions.cuisine}. Pick one or spin again.`}
+                    : `Found ${rouletteOptions.recipes.length} ${rouletteOptions.slot} recipe${rouletteOptions.recipes.length === 1 ? "" : "s"} for ${rouletteOptions.cuisine}. Pick the one that sounds good.`}
               </p>
               {rouletteError && <p className="roulette-picker-error" role="alert">{rouletteError}</p>}
               <div className={`roulette-picker-list ${rouletteBusy ? "is-refreshing" : ""}`} aria-busy={rouletteBusy}>
@@ -885,8 +884,8 @@ export default function Meals() {
                 ))}
               </div>
               <div className="roulette-picker-actions">
-                <button className="roulette-picker-spin" disabled={rouletteBusy} onClick={() => rouletteForSlot(rouletteOptions.date, rouletteOptions.slot, rouletteOptions.kitchenOnly, rouletteCuisine)}>
-                  <Dices size={14} /> {rouletteBusy ? "Spinning…" : "Spin again"}
+                <button className="roulette-picker-spin" disabled={rouletteBusy || rouletteOptions.recipes.length < 2} onClick={() => setRouletteOptions((current) => ({ ...current, recipes: [...current.recipes.slice(1), current.recipes[0]] }))}>
+                  <Dices size={14} /> Shuffle ideas
                 </button>
                 <button className="roulette-picker-close" onClick={() => setRouletteOptions(null)}>Cancel</button>
               </div>

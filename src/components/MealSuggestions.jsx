@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Check, ChefHat, ChevronDown, Dices, LoaderCircle, ShoppingBasket, Sparkles, WandSparkles } from "lucide-react";
 import { normaliseDietaryPreferences } from "../data/recipeBox";
 import { useFamily } from "../context/FamilyContext";
-import { invokeEdgeFunction, supabase } from "../lib/supabase";
+import { supabase } from "../lib/supabase";
+import { searchRecipes } from "../lib/recipeSearch";
 import { cookableRecipes } from "../lib/cookableTonight";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 
@@ -96,7 +97,7 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType, dieta
     setError("");
     const handle = setTimeout(async () => {
       try {
-        const data = await invokeEdgeFunction("recipe-search", buildSearchBody({
+        const data = await searchRecipes(buildSearchBody({
           query,
           ingredients: query,
           mealType,
@@ -120,7 +121,7 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType, dieta
       } finally {
         if (!cancelled) setBusy(false);
       }
-    }, 350);
+    }, 700);
     return () => { cancelled = true; clearTimeout(handle); };
   }, [ingredientInput, mealType, dietaryPreferences]);
 
@@ -133,12 +134,12 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType, dieta
     // their style; unpinned rotates through the canonical cuisine order so
     // families see a fresh flavour each spin without ever losing the chain.
     const chosenIndex = pinnedCuisine
-      ? Math.max(ROLETTE_QUERIES.findIndex((entry) => entry.cuisine === pinnedCuisine), 0)
+      ? Math.max(ROULETTE_QUERIES.findIndex((entry) => entry.cuisine === pinnedCuisine), 0)
       : (cuisineCursor + 1) % ROULETTE_QUERIES.length;
     setCuisineCursor(chosenIndex);
     const choice = ROULETTE_QUERIES[chosenIndex];
     try {
-      const data = await invokeEdgeFunction("recipe-search", buildSearchBody({
+      const data = await searchRecipes(buildSearchBody({
         query: choice.cuisine,
         ingredients: choice.ingredients,
         cuisine: choice.cuisine,
