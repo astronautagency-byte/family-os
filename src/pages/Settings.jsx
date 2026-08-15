@@ -60,9 +60,12 @@ function GoogleCalendarCard() {
     googleClientId, setGoogleClientId,
     googleConnected, googleStatus, googleError, googleLastSynced, googleEvents, googleCalendars, selectedGoogleCalendarIds, sharedGoogleCalendarIds, calendarFeeds,
     googleUsesAccount,
-    connectGoogleCalendar, reconnectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, toggleGoogleCalendar, toggleGoogleCalendarSharing,
+    connectGoogleCalendar, reconnectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, toggleGoogleCalendar, toggleGoogleCalendarSharing, renameGoogleCalendar,
   } = useFamily();
   const [showSetup, setShowSetup] = useState(!googleClientId);
+  const [renamingCalendarId, setRenamingCalendarId] = useState(null);
+  const [calendarNameDraft, setCalendarNameDraft] = useState("");
+  const [calendarNameError, setCalendarNameError] = useState("");
   const isBusy = googleStatus === "connecting" || googleStatus === "syncing";
   const connectedCount = selectedGoogleCalendarIds.length + calendarFeeds.length;
 
@@ -100,16 +103,25 @@ function GoogleCalendarCard() {
             {googleCalendars.map((calendar) => {
               const connected = selectedGoogleCalendarIds.includes(calendar.id);
               const shared = sharedGoogleCalendarIds.includes(calendar.id);
+              const displayName = calendar.displayName || calendar.summary;
               return (
                 <li key={calendar.id} className={connected ? "is-connected" : ""}>
                   <button className="google-calendar-main" onClick={() => toggleGoogleCalendar(calendar.id)} disabled={isBusy || (!connected && connectedCount >= 5)} aria-pressed={connected}>
                     <i style={{ backgroundColor: calendar.backgroundColor }} />
                     <span>
-                      <b>{calendar.summary}</b>
+                      <b>{displayName}</b>
                       <small>{calendar.primary ? "Primary calendar" : calendar.accessRole === "reader" ? "Read only" : "Can add events"}</small>
                     </span>
                     <em>{connected ? <CheckCircle2 /> : "Connect"}</em>
                   </button>
+                  <button
+                    className="google-calendar-rename"
+                    type="button"
+                    onClick={() => { setRenamingCalendarId(calendar.id); setCalendarNameDraft(displayName); setCalendarNameError(""); }}
+                    disabled={isBusy}
+                    aria-label={`Rename ${displayName}`}
+                    title="Give this calendar a name in FamOS"
+                  ><Pencil size={14} /><span>Name</span></button>
                   <button
                     className={`google-calendar-visibility ${shared ? "is-shared" : ""}`}
                     onClick={() => toggleGoogleCalendarSharing(calendar.id)}
@@ -120,6 +132,22 @@ function GoogleCalendarCard() {
                     {shared ? <Users size={15} /> : <EyeOff size={15} />}
                     <span>{shared ? "Shared" : "Private"}</span>
                   </button>
+                  {renamingCalendarId === calendar.id && (
+                    <form className="google-calendar-rename-form" onSubmit={async (event) => {
+                      event.preventDefault();
+                      try {
+                        await renameGoogleCalendar(calendar.id, calendarNameDraft);
+                        setRenamingCalendarId(null);
+                        setCalendarNameError("");
+                      } catch (error) {
+                        setCalendarNameError(error?.message || "That calendar name could not be saved.");
+                      }
+                    }}>
+                      <label htmlFor={`calendar-name-${calendar.id}`}>Name shown in FamOS</label>
+                      <div><input id={`calendar-name-${calendar.id}`} autoFocus maxLength={80} value={calendarNameDraft} onChange={(event) => setCalendarNameDraft(event.target.value)} placeholder={calendar.summary} /><button type="submit">Save</button><button type="button" onClick={() => setRenamingCalendarId(null)}>Cancel</button></div>
+                      {calendarNameError && <small role="alert">{calendarNameError}</small>}
+                    </form>
+                  )}
                 </li>
               );
             })}
@@ -147,8 +175,8 @@ function GoogleCalendarCard() {
           <SecondaryButton onClick={disconnectGoogleCalendar} disabled={isBusy}>
             Disconnect
           </SecondaryButton>
-          <PrimaryButton onClick={(googleStatus === "error" || googleStatus === "expired") ? reconnectGoogleCalendar : syncGoogleCalendarNow} disabled={isBusy}>
-            {googleStatus === "syncing" ? "Syncing…" : (googleStatus === "error" || googleStatus === "expired") ? "Reconnect Google" : "Sync now"}
+          <PrimaryButton onClick={googleStatus === "expired" ? reconnectGoogleCalendar : syncGoogleCalendarNow} disabled={isBusy}>
+            {googleStatus === "syncing" ? "Syncing…" : googleStatus === "expired" ? "Reconnect Google" : googleStatus === "error" ? "Try sync again" : "Sync now"}
           </PrimaryButton>
           <SecondaryButton
             className="sm:col-span-2 flex items-center justify-center gap-2"

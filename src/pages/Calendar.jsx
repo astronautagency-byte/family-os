@@ -387,7 +387,7 @@ export default function CalendarPage() {
 
   const sources = useMemo(() => [
     { id: "all", label: "All calendars", color: "var(--color-calendar)" }, { id: "family", label: "Family", color: "var(--color-family)" },
-    ...(googleConnected ? googleCalendars.filter(calendar => selectedGoogleCalendarIds.includes(calendar.id)).map(calendar => ({ id: `google:${calendar.id}`, label: calendar.summary, color: calendar.backgroundColor })) : []),
+    ...(googleConnected ? googleCalendars.filter(calendar => selectedGoogleCalendarIds.includes(calendar.id)).map(calendar => ({ id: `google:${calendar.id}`, label: calendar.displayName || calendar.summary, color: calendar.backgroundColor })) : []),
     ...calendarFeeds.map((feed) => ({ id: `feed:${feed.id}`, label: feed.source === "file" ? feed.name : `${feed.name} · iCal`, color: "var(--color-meals)" })),
   ], [calendarFeeds, googleConnected, googleCalendars, selectedGoogleCalendarIds]);
 
@@ -970,7 +970,7 @@ export default function CalendarPage() {
           <SelectField label="Add to" className="calendar-select-label" value={draft.destination} disabled={Boolean(editingEvent)} onChange={e => setDraft({ ...draft, destination: e.target.value })}>
               <option value="family">FamOS calendar</option>
               {googleConnected && googleCalendars.filter(calendar => selectedGoogleCalendarIds.includes(calendar.id) && ["owner", "writer"].includes(calendar.accessRole)).map(calendar => (
-                <option key={calendar.id} value={`google:${calendar.id}`}>{calendar.summary} · Google</option>
+                <option key={calendar.id} value={`google:${calendar.id}`}>{calendar.displayName || calendar.summary} · Google</option>
               ))}
           </SelectField>
           {calendarFeeds.length > 0 && <p className="calendar-readonly-note">Imported calendars are available in the filters above, but remain read-only.</p>}
@@ -1022,11 +1022,11 @@ export default function CalendarPage() {
                       <li key={calendar.id} className={`calendar-manager-item ${connected ? "is-connected" : ""}`}>
                         <i style={{ backgroundColor: calendar.backgroundColor }} />
                         <div className="calendar-manager-item-info">
-                          <b>{calendar.summary}</b>
+                          <b>{calendar.displayName || calendar.summary}</b>
                           <small>{calendar.primary ? "Primary" : calendar.accessRole === "reader" ? "Read only" : "Can add events"}</small>
                         </div>
                         <div className="calendar-manager-item-actions">
-                          <button className={`calendar-manager-toggle ${connected ? "on" : ""}`} onClick={() => toggleGoogleCalendar(calendar.id)} disabled={googleStatus === "syncing" || googleStatus === "connecting"} aria-pressed={connected} aria-label={`${connected ? "Disconnect" : "Connect"} ${calendar.summary}`}>
+                          <button className={`calendar-manager-toggle ${connected ? "on" : ""}`} onClick={() => toggleGoogleCalendar(calendar.id)} disabled={googleStatus === "syncing" || googleStatus === "connecting"} aria-pressed={connected} aria-label={`${connected ? "Disconnect" : "Connect"} ${calendar.displayName || calendar.summary}`}>
                             <span className="calendar-manager-toggle-track"><span className="calendar-manager-toggle-thumb" /></span>
                             {connected ? "Connected" : "Connect"}
                           </button>

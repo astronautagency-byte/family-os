@@ -125,7 +125,7 @@ function normalizeGoogleEvent(item, calendar = { id: "primary", summary: "Google
     memberIds: [],
     source: "google",
     calendarId: calendar.id,
-    calendarName: calendar.summary,
+    calendarName: calendar.displayName || calendar.summary,
     color: calendar.backgroundColor || "#6759D9",
     calendarAccessRole: calendar.accessRole || "reader",
     htmlLink: item.htmlLink || null,

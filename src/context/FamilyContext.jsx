@@ -1177,6 +1177,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
   const [googleConnected, setGoogleConnected] = useState(savedGoogle?.connected ?? false);
   const [googleEvents, setGoogleEvents] = useState([]);
   const [googleCalendars, setGoogleCalendars] = useState([]);
+  const [googleCalendarAliases, setGoogleCalendarAliases] = useState(savedGoogle?.calendarAliases ?? {});
   const [selectedGoogleCalendarIds, setSelectedGoogleCalendarIds] = useState(savedGoogle?.selectedCalendarIds ?? []);
   const [sharedGoogleCalendarIds, setSharedGoogleCalendarIds] = useState(savedGoogle?.sharedCalendarIds ?? []);
   const [googleStatus, setGoogleStatus] = useState("idle"); // idle | connecting | syncing | error
@@ -1186,11 +1187,11 @@ export function FamilyProvider({ children, tabletMode = false }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem(GOOGLE_STORAGE_KEY, JSON.stringify({ clientId: googleClientId, connected: googleConnected, selectedCalendarIds: selectedGoogleCalendarIds, sharedCalendarIds: sharedGoogleCalendarIds }));
+      localStorage.setItem(GOOGLE_STORAGE_KEY, JSON.stringify({ clientId: googleClientId, connected: googleConnected, selectedCalendarIds: selectedGoogleCalendarIds, sharedCalendarIds: sharedGoogleCalendarIds, calendarAliases: googleCalendarAliases }));
     } catch (e) {
       console.warn("Could not save Google Calendar settings.", e);
     }
-  }, [googleClientId, googleConnected, selectedGoogleCalendarIds, sharedGoogleCalendarIds]);
+  }, [googleClientId, googleConnected, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleCalendarAliases]);
 
   const setGoogleClientId = (id) => setGoogleClientIdState(id);
   const syncSharedGoogleEvents = async (items, sharedIds, availableCalendars = googleCalendars) => {
@@ -1227,17 +1228,24 @@ export function FamilyProvider({ children, tabletMode = false }) {
     setGoogleStatus("syncing");
     setGoogleError(null);
     try {
-      const calendars = await fetchGoogleCalendars(accessToken);
-      setGoogleCalendars(calendars);
+      const fetchedCalendars = await fetchGoogleCalendars(accessToken);
+      let calendars = fetchedCalendars;
       let sharedIds = sharedGoogleCalendarIds;
+      let connectedIds = selectedIdsOverride ?? selectedGoogleCalendarIds;
       if (remote) {
-        const { data: preferences } = await supabase.from("calendar_sharing_preferences").select("external_calendar_id,shared_with_household").eq("user_id", user.id).eq("provider", "google");
+        const { data: preferences } = await supabase.from("calendar_sharing_preferences").select("external_calendar_id,calendar_name,is_connected,shared_with_household").eq("user_id", user.id).eq("provider", "google");
         if (preferences?.length) {
           sharedIds = preferences.filter((preference) => preference.shared_with_household).map((preference) => preference.external_calendar_id);
+          connectedIds = preferences.filter((preference) => preference.is_connected).map((preference) => preference.external_calendar_id);
+          const aliases = Object.fromEntries(preferences.filter((preference) => preference.calendar_name).map((preference) => [preference.external_calendar_id, preference.calendar_name]));
+          setGoogleCalendarAliases(aliases);
+          calendars = fetchedCalendars.map((calendar) => ({ ...calendar, displayName: aliases[calendar.id] || calendar.summary }));
           setSharedGoogleCalendarIds(sharedIds);
+          setSelectedGoogleCalendarIds(connectedIds);
         }
       }
-      const requestedIds = selectedIdsOverride ?? selectedGoogleCalendarIds;
+      setGoogleCalendars(calendars);
+      const requestedIds = connectedIds;
       const initialIds = calendars.filter(calendar=>calendar.selected||calendar.primary).map(calendar=>calendar.id);
       const activeIds = requestedIds.length ? requestedIds : initialIds;
       if (!requestedIds.length) setSelectedGoogleCalendarIds(activeIds);
@@ -1252,7 +1260,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
       // a real "Reconnect" instead of a generic error that just retries the dead
       // token and appears permanently disconnected.
       const message = e?.message || "";
-      const expired = /\b401\b|invalid[_ ]?(?:token|credential|grant)|unauthenticated|login required|invalid authentication/i.test(message);
+      const expired = /reconnect_required|invalid[_ ]?grant/i.test(message);
       setGoogleStatus(expired ? "expired" : "error");
       setGoogleError(expired
         ? "Google access expired. Reconnect to keep your calendar syncing."
@@ -1300,23 +1308,28 @@ export function FamilyProvider({ children, tabletMode = false }) {
     return () => { cancelled = true; };
   }, [remote, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Re-sync when the app regains focus so an expired token surfaces promptly as
-  // a reconnect prompt rather than silently stale data. Skips while already
-  // syncing or expired to avoid hammering a known-dead token.
+  // Re-sync through the durable refresh-token service whenever the app returns,
+  // comes back online, or has stayed open for a while. This must not depend on
+  // Supabase's short-lived provider_token; that was the source of the recurring
+  // one-hour "connected but expired" state.
   useEffect(() => {
-    if (!remote || !googleConnected || !googleProviderToken) return undefined;
+    if (!remote || !googleConnected) return undefined;
     const resync = () => {
       if (document.visibilityState !== "visible") return;
       if (["syncing", "expired"].includes(googleStatusRef.current)) return;
-      syncGoogleEvents(googleProviderToken);
+      syncGoogleCalendarNow();
     };
     window.addEventListener("focus", resync);
+    window.addEventListener("online", resync);
     document.addEventListener("visibilitychange", resync);
+    const interval = window.setInterval(resync, 45 * 60 * 1000);
     return () => {
       window.removeEventListener("focus", resync);
+      window.removeEventListener("online", resync);
       document.removeEventListener("visibilitychange", resync);
+      window.clearInterval(interval);
     };
-  }, [remote, googleConnected, googleProviderToken]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [remote, googleConnected]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Background sync on (re)sign-in: when the user signs in on a new device or
   // an existing session re-opens, the durable refresh token already lives in
@@ -1403,27 +1416,34 @@ export function FamilyProvider({ children, tabletMode = false }) {
   // or the stored refresh token needs re-consent, so callers can fall back.
   const getFreshGoogleToken = async () => {
     if (!remote) return null;
-    try {
-      const result = await invokeEdgeFunction("google-calendar-token", { action: "token" });
-      return result?.access_token || null;
-    } catch {
-      return null;
+    let lastError;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        const result = await invokeEdgeFunction("google-calendar-token", { action: "token" });
+        if (result?.access_token) return result.access_token;
+      } catch (error) {
+        lastError = error;
+        if (/reconnect_required|invalid[_ ]?grant/i.test(error?.message || "")) throw error;
+        if (attempt === 0) await new Promise((resolve) => setTimeout(resolve, 650));
+      }
     }
+    if (lastError) throw lastError;
+    return null;
   };
 
   const syncGoogleCalendarNow = async () => {
     if (!googleConnected) return;
-    const freshToken = await getFreshGoogleToken();
-    if (freshToken) {
-      setGoogleAccessTokenState(freshToken);
-      await syncGoogleEvents(freshToken);
-      return;
-    }
     try {
+      const freshToken = await getFreshGoogleToken();
+      if (freshToken) {
+        setGoogleAccessTokenState(freshToken);
+        await syncGoogleEvents(freshToken);
+        return;
+      }
       const token = googleAccessToken || (await requestGoogleAccessToken(googleClientId, { silent: true })).accessToken;
       setGoogleAccessTokenState(token);
       await syncGoogleEvents(token);
-    } catch {
+    } catch (refreshError) {
       if (configured) {
         // Use the cached Supabase provider_token as a fallback instead of
         // triggering a full OAuth redirect. The token lasts ~1 hour and is
@@ -1436,8 +1456,11 @@ export function FamilyProvider({ children, tabletMode = false }) {
         // No token available at all — surface the expired state so the user
         // can manually reconnect from Settings instead of an automatic OAuth
         // redirect on every sign-in.
-        setGoogleStatus("expired");
-        setGoogleError("Google Calendar access expired. Go to Settings → Integrations to reconnect.");
+        const revoked = /reconnect_required|invalid[_ ]?grant/i.test(refreshError?.message || "");
+        setGoogleStatus(revoked ? "expired" : "error");
+        setGoogleError(revoked
+          ? "Google Calendar permission was revoked. Reconnect once to restore syncing."
+          : "Google Calendar sync is temporarily delayed. FamOS will retry automatically.");
         return;
       }
       // Non-configured (local mode): silent refresh failed — ask for consent.
@@ -1563,6 +1586,25 @@ export function FamilyProvider({ children, tabletMode = false }) {
       const matching = googleEvents.filter((event) => event.calendarId === calendarId);
       await syncSharedGoogleEvents(matching, [calendarId], googleCalendars);
     }
+  };
+  const renameGoogleCalendar = async (calendarId, name) => {
+    const calendar = googleCalendars.find((item) => item.id === calendarId);
+    if (!calendar) return;
+    const alias = String(name || "").trim().slice(0, 80) || calendar.summary;
+    setGoogleCalendarAliases((current) => ({ ...current, [calendarId]: alias }));
+    setGoogleCalendars((current) => current.map((item) => item.id === calendarId ? { ...item, displayName: alias } : item));
+    if (!remote) return;
+    const { error } = await supabase.from("calendar_sharing_preferences").upsert({
+      user_id: user.id,
+      household_id: household.id,
+      provider: "google",
+      external_calendar_id: calendarId,
+      calendar_name: alias,
+      is_connected: selectedGoogleCalendarIds.includes(calendarId),
+      shared_with_household: sharedGoogleCalendarIds.includes(calendarId),
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id,provider,external_calendar_id" });
+    if (error) throw error;
   };
 
   const disconnectGoogleCalendar = () => {
@@ -1714,9 +1756,9 @@ export function FamilyProvider({ children, tabletMode = false }) {
     notificationPermission, requestNotifications, sendTestNotification,
     // Google Calendar
     googleClientId, setGoogleClientId,
-    googleConnected, googleEvents: tabletMode ? [] : googleEvents, googleCalendars: tabletMode ? [] : googleCalendars, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleStatus, googleError, googleLastSynced,
+    googleConnected, googleEvents: tabletMode ? [] : googleEvents, googleCalendars: tabletMode ? [] : googleCalendars, googleCalendarAliases, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleStatus, googleError, googleLastSynced,
     googleUsesAccount: configured,
-    connectGoogleCalendar, reconnectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, addGoogleCalendarEvent, updateGoogleCalendarEvent, deleteGoogleCalendarEvent, toggleGoogleCalendar, toggleGoogleCalendarSharing,
+    connectGoogleCalendar, reconnectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, addGoogleCalendarEvent, updateGoogleCalendarEvent, deleteGoogleCalendarEvent, toggleGoogleCalendar, toggleGoogleCalendarSharing, renameGoogleCalendar,
     // Other calendar providers via published iCal feeds
     calendarFeeds: tabletMode ? [] : calendarFeeds, feedEvents: tabletMode ? [] : feedEvents, calendarFeedStatus, calendarFeedError,
     addCalendarFeed, importCalendarFile, syncCalendarFeed, removeCalendarFeed, toggleCalendarFeedSharing,

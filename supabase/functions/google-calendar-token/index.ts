@@ -77,16 +77,29 @@ Deno.serve(async (request) => {
     const { data: row } = await admin.from("google_oauth_tokens").select("refresh_token").eq("user_id", user.id).maybeSingle();
     if (!row?.refresh_token) return json({ error: "reconnect_required" }, 409);
 
-    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        client_id: clientId,
-        client_secret: clientSecret,
-        refresh_token: row.refresh_token,
-        grant_type: "refresh_token",
-      }),
-    });
+    const refreshController = new AbortController();
+    const refreshTimeout = setTimeout(() => refreshController.abort(), 12_000);
+    let tokenResponse;
+    try {
+      tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: clientId,
+          client_secret: clientSecret,
+          refresh_token: row.refresh_token,
+          grant_type: "refresh_token",
+        }),
+        signal: refreshController.signal,
+      });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return json({ error: "Google token refresh timed out. FamOS will retry automatically." }, 504);
+      }
+      throw error;
+    } finally {
+      clearTimeout(refreshTimeout);
+    }
     const payload = await tokenResponse.json().catch(() => null);
     if (!tokenResponse.ok || !payload?.access_token) {
       // invalid_grant means the refresh token was revoked/expired — the user
