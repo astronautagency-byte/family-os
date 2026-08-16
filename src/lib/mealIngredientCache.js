@@ -71,5 +71,5 @@ export function canonicalIngredientName(value) {
 export function isIngredientOnList(name, groceries) {
   const target = canonicalIngredientName(name);
   if (!target) return false;
-  return groceries.some((grocery) => canonicalIngredientName(grocery?.name) === target);
+  return (Array.isArray(groceries) ? groceries : []).some((grocery) => canonicalIngredientName(grocery?.name) === target);
 }

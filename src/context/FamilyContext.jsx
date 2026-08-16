@@ -37,6 +37,13 @@ function loadState() {
   return null;
 }
 
+// Local state survives app upgrades and may contain an older object-shaped or
+// partially-written collection. Every consumer expects arrays, so normalize at
+// the provider boundary before a page gets a chance to render it.
+const savedList = (value, fallback = []) => Array.isArray(value)
+  ? value.filter((item) => item && typeof item === "object")
+  : fallback;
+
 function loadGoogleState() {
   try {
     const raw = localStorage.getItem(GOOGLE_STORAGE_KEY);
@@ -150,15 +157,15 @@ export function FamilyProvider({ children, tabletMode = false }) {
   const savedGoogle = loadGoogleState();
   const savedCalendarFeeds = loadCalendarFeedState();
 
-  const [members, setMembers] = useState(saved?.members ?? initialFamilyMembers);
-  const [events, setEvents] = useState(saved?.events ?? initialEvents);
-  const [meals, setMeals] = useState(saved?.meals ?? initialMeals);
-  const [groceries, setGroceries] = useState(saved?.groceries ?? initialGroceries);
-  const [tasks, setTasks] = useState(saved?.tasks ?? initialTasks);
-  const [taskLists, setTaskLists] = useState(saved?.taskLists ?? []);
-  const [messages, setMessages] = useState(saved?.messages ?? initialMessages);
-  const [messageReactions, setMessageReactions] = useState(saved?.messageReactions ?? []);
-  const [expenses, setExpenses] = useState(saved?.expenses ?? []);
+  const [members, setMembers] = useState(() => savedList(saved?.members, initialFamilyMembers));
+  const [events, setEvents] = useState(() => savedList(saved?.events, initialEvents));
+  const [meals, setMeals] = useState(() => savedList(saved?.meals, initialMeals));
+  const [groceries, setGroceries] = useState(() => savedList(saved?.groceries, initialGroceries));
+  const [tasks, setTasks] = useState(() => savedList(saved?.tasks, initialTasks));
+  const [taskLists, setTaskLists] = useState(() => savedList(saved?.taskLists));
+  const [messages, setMessages] = useState(() => savedList(saved?.messages, initialMessages));
+  const [messageReactions, setMessageReactions] = useState(() => savedList(saved?.messageReactions));
+  const [expenses, setExpenses] = useState(() => savedList(saved?.expenses));
   const [weeklyBudget, setWeeklyBudgetState] = useState(saved?.weeklyBudget ?? 0);
   const [monthlyBudget, setMonthlyBudgetState] = useState(saved?.monthlyBudget ?? 0);
   const [financePeriod, setFinancePeriodState] = useState(saved?.financePeriod ?? "weekly");

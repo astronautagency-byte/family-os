@@ -256,7 +256,7 @@ export default function Today({ goTo }) {
   }, [expiryAlerts, household?.id, notificationPermission]);
 
   const replaceInventoryItem = async (item) => {
-    if (replacementIds.has(item.id) || groceries.some((grocery) => !grocery.checked && grocery.name.toLowerCase() === item.name.toLowerCase())) return;
+    if (replacementIds.has(item.id) || groceries.some((grocery) => !grocery?.checked && String(grocery?.name || "").toLowerCase() === String(item?.name || "").toLowerCase())) return;
     await addGrocery({ name: item.name, quantity: 1, unit: item.unit || "" });
     setReplacementIds((current) => new Set(current).add(item.id));
   };
@@ -354,7 +354,7 @@ export default function Today({ goTo }) {
     const result = {};
     for (const [mealId, names] of Object.entries(mealIngredientsCache)) {
       const namesList = Array.isArray(names) ? names : [];
-      const missing = namesList.filter((name) => !groceries.some((grocery) => grocery.name.toLowerCase() === name));
+      const missing = namesList.filter((name) => !groceries.some((grocery) => String(grocery?.name || "").toLowerCase() === name));
       result[mealId] = { missing: missing.length, total: namesList.length };
     }
     return result;
@@ -594,7 +594,7 @@ export default function Today({ goTo }) {
             </div>
             {expiryAlerts.length > 0 ? <div className="grid gap-2">
               {expiryAlerts.slice(0, 4).map((item) => {
-                const alreadyListed = replacementIds.has(item.id) || groceries.some((grocery) => !grocery.checked && grocery.name.toLowerCase() === item.name.toLowerCase());
+                const alreadyListed = replacementIds.has(item.id) || groceries.some((grocery) => !grocery?.checked && String(grocery?.name || "").toLowerCase() === String(item?.name || "").toLowerCase());
                 return <article key={item.id} className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
                   <div className="min-w-0 flex-1"><strong className="block truncate text-[13px] text-[var(--color-ink)]">{item.name}</strong><span className={`text-[11px] font-semibold ${item.expiry.state === "expired" ? "text-[var(--color-warn)]" : "text-[var(--color-shopping-strong)]"}`}>{item.expiry.label} · {item.location}</span></div>
                   <button type="button" disabled={alreadyListed} onClick={() => replaceInventoryItem(item)} className="shrink-0 rounded-lg bg-[var(--color-accent-soft)] px-2.5 py-2 text-[11px] font-semibold text-[var(--color-accent-strong)] disabled:opacity-60">{alreadyListed ? "On list" : "Replace"}</button>

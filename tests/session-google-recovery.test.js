@@ -45,3 +45,14 @@ test("page failures stay inside the signed-in shell and record a diagnostic fing
   assert.match(app, /resetKey=\{`famai-\$\{famAiOpen\}`\}/);
   assert.match(vite, /cleanupOutdatedCaches:\s*true/);
 });
+
+test("legacy household caches cannot crash Today or Meals", () => {
+  const family = read("src/context/FamilyContext.jsx");
+  const today = read("src/pages/Today.jsx");
+  const ingredients = read("src/lib/mealIngredientCache.js");
+  assert.match(family, /const savedList =/);
+  assert.match(family, /savedList\(saved\?\.groceries, initialGroceries\)/);
+  assert.match(family, /savedList\(saved\?\.meals, initialMeals\)/);
+  assert.match(today, /String\(grocery\?\.name \|\| ""\)\.toLowerCase\(\)/);
+  assert.match(ingredients, /Array\.isArray\(groceries\)/);
+});
