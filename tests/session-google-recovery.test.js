@@ -23,7 +23,11 @@ test("expired Google Calendar connections use the forced OAuth reconnect path", 
 test("the app self-recovers once from stale PWA assets", () => {
   const boundary = read("src/components/ErrorBoundary.jsx");
   assert.match(boundary, /failed to fetch dynamically imported module/i);
+  assert.match(boundary, /failed to load module script/i);
+  assert.match(boundary, /load failed/i);
   assert.match(boundary, /family-os:asset-recovery/);
+  assert.match(boundary, /window\.caches\.delete/);
+  assert.match(boundary, /30_000/);
   assert.match(boundary, /window\.location\.reload\(\)/);
 });
 
@@ -35,5 +39,6 @@ test("page failures stay inside the signed-in shell and record a diagnostic fing
   assert.match(boundary, /resetKey/);
   assert.match(app, /<ErrorBoundary resetKey=\{tab\}/);
   assert.match(app, /Return to Today/);
+  assert.match(app, /resetKey=\{`famai-\$\{famAiOpen\}`\}/);
   assert.match(vite, /cleanupOutdatedCaches:\s*true/);
 });

@@ -32,12 +32,13 @@ export default class ErrorBoundary extends Component {
     } catch { /* diagnostics must never cause a second crash */ }
 
     const message = String(error?.message || error || "");
-    const isStaleAsset = /loading chunk|failed to fetch dynamically imported module|importing a module script failed/i.test(message);
+    const isStaleAsset = /chunkloaderror|loading (css )?chunk|failed to fetch dynamically imported module|dynamically imported module|importing a module script failed|failed to load module script|unable to preload css|load failed/i.test(message);
     if (isStaleAsset) {
       const recoveryKey = "family-os:asset-recovery";
-      if (sessionStorage.getItem(recoveryKey) !== window.location.pathname) {
-        sessionStorage.setItem(recoveryKey, window.location.pathname);
-        window.location.reload();
+      const previousRecovery = Number(sessionStorage.getItem(recoveryKey) || 0);
+      if (!previousRecovery || Date.now() - previousRecovery > 30_000) {
+        sessionStorage.setItem(recoveryKey, String(Date.now()));
+        this.clearStaleAssetsAndReload();
       }
       return;
     }
@@ -71,12 +72,22 @@ export default class ErrorBoundary extends Component {
     window.location.reload();
   };
 
-  handleClearSW = async () => {
-    if ("serviceWorker" in navigator) {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(registrations.map((r) => r.unregister()));
-    }
+  clearStaleAssetsAndReload = async () => {
+    try {
+      if ("serviceWorker" in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((registration) => registration.unregister()));
+      }
+      if ("caches" in window) {
+        const keys = await window.caches.keys();
+        await Promise.all(keys.filter((key) => /workbox|famos|family-os|precache/i.test(key)).map((key) => window.caches.delete(key)));
+      }
+    } catch { /* a reload remains safe if cache cleanup is unavailable */ }
     window.location.reload();
+  };
+
+  handleClearSW = async () => {
+    await this.clearStaleAssetsAndReload();
   };
 
   render() {

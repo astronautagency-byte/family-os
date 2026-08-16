@@ -296,9 +296,11 @@ export default function App() {
         {/* Fam AI is now a global overlay controlled by the AppTopBar Sparkles
             button. Passing `open` / `onClose` keeps it controlled — closing
             from inside the sheet simply clears the openFamAI flag. */}
-        <Suspense fallback={null}>
-          <FamAI open={famAiOpen} onClose={() => setFamAiOpen(false)} />
-        </Suspense>
+        <ErrorBoundary resetKey={`famai-${famAiOpen}`} fallback={() => null}>
+          <Suspense fallback={null}>
+            <FamAI open={famAiOpen} onClose={() => setFamAiOpen(false)} />
+          </Suspense>
+        </ErrorBoundary>
         <InstallPrompt />
       </div>
     </FamilyProvider>
