@@ -5,9 +5,12 @@ import test from "node:test";
 const tasksPage = readFileSync(new URL("../src/pages/Tasks.jsx", import.meta.url), "utf8");
 const familyContext = readFileSync(new URL("../src/context/FamilyContext.jsx", import.meta.url), "utf8");
 
-test("task assignment remains saveable while custom-list schema is pending", () => {
-  assert.match(familyContext, /task_type\|list_id\|schema cache/);
+test("custom task-list selection is never silently discarded", () => {
+  assert.match(familyContext, /task_type\|notes\|schema cache/);
+  assert.match(familyContext, /&& !task\.listId/);
+  assert.match(familyContext, /&& patch\.listId === undefined/);
   assert.match(familyContext, /compatiblePatch/);
+  assert.match(familyContext, /notes: task\.notes/);
   assert.match(familyContext, /assignee_id/);
 });
 

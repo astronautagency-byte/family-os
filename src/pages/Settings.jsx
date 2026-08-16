@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, Bell, Bot, Bug, CalendarDays, Check, CheckCircle2, ChevronRight, Clipboard, Eye, EyeOff, ExternalLink, ImagePlus, Info, Lightbulb, Link2, Mail, MapPin, Megaphone, Palette, Pencil, Phone, Plus, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Ticket, Trash2, Upload, Users, Utensils } from "lucide-react";
+import { AlertCircle, Bell, Bug, CalendarDays, Check, CheckCircle2, ChevronRight, Clipboard, Eye, EyeOff, ExternalLink, ImagePlus, Info, Lightbulb, Link2, Mail, MapPin, Megaphone, Palette, Pencil, Phone, Plus, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Ticket, Trash2, Upload, Users, Utensils } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Alert, Avatar, Card, Modal, PrimaryButton, SecondaryButton, TextAreaField, TextField } from "../components/ui";
@@ -11,6 +11,7 @@ import { passwordError } from "../utils/passwordStrength";
 import { FAMILY_COLORS } from "../data/mockData";
 import { AVATAR_PRESETS } from "../data/avatarLibrary";
 import { PRICING_PLAN, formatMoney } from "../data/pricingPlan";
+import { PREMIUM_FEATURES } from "../data/billingCatalog";
 import { supabase } from "../lib/supabase";
 import AddressAutocomplete from "../components/AddressAutocomplete";
 import { formatPhoneInput, isValidPhoneNumber, normalizePhoneE164 } from "../utils/phone";
@@ -691,7 +692,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
   const extraMembers = Math.max(0, members.length - includedMembers);
   const estimatedMonthlyPlan = PRICING_PLAN.basePlan.price.monthly + extraMembers * PRICING_PLAN.basePlan.additionalMemberPrice.monthly;
 
-  // ── Subscription status (Stripe-backed) ──
+  // ── Subscription status (Chargebee-backed) ──
   // Pulls the household's real subscription via get_my_subscription so the
   // Plan & billing card can show a status badge, payment method, and
   // next-charge date instead of the static PRICING_PLAN values.
@@ -724,13 +725,27 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
     setBillingError("");
     setBillingBusy(true);
     try {
-      const { data, error } = await supabase.functions.invoke("billing-portal");
+      const { data, error } = await supabase.functions.invoke("chargebee-portal");
       if (error) throw error;
       const url = data?.url;
       if (!url) throw new Error("Couldn't open the billing portal. Please try again in a moment.");
       window.location.assign(url);
     } catch (err) {
       setBillingError(err?.message || "Could not open the billing portal. Please try again.");
+      setBillingBusy(false);
+    }
+  };
+
+  const addPaidFeature = async (feature) => {
+    setBillingError("");
+    setBillingBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("chargebee-checkout", { body: { feature } });
+      if (error) throw error;
+      if (!data?.url) throw new Error("Couldn't open secure checkout.");
+      window.location.assign(data.url);
+    } catch (err) {
+      setBillingError(err?.message || "Could not open secure checkout.");
       setBillingBusy(false);
     }
   };
@@ -933,9 +948,9 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
                 <Users size={18} color="var(--color-accent)" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="font-medium text-[14.5px] text-[var(--color-ink)]">FamOS Core plan</p>
+                <p className="font-medium text-[14.5px] text-[var(--color-ink)]">FamOS Free + optional extras</p>
                 <p className="text-[12.5px] text-[var(--color-ink-soft)] mt-0.5">
-                  {formatMoney(PRICING_PLAN.basePlan.price.monthly)}/month or {formatMoney(PRICING_PLAN.basePlan.price.yearly)}/year · {includedMembers} members included
+                  Calendar, Tasks, Shopping, Chat and Kitchen Watch are free · premium features are $4.99/month each
                 </p>
               </div>
               <div className="text-right">
@@ -949,17 +964,15 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
                 <strong className="text-[var(--color-ink)]">{members.length}</strong>
               </div>
               <div className="flex items-center justify-between gap-3 rounded-xl bg-[var(--color-surface-sunken)] px-3 py-2">
-                <span>Additional members</span>
-                <strong className="text-[var(--color-ink)]">{extraMembers} × {formatMoney(PRICING_PLAN.basePlan.additionalMemberPrice.monthly)}/mo</strong>
+                <span className="inline-flex items-center gap-1.5"><Sparkles size={14} /> Premium feature</span>
+                <strong className="text-[var(--color-ink)]">{formatMoney(4.99)}/month each</strong>
               </div>
-              <div className="flex items-center justify-between gap-3 rounded-xl bg-[var(--color-surface-sunken)] px-3 py-2">
-                <span className="inline-flex items-center gap-1.5"><Sparkles size={14} /> Smart Family Bundle</span>
-                <strong className="text-[var(--color-ink)]">{formatMoney(9.99)}/mo</strong>
-              </div>
-              <div className="flex items-center justify-between gap-3 rounded-xl bg-[var(--color-surface-sunken)] px-3 py-2">
-                <span className="inline-flex items-center gap-1.5"><Bot size={14} /> Fam AI</span>
-                <strong className="text-[var(--color-ink)]">{formatMoney(5.99)}/mo · 100 queries</strong>
-              </div>
+              {PREMIUM_FEATURES.map((feature) => (
+                <button key={feature.id} type="button" className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 text-left" onClick={() => addPaidFeature(feature.id)} disabled={billingBusy || !isMasterOwner}>
+                  <span><strong className="block text-[var(--color-ink)]">{feature.name}</strong><small className="mt-0.5 block text-[var(--color-ink-soft)]">{feature.description}</small></span>
+                  <span className="shrink-0 font-bold text-[var(--color-accent)]">Add · {formatMoney(feature.price)}/mo</span>
+                </button>
+              ))}
               {subStatusBadge && (
                 <div className={`flex items-center gap-2 rounded-xl px-3 py-2 ${subStatusBadge.tone === "good" ? "bg-[var(--color-good-soft)] text-[var(--color-good)]" : subStatusBadge.tone === "warn" ? "bg-[var(--color-warn-soft,#fde7d6)] text-[var(--color-warn)]" : "bg-[var(--color-surface-sunken)] text-[var(--color-ink-soft)]"}`}>
                   <ShieldCheck size={14} className="mt-0.5 shrink-0" />
@@ -975,7 +988,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
               {!subStatusBadge && (
                 <div className="flex items-start gap-2 rounded-xl bg-[var(--color-good-soft)] px-3 py-2 text-[var(--color-good)]">
                   <ShieldCheck size={14} className="mt-0.5 shrink-0" />
-                  <span>{PRICING_PLAN.trial.days}-day trial includes everything — Core, Smart Family Bundle, and Fam AI. Card required.</span>
+                  <span>Your free tools remain available even without a paid extra.</span>
                 </div>
               )}
             </div>

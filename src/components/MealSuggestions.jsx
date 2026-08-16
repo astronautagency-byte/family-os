@@ -230,7 +230,7 @@ export default function MealSuggestions({ onPick, mealType: fixedMealType, dieta
           <strong>{ROULETTE_QUERIES[(cuisineCursor + 1) % ROULETTE_QUERIES.length]?.cuisine || "Random"}</strong>
         </button>
         <ul className="meal-roulette-cuisine-chips">
-          {ROLETTE_QUERIES.map((entry) => (
+          {ROULETTE_QUERIES.map((entry) => (
             <li key={entry.cuisine}>
               <button
                 type="button"

@@ -161,6 +161,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
   const [events, setEvents] = useState(() => savedList(saved?.events, initialEvents));
   const [meals, setMeals] = useState(() => savedList(saved?.meals, initialMeals));
   const [groceries, setGroceries] = useState(() => savedList(saved?.groceries, initialGroceries));
+  const [groceryLists, setGroceryLists] = useState(() => savedList(saved?.groceryLists));
   const [tasks, setTasks] = useState(() => savedList(saved?.tasks, initialTasks));
   const [taskLists, setTaskLists] = useState(() => savedList(saved?.taskLists));
   const [messages, setMessages] = useState(() => savedList(saved?.messages, initialMessages));
@@ -290,13 +291,13 @@ export function FamilyProvider({ children, tabletMode = false }) {
 
   useEffect(() => {
     if (remote) return;
-    const payload = JSON.stringify({ members, events, meals, groceries, tasks, taskLists, messages, messageReactions, expenses, weeklyBudget, monthlyBudget, financePeriod });
+    const payload = JSON.stringify({ members, events, meals, groceries, groceryLists, tasks, taskLists, messages, messageReactions, expenses, weeklyBudget, monthlyBudget, financePeriod });
     try {
       localStorage.setItem(STORAGE_KEY, payload);
     } catch (e) {
       console.warn("Could not save Family OS data locally.", e);
     }
-  }, [members, events, meals, groceries, tasks, taskLists, messages, messageReactions, expenses, weeklyBudget, monthlyBudget, financePeriod, remote]);
+  }, [members, events, meals, groceries, groceryLists, tasks, taskLists, messages, messageReactions, expenses, weeklyBudget, monthlyBudget, financePeriod, remote]);
 
   const mapProfile = (row, membershipRole) => ({
     id: row.id,
@@ -307,8 +308,9 @@ export function FamilyProvider({ children, tabletMode = false }) {
     initials: row.initials,
     avatarUrl: loadAvatarOverrides()[row.id] || row.avatar_url || (row.id === user?.id ? user.user_metadata?.avatar_url || user.user_metadata?.picture || "" : ""),
   });
-  const mapTask = (row) => ({ id: row.id, title: row.title, assigneeId: row.assignee_id, due: row.due_date, done: row.is_done, recurring: row.recurrence, taskType: row.task_type || "home", listId: row.list_id || null, createdBy: row.created_by || null });
+  const mapTask = (row) => ({ id: row.id, title: row.title, notes: row.notes || "", assigneeId: row.assignee_id, due: row.due_date, done: row.is_done, recurring: row.recurrence, taskType: row.task_type || "home", listId: row.list_id || null, createdBy: row.created_by || null });
   const mapTaskList = (row) => ({ id: row.id, name: row.name, color: row.color || "#6b5ce7", createdBy: row.created_by || null });
+  const mapGroceryList = (row) => ({ id: row.id, name: row.name, color: row.color || "#3b8c75", createdBy: row.created_by || null });
   // image_url = OpenFoodFacts product catalogue image (read-only metadata
   // from a barcode scan). photo_url = the household member's own upload,
   // stored in the grocery-photos bucket and synced realtime. Two fields
@@ -329,6 +331,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
     photoUrl: row.photo_url || "",
     photoUploadedBy: row.photo_uploaded_by || null,
     photoUploadedAt: row.photo_uploaded_at || null,
+    listId: row.list_id || null,
   });
   const mapEvent = (row) => ({ id: row.id, title: row.title, start: row.starts_at, end: row.ends_at, location: row.location, source: row.source === "familyos" ? "local" : row.source, externalId: row.external_id || null, googleEventId: row.source === "google" ? row.external_id || null : null, calendarId: row.external_calendar_id || null, memberIds: (row.event_participants || []).map((p) => p.user_id) });
   const mapMeal = (row) => ({ id: row.id, date: row.meal_date, slot: row.slot, title: row.title, notes: row.notes, cookIds: row.cook_ids || [], createdBy: row.created_by || null });
@@ -372,6 +375,8 @@ export function FamilyProvider({ children, tabletMode = false }) {
       } else if (isMissingTaskListsSchema(taskListsResult.error)) {
         setTaskLists(readFallbackTaskLists(household.id));
       }
+      const groceryListsResult = await supabase.from("grocery_lists").select("*").eq("household_id", household.id).order("created_at");
+      if (!groceryListsResult.error) setGroceryLists(groceryListsResult.data.map(mapGroceryList));
       const [expensesResult, financeResult] = await Promise.all([
         supabase.from("expenses").select("*").eq("household_id", household.id).order("spent_on", { ascending: false }),
         supabase.from("household_finance_settings").select("weekly_budget, monthly_budget, tracking_period").eq("household_id", household.id).maybeSingle(),
@@ -616,10 +621,10 @@ export function FamilyProvider({ children, tabletMode = false }) {
     // Optimistic: show the task instantly in all views.
     setTasks((prev) => [...prev, { id: tempId, done: false, taskType: "home", ...task }]);
     if (remote) {
-      const row = { household_id: household.id, title: task.title, assignee_id: task.assigneeId || null, due_date: task.due || null, recurrence: task.recurring || "", task_type: task.taskType || "home", list_id: task.listId || null, created_by: user.id };
+      const row = { household_id: household.id, title: task.title, notes: task.notes || "", assignee_id: task.assigneeId || null, due_date: task.due || null, recurrence: task.recurring || "", task_type: task.taskType || "home", list_id: task.listId || null, created_by: user.id };
       let result = await supabase.from("tasks").insert(row).select().single();
-      if (result.error && /task_type|list_id|schema cache/i.test(result.error.message || "")) {
-        const { task_type: _taskType, list_id: _listId, ...compatibleRow } = row;
+      if (result.error && /task_type|notes|schema cache/i.test(result.error.message || "") && !task.listId) {
+        const { task_type: _taskType, notes: _notes, ...compatibleRow } = row;
         result = await supabase.from("tasks").insert(compatibleRow).select().single();
       }
       if (result.error) {
@@ -636,6 +641,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
   const updateTask = async (id, patch) => {
     const dbPatch = {};
     if (patch.title !== undefined) dbPatch.title = patch.title;
+    if (patch.notes !== undefined) dbPatch.notes = patch.notes;
     if (patch.assigneeId !== undefined) dbPatch.assignee_id = patch.assigneeId;
     if (patch.due !== undefined) dbPatch.due_date = patch.due;
     if (patch.done !== undefined) dbPatch.is_done = patch.done;
@@ -647,8 +653,8 @@ export function FamilyProvider({ children, tabletMode = false }) {
       // Production may briefly trail the client while the custom-list schema
       // migration is queued. Do not let an unavailable list_id/task_type field
       // block ordinary edits such as assigning a task to another member.
-      if (result.error && /task_type|list_id|schema cache/i.test(result.error.message || "")) {
-        const { task_type: _taskType, list_id: _listId, ...compatiblePatch } = dbPatch;
+      if (result.error && /task_type|notes|schema cache/i.test(result.error.message || "") && patch.listId === undefined) {
+        const { task_type: _taskType, notes: _notes, ...compatiblePatch } = dbPatch;
         result = await supabase.from("tasks").update(compatiblePatch).eq("id", id).select().single();
       }
       if (result.error) {
@@ -698,6 +704,20 @@ export function FamilyProvider({ children, tabletMode = false }) {
   };
 
   // ---- Groceries ----
+  const addGroceryList = async ({ name, color = "#3b8c75" }) => {
+    const cleanName = String(name || "").trim();
+    if (!cleanName) return null;
+    if (!remote) {
+      const local = { id: makeId("grocerylist"), name: cleanName, color };
+      setGroceryLists((current) => [...current, local]);
+      return local;
+    }
+    const { data, error } = await supabase.from("grocery_lists").insert({ household_id: household.id, name: cleanName, color, created_by: user.id }).select().single();
+    if (error) { setDataError(error.message); throw error; }
+    const savedList = mapGroceryList(data);
+    setGroceryLists((current) => [...current, savedList]);
+    return savedList;
+  };
   const toggleGrocery = async (id) => {
     // Optimistic: flip local state immediately.
     setGroceries((prev) => prev.map((g) => (g.id === id ? { ...g, checked: !g.checked } : g)));
@@ -729,13 +749,14 @@ export function FamilyProvider({ children, tabletMode = false }) {
         photo_url: item.photoUrl || "",
         photo_uploaded_by: item.photoUrl ? user.id : null,
         photo_uploaded_at: item.photoUrl ? new Date().toISOString() : null,
+        list_id: item.listId || null,
       };
       let { data, error } = await supabase.from("grocery_items").insert(row).select().single();
       // Production households can briefly be on the base grocery schema
       // while the optional barcode/photo migrations are still rolling out.
       // A plain item must still save in that window: retry using only the
       // original required columns when PostgREST rejects a newer column.
-      if (error && /schema cache|column|barcode|brand|price|image_url|photo_/i.test(error.message || "")) {
+      if (error && /schema cache|column|barcode|brand|price|image_url|photo_/i.test(error.message || "") && !item.listId) {
         const baseRow = {
           household_id: row.household_id,
           name: row.name,
@@ -768,6 +789,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
       if (patch.quantity !== undefined) dbPatch.quantity = patch.quantity;
       if (patch.unit !== undefined) dbPatch.unit = patch.unit;
       if (patch.checked !== undefined) dbPatch.is_checked = patch.checked;
+      if (patch.listId !== undefined) dbPatch.list_id = patch.listId || null;
       // Photo fields are written together: when photoUrl is set we stamp
       // the uploader + timestamp, when it's cleared (null/empty) we wipe
       // both. previousPhotoUrl is optional — when the caller passes the
@@ -826,14 +848,17 @@ export function FamilyProvider({ children, tabletMode = false }) {
       } catch { /* realtime will re-sync */ }
     }
   };
-  const clearCheckedGroceries = async () => {
+  const clearCheckedGroceries = async (listId = null) => {
     const snapshot = groceries;
-    const orphanPaths = collectPhotoPaths((g) => g.checked);
+    const matchesList = (g) => !listId || g.listId === listId;
+    const orphanPaths = collectPhotoPaths((g) => g.checked && matchesList(g));
     // Optimistic: remove checked items instantly.
-    setGroceries((prev) => prev.filter((g) => !g.checked));
+    setGroceries((prev) => prev.filter((g) => !(g.checked && matchesList(g))));
     if (remote) {
       try {
-        const { error } = await supabase.from("grocery_items").delete().eq("household_id", household.id).eq("is_checked", true);
+        let query = supabase.from("grocery_items").delete().eq("household_id", household.id).eq("is_checked", true);
+        if (listId) query = query.eq("list_id", listId);
+        const { error } = await query;
         if (error) throw error;
         if (orphanPaths.length) {
           supabase.storage.from("grocery-photos").remove(orphanPaths).then(({ error }) => {
@@ -843,14 +868,17 @@ export function FamilyProvider({ children, tabletMode = false }) {
       } catch (error) { setGroceries(snapshot); setDataError(error.message); throw error; }
     }
   };
-  const clearGroceries = async () => {
+  const clearGroceries = async (listId = null) => {
     const snapshot = groceries;
-    const orphanPaths = collectPhotoPaths(() => true);
+    const matchesList = (g) => !listId || g.listId === listId;
+    const orphanPaths = collectPhotoPaths(matchesList);
     // Optimistic: clear instantly.
-    setGroceries([]);
+    setGroceries((current) => listId ? current.filter((item) => item.listId !== listId) : []);
     if (remote) {
       try {
-        const { error } = await supabase.from("grocery_items").delete().eq("household_id", household.id);
+        let query = supabase.from("grocery_items").delete().eq("household_id", household.id);
+        if (listId) query = query.eq("list_id", listId);
+        const { error } = await query;
         if (error) throw error;
         if (orphanPaths.length) {
           supabase.storage.from("grocery-photos").remove(orphanPaths).then(({ error }) => {
@@ -1524,7 +1552,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
         const revoked = /reconnect_required|invalid[_ ]?grant/i.test(refreshError?.message || "");
         setGoogleStatus(revoked ? "expired" : "error");
         setGoogleError(revoked
-          ? "Google Calendar permission was revoked. Reconnect once to restore syncing."
+          ? "Google Calendar needs renewed permission. Reconnect once to restore syncing."
           : "Google Calendar sync is temporarily delayed. FamOS will retry automatically.");
         return;
       }
@@ -1811,7 +1839,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
     members, memberById, addMember, updateMember, removeMember,
     events, addEvent, updateEvent, removeEvent, clearEvents,
     meals, setMealForSlot, removeMeal, clearMeals,
-    groceries, addGrocery, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries, clearGroceries,
+    groceries, groceryLists, addGroceryList, addGrocery, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries, clearGroceries,
     tasks: visibleTasks, taskLists, addTaskList, addTask, toggleTask, updateTask, removeTask, clearTasks,
     messages: visibleMessages, sendMessage, importMessages, clearFamilyChat, clearMyDirectMessages,
     unreadMessageCount, markChatRead, broadcasts, broadcastMessage, clearBroadcast, reactionsByMessage, reactToBroadcast, currentUserId,

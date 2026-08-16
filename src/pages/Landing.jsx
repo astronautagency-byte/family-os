@@ -106,28 +106,25 @@ const comparisonRows = [
   { label: "Try before committing", famos: `${PRICING_PLAN.trial.days}-day free trial`, display: "Offers and trials vary", organizer: "Free tiers or trials vary" },
 ];
 
-const pricingAddOns = [
-  { id: "smart_bundle", label: "Smart Family Bundle", copy: `Product scanner · kitchen inventory · extra calendar connections. Save vs. adding separately.`, price: 9.99, icon: Sparkles },
-  { id: "fam_ai", label: "Fam AI", copy: `100 smart requests a month. Included during the ${PRICING_PLAN.trial.days}-day trial.`, price: 5.99, icon: Bot },
-];
+const pricingIcons = { meals: Utensils, fam_ai: Bot, family: Users };
+const pricingAddOns = PRICING_PLAN.addOns.map((plan) => ({ id: plan.id, label: plan.name, copy: plan.tagline, price: plan.price.monthly, icon: pricingIcons[plan.id] || Sparkles }));
 
 function PricingSection({ signedIn }) {
   const [billing, setBilling] = useState("monthly");
   const [members, setMembers] = useState(PRICING_PLAN.basePlan.membersIncluded);
-  const [addOns, setAddOns] = useState({ smart_bundle: false, fam_ai: PRICING_PLAN.trial.famAiPretoggled });
+  const [addOns, setAddOns] = useState(Object.fromEntries(pricingAddOns.map(({ id }) => [id, false])));
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
   const extraMembers = Math.max(0, members - PRICING_PLAN.basePlan.membersIncluded);
   const monthlyBase = PRICING_PLAN.basePlan.price.monthly;
   const annualBase = PRICING_PLAN.basePlan.price.yearly;
-  const annualDiscount = annualBase / (monthlyBase * 12);
+  const annualDiscount = 1;
   const memberCost = extraMembers * PRICING_PLAN.basePlan.additionalMemberPrice.monthly;
   const addOnCost = pricingAddOns.reduce((sum, item) => sum + (addOns[item.id] ? item.price : 0), 0);
   const monthlySubtotal = monthlyBase + memberCost + addOnCost;
   const annualMemberCost = memberCost * 12 * annualDiscount;
   const annualAddOnCost = addOnCost * 12;
   const annualTotal = annualBase + annualMemberCost + annualAddOnCost;
-  const annualMonthlyEquivalent = annualTotal / 12;
   const displayedTotal = billing === "annual" ? annualTotal : monthlySubtotal;
   const savings = monthlySubtotal * 12 - annualTotal;
   const annualizeMonthly = (value) => value * 12;
@@ -146,13 +143,14 @@ function PricingSection({ signedIn }) {
       return;
     }
     setCheckoutBusy(true);
-    const addons = [
-      ...(addOns.smart_bundle ? ["smart_bundle"] : []),
-      ...(addOns.fam_ai ? ["fam_ai"] : []),
-    ];
+    const addons = pricingAddOns.filter(({ id }) => addOns[id]).map(({ id }) => id);
+    if (!addons.length) {
+      window.location.assign(signedIn ? "/#today" : "/sign-up");
+      return;
+    }
     try {
-      const { data, error } = await supabase.functions.invoke("create-checkout-session", {
-        body: { billing, memberCount: members, addons },
+      const { data, error } = await supabase.functions.invoke("chargebee-checkout", {
+        body: { features: addons },
       });
       if (error) throw error;
       const url = data?.url;
@@ -165,7 +163,7 @@ function PricingSection({ signedIn }) {
   };
 
   return <section className="landing-pricing" id="pricing">
-    <SectionHead eyebrow="Simple pricing" note={`Try FamOS free for ${PRICING_PLAN.trial.days} days. ${PRICING_PLAN.basePlan.membersIncluded} people are included in Core, then each extra member is ${formatMoney(PRICING_PLAN.basePlan.additionalMemberPrice.monthly)}/month. Add-ons stack on top.`}>Pick what fits.<br/>Add more as you grow.</SectionHead>
+    <SectionHead eyebrow="Simple pricing" note="Calendar, Tasks, Shopping Lists, Chat and Kitchen Watch are free for the whole household. Add only the extras your family wants for $4.99 CAD per month each.">Start free.<br/>Add what helps.</SectionHead>
     <motion.div className="pricing-shell" {...revealBlock}>
       <div className="pricing-main">
         <div className="pricing-toggle" role="tablist" aria-label="Billing frequency">
@@ -177,9 +175,9 @@ function PricingSection({ signedIn }) {
             <span><Users/></span>
             <div><p>Your plan</p><motion.h3 key={pulseKey} initial={{ scale: 0.94, opacity: 0.72 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.38, ease: BACK }}><span>{formatMoney(displayedTotal)}</span><small>{billing === "annual" ? "per year" : "per month"}</small></motion.h3></div>
           </div>
-          <p className="pricing-note">{billing === "annual" ? `${formatMoney(annualBase)} billed yearly for Core, plus add-ons monthly. ${PRICING_PLAN.trial.days}-day free trial first.` : `Billed monthly after your ${PRICING_PLAN.trial.days}-day free trial. Card required.`}</p>
+          <p className="pricing-note">No card is required for the free essentials. Paid features are billed monthly through Chargebee and can be changed or cancelled independently.</p>
           <div className="family-size-control">
-            <div><strong>People in your home</strong><small>{PRICING_PLAN.basePlan.membersIncluded} included, then {formatMoney(PRICING_PLAN.basePlan.additionalMemberPrice.monthly)}/month each</small></div>
+            <div><strong>People in your home</strong><small>Your selected tools are shared with the whole household.</small></div>
             <div>
               <button aria-label="Remove family member" onClick={() => setMembers((value) => Math.max(PRICING_PLAN.basePlan.membersIncluded, value - 1))}><Minus/></button>
               <b>{members}</b>
@@ -188,12 +186,10 @@ function PricingSection({ signedIn }) {
           </div>
           <ul className="pricing-includes">
             <li><Check/> Shared calendar with Google sync</li>
-            <li><Check/> Meal planning, recipes & cook mode</li>
             <li><Check/> Grocery lists & favourites</li>
-            <li><Check/> Task assignment & rewards</li>
-            <li><Check/> Family chat</li>
-            <li><Check/> Finance tracking & budgets</li>
-            <li><Check/> Roles & dietary preferences</li>
+            <li><Check/> Tasks and custom task lists</li>
+            <li><Check/> Family chat & broadcasts</li>
+            <li><Check/> Kitchen Watch & expiry reminders</li>
           </ul>
         </article>
         <div className="pricing-addons">
@@ -213,17 +209,16 @@ function PricingSection({ signedIn }) {
         <div className="pricing-summary">
           <div><span>Core plan</span><b>{billing === "annual" ? `${formatMoney(annualBase)}/yr` : formatMoney(monthlyBase)}</b></div>
           {extraMembers > 0 && <div><span>{extraMembers} extra member{extraMembers === 1 ? "" : "s"}</span><b>{billing === "annual" ? `${formatMoney(annualMemberCost)}/yr` : formatMoney(memberCost)}</b></div>}
-          {addOns.smart_bundle && <div><span>Smart Family Bundle</span><b>{formatMoney(9.99)}/mo</b></div>}
-          {addOns.fam_ai && <div><span>Fam AI</span><b>{formatMoney(5.99)}/mo</b></div>}
+          {pricingAddOns.filter(({ id }) => addOns[id]).map(({ id, label, price }) => <div key={id}><span>{label}</span><b>{formatMoney(price)}/mo</b></div>)}
           {billing === "annual" && <div className="annual-savings"><span>Yearly savings</span><b>{formatMoney(savings)}</b></div>}
           <div className="pricing-total"><span>Total after trial</span><motion.b key={pulseKey} initial={{ y: 7, opacity: 0.55 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.34, ease: EASE }}>{formatMoney(displayedTotal)}<small>{billing === "annual" ? "/yr" : "/mo"}</small></motion.b></div>
           <button onClick={startCheckout} disabled={checkoutBusy}>
             {checkoutBusy ? <LoaderCircle className="animate-spin" size={16} /> : null}
-            {checkoutBusy ? "Opening checkout…" : `Start free for ${PRICING_PLAN.trial.days} days`}
+            {checkoutBusy ? "Opening checkout…" : addOnCost ? "Continue to secure checkout" : "Start free"}
             {!checkoutBusy && <ArrowRight/>}
           </button>
           {checkoutError && <small className="pricing-checkout-error">{checkoutError}</small>}
-          <small><ShieldCheck/> Full feature access during trial. Card required; cancel anytime before billing starts.</small>
+          <small><ShieldCheck/> Secure Chargebee checkout. Calendar, Tasks, Shopping, Chat and Kitchen Watch stay free.</small>
         </div>
       </aside>
     </motion.div>

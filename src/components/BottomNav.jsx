@@ -15,7 +15,7 @@ const TABS = [
   { id: "chat", label: "Chat", icon: MessageCircle, hint: "Family messages" },
 ];
 
-const FEATURE_KEYS = { calendar: "calendar", meals: "meals", tasks: "tasks", groceries: "groceries", kitchen: "groceries", chat: "chat" };
+const FEATURE_KEYS = { calendar: "calendar", meals: "meals", tasks: "tasks", groceries: "groceries", kitchen: "kitchen", chat: "chat" };
 
 export default function BottomNav({ active, onChange, features = {}, tabletMode = false }) {
   const { unreadMessageCount = 0 } = useFamily();

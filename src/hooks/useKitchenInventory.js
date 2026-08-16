@@ -6,7 +6,7 @@ const EVENT = "famos:kitchen-inventory-changed";
 const REMOTE_EVENT = "famos:kitchen-inventory-remote-change";
 const keyFor = (householdId) => `famos:kitchen-inventory:v1:${householdId || "local"}`;
 const makeId = () => `inv_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
-const mapRow = (row) => ({ id: row.id, name: row.name, quantity: Number(row.quantity || 1), unit: row.unit || "", location: row.location || "fridge", expiresOn: row.expires_on || "", sourceGroceryId: row.source_grocery_id || null, category: row.category || "Other", brand: row.brand || "", barcode: row.barcode || "", imageUrl: row.image_url || "" });
+const mapRow = (row) => ({ id: row.id, name: row.name, quantity: Number(row.quantity || 1), unit: row.unit || "", location: row.location || "fridge", expiresOn: row.expires_on || "", sourceGroceryId: row.source_grocery_id || null, category: row.category || "Other", brand: row.brand || "", barcode: row.barcode || "", imageUrl: row.image_url || "", createdAt: row.created_at || "" });
 const readLocal = (householdId) => {
   try {
     const parsed = JSON.parse(localStorage.getItem(keyFor(householdId)) || "[]");
@@ -86,7 +86,7 @@ export default function useKitchenInventory(householdId, userId) {
     const existing = items.find((item) => canonicalIngredientName(item.name) === name && item.location === (input.location || "fridge"));
     const local = existing
       ? { ...existing, quantity: Number(existing.quantity) + Number(input.quantity || 1), unit: input.unit || existing.unit, expiresOn: input.expiresOn || existing.expiresOn, category: input.category || existing.category, brand: input.brand || existing.brand, barcode: input.barcode || existing.barcode, imageUrl: input.imageUrl || existing.imageUrl }
-      : { id: makeId(), name, quantity: Number(input.quantity || 1), unit: input.unit || "", location: input.location || "fridge", expiresOn: input.expiresOn || "", sourceGroceryId: input.sourceGroceryId || null, category: input.category || "Other", brand: input.brand || "", barcode: input.barcode || "", imageUrl: input.imageUrl || "" };
+      : { id: makeId(), name, quantity: Number(input.quantity || 1), unit: input.unit || "", location: input.location || "fridge", expiresOn: input.expiresOn || "", sourceGroceryId: input.sourceGroceryId || null, category: input.category || "Other", brand: input.brand || "", barcode: input.barcode || "", imageUrl: input.imageUrl || "", createdAt: new Date().toISOString() };
     persistLocal(existing ? items.map((item) => item.id === existing.id ? local : item) : [...items, local]);
     if (supabase && householdId) {
       const payload = { household_id: householdId, name, quantity: local.quantity, unit: local.unit, location: local.location, expires_on: local.expiresOn || null, source_grocery_id: local.sourceGroceryId, category: local.category || "Other", brand: local.brand || "", barcode: local.barcode || null, image_url: local.imageUrl || "", added_by: userId };

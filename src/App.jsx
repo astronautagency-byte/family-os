@@ -17,6 +17,8 @@ import { AuthLoading, HouseholdOnboarding, ResetPassword, SignIn } from "./pages
 import { supabase } from "./lib/supabase";
 import { classifySharedContent, SHARED_RECIPE_KEY, sharedRecipeTitle } from "./lib/sharedContent";
 import ErrorBoundary from "./components/ErrorBoundary";
+import FeaturePaywall from "./components/FeaturePaywall";
+import { PREMIUM_FEATURE_IDS } from "./data/billingCatalog";
 
 // Route/page-level code splitting: each page is its own chunk, so the initial
 // bundle isn't the whole app. Signed-out visitors load only Landing; signed-in
@@ -101,7 +103,20 @@ export default function App() {
   );
   const effectiveTabletMode = tabletMode && isTabletViewport;
   const [runtimeConfig, setRuntimeConfig] = useState({ status: "active", features: {} });
-  const setTab = (next) => { setTabState(next); window.history.replaceState(null, "", `#${next}`); };
+  const [entitlements, setEntitlements] = useState(null);
+  const [upgradeFeature, setUpgradeFeature] = useState("");
+  const [billingBusy, setBillingBusy] = useState(false);
+  const [billingError, setBillingError] = useState("");
+  const setTab = (next) => {
+    if (entitlements && PREMIUM_FEATURE_IDS.includes(next) && entitlements.features?.[next] !== true) {
+      setUpgradeFeature(next);
+      setBillingError("");
+      return;
+    }
+    setUpgradeFeature("");
+    setTabState(next);
+    window.history.replaceState(null, "", `#${next}`);
+  };
   const shellRef = useRef(null);
   const { configured, session, household, loading, passwordRecovery, onboardingRequired } = useAuth();
   const publicRoute = route;
@@ -184,6 +199,32 @@ export default function App() {
     });
     return () => { active = false; };
   }, [configured, session, household?.id, publicRoute, tab]);
+
+  useEffect(() => {
+    if (!configured || !session || !household?.id || !supabase) return;
+    let active = true;
+    supabase.rpc("get_my_entitlements").then(({ data, error }) => {
+      if (!active) return;
+      // Until the migration is installed, preserve existing households rather
+      // than accidentally locking working features during rollout.
+      setEntitlements(error || !data ? { status: "legacy", features: Object.fromEntries(PREMIUM_FEATURE_IDS.map((key) => [key, true])) } : data);
+    });
+    return () => { active = false; };
+  }, [configured, session, household?.id]);
+
+  const startFeatureCheckout = async (feature) => {
+    setBillingBusy(true);
+    setBillingError("");
+    try {
+      const { data, error } = await supabase.functions.invoke("chargebee-checkout", { body: { feature } });
+      if (error) throw error;
+      if (!data?.url) throw new Error("Secure checkout could not be opened.");
+      window.location.assign(data.url);
+    } catch (error) {
+      setBillingBusy(false);
+      setBillingError(error?.message || "Could not open secure checkout.");
+    }
+  };
 
   // Page-entrance animation. GSAP is loaded lazily (dynamic import) so it stays
   // out of the initial bundle; the animation kicks in once the chunk resolves.
@@ -273,7 +314,7 @@ export default function App() {
           <AppTopBar
             onOpenSettings={() => setTab("settings")}
             onNavigate={setTab}
-            onOpenFamAI={() => setFamAiOpen(true)}
+            onOpenFamAI={() => entitlements?.features?.fam_ai === false ? setUpgradeFeature("fam_ai") : setFamAiOpen(true)}
             darkMode={darkMode}
             onToggleDarkMode={() => setDarkMode((value) => !value)}
             tabletMode={effectiveTabletMode}
@@ -282,6 +323,7 @@ export default function App() {
           />
           <ErrorBoundary resetKey={tab} fallback={({ retry, clearSW }) => <PageErrorFallback retry={retry} reloadLatest={clearSW} goToday={() => setTab("today")} />}>
             <Suspense fallback={<PageFallback />}>
+              {upgradeFeature ? <FeaturePaywall featureId={upgradeFeature} onChoose={startFeatureCheckout} onBack={() => setUpgradeFeature("")} busy={billingBusy} error={billingError} /> : <>
               {tab === "today" && <Today goTo={setTab} />}
               {tab === "calendar" && <CalendarPage goTo={setTab} />}
               {tab === "meals" && <Meals />}
@@ -290,6 +332,7 @@ export default function App() {
               {tab === "tasks" && <Tasks />}
               {tab === "chat" && <Chat />}
               {tab === "settings" && <Settings colorScheme={colorScheme} onColorSchemeChange={setColorScheme} />}
+              </>}
             </Suspense>
           </ErrorBoundary>
         </main>

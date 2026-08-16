@@ -16,6 +16,21 @@ export function inventoryExpiryStatus(item, now = new Date(), warningDays = 3) {
   return null;
 }
 
+export function inventoryExpiryProgress(item, now = new Date()) {
+  const expiry = localDay(item?.expiresOn);
+  if (!expiry) return null;
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12);
+  const added = item?.createdAt ? new Date(item.createdAt) : null;
+  const validAdded = added && !Number.isNaN(added.getTime()) && added < expiry;
+  const start = validAdded
+    ? new Date(added.getFullYear(), added.getMonth(), added.getDate(), 12)
+    : new Date(expiry.getTime() - 7 * DAY_MS);
+  const total = Math.max(DAY_MS, expiry.getTime() - start.getTime());
+  const elapsed = Math.max(0, today.getTime() - start.getTime());
+  const percent = Math.max(0, Math.min(100, Math.round((elapsed / total) * 100)));
+  return { percent, remainingPercent: 100 - percent };
+}
+
 export function expiringInventory(items, now = new Date(), warningDays = 3) {
   return (items || [])
     .map((item) => ({ ...item, expiry: inventoryExpiryStatus(item, now, warningDays) }))

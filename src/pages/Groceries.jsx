@@ -212,12 +212,16 @@ function categoryFromItemName(name = "", fallback = GROCERY_CATEGORIES[0]) {
 }
 
 export default function Groceries() {
-  const { groceries, meals, addGrocery, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries, clearGroceries, memberById, refreshData } = useFamily();
+  const { groceries, groceryLists = [], addGroceryList, meals, addGrocery: addGroceryBase, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries, clearGroceries, memberById, refreshData } = useFamily();
   const auth = useAuth();
   const household = auth?.household;
   const { items: inventoryItems, addItem: addInventoryItem, updateItem: updateInventoryItem, removeItem: removeInventoryItem } = useKitchenInventory(household?.id, auth?.user?.id);
   const [inventoryLocation, setInventoryLocation] = useState("fridge");
   const [inventoryAdding, setInventoryAdding] = useState(false);
+  const [activeGroceryListId, setActiveGroceryListId] = useState("all");
+  const [newListOpen, setNewListOpen] = useState(false);
+  const [newListName, setNewListName] = useState("");
+  const [newListError, setNewListError] = useState("");
   const [inventoryDraft, setInventoryDraft] = useState(emptyInventoryDraft);
   const [inventorySaving, setInventorySaving] = useState(false);
   const [inventoryError, setInventoryError] = useState("");
@@ -350,18 +354,20 @@ export default function Groceries() {
 
   useEffect(() => { localStorage.setItem(STAPLES_KEY, JSON.stringify(staples)); }, [staples]);
 
+  const activeGroceries = useMemo(() => activeGroceryListId === "all" ? groceries : groceries.filter((item) => item.listId === activeGroceryListId), [groceries, activeGroceryListId]);
+  const addGrocery = useCallback((item) => addGroceryBase({ ...item, listId: activeGroceryListId === "all" ? null : activeGroceryListId }), [addGroceryBase, activeGroceryListId]);
   const grouped = useMemo(() => {
     const map = {};
     for (const cat of GROCERY_CATEGORIES) map[cat] = [];
-    for (const g of groceries) {
+    for (const g of activeGroceries) {
       const category = categorizeGroceryItem(g.name, g.category);
       if (!map[category]) map[category] = [];
       map[category].push(category === g.category ? g : { ...g, category });
     }
     return map;
-  }, [groceries]);
+  }, [activeGroceries]);
 
-  const checkedCount = groceries.filter((g) => g.checked).length;
+  const checkedCount = activeGroceries.filter((g) => g.checked).length;
   const inventoriedSourceIds = useMemo(() => new Set(inventoryItems.map((item) => item.sourceGroceryId).filter(Boolean)), [inventoryItems]);
   const kitchenWatchItems = useMemo(() => inventoryItems.filter((item) => isKitchenWatchCategory(item.category)), [inventoryItems]);
   const purchasedForInventory = useMemo(() => groceries.filter((item) => {
@@ -442,7 +448,7 @@ export default function Groceries() {
   };
 
   useEffect(() => () => window.clearTimeout(celebrationTimerRef.current), []);
-  const deliveryItems = useMemo(() => groceries.filter((item) => !item.checked), [groceries]);
+  const deliveryItems = useMemo(() => activeGroceries.filter((item) => !item.checked), [activeGroceries]);
   const deliveryListText = useMemo(() => {
     if (!deliveryItems.length) return "";
     return deliveryItems.map((item) => {
@@ -994,6 +1000,12 @@ export default function Groceries() {
         </div>}
       />
 
+      <div className="shopping-list-switcher" role="tablist" aria-label="Shopping lists">
+        <button type="button" role="tab" aria-selected={activeGroceryListId === "all"} className={activeGroceryListId === "all" ? "selected" : ""} onClick={() => setActiveGroceryListId("all")}><ShoppingBasket size={15}/><span>All shopping</span><em>{groceries.filter((item) => !item.checked).length}</em></button>
+        {groceryLists.map((list) => <button type="button" role="tab" aria-selected={activeGroceryListId === list.id} className={activeGroceryListId === list.id ? "selected" : ""} style={{ "--list-tone": list.color }} onClick={() => setActiveGroceryListId(list.id)} key={list.id}><ListChecks size={15}/><span>{list.name}</span><em>{groceries.filter((item) => item.listId === list.id && !item.checked).length}</em></button>)}
+        <button type="button" className="shopping-list-add" onClick={() => setNewListOpen(true)}><Plus size={15}/><span>New list</span></button>
+      </div>
+
       {false && <><section className="kitchen-inventory-card" aria-labelledby="kitchen-inventory-title">
         <header>
           <span className="kitchen-inventory-mark"><Refrigerator size={20} /></span>
@@ -1288,11 +1300,12 @@ export default function Groceries() {
         </div>
         {saveError && <p className="text-[12px] text-[var(--color-warn)] mt-3">{saveError}</p>}
       </Modal>
-      <Modal open={clearing} onClose={()=>setClearing(false)} title="Clear the grocery list?"><p className="reset-confirm-copy">This clears the active list. Your saved staples stay ready for next time.</p><div className="reset-confirm-actions"><button onClick={()=>setClearing(false)}>Cancel</button><PrimaryButton onClick={async()=>{await clearGroceries();setClearing(false)}}>Clear list</PrimaryButton></div></Modal>
+      <Modal open={clearing} onClose={()=>setClearing(false)} title="Clear the grocery list?"><p className="reset-confirm-copy">This clears the active list. Your saved staples stay ready for next time.</p><div className="reset-confirm-actions"><button onClick={()=>setClearing(false)}>Cancel</button><PrimaryButton onClick={async()=>{await clearGroceries(activeGroceryListId === "all" ? null : activeGroceryListId);setClearing(false)}}>Clear list</PrimaryButton></div></Modal>
+      <Modal open={newListOpen} onClose={() => { setNewListOpen(false); setNewListError(""); }} title="New shopping list"><TextField label="List name" value={newListName} onChange={(event) => setNewListName(event.target.value)} placeholder="Costco run"/>{newListError && <p className="inventory-add-error" role="alert">{newListError}</p>}<PrimaryButton disabled={!newListName.trim()} onClick={async () => { try { const list = await addGroceryList({ name: newListName }); setActiveGroceryListId(list.id); setNewListName(""); setNewListOpen(false); } catch (error) { setNewListError(error?.message || "Could not create this list."); } }}>Create list</PrimaryButton></Modal>
       <ConfirmAction
         open={clearingChecked}
         onClose={() => setClearingChecked(false)}
-        onConfirm={async () => { await clearCheckedGroceries(); setClearingChecked(false); }}
+        onConfirm={async () => { await clearCheckedGroceries(activeGroceryListId === "all" ? null : activeGroceryListId); setClearingChecked(false); }}
         title={checkedCount === 1 ? "Clear the 1 checked item?" : `Clear the ${checkedCount} checked items?`}
         copy="These items you've already shopped will be removed from the list. Anything unchecked stays put so you can carry it over to the next trip."
         confirmLabel={checkedCount === 1 ? "Clear 1 checked" : `Clear ${checkedCount} checked`}
