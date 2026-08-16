@@ -25,6 +25,8 @@ test("the app self-recovers once from stale PWA assets", () => {
   assert.match(boundary, /failed to fetch dynamically imported module/i);
   assert.match(boundary, /failed to load module script/i);
   assert.match(boundary, /load failed/i);
+  assert.match(boundary, /failed to fetch/i);
+  assert.match(boundary, /error loading dynamically imported module/i);
   assert.match(boundary, /family-os:asset-recovery/);
   assert.match(boundary, /window\.caches\.delete/);
   assert.match(boundary, /30_000/);
@@ -39,6 +41,7 @@ test("page failures stay inside the signed-in shell and record a diagnostic fing
   assert.match(boundary, /resetKey/);
   assert.match(app, /<ErrorBoundary resetKey=\{tab\}/);
   assert.match(app, /Return to Today/);
+  assert.match(app, /Load latest version/);
   assert.match(app, /resetKey=\{`famai-\$\{famAiOpen\}`\}/);
   assert.match(vite, /cleanupOutdatedCaches:\s*true/);
 });

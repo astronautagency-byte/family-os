@@ -2,6 +2,9 @@ import { Component } from "react";
 
 const initialState = { error: null, info: null };
 const CRASH_LOG_KEY = "famos:recent-crash:v1";
+const STALE_ASSET_PATTERN = /chunkloaderror|loading (css )?chunk|failed to fetch dynamically imported module|failed to fetch|networkerror when attempting to fetch resource|dynamically imported module|loading dynamically imported module|error loading dynamically imported module|importing a module script failed|failed to load module script|unable to preload css|load failed|\/assets\/[^\s]+\.(?:js|css)/i;
+
+export const isStaleAssetError = (error) => STALE_ASSET_PATTERN.test(`${error?.name || ""} ${error?.message || error || ""} ${error?.stack || ""}`);
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -31,9 +34,7 @@ export default class ErrorBoundary extends Component {
       }));
     } catch { /* diagnostics must never cause a second crash */ }
 
-    const message = String(error?.message || error || "");
-    const isStaleAsset = /chunkloaderror|loading (css )?chunk|failed to fetch dynamically imported module|dynamically imported module|importing a module script failed|failed to load module script|unable to preload css|load failed/i.test(message);
-    if (isStaleAsset) {
+    if (isStaleAssetError(error)) {
       const recoveryKey = "family-os:asset-recovery";
       const previousRecovery = Number(sessionStorage.getItem(recoveryKey) || 0);
       if (!previousRecovery || Date.now() - previousRecovery > 30_000) {

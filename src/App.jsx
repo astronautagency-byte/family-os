@@ -52,12 +52,12 @@ const PageFallback = () => (
     </div>
   </div>
 );
-const PageErrorFallback = ({ retry, goToday }) => (
+const PageErrorFallback = ({ retry, reloadLatest, goToday }) => (
   <section className="app-page-error" role="alert">
     <ShieldCheck size={24} />
     <h1>This page needs another try</h1>
     <p>The rest of FamOS is still available and your household data is safe.</p>
-    <div><button onClick={retry}>Try this page again</button><button onClick={goToday}>Return to Today</button></div>
+    <div><button onClick={retry}>Try this page again</button><button onClick={reloadLatest}>Load latest version</button><button onClick={goToday}>Return to Today</button></div>
   </section>
 );
 const VALID_TABS = ["today","calendar","meals","tasks","groceries","kitchen","chat","famai","settings"];
@@ -280,7 +280,7 @@ export default function App() {
             tabletModeAvailable={isTabletViewport}
             onToggleTabletMode={() => setTabletMode((value) => !value)}
           />
-          <ErrorBoundary resetKey={tab} fallback={({ retry }) => <PageErrorFallback retry={retry} goToday={() => setTab("today")} />}>
+          <ErrorBoundary resetKey={tab} fallback={({ retry, clearSW }) => <PageErrorFallback retry={retry} reloadLatest={clearSW} goToday={() => setTab("today")} />}>
             <Suspense fallback={<PageFallback />}>
               {tab === "today" && <Today goTo={setTab} />}
               {tab === "calendar" && <CalendarPage goTo={setTab} />}

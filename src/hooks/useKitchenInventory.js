@@ -7,7 +7,19 @@ const REMOTE_EVENT = "famos:kitchen-inventory-remote-change";
 const keyFor = (householdId) => `famos:kitchen-inventory:v1:${householdId || "local"}`;
 const makeId = () => `inv_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 const mapRow = (row) => ({ id: row.id, name: row.name, quantity: Number(row.quantity || 1), unit: row.unit || "", location: row.location || "fridge", expiresOn: row.expires_on || "", sourceGroceryId: row.source_grocery_id || null, category: row.category || "Other", brand: row.brand || "", barcode: row.barcode || "", imageUrl: row.image_url || "" });
-const readLocal = (householdId) => { try { return JSON.parse(localStorage.getItem(keyFor(householdId)) || "[]"); } catch { return []; } };
+const readLocal = (householdId) => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(keyFor(householdId)) || "[]");
+    // Early Kitchen Watch prototypes stored an object keyed by location. Do
+    // not let that legacy cache shape take down every page that reads stock.
+    const rows = Array.isArray(parsed)
+      ? parsed
+      : parsed && typeof parsed === "object"
+        ? Object.values(parsed).flatMap((value) => Array.isArray(value) ? value : [])
+        : [];
+    return rows.filter((item) => item && typeof item === "object" && item.name);
+  } catch { return []; }
+};
 const writeLocal = (householdId, items) => { try { localStorage.setItem(keyFor(householdId), JSON.stringify(items)); window.dispatchEvent(new CustomEvent(EVENT)); } catch { /* storage unavailable */ } };
 const missingTable = (error) => /kitchen_inventory|schema cache|relation .* does not exist|could not find the table/i.test(error?.message || "");
 
