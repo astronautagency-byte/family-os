@@ -25,7 +25,7 @@ const SLOT_META = {
 };
 
 const SAVED_RECIPES_KEY = "famos:saved-recipes:v1";
-const RECIPE_DETAIL_CACHE_KEY = "famos:recipe-details:v1";
+const RECIPE_DETAIL_CACHE_KEY = "famos:recipe-details:v2";
 const DIETARY_PREFERENCES_KEY = "famos:dietary-preferences:v1";
 
 const friendlyRecipeSearchError = (error) => {
@@ -114,9 +114,14 @@ const saveIngredientCache = (cache) => {
 };
 
 const recipeTitleKey = (title) => String(title || "").trim().toLowerCase();
+const isCookModeReady = (recipe) => Boolean(
+  recipe?.title
+  && Array.isArray(recipe?.ingredients) && recipe.ingredients.length
+  && Array.isArray(recipe?.instructions) && recipe.instructions.length
+);
 const cacheRecipeDetail = (recipe) => {
   const key = recipeTitleKey(recipe?.title);
-  if (!key) return;
+  if (!key || !isCookModeReady(recipe)) return;
   try {
     const current = JSON.parse(window.localStorage.getItem(RECIPE_DETAIL_CACHE_KEY) || "{}");
     const next = { ...current, [key]: normaliseSavedRecipe(recipe) };
@@ -127,7 +132,8 @@ const cacheRecipeDetail = (recipe) => {
 const cachedRecipeDetail = (title) => {
   try {
     const current = JSON.parse(window.localStorage.getItem(RECIPE_DETAIL_CACHE_KEY) || "{}");
-    return current[recipeTitleKey(title)] || null;
+    const recipe = current[recipeTitleKey(title)] || null;
+    return isCookModeReady(recipe) ? recipe : null;
   } catch { return null; }
 };
 
@@ -513,7 +519,7 @@ export default function Meals() {
           if (found) { recipe = found; break; }
         }
       }
-      if (!recipe) {
+      if (!isCookModeReady(recipe)) {
         setCookError(lastError || "Could not find a recipe for this meal. Try a different title.");
         return;
       }
@@ -1089,7 +1095,7 @@ export default function Meals() {
                 </Card>
                 <Card className="cook-panel">
                   <div className="cook-panel-head"><ChefHat size={18} /><h3>Steps ahead</h3></div>
-                  <p className="cook-panel-note">{cookRecipe.instructions.length ? "Step-by-step cooking instructions. Use Cook Mode for hands-free navigation." : "Step-by-step instructions land as soon as the recipe arrives."}</p>
+                  <p className="cook-panel-note">{cookRecipe.instructions.length ? "Step-by-step cooking instructions. Use Cook Mode for hands-free navigation." : cookLoading ? "Loading verified cooking instructions…" : "This meal does not have verified cooking instructions."}</p>
                   {cookRecipe.instructions.length ? (
                     <ol className="cook-plain-list ordered">
                       {cookRecipe.instructions.map((step, index) => <li key={`${step}-${index}`}>{step}</li>)}
@@ -1100,7 +1106,7 @@ export default function Meals() {
                 </Card>
                 <button className="cook-primary-action" disabled={!cookRecipe.instructions.length} onClick={() => { setCookMode(true); setCookStep(0); }}>
                   <ChefHat size={21} />
-                  <span><strong>{cookRecipe.instructions.length ? "Start Cook Mode" : "Awaiting instructions"}</strong><small>{cookRecipe.instructions.length ? "Hands-friendly, one step at a time" : "Recipe is still loading"}</small></span>
+                  <span><strong>{cookRecipe.instructions.length ? "Start Cook Mode" : cookLoading ? "Loading recipe" : "Recipe unavailable"}</strong><small>{cookRecipe.instructions.length ? "Hands-friendly, one step at a time" : cookLoading ? "Checking ingredients and steps" : "Choose another meal idea"}</small></span>
                 </button>
               </div>
             ) : (

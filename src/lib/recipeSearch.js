@@ -1,6 +1,8 @@
 import { invokeEdgeFunction } from "./supabase";
 
-const CACHE_KEY = "famos:recipe-search-cache:v1";
+// v2 only stores the post-August-2026 cookable contract: every recipe has
+// both ingredients and usable step-by-step instructions.
+const CACHE_KEY = "famos:recipe-search-cache:v2";
 const FRESH_FOR_MS = 12 * 60 * 60 * 1000;
 const STALE_FOR_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_ENTRIES = 40;
@@ -80,4 +82,3 @@ export async function searchRecipes(payload = {}, { force = false } = {}) {
   pending.set(key, operation);
   return operation;
 }
-

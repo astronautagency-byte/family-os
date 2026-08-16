@@ -49,6 +49,14 @@ test("Cook Mode retains the exact fully expanded suggestion", () => {
   assert.match(recipeBoxSource, /details:\s*true/);
   assert.match(recipeBoxSource, /number:\s*1/);
   assert.match(mealsSource, /cacheRecipeDetail\(recipe\)/);
+  assert.match(mealsSource, /isCookModeReady/);
+  assert.match(mealsSource, /famos:recipe-details:v2/);
+});
+
+test("old title-only recipe caches cannot reopen an empty Cook Mode", () => {
+  assert.match(mealsSource, /if \(!key \|\| !isCookModeReady\(recipe\)\) return/);
+  assert.match(mealsSource, /return isCookModeReady\(recipe\) \? recipe : null/);
+  assert.match(recipeSearchSource, /famos:recipe-search-cache:v2/);
 });
 
 test("kitchen ideas use the reviewed kitchen inventory", () => {
