@@ -43,12 +43,12 @@ test("meal suggestions avoid quota-amplifying broad retries and preserve useful 
   assert.doesNotMatch(mealsSource, /setRouletteError\(error\?\.message \|\| "Meal roulette/);
 });
 
-test("Cook Mode requests one fully expanded recipe after lightweight discovery", () => {
+test("Cook Mode retains the exact fully expanded suggestion", () => {
   assert.match(mealsSource, /buildCookSearchLadder/);
   const recipeBoxSource = readFileSync(new URL("../src/data/recipeBox.js", import.meta.url), "utf8");
   assert.match(recipeBoxSource, /details:\s*true/);
   assert.match(recipeBoxSource, /number:\s*1/);
-  assert.doesNotMatch(mealsSource, /cacheRecipeDetail\(recipe\);\s*await setMealForSlot\(rouletteOptions/);
+  assert.match(mealsSource, /cacheRecipeDetail\(recipe\)/);
 });
 
 test("kitchen ideas use the reviewed kitchen inventory", () => {

@@ -24,10 +24,11 @@ test("Spoonacular search requests complete recipe information", () => {
   assert.match(source, /safeOffset.*900/);
 });
 
-test("Spoonacular discovery is lightweight and defers full details until a recipe is selected", () => {
-  assert.match(source, /params\.set\("addRecipeInformation", details \? "true" : "false"\)/);
-  assert.match(source, /params\.set\("addRecipeInstructions", details \? "true" : "false"\)/);
-  assert.match(source, /params\.set\("fillIngredients", details \|\| Boolean\(cleanIngredientList\) \? "true" : "false"\)/);
+test("Spoonacular discovery only returns Cook Mode-ready recipes", () => {
+  assert.match(source, /params\.set\("addRecipeInformation", "true"\)/);
+  assert.match(source, /params\.set\("addRecipeInstructions", "true"\)/);
+  assert.match(source, /params\.set\("fillIngredients", "true"\)/);
+  assert.match(source, /filter\(isCookableRecipe\)/);
 });
 
 test("Spoonacular search supports an explicit cuisine filter", () => {

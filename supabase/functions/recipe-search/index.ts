@@ -57,6 +57,7 @@ const normaliseRecipe = (payload) => {
     missedIngredients: cleanIngredients(payload.missedIngredients),
   };
 };
+const isCookableRecipe = (recipe) => Boolean(recipe?.title && recipe?.ingredients?.length && recipe?.instructions?.length);
 
 const DIET_MAP = new Map([
   ["vegetarian", "vegetarian"], ["vegan", "vegan"], ["pescatarian", "pescetarian"],
@@ -85,12 +86,12 @@ const buildSearchParams = ({ query = "", ingredients = "", cuisine = "", mealTyp
   const safeNumber = Math.min(Math.max(Math.trunc(Number(number) || DEFAULT_RESULT_LIMIT), 1), MAX_RESULT_LIMIT);
   if (safeOffset) params.set("offset", String(safeOffset));
   params.set("instructionsRequired", "true");
-  // Discovery stays lightweight so a page of ideas costs roughly one quota
-  // point instead of one point per fully-expanded recipe. Cook Mode retrieves
-  // the selected recipe's complete ingredients, nutrition and instructions.
-  params.set("addRecipeInformation", details ? "true" : "false");
-  params.set("addRecipeInstructions", details ? "true" : "false");
-  params.set("fillIngredients", details || Boolean(cleanIngredientList) ? "true" : "false");
+  // Suggestions must be Cook Mode-ready before the user can plan them. Asking
+  // for full information here costs more quota than title-only discovery, but
+  // prevents dead-end recipes with no ingredients or usable steps.
+  params.set("addRecipeInformation", "true");
+  params.set("addRecipeInstructions", "true");
+  params.set("fillIngredients", "true");
   if (cleanIngredientList && !details) {
     params.set("sort", "max-used-ingredients");
     params.set("ignorePantry", "true");
@@ -116,7 +117,7 @@ Deno.serve(async (request) => {
       return json({ error: `Spoonacular request failed (${response.status}). ${detail}`.trim(), recipes: [] }, 502);
     }
     const raw = await response.json().catch(() => null);
-    const recipes = (Array.isArray(raw?.results) ? raw.results : []).map(normaliseRecipe).filter(Boolean);
+    const recipes = (Array.isArray(raw?.results) ? raw.results : []).map(normaliseRecipe).filter(isCookableRecipe);
     return json({
       recipes,
       query: searchParams.get("query") || "",

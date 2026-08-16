@@ -885,9 +885,13 @@ export default function Meals() {
                     onClick={async () => {
                       await setMealForSlot(rouletteOptions.date, rouletteOptions.slot, {
                         title: recipe.title,
-                        notes: `Roulette pick`,
+                        notes: `Spoonacular recipe${recipe.id ? ` · ${recipe.id}` : ""}`,
                         cookIds: [],
                       });
+                      // Discovery only returns recipes already verified to have
+                      // ingredients and instructions, so Cook Mode can open the
+                      // exact selected recipe without a fragile title lookup.
+                      cacheRecipeDetail(recipe);
                       // Cache ingredient names so the grocery-status badge
                       // shows immediately on the meal card without needing
                       // to open Cook Mode first. Deferred to next render
