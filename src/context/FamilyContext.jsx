@@ -1355,7 +1355,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
       // a real "Reconnect" instead of a generic error that just retries the dead
       // token and appears permanently disconnected.
       const message = e?.message || "";
-      const expired = /reconnect_required|invalid[_ ]?grant/i.test(message);
+      const expired = /reconnect_required|invalid[_ ]?grant|returned 401/i.test(message);
       setGoogleStatus(expired ? "expired" : "error");
       setGoogleError(expired
         ? "Google access expired. Reconnect to keep your calendar syncing."
@@ -1370,7 +1370,12 @@ export function FamilyProvider({ children, tabletMode = false }) {
     if (!googleProviderToken) return;
     setGoogleAccessTokenState(googleProviderToken);
     setGoogleConnected(true);
-    syncGoogleEvents(googleProviderToken);
+    // Supabase's provider token is short lived and may have been restored from
+    // localStorage after it expired. In configured environments the background
+    // sync below always asks the durable refresh-token service for a fresh token
+    // first. Keep the direct token path only for local/demo mode where that
+    // service is unavailable.
+    if (!configured) syncGoogleEvents(googleProviderToken);
   }, [googleProviderToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Mount-time status recovery: on a fresh page load the in-memory

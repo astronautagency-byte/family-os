@@ -20,6 +20,12 @@ test("expired Google Calendar connections use the forced OAuth reconnect path", 
   assert.match(calendar, /onClick=\{reconnectGoogleCalendar\}>Reconnect Google Calendar/);
 });
 
+test("configured calendar sync never starts with a cached provider token", () => {
+  const family = read("src/context/FamilyContext.jsx");
+  assert.match(family, /if \(!configured\) syncGoogleEvents\(googleProviderToken\)/);
+  assert.match(family, /returned 401/);
+});
+
 test("the app self-recovers once from stale PWA assets", () => {
   const boundary = read("src/components/ErrorBoundary.jsx");
   assert.match(boundary, /failed to fetch dynamically imported module/i);
