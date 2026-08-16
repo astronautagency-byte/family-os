@@ -49,15 +49,15 @@ returns table (
   currency text
 )
 language sql stable security invoker as $$
-  select s.plan, s.status, s.amount_cents, s.billing_interval,
+  select s.plan_key as plan, s.status, s.amount_cents, s.billing_interval,
          s.trial_ends_at, s.current_period_start, s.current_period_ends_at,
          s.cancel_at_period_end, s.canceled_at,
          s.payment_method_brand, s.payment_method_last4, s.addons, s.member_count, s.currency
   from public.account_subscriptions s
-  where s.account_id = (
-    select p.account_id
-    from public.profiles p
-    where p.user_id = auth.uid()
+  where s.household_id = (
+    select hm.household_id
+    from public.household_members hm
+    where hm.user_id = auth.uid()
     limit 1
   )
   limit 1;
@@ -93,20 +93,20 @@ begin
     raise exception 'service_role only';
   end if;
 
-  select id into existing_id
+  select household_id into existing_id
     from public.account_subscriptions
-    where account_id = p_account_id
+    where household_id = p_account_id
     limit 1;
 
   if existing_id is null then
     insert into public.account_subscriptions (
-      account_id, plan, status, amount_cents, billing_interval,
+      household_id, provider, plan_key, status, amount_cents, billing_interval,
       stripe_customer_id, stripe_subscription_id,
       trial_ends_at, current_period_start, current_period_ends_at,
       cancel_at_period_end,
       payment_method_brand, payment_method_last4, addons, member_count, currency, updated_at
     ) values (
-      p_account_id, 'core', p_status, p_amount_cents, p_billing_interval,
+      p_account_id, 'stripe', 'core', p_status, p_amount_cents, p_billing_interval,
       p_stripe_customer_id, p_stripe_subscription_id,
       p_trial_ends_at, p_current_period_start, p_current_period_ends_at,
       p_cancel_at_period_end,
@@ -130,7 +130,7 @@ begin
       currency = p_currency,
       canceled_at = case when p_status in ('canceled', 'incomplete_expired') then coalesce(canceled_at, now()) else canceled_at end,
       updated_at = now()
-    where account_id = p_account_id;
+    where household_id = p_account_id;
   end if;
 end;
 $$;
