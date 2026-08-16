@@ -1,19 +1,23 @@
-import { Bell, CalendarDays, CheckSquare, Home, MessageCircle, Moon, RefreshCw, Settings2, ShoppingCart, Sparkles, Sun, Tablet, X } from "lucide-react";
+import { Bell, CalendarDays, CheckSquare, Home, MessageCircle, Moon, Refrigerator, RefreshCw, Settings2, ShoppingCart, Sparkles, Sun, Tablet, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
 import { todayISO } from "../lib/dates";
+import useKitchenInventory from "../hooks/useKitchenInventory";
+import { inventoryExpiryStatus } from "../lib/inventoryExpiry";
 
 export default function AppTopBar({ onOpenSettings, onNavigate, onOpenFamAI, darkMode, onToggleDarkMode, tabletMode, tabletModeAvailable = true, onToggleTabletMode }) {
   const { profile, user, household } = useAuth();
   const { members, tasks, events, googleEvents, feedEvents, groceries, messages, unreadMessageCount = 0, markChatRead, refreshData, dataLoading } = useFamily();
+  const { items: kitchenItems } = useKitchenInventory(household?.id, user?.id);
   const [open,setOpen]=useState(false); const today=todayISO();
   const [readIds,setReadIds]=useState(()=>{try{return JSON.parse(localStorage.getItem("familyos:read-notifications")||"[]")}catch{return[]}});
   const currentMember = members.find((member) => member.id === user?.id);
   const name = currentMember?.name || profile?.display_name || user?.user_metadata?.name || user?.email?.split("@")[0] || "Family";
   const avatar = currentMember?.avatarUrl || profile?.avatar_url || user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
   const due=tasks.filter(task=>!task.done&&task.due===today); const todaysEvents=[...events,...googleEvents,...feedEvents].filter(event=>event.start?.slice(0,10)===today); const remaining=groceries.filter(item=>!item.checked).length;
-  const notices=useMemo(()=>[...(due.length?[{id:`tasks:${today}:${due.map(item=>item.id).join(",")}`,title:`${due.length} task${due.length===1?"":"s"} due today`,detail:due[0].title,Icon:CheckSquare,tab:"tasks",tone:"peach"}]:[]),...(todaysEvents.length?[{id:`calendar:${today}:${todaysEvents.map(item=>item.id).join(",")}`,title:`${todaysEvents.length} event${todaysEvents.length===1?"":"s"} today`,detail:todaysEvents[0].title,Icon:CalendarDays,tab:"calendar",tone:"blue"}]:[]),...(remaining?[{id:`groceries:${remaining}`,title:`${remaining} groceries remaining`,detail:"Your shared list is ready",Icon:ShoppingCart,tab:"groceries",tone:"mint"}]:[])],[due,today,todaysEvents,remaining]);
+  const kitchenAttention=kitchenItems.filter(item=>["Produce","Deli & Prepared Foods","Dairy & Eggs","Meat & Seafood","Bakery"].includes(item.category)&&inventoryExpiryStatus(item));
+  const notices=useMemo(()=>[...(due.length?[{id:`tasks:${today}:${due.map(item=>item.id).join(",")}`,title:`${due.length} task${due.length===1?"":"s"} due today`,detail:due[0].title,Icon:CheckSquare,tab:"tasks",tone:"peach"}]:[]),...(todaysEvents.length?[{id:`calendar:${today}:${todaysEvents.map(item=>item.id).join(",")}`,title:`${todaysEvents.length} event${todaysEvents.length===1?"":"s"} today`,detail:todaysEvents[0].title,Icon:CalendarDays,tab:"calendar",tone:"blue"}]:[]),...(remaining?[{id:`groceries:${remaining}`,title:`${remaining} groceries remaining`,detail:"Your shared list is ready",Icon:ShoppingCart,tab:"groceries",tone:"mint"}]:[]),...(kitchenAttention.length?[{id:`kitchen:${kitchenAttention.map(item=>item.id).join(",")}`,title:`${kitchenAttention.length} fresh item${kitchenAttention.length===1?" needs":"s need"} attention`,detail:"Use it soon or add a replacement",Icon:Refrigerator,tab:"kitchen",tone:"mint"}]:[])],[due,today,todaysEvents,remaining,kitchenAttention]);
   const unread=notices.filter(notice=>!readIds.includes(notice.id));
   const markRead=(ids)=>{const next=[...new Set([...readIds,...ids])].slice(-60);setReadIds(next);localStorage.setItem("familyos:read-notifications",JSON.stringify(next));};
   // New chat messages get their own live notice, tracked by chat read-state

@@ -24,6 +24,7 @@ const Today = lazy(() => import("./pages/Today"));
 const CalendarPage = lazy(() => import("./pages/Calendar"));
 const Meals = lazy(() => import("./pages/Meals"));
 const Groceries = lazy(() => import("./pages/Groceries"));
+const KitchenWatch = lazy(() => import("./pages/KitchenWatch"));
 const Tasks = lazy(() => import("./pages/Tasks"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Chat = lazy(() => import("./pages/Chat"));
@@ -50,7 +51,7 @@ const PageFallback = () => (
     </div>
   </div>
 );
-const VALID_TABS = ["today","calendar","meals","tasks","groceries","chat","famai","settings"];
+const VALID_TABS = ["today","calendar","meals","tasks","groceries","kitchen","chat","famai","settings"];
 const PUBLIC_ROUTES = ["privacy", "terms", "pricing", "signin", "signup"];
 const ROUTE_ALIASES = { "sign-in": "signin", "lsign-in": "signin", "sign-up": "signup" };
 const VALID_ROUTES = [...VALID_TABS, "landing", "admin", ...PUBLIC_ROUTES];
@@ -275,6 +276,7 @@ export default function App() {
             {tab === "calendar" && <CalendarPage goTo={setTab} />}
             {tab === "meals" && <Meals />}
             {tab === "groceries" && <Groceries />}
+            {tab === "kitchen" && <KitchenWatch goTo={setTab} />}
             {tab === "tasks" && <Tasks />}
             {tab === "chat" && <Chat />}
             {tab === "settings" && <Settings colorScheme={colorScheme} onColorSchemeChange={setColorScheme} />}

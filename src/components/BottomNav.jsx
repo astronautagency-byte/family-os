@@ -1,4 +1,4 @@
-import { CalendarDays, CheckSquare, CookingPot, Home, MessageCircle, ShoppingCart } from "lucide-react";
+import { CalendarDays, CheckSquare, CookingPot, Home, MessageCircle, Refrigerator, ShoppingCart } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 
 // Fam AI is no longer a tab — it's a global floating action button mounted
@@ -11,10 +11,11 @@ const TABS = [
   { id: "meals", label: "Meals", icon: CookingPot, hint: "This week's plan" },
   { id: "tasks", label: "Tasks", icon: CheckSquare, hint: "Open tasks" },
   { id: "groceries", label: "Shopping", icon: ShoppingCart, hint: "Shared shopping list" },
+  { id: "kitchen", label: "Kitchen", icon: Refrigerator, hint: "Freshness and replacement reminders" },
   { id: "chat", label: "Chat", icon: MessageCircle, hint: "Family messages" },
 ];
 
-const FEATURE_KEYS = { calendar: "calendar", meals: "meals", tasks: "tasks", groceries: "groceries", chat: "chat" };
+const FEATURE_KEYS = { calendar: "calendar", meals: "meals", tasks: "tasks", groceries: "groceries", kitchen: "groceries", chat: "chat" };
 
 export default function BottomNav({ active, onChange, features = {}, tabletMode = false }) {
   const { unreadMessageCount = 0 } = useFamily();

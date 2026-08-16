@@ -971,7 +971,7 @@ export default function Groceries() {
         </div>}
       />
 
-      <section className="kitchen-inventory-card" aria-labelledby="kitchen-inventory-title">
+      {false && <><section className="kitchen-inventory-card" aria-labelledby="kitchen-inventory-title">
         <header>
           <span className="kitchen-inventory-mark"><Refrigerator size={20} /></span>
           <div><p>Kitchen watch</p><h2 id="kitchen-inventory-title">Fresh food at home</h2><small>Watch the dairy, meat, produce, deli, and bakery items most likely to spoil.</small></div>
@@ -1021,7 +1021,7 @@ export default function Groceries() {
         <DateField label="Use by or best before" value={inventoryDraft.expiresOn} onChange={(expiresOn) => setInventoryDraft((current) => ({ ...current, expiresOn }))}/>
         {inventoryError && <p className="inventory-add-error" role="alert">{inventoryError}</p>}
         <PrimaryButton onClick={saveInventoryItem} disabled={inventorySaving || !inventoryDraft.name.trim() || !inventoryDraft.expiresOn}>{inventorySaving ? "Adding…" : "Add to inventory"}</PrimaryButton>
-      </Modal>
+      </Modal></>}
 
       <div className="px-5 space-y-5 mt-2">
         {false && <Card
