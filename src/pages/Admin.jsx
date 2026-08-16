@@ -40,8 +40,10 @@ function AdminLogin({ onSignedIn }) {
     try {
       const { data: resolvedEmail } = await supabase.rpc("admin_login_email", { login_name: login.trim() });
       if (resolvedEmail) {
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(resolvedEmail, { redirectTo: `${window.location.origin}/admin?recovery=1` });
-        if (resetError) throw resetError;
+        const { data, error: resetError } = await supabase.functions.invoke("send-password-email", {
+          body: { email: resolvedEmail, purpose: "admin_reset", origin: window.location.origin },
+        });
+        if (resetError || data?.error) throw resetError || new Error(data.error);
       }
       setResetSent(true);
     } catch (resetError) {

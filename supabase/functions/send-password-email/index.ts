@@ -25,7 +25,8 @@ async function findAuthUserByEmail(admin: ReturnType<typeof createClient>, email
 
 function emailContent(actionValue: string, purpose: string) {
   const invited = purpose === "invitation";
-  const title = invited ? "Your FamOS verification code" : "Reset your FamOS password";
+  const adminReset = purpose === "admin_reset";
+  const title = invited ? "Your FamOS verification code" : adminReset ? "Reset your FamOS admin password" : "Reset your FamOS password";
   const intro = invited
     ? "Your family is waiting for you in FamOS. Enter this one-time code on the password screen to verify your email and join the shared home."
     : "We received a request to reset your FamOS password. Use the secure button below to choose a new one.";
@@ -123,10 +124,23 @@ Deno.serve(async (request) => {
         return respond({ sent: true });
       }
     }
+    if (purpose === "admin_reset") {
+      const { data: adminAccount, error: adminError } = await admin
+        .from("admin_users")
+        .select("user_id")
+        .ilike("email", normalizedEmail)
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle();
+      if (adminError || !adminAccount) {
+        console.warn(JSON.stringify({ event: "admin_password_email_skipped", reason: adminError?.message || "not_active_admin" }));
+        return respond({ sent: true });
+      }
+    }
     const { data, error } = await admin.auth.admin.generateLink({
       type: purpose === "invitation" ? "magiclink" : "recovery",
       email: normalizedEmail,
-      options: { redirectTo: safeOrigin },
+      options: { redirectTo: purpose === "admin_reset" ? `${safeOrigin}/admin?recovery=1` : safeOrigin },
     });
 
     // Keep the response generic so this endpoint cannot enumerate accounts.
@@ -153,7 +167,7 @@ Deno.serve(async (request) => {
             subject: content.title,
             html: content.html,
             text: content.text,
-            tags: [{ name: "category", value: purpose === "invitation" ? "password-otp" : "password-reset" }],
+            tags: [{ name: "category", value: purpose === "invitation" ? "password-otp" : purpose === "admin_reset" ? "admin-password-reset" : "password-reset" }],
           }),
         });
         const emailResult = await emailResponse.json();
