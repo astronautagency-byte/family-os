@@ -24,6 +24,7 @@ test("shopping lists scope new items and destructive actions", () => {
 
 test("Kitchen Watch renders an expiry progress meter", () => {
   assert.match(kitchen, /inventoryExpiryProgress/);
+  assert.match(kitchen, /width: `\$\{progress\.remainingPercent\}%`/);
   assert.match(kitchen, /freshness left/);
   assert.match(css, /\.inventory-expiry-progress/);
 });
