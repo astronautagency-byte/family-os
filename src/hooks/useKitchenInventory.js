@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { canonicalIngredientName } from "../lib/mealIngredientCache";
 
@@ -24,6 +24,10 @@ const writeLocal = (householdId, items) => { try { localStorage.setItem(keyFor(h
 const missingTable = (error) => /kitchen_inventory|schema cache|relation .* does not exist|could not find the table/i.test(error?.message || "");
 
 export default function useKitchenInventory(householdId, userId) {
+  // Supabase reuses channels by topic. Today, Meals, Shopping and Kitchen
+  // Watch can overlap during route transitions, so sharing one topic caused a
+  // second hook to add callbacks after the first channel had subscribed.
+  const channelInstanceRef = useRef(`inventory-${Math.random().toString(36).slice(2, 9)}`);
   const [items, setItems] = useState(() => readLocal(householdId));
   const [remoteReady, setRemoteReady] = useState(false);
 
@@ -67,7 +71,7 @@ export default function useKitchenInventory(householdId, userId) {
   // until every environment has the private Broadcast migration applied.
   useEffect(() => {
     if (!supabase || !householdId || !remoteReady) return undefined;
-    const channel = supabase.channel(`kitchen-inventory:${householdId}`)
+    const channel = supabase.channel(`kitchen-inventory:${householdId}:${channelInstanceRef.current}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "kitchen_inventory", filter: `household_id=eq.${householdId}` }, (payload) => {
         window.dispatchEvent(new CustomEvent(REMOTE_EVENT, { detail: payload }));
       })

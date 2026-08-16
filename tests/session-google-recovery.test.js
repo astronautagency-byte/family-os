@@ -56,3 +56,10 @@ test("legacy household caches cannot crash Today or Meals", () => {
   assert.match(today, /String\(grocery\?\.name \|\| ""\)\.toLowerCase\(\)/);
   assert.match(ingredients, /Array\.isArray\(groceries\)/);
 });
+
+test("concurrent pages use distinct Kitchen Watch realtime channels", () => {
+  const inventory = read("src/hooks/useKitchenInventory.js");
+  assert.match(inventory, /channelInstanceRef = useRef/);
+  assert.match(inventory, /kitchen-inventory:\$\{householdId\}:\$\{channelInstanceRef\.current\}/);
+  assert.doesNotMatch(inventory, /channel\(`kitchen-inventory:\$\{householdId\}`\)/);
+});
