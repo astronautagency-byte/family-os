@@ -5,6 +5,7 @@ import { useGSAP } from "@gsap/react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabase";
+import { expandRecurringEvents } from "../lib/eventRecurrence";
 import { AvatarStack, DateField, Modal, PrimaryButton, SecondaryButton, SegmentedControl, SelectField, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import PullToRefresh from "../components/PullToRefresh";
@@ -300,7 +301,7 @@ export default function CalendarPage() {
   const [discoverCities, setDiscoverCities] = useState([]);
   const [cityDraft, setCityDraft] = useState("");
   const [calendarManagerOpen, setCalendarManagerOpen] = useState(false);
-  const [draft, setDraft] = useState({ title: "", date: selectedDate, start: "18:00", end: "19:00", location: "", memberIds: [], eventType: "family", destination: "family" });
+  const [draft, setDraft] = useState({ title: "", date: selectedDate, start: "18:00", end: "19:00", location: "", memberIds: [], eventType: "family", destination: "family", recurrence: "none", recurrenceUntil: "" });
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickText, setQuickText] = useState("");
   const quickRef = useRef(null);
@@ -381,9 +382,15 @@ export default function CalendarPage() {
     ...feedEvents,
   ], [events, googleEvents, feedEvents, sharedGoogleCalendarIds]);
 
+  const recurrenceRange = useMemo(() => {
+    const start = new Date(month.getFullYear(), month.getMonth() - 1, 1);
+    const end = new Date(month.getFullYear(), month.getMonth() + 2, 0, 23, 59, 59);
+    return { start, end };
+  }, [month]);
+  const expandedEvents = useMemo(() => expandRecurringEvents(allEvents, recurrenceRange.start, recurrenceRange.end), [allEvents, recurrenceRange]);
   const visibleEvents = useMemo(() =>
-    sourceFilter === "all" ? allEvents : allEvents.filter((event) => sourceId(event) === sourceFilter),
-  [allEvents, sourceFilter]);
+    sourceFilter === "all" ? expandedEvents : expandedEvents.filter((event) => sourceId(event) === sourceFilter),
+  [expandedEvents, sourceFilter]);
 
   const sources = useMemo(() => [
     { id: "all", label: "All calendars", color: "var(--color-calendar)" }, { id: "family", label: "Family", color: "var(--color-family)" },
@@ -447,6 +454,8 @@ export default function CalendarPage() {
       memberIds: members.map(m => m.id),
       eventType: "family",
       destination: "family",
+      recurrence: "none",
+      recurrenceUntil: "",
       ...(prefill || {}),
     });
     setSaveError("");
@@ -456,8 +465,8 @@ export default function CalendarPage() {
   const openEdit = (event) => {
     const start = new Date(event.start);
     const end = new Date(event.end || event.start);
-    setDraft({ title:event.title || "", date:iso(start), start:`${String(start.getHours()).padStart(2,"0")}:${String(start.getMinutes()).padStart(2,"0")}`, end:`${String(end.getHours()).padStart(2,"0")}:${String(end.getMinutes()).padStart(2,"0")}`, location:event.location || "", memberIds:event.memberIds || [], eventType:eventType(event), destination:event.source === "google" ? `google:${event.calendarId}` : "family" });
-    setEditingEvent(event);
+    setDraft({ title:event.title || "", date:iso(start), start:`${String(start.getHours()).padStart(2,"0")}:${String(start.getMinutes()).padStart(2,"0")}`, end:`${String(end.getHours()).padStart(2,"0")}:${String(end.getMinutes()).padStart(2,"0")}`, location:event.location || "", memberIds:event.memberIds || [], eventType:eventType(event), destination:event.source === "google" ? `google:${event.calendarId}` : "family", recurrence:event.recurrence || "none", recurrenceUntil:event.recurrenceUntil || "" });
+    setEditingEvent(event.seriesId ? { ...event, id: event.seriesId } : event);
     setSelectedEvent(null);
     setSaveError("");
     setAdding(true);
@@ -654,7 +663,7 @@ export default function CalendarPage() {
   const save = async () => {
     if (!draft.title.trim()) return;
     setSaving(true); setSaveError("");
-    const payload = { title: draft.title.trim(), start: new Date(`${draft.date}T${draft.start}:00`).toISOString(), end: new Date(`${draft.date}T${draft.end}:00`).toISOString(), location: draft.location, memberIds: draft.memberIds, eventType: draft.eventType };
+    const payload = { title: draft.title.trim(), start: new Date(`${draft.date}T${draft.start}:00`).toISOString(), end: new Date(`${draft.date}T${draft.end}:00`).toISOString(), location: draft.location, memberIds: draft.memberIds, eventType: draft.eventType, recurrence: draft.recurrence || "none", recurrenceUntil: draft.recurrence === "none" ? "" : draft.recurrenceUntil };
     try {
       if (editingEvent?.source === "google") await updateGoogleCalendarEvent({ ...editingEvent, ...payload, calendarId: editingEvent.calendarId });
       else if (editingEvent) await updateEvent(editingEvent.id, payload);
@@ -677,7 +686,7 @@ export default function CalendarPage() {
       // handles local state cleanup — no need for a second setGoogleEvents.
       await deleteGoogleCalendarEvent(deleteTarget);
     } else {
-      await removeEvent(deleteTarget.id);
+      await removeEvent(deleteTarget.seriesId || deleteTarget.id);
     }
     setDeleteTarget(null);
     if (selectedEvent?.id === deleteTarget.id) setSelectedEvent(null);
@@ -967,6 +976,16 @@ export default function CalendarPage() {
           <SelectField label="Event type" className="calendar-select-label" value={draft.eventType} onChange={e => setDraft({ ...draft, eventType: e.target.value })}>
               {Object.entries(EVENT_TYPES).map(([key, type]) => <option key={key} value={key}>{type.label}</option>)}
           </SelectField>
+          {draft.destination === "family" && <>
+            <SelectField label="Repeat" className="calendar-select-label" value={draft.recurrence} onChange={e => setDraft({ ...draft, recurrence: e.target.value, recurrenceUntil: e.target.value === "none" ? "" : draft.recurrenceUntil })}>
+              <option value="none">Does not repeat</option>
+              <option value="daily">Every day</option>
+              <option value="weekly">Every week</option>
+              <option value="monthly">Every month</option>
+              <option value="yearly">Every year</option>
+            </SelectField>
+            {draft.recurrence !== "none" && <DateField label="Repeat until (optional)" value={draft.recurrenceUntil} onChange={recurrenceUntil => setDraft({ ...draft, recurrenceUntil })} min={draft.date} />}
+          </>}
           <SelectField label="Add to" className="calendar-select-label" value={draft.destination} disabled={Boolean(editingEvent)} onChange={e => setDraft({ ...draft, destination: e.target.value })}>
               <option value="family">FamOS calendar</option>
               {googleConnected && googleCalendars.filter(calendar => selectedGoogleCalendarIds.includes(calendar.id) && ["owner", "writer"].includes(calendar.accessRole)).map(calendar => (

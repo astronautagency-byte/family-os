@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, X } from "lucide-react";
 import FeaturesDropdown from "./FeaturesDropdown";
+import { lockBodyScroll } from "../lib/bodyScrollLock";
 
 /* ── MarketingNav ───────────────────────────────────────────────────
  * Single canonical marketing navigation used by Landing (home) and
@@ -46,9 +47,6 @@ const isOnLanding = () => {
 };
 
 const SCROLL_BLUR_THRESHOLD = 60;
-// Remember the body overflow value so we can mirror it on close instead
-// of clobbering whatever the page had before the drawer opened.
-const getBodyOverflow = () => (typeof document === "undefined" ? "" : document.body.style.overflow || "");
 
 const HamburgerIcon = ({ open }) => (
   <span className="marketing-nav-menu-bars" aria-hidden="true">
@@ -104,8 +102,7 @@ const MarketingNav = ({ signedIn = false, currentId = null }) => {
   // ── Drawer open lifecycle: body scroll lock + ESC close + focus + focus-trap ──
   useEffect(() => {
     if (!isMobileOpen) return undefined;
-    const previousOverflow = getBodyOverflow();
-    document.body.style.overflow = "hidden";
+    const unlockBodyScroll = lockBodyScroll();
     const focusables = () => Array.from(
       drawerRef.current?.querySelectorAll(
         'a[href], button:not([disabled])',
@@ -141,7 +138,7 @@ const MarketingNav = ({ signedIn = false, currentId = null }) => {
     return () => {
       document.removeEventListener("keydown", onKey);
       clearTimeout(focusTimer);
-      document.body.style.overflow = previousOverflow;
+      unlockBodyScroll();
     };
     // closeDrawer is a stable useCallback reference (deps []); it
     // belongs in the deps array to satisfy react-hooks/exhaustive-deps

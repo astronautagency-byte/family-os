@@ -17,6 +17,7 @@ import { searchRecipes } from "../lib/recipeSearch";
 import useVoiceCommands, { requestScreenWakeLock } from "../hooks/useVoiceCommands";
 import useKitchenInventory from "../hooks/useKitchenInventory";
 import { SHARED_RECIPE_KEY } from "../lib/sharedContent";
+import { lockBodyScroll } from "../lib/bodyScrollLock";
 
 const SLOT_META = {
   breakfast: { label: "Breakfast", icon: Coffee },
@@ -226,14 +227,13 @@ export default function Meals() {
   useEffect(() => () => releaseWakeLock(), [releaseWakeLock]);
   useEffect(() => {
     if (!cookMeal) return undefined;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const unlockBodyScroll = lockBodyScroll();
     const closeOnEscape = (event) => {
       if (event.key === "Escape") setCookMeal(null);
     };
     document.addEventListener("keydown", closeOnEscape);
     return () => {
-      document.body.style.overflow = previousOverflow;
+      unlockBodyScroll();
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, [cookMeal]);

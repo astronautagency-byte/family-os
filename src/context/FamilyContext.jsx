@@ -333,7 +333,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
     photoUploadedAt: row.photo_uploaded_at || null,
     listId: row.list_id || null,
   });
-  const mapEvent = (row) => ({ id: row.id, title: row.title, start: row.starts_at, end: row.ends_at, location: row.location, source: row.source === "familyos" ? "local" : row.source, externalId: row.external_id || null, googleEventId: row.source === "google" ? row.external_id || null : null, calendarId: row.external_calendar_id || null, memberIds: (row.event_participants || []).map((p) => p.user_id) });
+  const mapEvent = (row) => ({ id: row.id, title: row.title, start: row.starts_at, end: row.ends_at, location: row.location, recurrence: row.recurrence || "none", recurrenceUntil: row.recurrence_until || "", source: row.source === "familyos" ? "local" : row.source, externalId: row.external_id || null, googleEventId: row.source === "google" ? row.external_id || null : null, calendarId: row.external_calendar_id || null, memberIds: (row.event_participants || []).map((p) => p.user_id) });
   const mapMeal = (row) => ({ id: row.id, date: row.meal_date, slot: row.slot, title: row.title, notes: row.notes, cookIds: row.cook_ids || [], createdBy: row.created_by || null });
   const mapMessage = (row) => ({ id: row.id, senderId: row.sender_id, recipientId: row.recipient_id || null, text: row.body, sentAt: row.created_at, source: row.source || "famos", sourceSender: row.source_sender || "", broadcast: row.broadcast === true || row.source_sender === "__famos_broadcast__" });
   const mapReaction = (row) => ({ id: row.id, messageId: row.message_id, memberId: row.member_id, reaction: row.reaction, createdAt: row.created_at });
@@ -790,6 +790,8 @@ export function FamilyProvider({ children, tabletMode = false }) {
       if (patch.unit !== undefined) dbPatch.unit = patch.unit;
       if (patch.checked !== undefined) dbPatch.is_checked = patch.checked;
       if (patch.listId !== undefined) dbPatch.list_id = patch.listId || null;
+      if (patch.brand !== undefined) dbPatch.brand = patch.brand || "";
+      if (patch.imageUrl !== undefined) dbPatch.image_url = patch.imageUrl || "";
       // Photo fields are written together: when photoUrl is set we stamp
       // the uploader + timestamp, when it's cleared (null/empty) we wipe
       // both. previousPhotoUrl is optional — when the caller passes the
@@ -936,7 +938,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
     setEvents((prev) => [...prev, { id: tempId, source: "local", ...event }]);
     if (remote) {
       try {
-        const { data, error } = await supabase.from("events").insert({ household_id: household.id, title: event.title, starts_at: event.start, ends_at: event.end, location: event.location || "", created_by: user.id }).select().single();
+        const { data, error } = await supabase.from("events").insert({ household_id: household.id, title: event.title, starts_at: event.start, ends_at: event.end, location: event.location || "", recurrence: event.recurrence || "none", recurrence_until: event.recurrenceUntil || null, created_by: user.id }).select().single();
         if (error) throw error;
         if (event.memberIds?.length) await supabase.from("event_participants").insert(event.memberIds.map((userId) => ({ event_id: data.id, user_id: userId })));
         // Replace optimistic item with server-confirmed data.
@@ -953,7 +955,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
     // Optimistic: update local state immediately.
     setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
     if (remote) {
-      try { const { error } = await supabase.from("events").update({ title: patch.title, starts_at: patch.start, ends_at: patch.end, location: patch.location }).eq("id", id); if (error) throw error; }
+      try { const { error } = await supabase.from("events").update({ title: patch.title, starts_at: patch.start, ends_at: patch.end, location: patch.location, recurrence: patch.recurrence || "none", recurrence_until: patch.recurrenceUntil || null }).eq("id", id); if (error) throw error; }
       catch { /* realtime will re-sync */ }
     }
   };

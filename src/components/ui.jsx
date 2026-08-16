@@ -2,6 +2,7 @@ import { FAMILY_COLORS } from "../data/mockData";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CalendarDays, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, Info, TriangleAlert, X } from "lucide-react";
+import { lockBodyScroll } from "../lib/bodyScrollLock";
 
 export function colorVar(colorId) {
   const found = FAMILY_COLORS.find((c) => c.id === colorId);
@@ -155,11 +156,10 @@ export function Modal({ open, onClose, title, children }) {
     const closeOnEscape = (event) => {
       if (event.key === "Escape") onClose();
     };
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const unlockBodyScroll = lockBodyScroll();
     document.addEventListener("keydown", closeOnEscape);
     return () => {
-      document.body.style.overflow = previousOverflow;
+      unlockBodyScroll();
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, [open, onClose]);

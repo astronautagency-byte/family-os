@@ -16,7 +16,7 @@ import { supabase } from "../lib/supabase";
 import { categorizeGroceryItem } from "../lib/groceryCategories";
 import { inventoryExpiryStatus } from "../lib/inventoryExpiry";
 
-const emptyDraft = { name: "", category: GROCERY_CATEGORIES[0], quantity: 1, unit: "" };
+const emptyDraft = { name: "", category: GROCERY_CATEGORIES[0], quantity: 1, unit: "", brand: "", imageUrl: "" };
 const INVENTORY_CATEGORIES = ["Produce", "Deli & Prepared Foods", "Dairy & Eggs", "Meat & Seafood", "Bakery"];
 const isKitchenWatchCategory = (category) => INVENTORY_CATEGORIES.includes(category);
 const emptyPhoto = { file: null, previewUrl: "", remoteUrl: "", uploading: false, error: "" };
@@ -562,7 +562,7 @@ export default function Groceries() {
 
   const openEdit = (item) => {
     abandonDraftPhoto();
-    setDraft({ name: item.name, category: item.category, quantity: item.quantity ?? 1, unit: item.unit ?? "" });
+    setDraft({ name: item.name, category: item.category, quantity: item.quantity ?? 1, unit: item.unit ?? "", brand: item.brand || "", imageUrl: item.imageUrl || "" });
     setPhotoDraft({ file: null, previewUrl: "", remoteUrl: item.photoUrl || "", uploading: false, error: "" });
     setSaveError("");
     setEditingId(item.id);
@@ -600,9 +600,9 @@ export default function Groceries() {
     const previousPhotoUrl = editingId !== "new" ? (groceries.find((g) => g.id === editingId)?.photoUrl || "") : "";
     try {
       if (editingId === "new") {
-        await addGrocery({ name: draft.name.trim(), category: draft.category, quantity: draft.quantity, unit: draft.unit.trim(), addedBy: null, photoUrl });
+        await addGrocery({ name: draft.name.trim(), category: draft.category, quantity: draft.quantity, unit: draft.unit.trim(), brand: draft.brand?.trim() || "", imageUrl: draft.imageUrl || "", addedBy: null, photoUrl });
       } else {
-        await updateGrocery(editingId, { name: draft.name.trim(), category: draft.category, quantity: draft.quantity, unit: draft.unit.trim(), photoUrl, previousPhotoUrl });
+        await updateGrocery(editingId, { name: draft.name.trim(), category: draft.category, quantity: draft.quantity, unit: draft.unit.trim(), brand: draft.brand?.trim() || "", imageUrl: draft.imageUrl || "", photoUrl, previousPhotoUrl });
       }
       setEditingId(null);
       photoPickIdRef.current += 1;
@@ -1221,6 +1221,7 @@ export default function Groceries() {
           autoFocus
           onKeyDown={(e) => e.key === "Enter" && submit()}
         />
+        <TextField label="Brand (optional)" placeholder="e.g. Liberté" value={draft.brand || ""} onChange={(e) => setDraft((current) => ({ ...current, brand: e.target.value }))} />
 
         <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-2">Category</p>
         <div className="flex flex-wrap gap-2 mb-4">
