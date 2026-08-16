@@ -26,3 +26,14 @@ test("the app self-recovers once from stale PWA assets", () => {
   assert.match(boundary, /family-os:asset-recovery/);
   assert.match(boundary, /window\.location\.reload\(\)/);
 });
+
+test("page failures stay inside the signed-in shell and record a diagnostic fingerprint", () => {
+  const boundary = read("src/components/ErrorBoundary.jsx");
+  const app = read("src/App.jsx");
+  const vite = read("vite.config.js");
+  assert.match(boundary, /famos:recent-crash:v1/);
+  assert.match(boundary, /resetKey/);
+  assert.match(app, /<ErrorBoundary resetKey=\{tab\}/);
+  assert.match(app, /Return to Today/);
+  assert.match(vite, /cleanupOutdatedCaches:\s*true/);
+});

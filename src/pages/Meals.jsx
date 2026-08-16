@@ -372,12 +372,12 @@ export default function Meals() {
         ingredients: kitchenOnly ? kitchenIngredients.join(", ") : "",
         mealType: slot,
         offset: 0,
+        number: 12,
         dietaryRestrictions: dietaryPreferences.restrictions || [],
         avoidIngredients: dietaryPreferences.avoidIngredients || "",
       };
       const data = await searchRecipes({
         ...baseRequest,
-        query: chosenCuisine ? `${chosenCuisine} ${slot}` : slot,
         cuisine: chosenCuisine === "American Comfort" ? "American" : chosenCuisine || "",
       });
       const list = recipesFromSearch(data);
@@ -386,7 +386,17 @@ export default function Meals() {
         setRouletteOptions((current) => ({ ...(current || {}), date, slot, recipes: [], cuisine, source: "spoonacular", kitchenOnly }));
         return;
       }
-      setRouletteOptions({ date, slot, recipes: list.slice(0, 3), cuisine, source: "spoonacular", kitchenOnly });
+      setRouletteOptions({
+        date,
+        slot,
+        recipes: list,
+        cuisine,
+        source: "spoonacular",
+        kitchenOnly,
+        offset: Number(data?.offset || 0),
+        pageSize: Number(data?.number || 12),
+        totalResults: Number(data?.totalResults || list.length),
+      });
     } catch (error) {
       const quotaLimited = /quota|429|402/i.test(error?.message || "");
       const savedFallback = quotaLimited ? savedRecipes.slice(0, 3) : [];
@@ -400,6 +410,41 @@ export default function Meals() {
         source: savedFallback.length ? "saved" : "spoonacular",
         kitchenOnly,
       }));
+    } finally {
+      setRouletteBusy(false);
+    }
+  };
+
+  const loadMoreMealIdeas = async () => {
+    if (!rouletteOptions || rouletteBusy) return;
+    setRouletteBusy(true);
+    setRouletteError("");
+    try {
+      const nextOffset = (rouletteOptions.offset || 0) + (rouletteOptions.pageSize || 12);
+      const chosenCuisine = rouletteCuisine;
+      const data = await searchRecipes({
+        ingredients: rouletteOptions.kitchenOnly ? kitchenIngredients.join(", ") : "",
+        mealType: rouletteOptions.slot,
+        cuisine: chosenCuisine === "American Comfort" ? "American" : chosenCuisine || "",
+        offset: nextOffset,
+        number: 12,
+        dietaryRestrictions: dietaryPreferences.restrictions || [],
+        avoidIngredients: dietaryPreferences.avoidIngredients || "",
+      });
+      const incoming = recipesFromSearch(data);
+      setRouletteOptions((current) => {
+        const seen = new Set(current.recipes.map((recipe) => String(recipe.id || recipe.title)));
+        const unique = incoming.filter((recipe) => !seen.has(String(recipe.id || recipe.title)));
+        return {
+          ...current,
+          recipes: [...current.recipes, ...unique],
+          offset: Number(data?.offset ?? nextOffset),
+          pageSize: Number(data?.number || 12),
+          totalResults: Number(data?.totalResults || current.totalResults || current.recipes.length + unique.length),
+        };
+      });
+    } catch (error) {
+      setRouletteError(friendlyRecipeSearchError(error));
     } finally {
       setRouletteBusy(false);
     }
@@ -829,7 +874,7 @@ export default function Meals() {
                   ? `Finding ${rouletteOptions.slot} ideas…`
                   : rouletteOptions.kitchenOnly
                     ? `Found ${rouletteOptions.recipes.length} ${rouletteOptions.slot} idea${rouletteOptions.recipes.length === 1 ? "" : "s"} using what is already in your kitchen.`
-                    : `Found ${rouletteOptions.recipes.length} ${rouletteOptions.slot} recipe${rouletteOptions.recipes.length === 1 ? "" : "s"} for ${rouletteOptions.cuisine}. Pick the one that sounds good.`}
+                    : `Showing ${rouletteOptions.recipes.length}${rouletteOptions.totalResults > rouletteOptions.recipes.length ? ` of ${rouletteOptions.totalResults}` : ""} ${rouletteOptions.slot} recipe${rouletteOptions.recipes.length === 1 ? "" : "s"} for ${rouletteOptions.cuisine}. Pick the one that sounds good.`}
               </p>
               {rouletteError && <p className="roulette-picker-error" role="alert">{rouletteError}</p>}
               <div className={`roulette-picker-list ${rouletteBusy ? "is-refreshing" : ""}`} aria-busy={rouletteBusy}>
@@ -838,7 +883,6 @@ export default function Meals() {
                     key={`${recipe.title}-${index}`}
                     className="roulette-picker-card"
                     onClick={async () => {
-                      cacheRecipeDetail(recipe);
                       await setMealForSlot(rouletteOptions.date, rouletteOptions.slot, {
                         title: recipe.title,
                         notes: `Roulette pick`,
@@ -878,6 +922,9 @@ export default function Meals() {
                         {recipe.servings ? ` · Serves ${recipe.servings}` : ""}
                         {recipe.cuisine ? ` · ${recipe.cuisine}` : ""}
                       </small>
+                      {rouletteOptions.kitchenOnly && (recipe.usedIngredientCount > 0 || recipe.missedIngredientCount > 0) && (
+                        <small className="roulette-ingredient-match">Uses {recipe.usedIngredientCount} at home · {recipe.missedIngredientCount} missing</small>
+                      )}
                     </div>
                     <ChefHat size={16} className="roulette-picker-arrow" />
                   </button>
@@ -887,6 +934,11 @@ export default function Meals() {
                 <button className="roulette-picker-spin" disabled={rouletteBusy || rouletteOptions.recipes.length < 2} onClick={() => setRouletteOptions((current) => ({ ...current, recipes: [...current.recipes.slice(1), current.recipes[0]] }))}>
                   <Dices size={14} /> Shuffle ideas
                 </button>
+                {rouletteOptions.source === "spoonacular" && rouletteOptions.recipes.length < rouletteOptions.totalResults && (
+                  <button className="roulette-picker-spin" disabled={rouletteBusy} onClick={loadMoreMealIdeas}>
+                    {rouletteBusy ? "Finding more…" : "Load more recipes"}
+                  </button>
+                )}
                 <button className="roulette-picker-close" onClick={() => setRouletteOptions(null)}>Cancel</button>
               </div>
             </>

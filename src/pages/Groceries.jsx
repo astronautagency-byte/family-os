@@ -679,6 +679,29 @@ export default function Groceries() {
     setBarcodeLoading(true);
     setBarcodeStatus("Looking up product details…");
     try {
+      if (supabase) {
+        for (const candidate of barcodeCandidates(cleanCode)) {
+          const { data: spoonacularData } = await supabase.functions.invoke("food-product-lookup", { body: { upc: candidate } });
+          const spoonacularProduct = spoonacularData?.product;
+          if (!spoonacularProduct?.name) continue;
+          const category = categorizeGroceryItem(spoonacularProduct.name, spoonacularProduct.aisle || "Other");
+          setBarcodeDraft((draft) => ({
+            ...draft,
+            code: candidate,
+            name: spoonacularProduct.name,
+            brand: spoonacularProduct.brand || draft.brand,
+            category,
+            quantity: draft.quantity || 1,
+            unit: spoonacularProduct.servingSize || "",
+            imageUrl: spoonacularProduct.imageUrl || draft.imageUrl,
+          }));
+          setBarcodeStatus(`Found ${spoonacularProduct.name}. Review the details, then save it to your list.`);
+          return spoonacularProduct;
+        }
+      }
+
+      // Open Food Facts remains a resilient fallback when Spoonacular has no
+      // matching UPC, is rate-limited, or the household is temporarily offline.
       let data = null;
       let resolvedCode = cleanCode;
       for (const candidate of barcodeCandidates(cleanCode)) {

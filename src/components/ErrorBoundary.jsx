@@ -1,6 +1,7 @@
 import { Component } from "react";
 
 const initialState = { error: null, info: null };
+const CRASH_LOG_KEY = "famos:recent-crash:v1";
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -15,6 +16,20 @@ export default class ErrorBoundary extends Component {
   componentDidCatch(error, info) {
     this.setState({ info });
     console.error("[ErrorBoundary] Caught:", error, info);
+
+    try {
+      const message = String(error?.message || error || "Unknown error");
+      const signature = `${message}|${info?.componentStack || ""}`;
+      let hash = 0;
+      for (let index = 0; index < signature.length; index += 1) hash = ((hash << 5) - hash + signature.charCodeAt(index)) | 0;
+      localStorage.setItem(CRASH_LOG_KEY, JSON.stringify({
+        id: `FAM-${Math.abs(hash).toString(36).toUpperCase()}`,
+        message: message.slice(0, 500),
+        stack: String(info?.componentStack || "").slice(0, 2000),
+        route: `${window.location.pathname}${window.location.hash}`,
+        happenedAt: new Date().toISOString(),
+      }));
+    } catch { /* diagnostics must never cause a second crash */ }
 
     const message = String(error?.message || error || "");
     const isStaleAsset = /loading chunk|failed to fetch dynamically imported module|importing a module script failed/i.test(message);
@@ -38,6 +53,13 @@ export default class ErrorBoundary extends Component {
 
   componentWillUnmount() {
     clearTimeout(this._autoRetry);
+  }
+
+  componentDidUpdate(previousProps) {
+    if (this.state.error && previousProps.resetKey !== this.props.resetKey) {
+      this._didAutoRetry = false;
+      this.setState(initialState);
+    }
   }
 
   handleRetry = () => {

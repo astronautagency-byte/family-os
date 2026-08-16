@@ -130,5 +130,7 @@ export function buildCookSearchLadder(meal, dietaryPreferences = {}) {
       rungs.push({ query: "", ingredients: keywords.join(", "), mealType: slot, dietary: [] });
     }
   }
-  return rungs;
+  // Discovery cards are intentionally lightweight. Cook Mode asks for one
+  // expanded result so Spoonacular returns the full ingredients and steps.
+  return rungs.map((rung) => ({ ...rung, details: true, number: 1 }));
 }

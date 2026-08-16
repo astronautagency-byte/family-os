@@ -64,6 +64,9 @@ export default defineConfig({
         ]
       },
       workbox: {
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
         // Precache only the app shell — NOT png/jpg. The marketing images and
         // illustrations were ~38MB of precache, blowing up first-load/install.
         // Images are cached at runtime on first use instead (below).

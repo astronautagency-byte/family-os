@@ -16,6 +16,7 @@ import { useAuth } from "./context/AuthContext";
 import { AuthLoading, HouseholdOnboarding, ResetPassword, SignIn } from "./pages/Auth";
 import { supabase } from "./lib/supabase";
 import { classifySharedContent, SHARED_RECIPE_KEY, sharedRecipeTitle } from "./lib/sharedContent";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 // Route/page-level code splitting: each page is its own chunk, so the initial
 // bundle isn't the whole app. Signed-out visitors load only Landing; signed-in
@@ -50,6 +51,14 @@ const PageFallback = () => (
       <div className="skeleton-card shimmer" />
     </div>
   </div>
+);
+const PageErrorFallback = ({ retry, goToday }) => (
+  <section className="app-page-error" role="alert">
+    <ShieldCheck size={24} />
+    <h1>This page needs another try</h1>
+    <p>The rest of FamOS is still available and your household data is safe.</p>
+    <div><button onClick={retry}>Try this page again</button><button onClick={goToday}>Return to Today</button></div>
+  </section>
 );
 const VALID_TABS = ["today","calendar","meals","tasks","groceries","kitchen","chat","famai","settings"];
 const PUBLIC_ROUTES = ["privacy", "terms", "pricing", "signin", "signup"];
@@ -271,16 +280,18 @@ export default function App() {
             tabletModeAvailable={isTabletViewport}
             onToggleTabletMode={() => setTabletMode((value) => !value)}
           />
-          <Suspense fallback={<PageFallback />}>
-            {tab === "today" && <Today goTo={setTab} />}
-            {tab === "calendar" && <CalendarPage goTo={setTab} />}
-            {tab === "meals" && <Meals />}
-            {tab === "groceries" && <Groceries />}
-            {tab === "kitchen" && <KitchenWatch goTo={setTab} />}
-            {tab === "tasks" && <Tasks />}
-            {tab === "chat" && <Chat />}
-            {tab === "settings" && <Settings colorScheme={colorScheme} onColorSchemeChange={setColorScheme} />}
-          </Suspense>
+          <ErrorBoundary resetKey={tab} fallback={({ retry }) => <PageErrorFallback retry={retry} goToday={() => setTab("today")} />}>
+            <Suspense fallback={<PageFallback />}>
+              {tab === "today" && <Today goTo={setTab} />}
+              {tab === "calendar" && <CalendarPage goTo={setTab} />}
+              {tab === "meals" && <Meals />}
+              {tab === "groceries" && <Groceries />}
+              {tab === "kitchen" && <KitchenWatch goTo={setTab} />}
+              {tab === "tasks" && <Tasks />}
+              {tab === "chat" && <Chat />}
+              {tab === "settings" && <Settings colorScheme={colorScheme} onColorSchemeChange={setColorScheme} />}
+            </Suspense>
+          </ErrorBoundary>
         </main>
         {/* Fam AI is now a global overlay controlled by the AppTopBar Sparkles
             button. Passing `open` / `onClose` keeps it controlled — closing

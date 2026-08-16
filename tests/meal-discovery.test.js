@@ -14,6 +14,7 @@ test("meal roulette and Cook Mode use the Spoonacular edge function only", () =>
 test("meal ideas include the selected meal type and remain cacheable", () => {
   assert.match(mealsSource, /mealType:\s*slot/);
   assert.match(mealsSource, /offset:\s*0/);
+  assert.match(mealsSource, /number:\s*12/);
   assert.match(mealsSource, /searchRecipes\(/);
   assert.match(recipeSearchSource, /FRESH_FOR_MS/);
   assert.match(recipeSearchSource, /pending\.has\(key\)/);
@@ -28,7 +29,9 @@ test("meal ideas shuffle in place without another provider request", () => {
 test("cuisine chips immediately rerun the active roulette with an explicit filter", () => {
   assert.match(mealsSource, /rouletteForSlot\(rouletteOptions\.date, rouletteOptions\.slot, rouletteOptions\.kitchenOnly, cuisine\)/);
   assert.match(mealsSource, /cuisine:\s*chosenCuisine === "American Comfort"/);
-  assert.match(mealsSource, /query:\s*chosenCuisine \? `\$\{chosenCuisine\} \$\{slot\}` : slot/);
+  assert.doesNotMatch(mealsSource, /query:\s*chosenCuisine \? `\$\{chosenCuisine\} \$\{slot\}` : slot/);
+  assert.match(mealsSource, /Load more recipes/);
+  assert.match(mealsSource, /loadMoreMealIdeas/);
 });
 
 test("meal suggestions avoid quota-amplifying broad retries and preserve useful fallbacks", () => {
@@ -38,6 +41,14 @@ test("meal suggestions avoid quota-amplifying broad retries and preserve useful 
   assert.match(recipeSearchSource, /providerLimited:\s*true/);
   assert.match(mealsSource, /friendlyRecipeSearchError/);
   assert.doesNotMatch(mealsSource, /setRouletteError\(error\?\.message \|\| "Meal roulette/);
+});
+
+test("Cook Mode requests one fully expanded recipe after lightweight discovery", () => {
+  assert.match(mealsSource, /buildCookSearchLadder/);
+  const recipeBoxSource = readFileSync(new URL("../src/data/recipeBox.js", import.meta.url), "utf8");
+  assert.match(recipeBoxSource, /details:\s*true/);
+  assert.match(recipeBoxSource, /number:\s*1/);
+  assert.doesNotMatch(mealsSource, /cacheRecipeDetail\(recipe\);\s*await setMealForSlot\(rouletteOptions/);
 });
 
 test("kitchen ideas use the reviewed kitchen inventory", () => {

@@ -11,7 +11,8 @@ const corsHeaders = {
 
 const SPOONACULAR_URL = "https://api.spoonacular.com/recipes/complexSearch";
 const DEFAULT_SERVINGS = 4;
-const DEFAULT_RESULT_LIMIT = 3;
+const DEFAULT_RESULT_LIMIT = 12;
+const MAX_RESULT_LIMIT = 24;
 const cleanText = (input = "", maxLength = 200) => String(input || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, maxLength);
 
 const cleanIngredients = (raw) => Array.isArray(raw)
@@ -50,6 +51,10 @@ const normaliseRecipe = (payload) => {
     videoUrl: cleanText(payload.videoUrl || "", 500),
     source: cleanText(payload.creditsText || "Spoonacular", 100),
     sourceUrl: cleanText(payload.sourceUrl || payload.spoonacularSourceUrl || "", 500),
+    usedIngredientCount: Number(payload.usedIngredientCount || 0),
+    missedIngredientCount: Number(payload.missedIngredientCount || 0),
+    usedIngredients: cleanIngredients(payload.usedIngredients),
+    missedIngredients: cleanIngredients(payload.missedIngredients),
   };
 };
 
@@ -62,7 +67,7 @@ const INTOLERANCE_MAP = new Map([
   ["nut-free", "tree nut,peanut"], ["nut free", "tree nut,peanut"], ["shellfish-free", "shellfish"], ["shellfish free", "shellfish"],
 ]);
 
-const buildSearchParams = ({ query = "", ingredients = "", cuisine = "", mealType = "", offset = 0, dietaryRestrictions = [], avoidIngredients = "" } = {}) => {
+const buildSearchParams = ({ query = "", ingredients = "", cuisine = "", mealType = "", offset = 0, number = DEFAULT_RESULT_LIMIT, details = false, dietaryRestrictions = [], avoidIngredients = "" } = {}) => {
   const params = new URLSearchParams();
   const cleanQuery = cleanText(query, 200);
   const cleanIngredientList = cleanText(ingredients, 300);
@@ -76,13 +81,21 @@ const buildSearchParams = ({ query = "", ingredients = "", cuisine = "", mealTyp
   if (intolerances.length) params.set("intolerances", intolerances.join(","));
   if (avoidIngredients) params.set("excludeIngredients", cleanText(avoidIngredients, 200));
   if (mealType) params.set("type", mealType === "dinner" ? "main course" : cleanText(mealType, 40));
-  const safeOffset = Math.min(Math.max(Math.trunc(Number(offset) || 0), 0), 50);
+  const safeOffset = Math.min(Math.max(Math.trunc(Number(offset) || 0), 0), 900);
+  const safeNumber = Math.min(Math.max(Math.trunc(Number(number) || DEFAULT_RESULT_LIMIT), 1), MAX_RESULT_LIMIT);
   if (safeOffset) params.set("offset", String(safeOffset));
   params.set("instructionsRequired", "true");
-  params.set("addRecipeInformation", "true");
-  params.set("addRecipeInstructions", "true");
-  params.set("fillIngredients", "true");
-  params.set("number", String(DEFAULT_RESULT_LIMIT));
+  // Discovery stays lightweight so a page of ideas costs roughly one quota
+  // point instead of one point per fully-expanded recipe. Cook Mode retrieves
+  // the selected recipe's complete ingredients, nutrition and instructions.
+  params.set("addRecipeInformation", details ? "true" : "false");
+  params.set("addRecipeInstructions", details ? "true" : "false");
+  params.set("fillIngredients", details || Boolean(cleanIngredientList) ? "true" : "false");
+  if (cleanIngredientList && !details) {
+    params.set("sort", "max-used-ingredients");
+    params.set("ignorePantry", "true");
+  }
+  params.set("number", String(safeNumber));
   return params;
 };
 
@@ -95,7 +108,7 @@ Deno.serve(async (request) => {
     if (!apiKey) return json({ error: "Spoonacular is not configured yet. Set SPOONACULAR_API_KEY in Supabase Edge Function Secrets.", recipes: [] }, 400);
     const body = await request.json().catch(() => ({}));
     const searchParams = buildSearchParams(body || {});
-    if (!searchParams.get("query") && !searchParams.get("includeIngredients")) return json({ error: "Add a recipe name or ingredient so we can find a recipe.", recipes: [] }, 400);
+    if (!searchParams.get("query") && !searchParams.get("includeIngredients") && !searchParams.get("type")) return json({ error: "Choose a meal type, recipe name, or ingredient so we can find recipes.", recipes: [] }, 400);
     const response = await fetch(`${SPOONACULAR_URL}?${searchParams}`, { method: "GET", headers: { "x-api-key": apiKey, Accept: "application/json" } });
     if (!response.ok) {
       const detail = cleanText(await response.text().catch(() => ""), 300);
@@ -104,7 +117,14 @@ Deno.serve(async (request) => {
     }
     const raw = await response.json().catch(() => null);
     const recipes = (Array.isArray(raw?.results) ? raw.results : []).map(normaliseRecipe).filter(Boolean);
-    return json({ recipes, query: searchParams.get("query"), source: "spoonacular" });
+    return json({
+      recipes,
+      query: searchParams.get("query") || "",
+      source: "spoonacular",
+      offset: Number(raw?.offset ?? searchParams.get("offset") ?? 0),
+      number: Number(raw?.number ?? searchParams.get("number") ?? recipes.length),
+      totalResults: Number(raw?.totalResults ?? recipes.length),
+    });
   } catch (error) {
     console.error("recipe-search failed", error);
     return json({ error: error?.message || "Recipe lookup failed.", recipes: [] }, 400);
