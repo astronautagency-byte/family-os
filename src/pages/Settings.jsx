@@ -799,12 +799,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
           <div className="flex items-end justify-between mb-3"><h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)]">Appearance</h2></div>
           <Card className="settings-color-scheme-card">
             <div className="settings-color-scheme-head"><span><Palette size={18}/></span><div><strong>App colour</strong><small>Pick a palette that feels like home. Every option is tuned for light and dark mode.</small></div></div>
-            <div className="settings-color-schemes" role="radiogroup" aria-label="App colour scheme">
-              {APP_COLOR_SCHEMES.map((scheme) => {
-                const selected = colorScheme === scheme.id;
-                return <button key={scheme.id} type="button" role="radio" aria-checked={selected} className={selected ? "selected" : ""} onClick={() => onColorSchemeChange(scheme.id)}><span className="scheme-swatches" aria-hidden="true">{scheme.colors.map((color) => <i key={color} style={{ backgroundColor: color }}/>)}</span><span><strong>{scheme.label}</strong><small>{scheme.note}</small></span><em>{selected ? <Check size={14}/> : null}</em></button>;
-              })}
-            </div>
+            <label className="settings-color-select"><span className="scheme-swatches" aria-hidden="true">{(APP_COLOR_SCHEMES.find((scheme) => scheme.id === colorScheme) || APP_COLOR_SCHEMES[0]).colors.map((color) => <i key={color} style={{ backgroundColor: color }}/>)}</span><span className="settings-color-select-copy"><strong>{(APP_COLOR_SCHEMES.find((scheme) => scheme.id === colorScheme) || APP_COLOR_SCHEMES[0]).label}</strong><small>{(APP_COLOR_SCHEMES.find((scheme) => scheme.id === colorScheme) || APP_COLOR_SCHEMES[0]).note}</small></span><select aria-label="App colour scheme" value={colorScheme} onChange={(event) => onColorSchemeChange(event.target.value)}>{APP_COLOR_SCHEMES.map((scheme) => <option key={scheme.id} value={scheme.id}>{scheme.label} — {scheme.note}</option>)}</select></label>
           </Card>
         </section>
 
@@ -1144,6 +1139,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
               <div className="mt-3 flex flex-wrap gap-3">
                 <button onClick={() => { window.location.hash = "privacy"; }} className="text-[12px] font-semibold text-[var(--color-accent)]">Privacy policy</button>
                 <button onClick={() => { window.location.hash = "terms"; }} className="text-[12px] font-semibold text-[var(--color-accent)]">Terms of service</button>
+                <a href="https://getastronaut.io" target="_blank" rel="noreferrer" className="text-[12px] font-semibold text-[var(--color-accent)] inline-flex items-center gap-1">Astronaut Digital <ExternalLink size={12}/></a>
               </div>
             </div>
           </Card>

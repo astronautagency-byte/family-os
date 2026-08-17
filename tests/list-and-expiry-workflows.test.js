@@ -20,6 +20,20 @@ test("shopping lists scope new items and destructive actions", () => {
   assert.match(groceries, /activeGroceryListId === "all" \? null : activeGroceryListId/);
   assert.match(groceries, /clearGroceries\(activeGroceryListId/);
   assert.match(groceries, /clearCheckedGroceries\(activeGroceryListId/);
+  assert.match(familyContext, /const removeGroceryList = async/);
+  assert.match(groceries, /Delete list/);
+});
+
+test("mobile chat composer clears the bottom navigation", () => {
+  const chat = readFileSync(new URL("../src/pages/Chat.jsx", import.meta.url), "utf8");
+  assert.match(chat, /chat-mobile-composer/);
+  assert.match(css, /chat-mobile-composer\{padding-bottom:calc\(14px \+ env\(safe-area-inset-bottom\) \+ 68px\)/);
+});
+
+test("settings restores the Astronaut Digital credit", () => {
+  const settings = readFileSync(new URL("../src/pages/Settings.jsx", import.meta.url), "utf8");
+  assert.match(settings, /https:\/\/getastronaut\.io/);
+  assert.match(settings, /Astronaut Digital/);
 });
 
 test("Kitchen Watch renders an expiry progress meter", () => {

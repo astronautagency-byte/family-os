@@ -212,7 +212,7 @@ function categoryFromItemName(name = "", fallback = GROCERY_CATEGORIES[0]) {
 }
 
 export default function Groceries() {
-  const { groceries, groceryLists = [], addGroceryList, meals, addGrocery: addGroceryBase, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries, clearGroceries, memberById, refreshData } = useFamily();
+  const { groceries, groceryLists = [], addGroceryList, removeGroceryList, meals, addGrocery: addGroceryBase, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries, clearGroceries, memberById, refreshData } = useFamily();
   const auth = useAuth();
   const household = auth?.household;
   const { items: inventoryItems, addItem: addInventoryItem, updateItem: updateInventoryItem, removeItem: removeInventoryItem } = useKitchenInventory(household?.id, auth?.user?.id);
@@ -222,6 +222,7 @@ export default function Groceries() {
   const [newListOpen, setNewListOpen] = useState(false);
   const [newListName, setNewListName] = useState("");
   const [newListError, setNewListError] = useState("");
+  const [deletingList, setDeletingList] = useState(null);
   const [inventoryDraft, setInventoryDraft] = useState(emptyInventoryDraft);
   const [inventorySaving, setInventorySaving] = useState(false);
   const [inventoryError, setInventoryError] = useState("");
@@ -1002,7 +1003,7 @@ export default function Groceries() {
 
       <div className="shopping-list-switcher" role="tablist" aria-label="Shopping lists">
         <button type="button" role="tab" aria-selected={activeGroceryListId === "all"} className={activeGroceryListId === "all" ? "selected" : ""} onClick={() => setActiveGroceryListId("all")}><ShoppingBasket size={15}/><span>All shopping</span><em>{groceries.filter((item) => !item.checked).length}</em></button>
-        {groceryLists.map((list) => <button type="button" role="tab" aria-selected={activeGroceryListId === list.id} className={activeGroceryListId === list.id ? "selected" : ""} style={{ "--list-tone": list.color }} onClick={() => setActiveGroceryListId(list.id)} key={list.id}><ListChecks size={15}/><span>{list.name}</span><em>{groceries.filter((item) => item.listId === list.id && !item.checked).length}</em></button>)}
+        {groceryLists.map((list) => <div className={`shopping-list-tab ${activeGroceryListId === list.id ? "selected" : ""}`} style={{ "--list-tone": list.color }} key={list.id}><button type="button" role="tab" aria-selected={activeGroceryListId === list.id} onClick={() => setActiveGroceryListId(list.id)}><ListChecks size={15}/><span>{list.name}</span><em>{groceries.filter((item) => item.listId === list.id && !item.checked).length}</em></button><button type="button" className="shopping-list-delete" onClick={() => setDeletingList(list)} aria-label={`Delete ${list.name}`} title={`Delete ${list.name}`}><Trash2 size={13}/></button></div>)}
         <button type="button" className="shopping-list-add" onClick={() => setNewListOpen(true)}><Plus size={15}/><span>New list</span></button>
       </div>
 
@@ -1303,6 +1304,7 @@ export default function Groceries() {
       </Modal>
       <Modal open={clearing} onClose={()=>setClearing(false)} title="Clear the grocery list?"><p className="reset-confirm-copy">This clears the active list. Your saved staples stay ready for next time.</p><div className="reset-confirm-actions"><button onClick={()=>setClearing(false)}>Cancel</button><PrimaryButton onClick={async()=>{await clearGroceries(activeGroceryListId === "all" ? null : activeGroceryListId);setClearing(false)}}>Clear list</PrimaryButton></div></Modal>
       <Modal open={newListOpen} onClose={() => { setNewListOpen(false); setNewListError(""); }} title="New shopping list"><TextField label="List name" value={newListName} onChange={(event) => setNewListName(event.target.value)} placeholder="Costco run"/>{newListError && <p className="inventory-add-error" role="alert">{newListError}</p>}<PrimaryButton disabled={!newListName.trim()} onClick={async () => { try { const list = await addGroceryList({ name: newListName }); setActiveGroceryListId(list.id); setNewListName(""); setNewListOpen(false); } catch (error) { setNewListError(error?.message || "Could not create this list."); } }}>Create list</PrimaryButton></Modal>
+      <ConfirmAction open={!!deletingList} onClose={() => setDeletingList(null)} onConfirm={async () => { const id = deletingList?.id; if (!id) return; await removeGroceryList(id); if (activeGroceryListId === id) setActiveGroceryListId("all"); setDeletingList(null); }} title={`Delete ${deletingList?.name || "this list"}?`} copy="The custom list will be removed. Its items will stay available under All shopping so nothing is lost." confirmLabel="Delete list" />
       <ConfirmAction
         open={clearingChecked}
         onClose={() => setClearingChecked(false)}

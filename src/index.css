@@ -4909,3 +4909,28 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .feature-paywall button{width:100%;justify-content:center}.feature-paywall button+button{margin-top:10px}
 .feature-paywall-error{margin-top:12px;color:var(--color-warn);font-size:13px}
 @media(max-width:600px){.feature-paywall{align-items:start;padding:20px 14px 110px}.feature-paywall-price{display:grid;gap:6px}}
+
+/* Compact editorial page titles: preserve hierarchy without overpowering content. */
+.app-shell .page-title,body .app-content .page-title{font-size:clamp(19px,2.4vw,23px)!important;line-height:1.16!important;letter-spacing:-.025em!important}
+@media(max-width:640px){.app-shell .page-title,body .app-content .page-title{font-size:21px!important;line-height:1.18!important}.chat-mobile-composer{padding-bottom:calc(14px + env(safe-area-inset-bottom) + 68px)!important}}
+
+/* Shopping list tabs keep deletion explicit without nesting interactive controls. */
+.shopping-list-switcher .shopping-list-tab{display:flex;flex:0 0 auto;align-items:center;border:1px solid var(--color-border);border-radius:var(--radius-pill);background:var(--color-surface);overflow:hidden}
+.shopping-list-switcher .shopping-list-tab.selected{border-color:var(--list-tone,var(--color-shopping));background:var(--color-shopping-soft)}
+.shopping-list-switcher .shopping-list-tab>button:first-child{border:0;border-radius:0;background:transparent}
+.shopping-list-switcher .shopping-list-tab.selected>button:first-child{color:var(--color-shopping-strong)}
+.shopping-list-switcher .shopping-list-delete{min-height:30px;margin-right:4px;padding:0 7px;border:0;border-radius:999px;background:transparent;color:var(--color-ink-faint)}
+.shopping-list-switcher .shopping-list-delete:hover{background:var(--color-warn-soft);color:var(--color-warn)}
+
+/* One concise, accessible appearance selector replaces the full palette wall. */
+.settings-color-select{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:11px;margin-top:14px;padding:11px 44px 11px 12px;border:1px solid var(--color-border);border-radius:var(--radius-control);background:var(--color-surface);cursor:pointer}
+.settings-color-select:focus-within{border-color:var(--color-accent);box-shadow:0 0 0 3px var(--color-accent-soft)}
+.settings-color-select-copy strong,.settings-color-select-copy small{display:block}.settings-color-select-copy strong{color:var(--color-ink);font-size:12px}.settings-color-select-copy small{margin-top:2px;color:var(--color-ink-soft);font-size:10px}.settings-color-select select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.settings-color-select::after{content:"⌄";position:absolute;right:15px;top:50%;translate:0 -55%;color:var(--color-ink-soft);font-size:18px;font-weight:700;pointer-events:none}
+
+/* Dashboard customization combines visibility and ordering in one calm panel. */
+.today-customize-panel{margin-top:8px;margin-bottom:14px;padding:10px 12px;border:1px solid var(--color-border);border-radius:12px;background:var(--color-accent-soft)}
+.today-customize-panel .today-customize-hint{margin:0;padding:0;border:0;background:transparent}
+.today-card-toggles{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px;padding-top:10px;border-top:1px solid color-mix(in srgb,var(--color-accent) 18%,var(--color-border))}
+.today-card-toggles label{display:flex;align-items:center;gap:6px;min-height:32px;padding:0 9px;border:1px solid var(--color-border);border-radius:var(--radius-pill);background:var(--color-surface);color:var(--color-ink-soft);font-size:10.5px;cursor:pointer}.today-card-toggles input{position:absolute;opacity:0}.today-card-toggles label>span{width:25px;height:15px;padding:2px;border-radius:999px;background:var(--color-border-strong);transition:background-color .15s ease}.today-card-toggles label>span::after{content:"";display:block;width:11px;height:11px;border-radius:50%;background:var(--color-surface);box-shadow:var(--shadow-xs);transition:translate .15s ease}.today-card-toggles input:checked+span{background:var(--color-accent)}.today-card-toggles input:checked+span::after{translate:10px 0}.today-card-toggles input:focus-visible+span{outline:3px solid color-mix(in srgb,var(--color-accent) 28%,transparent);outline-offset:2px}.today-card-toggles strong{font-weight:700}
+@media(max-width:640px){.today-customize-panel{margin-inline:12px!important}.today-customize-panel .today-customize-hint{align-items:flex-start;flex-direction:column}.today-card-toggles{display:grid;grid-template-columns:1fr 1fr}.today-card-toggles label{justify-content:flex-start}}

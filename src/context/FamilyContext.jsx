@@ -718,6 +718,23 @@ export function FamilyProvider({ children, tabletMode = false }) {
     setGroceryLists((current) => [...current, savedList]);
     return savedList;
   };
+  const removeGroceryList = async (id) => {
+    const list = groceryLists.find((item) => item.id === id);
+    if (!list) return;
+    const previousLists = groceryLists;
+    const previousGroceries = groceries;
+    setGroceryLists((current) => current.filter((item) => item.id !== id));
+    setGroceries((current) => current.map((item) => item.listId === id ? { ...item, listId: null } : item));
+    if (remote) {
+      const { error } = await supabase.from("grocery_lists").delete().eq("id", id).eq("household_id", household.id);
+      if (error) {
+        setGroceryLists(previousLists);
+        setGroceries(previousGroceries);
+        setDataError(error.message);
+        throw error;
+      }
+    }
+  };
   const toggleGrocery = async (id) => {
     // Optimistic: flip local state immediately.
     setGroceries((prev) => prev.map((g) => (g.id === id ? { ...g, checked: !g.checked } : g)));
@@ -1846,7 +1863,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
     members, memberById, addMember, updateMember, removeMember,
     events, addEvent, updateEvent, removeEvent, clearEvents,
     meals, setMealForSlot, removeMeal, clearMeals,
-    groceries, groceryLists, addGroceryList, addGrocery, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries, clearGroceries,
+    groceries, groceryLists, addGroceryList, removeGroceryList, addGrocery, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries, clearGroceries,
     tasks: visibleTasks, taskLists, addTaskList, addTask, toggleTask, updateTask, removeTask, clearTasks,
     messages: visibleMessages, sendMessage, importMessages, clearFamilyChat, clearMyDirectMessages,
     unreadMessageCount, markChatRead, broadcasts, broadcastMessage, clearBroadcast, reactionsByMessage, reactToBroadcast, currentUserId,

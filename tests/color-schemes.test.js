@@ -17,7 +17,8 @@ const schemeIds = ["famos", "ocean", "berry", "forest", "sunset", "mist", "sage"
 
 test("Settings exposes curated accessible palettes", () => {
   for (const scheme of schemeIds) assert.match(schemes, new RegExp(`id: "${scheme}"`));
-  assert.match(settings, /role="radiogroup"/);
+  assert.match(settings, /select aria-label="App colour scheme"/);
+  assert.match(settings, /settings-color-select/);
 });
 
 test("every alternate palette has light and dark token overrides", () => {

@@ -31,7 +31,9 @@ test("Today fills empty states with useful kitchen and family context", () => {
 
 test("Today lets each user persist and rearrange home cards", () => {
   assert.match(today, /famos:today-card-order:v1/);
-  assert.match(today, /Drag cards to rearrange them/);
+  assert.match(today, /Choose what appears, then drag cards to rearrange them/);
+  assert.match(today, /famos:today-card-hidden:v1/);
+  assert.match(today, /toggleDashboardCard/);
   assert.match(today, /moveDashboardCard/);
   assert.match(today, /dashboardDragProps/);
   assert.match(today, /onDragStart/);

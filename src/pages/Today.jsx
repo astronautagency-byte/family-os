@@ -30,6 +30,7 @@ const TODAY_MEAL_SLOTS = [
   { id: "dinner", label: "Dinner", icon: ChefHat },
 ];
 const DASHBOARD_ORDER_KEY = "famos:today-card-order:v1";
+const DASHBOARD_HIDDEN_KEY = "famos:today-card-hidden:v1";
 const DASHBOARD_CARDS = [
   { id: "weather", label: "Weather" },
   { id: "schedule", label: "Schedule" },
@@ -46,6 +47,13 @@ const readDashboardOrder = () => {
     const saved = JSON.parse(window.localStorage.getItem(DASHBOARD_ORDER_KEY) || "[]");
     return saved.length === defaultDashboardOrder.length && defaultDashboardOrder.every((id) => saved.includes(id)) ? saved : defaultDashboardOrder;
   } catch { return defaultDashboardOrder; }
+};
+const readHiddenDashboardCards = () => {
+  if (typeof window === "undefined") return [];
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(DASHBOARD_HIDDEN_KEY) || "[]");
+    return Array.isArray(saved) ? saved.filter((id) => defaultDashboardOrder.includes(id)) : [];
+  } catch { return []; }
 };
 const weatherKind = (kind) => WEATHER_KIND[kind] || WEATHER_KIND.cloudy;
 function WeatherGlyph({ kind, isDay = true, size = 20 }) {
@@ -188,6 +196,7 @@ export default function Today({ goTo }) {
   const [broadcastFocused, setBroadcastFocused] = useState(false);
   const [editingDashboard, setEditingDashboard] = useState(false);
   const [dashboardOrder, setDashboardOrder] = useState(readDashboardOrder);
+  const [hiddenDashboardCards, setHiddenDashboardCards] = useState(readHiddenDashboardCards);
   const composeContainerRef = useRef(null);
   const draggedDashboardCard = useRef(null);
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
@@ -195,8 +204,12 @@ export default function Today({ goTo }) {
   useEffect(() => {
     if (typeof window !== "undefined") window.localStorage.setItem(DASHBOARD_ORDER_KEY, JSON.stringify(dashboardOrder));
   }, [dashboardOrder]);
+  useEffect(() => {
+    if (typeof window !== "undefined") window.localStorage.setItem(DASHBOARD_HIDDEN_KEY, JSON.stringify(hiddenDashboardCards));
+  }, [hiddenDashboardCards]);
 
-  const dashboardPosition = (id) => ({ order: dashboardOrder.indexOf(id) + 1 });
+  const dashboardPosition = (id) => ({ order: dashboardOrder.indexOf(id) + 1, display: hiddenDashboardCards.includes(id) ? "none" : undefined });
+  const toggleDashboardCard = (id) => setHiddenDashboardCards((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   const moveDashboardCard = (id, direction) => {
     setDashboardOrder((current) => {
       const from = current.indexOf(id);
@@ -503,7 +516,7 @@ export default function Today({ goTo }) {
         action={<button type="button" className={`today-customize-trigger ${editingDashboard ? "active" : ""}`} onClick={() => setEditingDashboard((current) => !current)} aria-expanded={editingDashboard}><LayoutGrid size={16}/>{editingDashboard ? "Done" : "Customize"}</button>}
       />
 
-      {editingDashboard && <div className="today-customize-hint mx-5"><span><GripVertical size={15}/> Drag cards to rearrange them. On touch screens, use the arrow buttons.</span><button type="button" onClick={() => setDashboardOrder(defaultDashboardOrder)}><RotateCcw size={14}/> Reset</button></div>}
+      {editingDashboard && <div className="today-customize-panel mx-5"><div className="today-customize-hint"><span><GripVertical size={15}/> Choose what appears, then drag cards to rearrange them.</span><button type="button" onClick={() => { setDashboardOrder(defaultDashboardOrder); setHiddenDashboardCards([]); }}><RotateCcw size={14}/> Reset</button></div><div className="today-card-toggles">{DASHBOARD_CARDS.map((card) => { const visible = !hiddenDashboardCards.includes(card.id); return <label key={card.id}><input type="checkbox" checked={visible} onChange={() => toggleDashboardCard(card.id)}/><span aria-hidden="true"/><strong>{card.label}</strong></label>; })}</div></div>}
 
       <div className="px-5 mt-2 today-bento-grid">
         <section className="broadcast-home" aria-label="Family broadcast">
