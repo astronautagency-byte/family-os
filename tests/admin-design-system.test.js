@@ -28,3 +28,12 @@ test("admin console consumes the shared personalized design system", () => {
   assert.match(css, /prefers-reduced-motion:reduce/);
   assert.doesNotMatch(admin, /#7155df|#4f8fc9|#d58a35|#388b73|#d36b83/);
 });
+
+test("admin operations support scrolling, flexible statistics, promotions and provider refunds", () => {
+  assert.doesNotMatch(admin, /admin-shell famos-noscroll/);
+  assert.match(admin, /Statistics period/);
+  assert.match(admin, /value="730"/);
+  assert.match(admin, /admin_list_promo_codes/);
+  assert.match(admin, /admin_apply_promo_code/);
+  assert.match(admin, /admin-chargebee-refund/);
+});
