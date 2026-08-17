@@ -84,9 +84,16 @@ function GroceryItemImage({ item, memberById, focus = false }) {
   useEffect(() => setFailed(false), [src]);
   if (!src || failed) return <GroceryIcon category={item.category} />;
   const uploader = item.photoUrl && item.photoUploadedBy ? memberById[item.photoUploadedBy] : null;
+  const size = focus ? 48 : 34;
+  const radius = focus ? 11 : 9;
   return (
-    <span className={`grocery-photo-thumb ${focus ? "grocery-photo-thumb-focus" : "grocery-photo-thumb-list"}`} role="img" aria-label={item.photoUrl ? `Photo of ${item.name}` : `Product image for ${item.name}`}>
-      <img src={src} alt="" onError={() => setFailed(true)} />
+    <span
+      className={`grocery-photo-thumb ${focus ? "grocery-photo-thumb-focus" : "grocery-photo-thumb-list"}`}
+      role="img"
+      aria-label={item.photoUrl ? `Photo of ${item.name}` : `Product image for ${item.name}`}
+      style={{ position: "relative", display: "grid", placeItems: "center", width: size, height: size, borderRadius: radius, border: "none", overflow: "hidden", flex: "0 0 auto", background: "var(--color-accent-soft)" }}
+    >
+      <img src={src} alt="" onError={() => setFailed(true)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
       {uploader && <Avatar member={uploader} size="xs" className="grocery-photo-attribution" />}
     </span>
   );

@@ -21,11 +21,11 @@ function ShelfLifeBar({ item }) {
   const color = shelfLifeColor(days);
   const label = days <= 0 ? "Expired" : days === 1 ? "1 day left" : `${days} days left`;
   return (
-    <div className="kw-shelf-life">
-      <div className="kw-shelf-track">
-        <div className="kw-shelf-fill" style={{ width: `${percent}%`, backgroundColor: color }} />
+    <div style={{ width: "100%", marginTop: 6 }}>
+      <div style={{ width: "100%", height: 4, borderRadius: 2, background: "var(--color-border, #e5e7eb)", overflow: "hidden" }}>
+        <div style={{ height: "100%", borderRadius: 2, width: `${percent}%`, backgroundColor: color, transition: "width .4s ease, background-color .3s ease" }} />
       </div>
-      <span className="kw-shelf-label" style={{ color }}>{label}</span>
+      <span style={{ color, fontSize: 11, fontWeight: 600 }}>{label}</span>
     </div>
   );
 }
