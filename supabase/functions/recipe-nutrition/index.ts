@@ -2,6 +2,7 @@
 // secret stays server-side. Docs: https://spoonacular.com/food-api/docs#Analyze-Recipe
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { consumeUsage, usageLimitResponse } from "../_shared/usage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,6 +27,8 @@ const nutrientAmount = (nutrients, name) => {
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
+    const usage = await consumeUsage(request, "premium_api_operations");
+    if (!usage.allowed) return usageLimitResponse(usage, corsHeaders);
     const apiKey = Deno.env.get("SPOONACULAR_API_KEY");
     if (!apiKey) return json({ error: "Spoonacular is not configured. Set SPOONACULAR_API_KEY in Supabase Edge Function Secrets.", items: [] }, 400);
     const body = await request.json().catch(() => ({}));
@@ -55,7 +58,7 @@ Deno.serve(async (request) => {
       sugar_g: nutrientAmount(nutrients, "Sugar"),
       sodium_mg: nutrientAmount(nutrients, "Sodium"),
     } : null;
-    return json({ items: nutrients, totals, query: lines.join(", "), source: "spoonacular" });
+    return json({ items: nutrients, totals, query: lines.join(", "), source: "spoonacular", usage });
   } catch (error) {
     console.error("recipe-nutrition failed", error);
     return json({ error: error?.message || "Nutrition lookup failed.", items: [] }, 400);

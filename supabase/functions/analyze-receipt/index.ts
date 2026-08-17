@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { consumeUsage, usageLimitResponse } from "../_shared/usage.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -15,6 +16,8 @@ function normalizeCategory(category = "") {
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
+    const usage = await consumeUsage(request, "premium_api_operations");
+    if (!usage.allowed) return usageLimitResponse(usage, cors);
     const authorization = request.headers.get("Authorization");
     if (!authorization) throw new Error("Sign in to analyze receipts.");
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authorization } } });
@@ -65,7 +68,7 @@ Deno.serve(async (request) => {
       confidence: Number.isFinite(Number(parsed.confidence)) ? Number(parsed.confidence) : 0.75,
       notes: String(parsed.notes || "Extracted from receipt image.").slice(0, 220),
     };
-    return new Response(JSON.stringify(result), { headers: { ...cors, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ...result, usage }), { headers: { ...cors, "Content-Type": "application/json" } });
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
   }

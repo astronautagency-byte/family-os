@@ -25,13 +25,20 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
-  overscroll-behavior-y: none;
+  overscroll-behavior-y: auto;
   background-image: none;
   min-width:0;
   min-height:100dvh;
   overflow-x:hidden;
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
+}
+
+body[data-scroll-locked="true"]{overflow:hidden}
+/* A navigation, refresh, or live update must never leave the whole product
+   frozen after its dialog/drawer has gone away. */
+body:not(:has(.m3-dialog-layer,.marketing-drawer.is-open,.cook-focus-screen)){
+  overflow-y:auto!important;
 }
 
 /* Shared form controls */

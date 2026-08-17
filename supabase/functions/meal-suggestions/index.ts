@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { consumeUsage, usageLimitResponse } from "../_shared/usage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,6 +9,8 @@ const corsHeaders = {
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
+    const usage = await consumeUsage(request, "premium_api_operations");
+    if (!usage.allowed) return usageLimitResponse(usage, corsHeaders);
     const { ingredients, mealType = "dinner" } = await request.json();
     if (!ingredients?.trim()) throw new Error("Add some ingredients first.");
     const groqKey = Deno.env.get("GROQ_API_KEY");
@@ -30,7 +33,7 @@ Deno.serve(async (request) => {
     }
     const result = await response.json();
     const parsed = JSON.parse(result.choices?.[0]?.message?.content || "{}");
-    return new Response(JSON.stringify(parsed), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ...parsed, usage }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }

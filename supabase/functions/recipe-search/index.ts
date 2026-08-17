@@ -3,6 +3,7 @@
 // Docs: https://spoonacular.com/food-api/docs#Search-Recipes-Complex
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { consumeUsage, usageLimitResponse } from "../_shared/usage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -105,6 +106,8 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), { status
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
+    const usage = await consumeUsage(request, "premium_api_operations");
+    if (!usage.allowed) return usageLimitResponse(usage, corsHeaders);
     const apiKey = Deno.env.get("SPOONACULAR_API_KEY");
     if (!apiKey) return json({ error: "Spoonacular is not configured yet. Set SPOONACULAR_API_KEY in Supabase Edge Function Secrets.", recipes: [] }, 400);
     const body = await request.json().catch(() => ({}));
@@ -124,7 +127,7 @@ Deno.serve(async (request) => {
       source: "spoonacular",
       offset: Number(raw?.offset ?? searchParams.get("offset") ?? 0),
       number: Number(raw?.number ?? searchParams.get("number") ?? recipes.length),
-      totalResults: Number(raw?.totalResults ?? recipes.length),
+      totalResults: Number(raw?.totalResults ?? recipes.length), usage,
     });
   } catch (error) {
     console.error("recipe-search failed", error);

@@ -697,6 +697,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
   // Plan & billing card can show a status badge, payment method, and
   // next-charge date instead of the static PRICING_PLAN values.
   const [subscription, setSubscription] = useState(null);
+  const [usageStatus, setUsageStatus] = useState(null);
   const [billingBusy, setBillingBusy] = useState(false);
   const [billingError, setBillingError] = useState("");
 
@@ -712,8 +713,12 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
     let cancelled = false;
     (async () => {
       try {
-        const { data, error } = await supabase.rpc("get_my_subscription");
-        if (!cancelled && !error && data?.[0]) setSubscription(data[0]);
+        const [subscriptionResult, usageResult] = await Promise.all([
+          supabase.rpc("get_my_subscription"),
+          supabase.functions.invoke("usage-status"),
+        ]);
+        if (!cancelled && !subscriptionResult.error && subscriptionResult.data?.[0]) setSubscription(subscriptionResult.data[0]);
+        if (!cancelled && !usageResult.error && usageResult.data) setUsageStatus(usageResult.data);
       } catch {
         // * — subscription is optional; missing RPC must not break Settings.
       }
@@ -984,6 +989,32 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
                 <div className="flex items-start gap-2 rounded-xl bg-[var(--color-good-soft)] px-3 py-2 text-[var(--color-good)]">
                   <ShieldCheck size={14} className="mt-0.5 shrink-0" />
                   <span>Your free tools remain available even without a paid extra.</span>
+                </div>
+              )}
+              {usageStatus && (
+                <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3" aria-label="Monthly premium usage">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <strong className="text-[var(--color-ink)]">Monthly usage</strong>
+                    <span className="text-[11px] text-[var(--color-ink-faint)]">Resets {formatNextCharge(usageStatus.nextReset)}</span>
+                  </div>
+                  {[
+                    ["FamAI questions", usageStatus.famai],
+                    ["Meal, recipe & Smart Capture actions", usageStatus.premiumOperations],
+                  ].map(([label, usage]) => {
+                    const percent = usage?.limit ? Math.min(100, Math.round((usage.used / usage.limit) * 100)) : 0;
+                    return usage ? (
+                      <div key={label} className="mb-3 last:mb-0">
+                        <div className="mb-1 flex items-center justify-between gap-3">
+                          <span>{label}</span>
+                          <strong className="text-[var(--color-ink)]">{usage.remaining} left</strong>
+                        </div>
+                        <div className="h-2 overflow-hidden rounded-full bg-[var(--color-surface-sunken)]" role="progressbar" aria-label={label} aria-valuenow={usage.used} aria-valuemin="0" aria-valuemax={usage.limit}>
+                          <div className="h-full rounded-full bg-[var(--color-accent)] transition-[width]" style={{ width: `${percent}%` }} />
+                        </div>
+                        <p className="mt-1 text-[11px] text-[var(--color-ink-faint)]">{usage.used} of {usage.limit} used</p>
+                      </div>
+                    ) : null;
+                  })}
                 </div>
               )}
             </div>

@@ -1,18 +1,32 @@
-let activeLocks = 0;
-let originalOverflow = "";
+const LOCK_STATE_KEY = "__famosBodyScrollLockState";
+
+const getLockState = () => {
+  if (typeof window === "undefined") return { count: 0, originalOverflow: "" };
+  if (!window[LOCK_STATE_KEY]) {
+    window[LOCK_STATE_KEY] = { count: 0, originalOverflow: "" };
+  }
+  return window[LOCK_STATE_KEY];
+};
 
 export function lockBodyScroll() {
   if (typeof document === "undefined") return () => {};
-  if (activeLocks === 0) {
-    originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+  const state = getLockState();
+  if (state.count === 0) {
+    state.originalOverflow = document.body.style.overflow === "hidden"
+      ? ""
+      : document.body.style.overflow;
+    document.body.dataset.scrollLocked = "true";
   }
-  activeLocks += 1;
+  state.count += 1;
   let released = false;
   return () => {
     if (released) return;
     released = true;
-    activeLocks = Math.max(0, activeLocks - 1);
-    if (activeLocks === 0) document.body.style.overflow = originalOverflow;
+    state.count = Math.max(0, state.count - 1);
+    if (state.count === 0) {
+      delete document.body.dataset.scrollLocked;
+      document.body.style.overflow = state.originalOverflow;
+      state.originalOverflow = "";
+    }
   };
 }

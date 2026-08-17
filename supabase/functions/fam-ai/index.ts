@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { consumeUsage, usageLimitResponse } from "../_shared/usage.ts";
 
 const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type"};
 const tools=[
@@ -15,6 +16,7 @@ Deno.serve(async request=>{
   const authorization=request.headers.get("Authorization"); if(!authorization)throw new Error("Sign in to use Fam AI.");
   const supabase=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_ANON_KEY")!,{global:{headers:{Authorization:authorization}}});
   const {data:{user},error}=await supabase.auth.getUser(); if(error||!user)throw new Error("Your session has expired.");
+  const usage=await consumeUsage(request,"famai_queries"); if(!usage.allowed)return usageLimitResponse(usage,cors);
   const xaiKey=Deno.env.get("XAI_API_KEY"); const groqKey=Deno.env.get("GROQ_API_KEY"); if(!xaiKey&&!groqKey)throw new Error("Fam AI's server credential is not configured yet.");
   const {messages=[],context={}}=await request.json();
   const system=`You are Fam AI, a concise and warm assistant inside FamilyOS. Help families organize their home. Today is ${new Date().toISOString().slice(0,10)}.
@@ -47,6 +49,6 @@ Household context: ${JSON.stringify(context)}`;
   }
   const payload=await response.json(); const message=payload.choices?.[0]?.message||{};
   const actions=(message.tool_calls||[]).filter((call:any)=>call.type==="function").map((call:any)=>{let args={};try{args=JSON.parse(call.function.arguments||"{}")}catch{/* return empty args for validation in client */}return{id:call.id||crypto.randomUUID(),type:call.function.name,args};});
-  return new Response(JSON.stringify({message:message.content|| (actions.length?`I prepared ${actions.length} action${actions.length===1?"":"s"} for your review.`:"How can I help your family?"),actions}),{headers:{...cors,"Content-Type":"application/json"}});
+  return new Response(JSON.stringify({message:message.content|| (actions.length?`I prepared ${actions.length} action${actions.length===1?"":"s"} for your review.`:"How can I help your family?"),actions,usage}),{headers:{...cors,"Content-Type":"application/json"}});
  }catch(error){return new Response(JSON.stringify({error:error.message}),{status:400,headers:{...cors,"Content-Type":"application/json"}})}
 });

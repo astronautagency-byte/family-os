@@ -3,7 +3,7 @@ import {
   Activity, Archive, ArrowLeft, BadgeDollarSign, Bug, Building2, CalendarDays, CheckCircle2, ChevronRight,
   CircleDollarSign, CreditCard, Flag, LayoutDashboard, Lightbulb, ListChecks, LogOut, Mail, MessageCircle,
   Search, Send, Settings2, ShieldCheck, ShoppingCart, Tag, Ticket, Trash2, TrendingUp, UserPlus, Users, Utensils,
-  WalletCards, XCircle,
+  WalletCards, XCircle, RefreshCw, ExternalLink, ReceiptText,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { Card, Modal, PrimaryButton, TextField } from "../components/ui";
@@ -224,6 +224,36 @@ function TopFamilies({ families = [], onOpen }) {
   return <Card className="admin-panel admin-top-families"><PanelHead eyebrow="Engagement" title="Top families" icon={TrendingUp} /><div>{families.map((family, index) => <button key={family.id} onClick={() => onOpen(family.id)}><span>{index + 1}</span><div><strong>{family.name}</strong><small>{family.plan} · {money(family.mrr_cents)} MRR</small><i><em style={{ width: `${Number(family.activity_count || 0) / max * 100}%` }} /></i></div><b>{number(family.activity_count)}</b></button>)}{!families.length && <p className="admin-empty">Activity will appear as families use FamOS.</p>}</div></Card>;
 }
 
+function ChargebeeRevenue({ range }) {
+  const [report, setReport] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const load = async () => {
+    setBusy(true); setError("");
+    const { data, error: requestError } = await supabase.functions.invoke("admin-chargebee-analytics", { body: { days: range } });
+    if (requestError || data?.error) setError(data?.error || requestError?.message || "Chargebee reporting is unavailable.");
+    else setReport(data);
+    setBusy(false);
+  };
+  useEffect(() => { load(); }, [range]); // eslint-disable-line react-hooks/exhaustive-deps
+  const openCustomer = async (customerId) => {
+    setError("");
+    const { data, error: portalError } = await supabase.functions.invoke("admin-chargebee-portal", { body: { customerId } });
+    if (portalError || data?.error || !data?.url) setError(data?.error || portalError?.message || "Could not open customer billing.");
+    else window.open(data.url, "_blank", "noopener,noreferrer");
+  };
+  if (!report && busy) return <Card className="admin-panel admin-chargebee-state"><RefreshCw className="spin" /><strong>Loading live Chargebee data…</strong></Card>;
+  return <section className="admin-chargebee-live">
+    <Card className="admin-panel admin-chargebee-head"><div><span className="admin-kicker"><CreditCard size={13}/> Live provider data</span><h2>Chargebee billing intelligence</h2><p>{report ? `Updated ${new Date(report.generatedAt).toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit" })}` : "Connect the reporting function to load provider data."}</p></div><div><button onClick={load} disabled={busy}><RefreshCw className={busy ? "spin" : ""} size={15}/>{busy ? "Refreshing…" : "Refresh"}</button>{report?.chargebeeUrl && <a href={`${report.chargebeeUrl}/dashboards`} target="_blank" rel="noreferrer">Chargebee dashboard <ExternalLink size={14}/></a>}</div></Card>
+    {error && <div className="admin-error">{error}</div>}
+    {report && <>
+      <div className="admin-metrics-grid admin-provider-metrics"><Metric icon={CircleDollarSign} label="Live MRR" value={money(report.metrics.mrrCents, report.currency)} detail={`${money(report.metrics.arrCents, report.currency)} ARR`} /><Metric icon={WalletCards} label="Net collected" value={money(report.metrics.netCollectedCents, report.currency)} detail={`${money(report.metrics.refundedCents, report.currency)} refunded · ${range}d`} tone="mint"/><Metric icon={CreditCard} label="Subscriptions" value={report.metrics.active} detail={`${report.metrics.trials} trials · ${report.metrics.nonRenewing} ending`} tone="yellow"/><Metric icon={ReceiptText} label="Outstanding" value={money(report.metrics.outstandingCents, report.currency)} detail={`${report.metrics.failedInvoices} invoices need attention`} tone="rose"/></div>
+      <div className="admin-provider-grid"><Card className="admin-table-card"><div className="admin-table-tools"><div><small>Live subscriptions</small><h2>Subscription management</h2></div><span>{report.subscriptions.length} loaded</span></div><div className="admin-table-scroll"><table><thead><tr><th>Customer</th><th>Plan items</th><th>Status</th><th>MRR</th><th>Renews / ends</th><th/></tr></thead><tbody>{report.subscriptions.map((sub) => <tr key={sub.id}><td><strong>{sub.customerId}</strong><small>{sub.id}</small></td><td><strong>{sub.items[0] || "No plan item"}</strong><small>{sub.items.slice(1).join(", ")}</small></td><td><span className={`admin-status status-${sub.status === "in_trial" ? "trial" : sub.status}`}>{sub.status.replaceAll("_", " ")}</span></td><td>{money(sub.mrrCents, sub.currency)}</td><td>{date(sub.renewsAt || sub.trialEndsAt)}</td><td><button className="admin-provider-link" onClick={() => openCustomer(sub.customerId)}>Manage <ExternalLink size={13}/></button></td></tr>)}{!report.subscriptions.length && <tr><td colSpan="6" className="admin-empty">No Chargebee subscriptions yet.</td></tr>}</tbody></table></div></Card>
+      <Card className="admin-table-card"><div className="admin-table-tools"><div><small>Last {range} days</small><h2>Invoices</h2></div><span>{report.metrics.paidInvoices} paid</span></div><div className="admin-table-scroll"><table><thead><tr><th>Invoice</th><th>Customer</th><th>Status</th><th>Total</th><th>Outstanding</th><th>Date</th></tr></thead><tbody>{report.invoices.map((invoice) => <tr key={invoice.id}><td><strong>{invoice.id}</strong><small>{invoice.subscriptionId || "One-time invoice"}</small></td><td>{invoice.customerId}</td><td><span className={`admin-status status-${invoice.status === "paid" ? "active" : "past_due"}`}>{invoice.status.replaceAll("_", " ")}</span></td><td>{money(invoice.totalCents, invoice.currency)}</td><td>{money(invoice.dueCents, invoice.currency)}</td><td>{date(invoice.date)}</td></tr>)}{!report.invoices.length && <tr><td colSpan="6" className="admin-empty">No invoices in this reporting period.</td></tr>}</tbody></table></div></Card></div>
+    </>}
+  </section>;
+}
+
 function SupportMessagesTable({ messages, onOpen, categoryFilter, setCategoryFilter, statusFilter, setStatusFilter, search, setSearch }) {
   return <Card className="admin-table-card">
     <div className="admin-table-tools">
@@ -416,7 +446,7 @@ export default function Admin() {
       <HouseholdTable households={households.slice(0, 8)} onOpen={setSelected} search={search} setSearch={setSearch} title="Recently created families" /></>}
       {section === "families" && <HouseholdTable households={households} onOpen={setSelected} search={search} setSearch={setSearch} />}
       {section === "users" && <UsersTable users={users} search={userSearch} setSearch={setUserSearch} onDelete={(user) => setDeleteTarget({ kind: "user", id: user.user_id, email: user.email })} />}
-      {section === "revenue" && <><section className="admin-metrics-grid"><Metric icon={CircleDollarSign} label="MRR" value={money(overview.mrrCents, overview.currency)} detail="Active subscriptions" /><Metric icon={WalletCards} label="Collected" value={money(analytics.revenueCollectedCents, overview.currency)} detail={`Net in ${range} days`} tone="mint" /><Metric icon={Users} label="ARPA" value={money(overview.payingHouseholds ? overview.mrrCents / overview.payingHouseholds : 0, overview.currency)} detail={`${overview.payingHouseholds || 0} paying families`} tone="yellow" /><Metric icon={CreditCard} label="Past due" value={overview.pastDueHouseholds || 0} detail={`${analytics.failedPayments || 0} failed payments`} tone="rose" /></section>
+      {section === "revenue" && <><ChargebeeRevenue range={range}/><div className="admin-local-ledger"><span>FamOS ledger</span><p>Webhook-mirrored reporting for reconciliation and historical product context.</p></div><section className="admin-metrics-grid"><Metric icon={CircleDollarSign} label="Mirrored MRR" value={money(overview.mrrCents, overview.currency)} detail="Active subscriptions" /><Metric icon={WalletCards} label="Recorded collected" value={money(analytics.revenueCollectedCents, overview.currency)} detail={`Net in ${range} days`} tone="mint" /><Metric icon={Users} label="ARPA" value={money(overview.payingHouseholds ? overview.mrrCents / overview.payingHouseholds : 0, overview.currency)} detail={`${overview.payingHouseholds || 0} paying families`} tone="yellow" /><Metric icon={CreditCard} label="Mirrored past due" value={overview.pastDueHouseholds || 0} detail={`${analytics.failedPayments || 0} failed payments`} tone="rose" /></section>
         <section className="admin-revenue-grid"><Card className="admin-panel admin-main-chart"><PanelHead eyebrow="Cash intelligence" title="Net revenue collected" icon={BadgeDollarSign} /><div className="admin-chart-summary"><strong>{money(analytics.revenueCollectedCents, overview.currency)}</strong><span>payments less refunds</span></div><TrendChart series={analytics.series} valueKey="revenueCents" currency /></Card><Card className="admin-panel admin-plan-mix"><PanelHead eyebrow="Subscriptions" title="Plan mix" icon={CreditCard} /><div>{(analytics.plans || []).map((plan) => <article key={`${plan.plan}-${plan.status}`}><span><i className={`status-${plan.status}`} />{plan.plan}</span><strong>{plan.accounts}</strong><small>{plan.status} · {money(plan.mrrCents)} MRR</small></article>)}{!analytics.plans?.length && <p className="admin-empty">No subscriptions recorded yet.</p>}</div></Card></section>
         <TopFamilies families={analytics.topFamilies} onOpen={setSelected} /><HouseholdTable households={households} onOpen={setSelected} search={search} setSearch={setSearch} title="Revenue by family" /></>}
       {section === "promotions" && <Promotions />}
