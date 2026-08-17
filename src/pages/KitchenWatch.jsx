@@ -3,7 +3,7 @@ import { AlertTriangle, Check, ChefHat, Croissant, Drumstick, Milk, Minus, Packa
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
 import useKitchenInventory from "../hooks/useKitchenInventory";
-import { inventoryExpiryStatus, inventoryExpiryProgress } from "../lib/inventoryExpiry";
+import { daysUntilExpiry, inventoryExpiryProgress, toLocalDay } from "../lib/inventoryExpiry";
 
 function shelfLifeColor(daysRemaining) {
   if (daysRemaining <= 0) return "var(--color-warn)";
@@ -17,13 +17,13 @@ function ShelfLifeBar({ item }) {
   const days = daysUntilExpiry(item.expiresOn);
   if (days === null) return null;
   const progress = inventoryExpiryProgress(item);
-  const percent = progress ? progress.percent : Math.max(0, Math.min(100, Math.round(((7 - Math.max(0, days)) / 7) * 100)));
+  if (!progress) return null;
   const color = shelfLifeColor(days);
   const label = days <= 0 ? "Expired" : days === 1 ? "1 day left" : `${days} days left`;
   return (
     <div style={{ width: "100%", marginTop: 6 }}>
       <div style={{ width: "100%", height: 4, borderRadius: 2, background: "var(--color-border, #e5e7eb)", overflow: "hidden" }}>
-        <div style={{ height: "100%", borderRadius: 2, width: `${percent}%`, backgroundColor: color, transition: "width .4s ease, background-color .3s ease" }} />
+        <div style={{ height: "100%", borderRadius: 2, width: `${progress.percent}%`, backgroundColor: color, transition: "width .4s ease, background-color .3s ease" }} />
       </div>
       <span style={{ color, fontSize: 11, fontWeight: 600 }}>{label}</span>
     </div>
@@ -42,15 +42,6 @@ const LOCATION_LABELS = { fridge: "Fridge", freezer: "Freezer", pantry: "Pantry"
 const emptyDraft = { name: "", quantity: 1, unit: "", location: "fridge", expiresOn: "", sourceGroceryId: null, category: KITCHEN_WATCH_CATEGORIES[0], brand: "", barcode: "", imageUrl: "" };
 const isWatched = (category) => KITCHEN_WATCH_CATEGORIES.includes(category);
 
-function daysUntilExpiry(expiresOn) {
-  if (!expiresOn) return null;
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12);
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(expiresOn);
-  if (!match) return null;
-  const expiry = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12);
-  return Math.round((expiry.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
-}
 
 function expiryGroup(item) {
   const days = daysUntilExpiry(item.expiresOn);
@@ -70,11 +61,9 @@ function expiryLabel(item) {
 }
 
 function expiryDateDisplay(expiresOn) {
-  if (!expiresOn) return "";
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(expiresOn);
-  if (!match) return expiresOn;
-  const d = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const day = toLocalDay(expiresOn);
+  if (!day) return expiresOn || "";
+  return day.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 const GROUP_ORDER = ["expired", "soon", "later", "no-date"];

@@ -31,17 +31,34 @@ export default function useKitchenInventory(householdId, userId) {
   const [items, setItems] = useState(() => readLocal(householdId));
   const [remoteReady, setRemoteReady] = useState(false);
 
+  const initialFetch = useCallback(async (householdIdArg) => {
+    if (!supabase || !householdIdArg) return false;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const { data, error } = await supabase.from("kitchen_inventory").select("*").eq("household_id", householdIdArg).order("created_at");
+      if (!error) {
+        const mapped = (data || []).map(mapRow);
+        setItems(mapped); writeLocal(householdIdArg, mapped); setRemoteReady(true);
+        return true;
+      }
+      if (missingTable(error) || attempt === 2) {
+        if (!missingTable(error)) console.warn("Could not load kitchen inventory", error);
+        return false;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+    }
+    return false;
+  }, []);
+
   useEffect(() => {
     let active = true;
     setItems(readLocal(householdId));
     if (!supabase || !householdId) return () => { active = false; };
-    supabase.from("kitchen_inventory").select("*").eq("household_id", householdId).order("created_at").then(({ data, error }) => {
-      if (!active || error) return;
-      const mapped = (data || []).map(mapRow);
-      setItems(mapped); writeLocal(householdId, mapped); setRemoteReady(true);
-    });
+    (async () => {
+      const ok = await initialFetch(householdId);
+      if (active && !ok) setRemoteReady(false);
+    })();
     return () => { active = false; };
-  }, [householdId]);
+  }, [householdId, initialFetch]);
 
   useEffect(() => {
     const sync = () => setItems(readLocal(householdId));
@@ -102,27 +119,36 @@ export default function useKitchenInventory(householdId, userId) {
     return local;
   }, [householdId, items, persistLocal, remoteReady, userId]);
 
+  // Writes are attempted even when the initial fetch failed or is still in
+  // flight: an individual edit should still reach the database (and flip
+  // remoteReady on success) instead of being silently dropped server-side.
+  // A failed write leaves the optimistic local state in place and warns, so
+  // the user's edit is never lost from their view while they're offline.
+  const writeIfPossible = useCallback(async (run) => {
+    if (!supabase || !householdId) return;
+    const { error } = await run();
+    if (!error) { setRemoteReady(true); return; }
+    if (!missingTable(error)) console.warn("Could not sync kitchen inventory", error);
+  }, [householdId]);
+
   const updateItem = useCallback(async (id, patch) => {
     const next = items.map((item) => item.id === id ? { ...item, ...patch } : item); persistLocal(next);
-    if (supabase && householdId && remoteReady) {
-      const db = {};
-      if (patch.quantity !== undefined) db.quantity = patch.quantity;
-      if (patch.location !== undefined) db.location = patch.location;
-      if (patch.expiresOn !== undefined) db.expires_on = patch.expiresOn || null;
-      if (patch.unit !== undefined) db.unit = patch.unit;
-      if (patch.category !== undefined) db.category = patch.category;
-      if (patch.brand !== undefined) db.brand = patch.brand;
-      if (patch.barcode !== undefined) db.barcode = patch.barcode || null;
-      if (patch.imageUrl !== undefined) db.image_url = patch.imageUrl || "";
-      const { error } = await supabase.from("kitchen_inventory").update(db).eq("id", id);
-      if (error && !missingTable(error)) console.warn("Could not update kitchen inventory", error);
-    }
-  }, [householdId, items, persistLocal, remoteReady]);
+    const db = {};
+    if (patch.quantity !== undefined) db.quantity = patch.quantity;
+    if (patch.location !== undefined) db.location = patch.location;
+    if (patch.expiresOn !== undefined) db.expires_on = patch.expiresOn || null;
+    if (patch.unit !== undefined) db.unit = patch.unit;
+    if (patch.category !== undefined) db.category = patch.category;
+    if (patch.brand !== undefined) db.brand = patch.brand;
+    if (patch.barcode !== undefined) db.barcode = patch.barcode || null;
+    if (patch.imageUrl !== undefined) db.image_url = patch.imageUrl || "";
+    await writeIfPossible(() => supabase.from("kitchen_inventory").update(db).eq("id", id));
+  }, [items, persistLocal, writeIfPossible]);
 
   const removeItem = useCallback(async (id) => {
     persistLocal(items.filter((item) => item.id !== id));
-    if (supabase && householdId && remoteReady) await supabase.from("kitchen_inventory").delete().eq("id", id);
-  }, [householdId, items, persistLocal, remoteReady]);
+    await writeIfPossible(() => supabase.from("kitchen_inventory").delete().eq("id", id));
+  }, [items, persistLocal, writeIfPossible]);
 
   const ingredientNames = useMemo(() => items.filter((item) => Number(item.quantity) > 0).map((item) => canonicalIngredientName(item.name)), [items]);
   return { items, ingredientNames, addItem, updateItem, removeItem };
