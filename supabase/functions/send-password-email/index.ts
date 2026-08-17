@@ -218,11 +218,23 @@ Deno.serve(async (request) => {
       }
     }
 
-    // Last resort: let Supabase send its own template email via generateLink.
-    // The link has already been generated above; Supabase's SMTP settings
-    // will deliver its own branded template.
-    console.log(JSON.stringify({ event: "password_email_relayed", purpose, provider: "supabase_smtp" }));
-    return respond({ sent: true });
+    // Last resort: explicitly ask Supabase Auth to send its recovery email.
+    // `admin.generateLink()` only creates a URL; it does NOT deliver mail.
+    // The previous implementation returned `sent: true` here without sending
+    // anything, which made the admin UI claim a reset email was on the way.
+    if (purpose !== "invitation") {
+      const { error: smtpError } = await admin.auth.resetPasswordForEmail(normalizedEmail, {
+        redirectTo: purpose === "admin_reset" ? `${safeOrigin}/admin?recovery=1` : safeOrigin,
+      });
+      if (!smtpError) {
+        console.log(JSON.stringify({ event: "password_email_sent", purpose, provider: "supabase_smtp" }));
+        return respond({ sent: true });
+      }
+      console.error(JSON.stringify({ event: "password_email_smtp_failed", purpose, message: smtpError.message }));
+      return respond({ error: "FamOS could not deliver the reset email. Please contact support@fam-os.app." }, 502);
+    }
+
+    return respond({ error: "FamOS could not deliver the invitation email. Please try again shortly." }, 502);
   } catch (error) {
     const detail = errorMessage(error);
     console.error(JSON.stringify({ event: "password_email_failed", message: detail }));
