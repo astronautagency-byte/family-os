@@ -367,8 +367,8 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
   const [error, setError] = useState("");
 
   const profileComplete = Boolean(householdProfile?.completed_at);
-  const ownerProfileStep = household?.role === "owner" && !profileComplete && Boolean(memberProfile?.completedAt);
-  const memberProfileStep = household && !memberProfile?.completedAt;
+  const ownerProfileStep = household?.role === "owner" && !profileComplete;
+  const memberProfileStep = household && !ownerProfileStep && !memberProfile?.completedAt;
   const draftKey = household?.id && session?.user?.id ? `family-os:onboarding-draft:${household.id}:${session.user.id}` : "";
 
   useEffect(() => {
