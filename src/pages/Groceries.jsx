@@ -237,6 +237,7 @@ export default function Groceries() {
   const [inventoryDraft, setInventoryDraft] = useState(emptyInventoryDraft);
   const [inventorySaving, setInventorySaving] = useState(false);
   const [inventoryError, setInventoryError] = useState("");
+  const [watchPromptItem, setWatchPromptItem] = useState(null);
   const [inventoryQuery, setInventoryQuery] = useState("");
   const [inventoryStatus, setInventoryStatus] = useState("all");
   const [editingId, setEditingId] = useState(null); // null closed, "new" for add, or item id
@@ -453,6 +454,10 @@ export default function Groceries() {
   const handleToggleGrocery = async (item) => {
     const completesList = !item.checked && groceries.filter((grocery) => !grocery.checked).length === 1;
     await toggleGrocery(item.id);
+    const purchasedCategory = categorizeGroceryItem(item.name, item.category);
+    if (!item.checked && isKitchenWatchCategory(purchasedCategory) && !inventoriedSourceIds.has(item.id)) {
+      setWatchPromptItem({ ...item, category: purchasedCategory });
+    }
     if (!completesList) return;
     window.clearTimeout(celebrationTimerRef.current);
     setListCelebration(false);
@@ -1194,10 +1199,7 @@ export default function Groceries() {
                               </span>
                             )}
                           </button>
-                          {adder && !item.checked && (
-                            <Avatar member={adder} size="xs" className="shrink-0" aria-label={`Added by ${adder.name}`} />
-                          )}
-                          {assignedPeople.length > 0 && !item.checked && (
+                           {assignedPeople.length > 0 && !item.checked && (
                             <div className="assignment-avatars grocery-assignees" aria-label={`For ${assignedPeople.map((person) => person.name).join(", ")}`} title={`For ${assignedPeople.map((person) => person.name).join(", ")}`}>
                               {assignedPeople.slice(0, 3).map((person) => <Avatar key={person.id} member={person} size="xs" />)}
                               {assignedPeople.length > 3 && <span>+{assignedPeople.length - 3}</span>}
@@ -1321,6 +1323,16 @@ export default function Groceries() {
           </PrimaryButton>
         </div>
         {saveError && <p className="text-[12px] text-[var(--color-warn)] mt-3">{saveError}</p>}
+      </Modal>
+      <Modal open={!!watchPromptItem} onClose={() => setWatchPromptItem(null)} title="Add this to Kitchen Watch?">
+        <div className="watch-purchase-prompt">
+          <span><Refrigerator size={20}/></span>
+          <div><strong>{watchPromptItem?.name}</strong><p>Track its use-by date and get a reminder before it expires.</p></div>
+        </div>
+        <div className="watch-purchase-actions">
+          <SecondaryButton onClick={() => setWatchPromptItem(null)}>Not this time</SecondaryButton>
+          <PrimaryButton onClick={() => { const item = watchPromptItem; setWatchPromptItem(null); openInventoryDraft(item, item?.category === "Frozen" ? "freezer" : "fridge"); }}>Add expiry date</PrimaryButton>
+        </div>
       </Modal>
       <Modal open={clearing} onClose={()=>setClearing(false)} title="Clear the grocery list?"><p className="reset-confirm-copy">This clears the active list. Your saved staples stay ready for next time.</p><div className="reset-confirm-actions"><button onClick={()=>setClearing(false)}>Cancel</button><PrimaryButton onClick={async()=>{await clearGroceries(activeGroceryListId === "all" ? null : activeGroceryListId);setClearing(false)}}>Clear list</PrimaryButton></div></Modal>
       <Modal open={newListOpen} onClose={() => { setNewListOpen(false); setNewListError(""); }} title="New shopping list"><TextField label="List name" value={newListName} onChange={(event) => setNewListName(event.target.value)} placeholder="Costco run"/>{newListError && <p className="inventory-add-error" role="alert">{newListError}</p>}<PrimaryButton disabled={!newListName.trim()} onClick={async () => { try { const list = await addGroceryList({ name: newListName }); setActiveGroceryListId(list.id); setNewListName(""); setNewListOpen(false); } catch (error) { setNewListError(error?.message || "Could not create this list."); } }}>Create list</PrimaryButton></Modal>
