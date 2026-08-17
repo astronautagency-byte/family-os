@@ -4910,9 +4910,31 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .feature-paywall-error{margin-top:12px;color:var(--color-warn);font-size:13px}
 @media(max-width:600px){.feature-paywall{align-items:start;padding:20px 14px 110px}.feature-paywall-price{display:grid;gap:6px}}
 
-/* Compact editorial page titles: preserve hierarchy without overpowering content. */
-.app-shell .page-title,body .app-content .page-title{font-size:clamp(19px,2.4vw,23px)!important;line-height:1.16!important;letter-spacing:-.025em!important}
-@media(max-width:640px){.app-shell .page-title,body .app-content .page-title{font-size:21px!important;line-height:1.18!important}.chat-mobile-composer{padding-bottom:calc(14px + env(safe-area-inset-bottom) + 68px)!important}}
+/* App page headers: restore the editorial family artwork and keep titles at
+   half of the former 38px/32px scale. The illustration remains visible on
+   mobile, but yields space to page actions instead of forcing overflow. */
+.app-shell .page-title,
+body .app-content .page-title{
+  font-size:19px!important;
+  line-height:1.16!important;
+  letter-spacing:-.025em!important;
+}
+.app-shell .page-header-aside .page-spot-frame{display:grid!important}
+@media(max-width:767px){
+  .app-shell .page-title,
+  body .app-content .page-title{font-size:16px!important;line-height:1.18!important}
+  .app-shell .page-header-aside{min-width:76px!important;max-width:92px!important}
+  .app-shell .page-header-aside .page-spot-frame,
+  .app-shell .page-header-aside .page-spot{width:76px!important;height:64px!important}
+  .chat-mobile-composer{padding-bottom:calc(14px + env(safe-area-inset-bottom) + 68px)!important}
+}
+@media(max-width:380px){
+  .app-shell .page-title,
+  body .app-content .page-title{font-size:16px!important}
+  .app-shell .page-header-aside{min-width:68px!important;max-width:76px!important}
+  .app-shell .page-header-aside .page-spot-frame,
+  .app-shell .page-header-aside .page-spot{width:68px!important;height:58px!important}
+}
 
 /* Shopping list tabs keep deletion explicit without nesting interactive controls. */
 .shopping-list-switcher .shopping-list-tab{display:flex;flex:0 0 auto;align-items:center;border:1px solid var(--color-border);border-radius:var(--radius-pill);background:var(--color-surface);overflow:hidden}
