@@ -38,7 +38,7 @@ test("settings restores the Astronaut Digital credit", () => {
 
 test("Kitchen Watch renders an expiry progress meter", () => {
   assert.match(kitchen, /inventoryExpiryProgress/);
-  assert.match(kitchen, /width: `\$\{progress\.remainingPercent\}%`/);
+  assert.match(kitchen, /<CircularProgress value=\{progress\.remainingPercent\}/);
   assert.match(kitchen, /freshness left/);
   assert.match(css, /\.inventory-expiry-progress/);
 });

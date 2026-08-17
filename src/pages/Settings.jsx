@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { AlertCircle, Bell, Bug, CalendarDays, Check, CheckCircle2, ChevronRight, Clipboard, Eye, EyeOff, ExternalLink, ImagePlus, Info, Lightbulb, Link2, Mail, MapPin, Megaphone, Palette, Pencil, Phone, Plus, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Ticket, Trash2, Upload, Users, Utensils } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
-import { Alert, Avatar, Card, Modal, PrimaryButton, SecondaryButton, TextAreaField, TextField } from "../components/ui";
+import { Alert, Avatar, Card, MenuDropdown, Modal, PrimaryButton, SecondaryButton, TextAreaField, TextField } from "../components/ui";
 import ConfirmAction from "../components/ConfirmAction";
 import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
 import PageHeader from "../components/PageHeader";
@@ -808,10 +808,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
           <div className="flex items-end justify-between mb-3"><h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)]">Appearance</h2></div>
           <Card className="settings-color-scheme-card">
             <div className="settings-color-scheme-head"><span><Palette size={18}/></span><div><strong>App colour</strong><small>Pick a palette that feels like home. Every option is tuned for light and dark mode.</small></div></div>
-            <details className="settings-color-select">
-              <summary aria-label="Choose app colour scheme"><span className="scheme-swatches" aria-hidden="true">{(APP_COLOR_SCHEMES.find((scheme) => scheme.id === colorScheme) || APP_COLOR_SCHEMES[0]).colors.map((color) => <i key={color} style={{ backgroundColor: color }}/>)}</span><span className="settings-color-select-copy"><strong>{(APP_COLOR_SCHEMES.find((scheme) => scheme.id === colorScheme) || APP_COLOR_SCHEMES[0]).label}</strong><small>{(APP_COLOR_SCHEMES.find((scheme) => scheme.id === colorScheme) || APP_COLOR_SCHEMES[0]).note}</small></span><ChevronDown size={17}/></summary>
-              <div className="settings-color-options" role="listbox" aria-label="App colour schemes">{APP_COLOR_SCHEMES.map((scheme) => <button type="button" role="option" aria-selected={scheme.id === colorScheme} className={scheme.id === colorScheme ? "selected" : ""} key={scheme.id} onClick={(event) => { onColorSchemeChange(scheme.id); event.currentTarget.closest("details")?.removeAttribute("open"); }}><span className="scheme-swatches" aria-hidden="true">{scheme.colors.map((color) => <i key={color} style={{ backgroundColor: color }}/>)}</span><span><strong>{scheme.label}</strong><small>{scheme.note}</small></span>{scheme.id === colorScheme && <Check size={16}/>}</button>)}</div>
-            </details>
+            <MenuDropdown className="settings-color-select" label="App colour schemes" value={colorScheme} options={APP_COLOR_SCHEMES.map((scheme) => ({ ...scheme, value: scheme.id }))} onChange={onColorSchemeChange} renderValue={(scheme) => <><span className="scheme-swatches" aria-hidden="true">{scheme.colors.map((color) => <i key={color} style={{ backgroundColor: color }}/>)}</span><span className="settings-color-select-copy"><strong>{scheme.label}</strong><small>{scheme.note}</small></span></>} renderOption={(scheme, selected) => <><span className="scheme-swatches" aria-hidden="true">{scheme.colors.map((color) => <i key={color} style={{ backgroundColor: color }}/>)}</span><span><strong>{scheme.label}</strong><small>{scheme.note}</small></span>{selected && <Check size={16}/>}</>}/>
           </Card>
         </section>
 

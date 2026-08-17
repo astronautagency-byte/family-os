@@ -242,6 +242,7 @@ export default function Groceries() {
   const [editingId, setEditingId] = useState(null); // null closed, "new" for add, or item id
   const [draft, setDraft] = useState(emptyDraft);
   const [staples, setStaples] = useState(loadStaples);
+  const pendingStaplesRef = useRef(new Set());
   const [dragging, setDragging] = useState(false);
   const [masterEditing, setMasterEditing] = useState(null);
   const [masterDraft, setMasterDraft] = useState(emptyDraft);
@@ -628,12 +629,21 @@ export default function Groceries() {
   };
 
   const addStapleToList = async (staple) => {
-    const existing = groceries.find((item) => item.name.toLowerCase() === staple.name.toLowerCase());
-    if (existing) {
-      if (existing.checked) await updateGrocery(existing.id, { checked: false });
-      return;
+    const nameKey = staple.name.trim().toLowerCase();
+    const listKey = activeGroceryListId === "all" ? "all" : activeGroceryListId;
+    const pendingKey = `${listKey}:${nameKey}`;
+    if (!nameKey || pendingStaplesRef.current.has(pendingKey)) return;
+    pendingStaplesRef.current.add(pendingKey);
+    try {
+      const existing = groceries.find((item) => item.name.trim().toLowerCase() === nameKey && (activeGroceryListId === "all" || item.listId === activeGroceryListId));
+      if (existing) {
+        if (existing.checked) await updateGrocery(existing.id, { checked: false });
+        return;
+      }
+      await addGrocery({ ...staple, assigneeIds: [...new Set(staple.assigneeIds || [])], addedBy: null });
+    } finally {
+      pendingStaplesRef.current.delete(pendingKey);
     }
-    await addGrocery({ ...staple, addedBy: null });
   };
 
   const saveAsStaple = (item) => {
@@ -1156,7 +1166,7 @@ export default function Groceries() {
                   <ul>
                     {items.map((item) => {
                       const adder = item.addedBy ? memberById[item.addedBy] : null;
-                      const assignedPeople = (item.assigneeIds || []).map((id) => memberById[id]).filter(Boolean);
+                      const assignedPeople = [...new Set(item.assigneeIds || [])].map((id) => memberById[id]).filter((person, index, people) => person && people.findIndex((candidate) => candidate.id === person.id) === index);
                       const qtyLabel = [item.quantity > 1 || item.unit ? item.quantity : null, item.unit]
                         .filter(Boolean)
                         .join(" ");
@@ -1263,7 +1273,7 @@ export default function Groceries() {
         <div className="task-assignee-picker grocery-member-picker">
           {members.map((member) => {
             const selected = (draft.assigneeIds || []).includes(member.id);
-            return <button type="button" key={member.id} aria-pressed={selected} className={selected ? "selected" : ""} onClick={() => setDraft((current) => ({ ...current, assigneeIds: selected ? current.assigneeIds.filter((id) => id !== member.id) : [...(current.assigneeIds || []), member.id] }))}><Avatar member={member}/><span>{member.name}</span>{selected && <Check size={14}/>}</button>;
+            return <button type="button" key={member.id} aria-pressed={selected} className={selected ? "selected" : ""} onClick={() => setDraft((current) => ({ ...current, assigneeIds: selected ? current.assigneeIds.filter((id) => id !== member.id) : [...new Set([...(current.assigneeIds || []), member.id])] }))}><Avatar member={member}/><span>{member.name}</span>{selected && <Check size={14}/>}</button>;
           })}
         </div>
 

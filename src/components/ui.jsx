@@ -1,7 +1,7 @@
 import { FAMILY_COLORS } from "../data/mockData";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { CalendarDays, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, Info, TriangleAlert, X } from "lucide-react";
+import { CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, Info, TriangleAlert, X } from "lucide-react";
 import { lockBodyScroll } from "../lib/bodyScrollLock";
 
 export function colorVar(colorId) {
@@ -94,6 +94,34 @@ export function Tag({ children, color, tone = "neutral" }) {
     <span className={`m3-chip inline-flex items-center ${tones[tone]}`}>
       {children}
     </span>
+  );
+}
+
+export function Badge({ children, tone = "neutral", icon: Icon, className = "" }) {
+  return <span className={`ui-badge ui-badge-${tone} ${className}`}>{Icon && <Icon size={12} aria-hidden="true" />}{children}</span>;
+}
+
+export function Switch({ checked, onChange, label, description, disabled = false, className = "" }) {
+  return (
+    <label className={`ui-switch-row ${disabled ? "is-disabled" : ""} ${className}`}>
+      {(label || description) && <span className="ui-switch-copy">{label && <strong>{label}</strong>}{description && <small>{description}</small>}</span>}
+      <button type="button" className="ui-switch" role="switch" aria-checked={Boolean(checked)} disabled={disabled} onClick={() => onChange?.(!checked)}>
+        <span />
+      </button>
+    </label>
+  );
+}
+
+export function MenuDropdown({ value, options = [], onChange, renderValue, renderOption, label = "Choose an option", className = "" }) {
+  const detailsRef = useRef(null);
+  const selected = options.find((option) => option.value === value) || options[0];
+  return (
+    <details className={`ui-menu-dropdown ${className}`} ref={detailsRef}>
+      <summary aria-label={label}>{renderValue ? renderValue(selected) : <span>{selected?.label}</span>}<ChevronDown size={17} /></summary>
+      <div className="ui-menu-options" role="listbox" aria-label={label}>
+        {options.map((option) => <button type="button" role="option" aria-selected={option.value === value} className={option.value === value ? "selected" : ""} key={option.value} onClick={() => { onChange?.(option.value); detailsRef.current?.removeAttribute("open"); }}>{renderOption ? renderOption(option, option.value === value) : <><span>{option.label}</span>{option.value === value && <Check size={16} />}</>}</button>)}
+      </div>
+    </details>
   );
 }
 
@@ -348,6 +376,23 @@ export function ProgressBar({ value = 0, max = 100, color = "var(--color-accent)
       <div className="ui-progress-track" role="progressbar" aria-label={label || "Progress"} aria-valuemin={0} aria-valuemax={numericMax} aria-valuenow={numericValue}>
         <span className="ui-progress-value" style={{ width: `${progress}%`, "--progress-color": color }} />
       </div>
+    </div>
+  );
+}
+
+export function CircularProgress({ value = 0, max = 100, size = 76, strokeWidth = 9, color = "var(--color-shopping)", label = "Progress", children, className = "" }) {
+  const numericMax = Number(max) > 0 ? Number(max) : 1;
+  const numericValue = Math.max(0, Math.min(numericMax, Number(value) || 0));
+  const progress = Math.round((numericValue / numericMax) * 100);
+  const radius = 50 - strokeWidth / 2;
+  const circumference = 2 * Math.PI * radius;
+  return (
+    <div className={`ui-circular-progress ${className}`} style={{ width: size, height: size, "--ring-color": color }} role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={numericMax} aria-valuenow={numericValue}>
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <circle className="ui-circular-track" cx="50" cy="50" r={radius} strokeWidth={strokeWidth} />
+        <circle className="ui-circular-value" cx="50" cy="50" r={radius} strokeWidth={strokeWidth} strokeDasharray={circumference} strokeDashoffset={circumference * (1 - progress / 100)} />
+      </svg>
+      <span className="ui-circular-label">{children ?? `${progress}%`}</span>
     </div>
   );
 }

@@ -27,7 +27,7 @@ test("tasks and groceries persist multi-person assignments", async () => {
 test("appearance dropdown renders the real palette for every option", async () => {
   const settings = await read("src/pages/Settings.jsx");
   const palettes = await read("src/data/appColorSchemes.js");
-  assert.match(settings, /settings-color-options/);
+  assert.match(settings, /<MenuDropdown/);
   assert.match(settings, /scheme\.colors\.map/);
   assert.match(palettes, /FamOS Pop/);
   assert.match(palettes, /Electric coast/);

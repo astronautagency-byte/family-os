@@ -17,7 +17,7 @@ const schemeIds = ["famos", "ocean", "berry", "forest", "sunset", "mist", "sage"
 
 test("Settings exposes curated accessible palettes", () => {
   for (const scheme of schemeIds) assert.match(schemes, new RegExp(`id: "${scheme}"`));
-  assert.match(settings, /role="listbox" aria-label="App colour schemes"/);
+  assert.match(settings, /<MenuDropdown[^>]+label="App colour schemes"/);
   assert.match(settings, /settings-color-select/);
   assert.match(settings, /scheme-swatches/);
 });
