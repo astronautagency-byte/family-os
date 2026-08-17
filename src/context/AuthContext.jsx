@@ -529,16 +529,16 @@ export function AuthProvider({ children }) {
 
   const requestPasswordReset = async (email) => {
     setError(null);
-    const { error: resetError } = await supabase.functions.invoke("send-password-email", {
+    const { data: resetData, error: resetError } = await supabase.functions.invoke("send-password-email", {
       body: {
         email: email.trim().toLowerCase(),
         purpose: "reset",
         origin: window.location.origin,
       },
     });
-    if (resetError) {
+    if (resetError || resetData?.error) {
       const detail = await getFunctionErrorMessage(resetError);
-      throw new Error(detail || "FamOS could not send the reset email right now. Please try again shortly.");
+      throw new Error(resetData?.error || detail || "FamOS could not send the reset email right now. Please try again shortly.");
     }
   };
 

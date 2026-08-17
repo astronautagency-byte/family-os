@@ -18,11 +18,16 @@ test("Kitchen Watch is its own routed primary tab", () => {
 test("Kitchen Watch preserves freshness, purchase review and replacement workflows", () => {
   assert.match(page, /What’s at home/);
   assert.match(page, /Put fresh purchases away/);
-  assert.match(page, /Use first/);
   assert.match(page, /Use soon/);
   assert.match(page, /Expired/);
   assert.match(page, /Replace/);
   assert.match(page, /Start watching/);
+  assert.doesNotMatch(page, /Kitchen Watch summary/);
+  assert.match(page, /progress\.percent/);
+  assert.match(page, /Passed/);
+  assert.match(page, /Replace item/);
+  assert.match(groceries, /Add this to Kitchen Watch\?/);
+  assert.match(groceries, /Add expiry date/);
 });
 
 test("Kitchen expiry reminders route directly to Kitchen Watch", () => {

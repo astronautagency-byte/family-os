@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Activity, Archive, ArrowLeft, BadgeDollarSign, Bug, Building2, CalendarDays, CheckCircle2, ChevronRight,
   CircleDollarSign, CreditCard, Flag, LayoutDashboard, Lightbulb, ListChecks, LogOut, Mail, MessageCircle,
-  Search, Send, Settings2, ShieldCheck, ShoppingCart, Tag, Ticket, Trash2, TrendingUp, UserPlus, Users, Utensils,
+  Search, Send, Settings2, ShieldCheck, ShoppingCart, Tag, Ticket, Trash2, TrendingUp, UserPlus, Users, Utensils, Gauge, AlertTriangle, Clock3,
   WalletCards, XCircle, RefreshCw, ExternalLink, ReceiptText,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
-import { Card, Modal, PrimaryButton, TextField } from "../components/ui";
+import { Badge, Card, Modal, PrimaryButton, SecondaryButton, SelectField, TextField } from "../components/ui";
 import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
 import { passwordError } from "../utils/passwordStrength";
 import "../admin.css";
@@ -210,13 +210,54 @@ function HouseholdDetail({ id, onClose, onChanged, onDelete }) {
   </div>;
 }
 
-function Promotions() {
+function AccessPromotions() {
   const empty = { code: "", description: "", type: "trial", trialDays: "30", maxRedemptions: "", endsAt: "" };
   const [form, setForm] = useState(empty); const [promos, setPromos] = useState([]); const [busy, setBusy] = useState(false); const [error, setError] = useState("");
   const load = async () => { const { data, error: loadError } = await supabase.rpc("admin_list_promo_codes"); if (loadError) setError(loadError.message); else setPromos(data || []); };
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const save = async (next = form) => { setBusy(true); setError(""); const { error: saveError } = await supabase.rpc("admin_upsert_promo_code", { next_code: next.code.trim().toUpperCase(), next_description: next.description.trim(), next_benefit_type: next.type, next_trial_days: next.type === "trial" ? Number(next.trialDays) : null, next_max_redemptions: next.maxRedemptions ? Number(next.maxRedemptions) : null, next_ends_at: next.endsAt ? new Date(next.endsAt).toISOString() : null, next_is_active: next.isActive ?? true }); if (saveError) setError(saveError.message); else { setForm(empty); await load(); } setBusy(false); };
   return <div className="admin-promotions"><Card className="admin-panel"><PanelHead eyebrow="Growth controls" title="Create a promotion" icon={Tag} /><p className="admin-section-copy">Create controlled offers for support gestures, partnerships, launches, or trials.</p><div className="admin-promo-form"><label>Code<input value={form.code} onChange={(event) => setForm({ ...form, code: event.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, "") })} placeholder="FAMILY30" /></label><label>Benefit<select value={form.type} onChange={(event) => setForm({ ...form, type: event.target.value })}><option value="trial">All-feature trial</option><option value="unlock_all">Unlock all features</option></select></label>{form.type === "trial" && <label>Trial days<input type="number" min="1" max="365" value={form.trialDays} onChange={(event) => setForm({ ...form, trialDays: event.target.value })} /></label>}<label>Redemption limit<input type="number" min="1" value={form.maxRedemptions} onChange={(event) => setForm({ ...form, maxRedemptions: event.target.value })} placeholder="Unlimited" /></label><label>End date<input type="date" value={form.endsAt} onChange={(event) => setForm({ ...form, endsAt: event.target.value })} /></label><label className="admin-promo-description">Description<input value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="Who this offer is for" /></label><button disabled={busy || form.code.length < 3 || (form.type === "trial" && !form.trialDays)} onClick={() => save()}><Tag size={16} /> Save promotion</button></div>{error && <div className="admin-error">{error}</div>}</Card><Card className="admin-table-card"><div className="admin-table-tools"><div><small>Offer library</small><h2>Promotion codes</h2></div></div><div className="admin-table-scroll"><table><thead><tr><th>Code</th><th>Benefit</th><th>Usage</th><th>Ends</th><th>Status</th><th /></tr></thead><tbody>{promos.map((promo) => <tr key={promo.code}><td><strong>{promo.code}</strong><small>{promo.description || "No description"}</small></td><td>{promo.benefit_type === "trial" ? `${promo.trial_days}-day trial` : "All features"}</td><td>{promo.redemption_count}{promo.max_redemptions ? ` / ${promo.max_redemptions}` : ""}</td><td>{promo.ends_at ? date(promo.ends_at) : "No expiry"}</td><td><span className={`admin-status ${promo.is_active ? "status-active" : "status-disabled"}`}>{promo.is_active ? "active" : "inactive"}</span></td><td><button className="admin-promo-toggle" disabled={busy} onClick={() => save({ code: promo.code, description: promo.description, type: promo.benefit_type, trialDays: String(promo.trial_days || 30), maxRedemptions: promo.max_redemptions ? String(promo.max_redemptions) : "", endsAt: promo.ends_at ? promo.ends_at.slice(0, 10) : "", isActive: !promo.is_active })}>{promo.is_active ? "Pause" : "Activate"}</button></td></tr>)}{!promos.length && <tr><td colSpan="6" className="admin-empty">Create the first promotion to offer controlled access.</td></tr>}</tbody></table></div></Card></div>;
+}
+
+function SubscriptionPromotions() {
+  const initial = { code: "", name: "", discountType: "percentage", discountPercentage: "20", discountAmount: "500", currency: "CAD", durationType: "one_time", period: "1", periodUnit: "month", maxRedemptions: "", validTill: "" };
+  const [form, setForm] = useState(initial); const [coupons, setCoupons] = useState([]); const [busy, setBusy] = useState(""); const [error, setError] = useState(""); const [chargebeeUrl, setChargebeeUrl] = useState("");
+  const call = async (body) => { const { data, error: requestError } = await supabase.functions.invoke("admin-chargebee-promotions", { body }); if (requestError || data?.error) throw requestError || new Error(data.error); return data; };
+  const load = async () => { setBusy("load"); setError(""); try { const data = await call({ action: "list" }); setCoupons(data.coupons || []); setChargebeeUrl(data.chargebeeUrl || ""); } catch (loadError) { setError(loadError?.message || "Chargebee promotions are unavailable."); } setBusy(""); };
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const create = async () => { setBusy("create"); setError(""); try { await call({ action: "create", ...form }); setForm(initial); await load(); } catch (createError) { setError(createError?.message || "The subscription promotion could not be created."); setBusy(""); } };
+  const archiveCoupon = async (couponId) => { setBusy(couponId); setError(""); try { await call({ action: "archive", couponId }); await load(); } catch (archiveError) { setError(archiveError?.message || "The promotion could not be archived."); setBusy(""); } };
+  const value = form.discountType === "percentage" ? `${form.discountPercentage || 0}%` : money(form.discountAmount || 0, form.currency);
+  return <><Card className="admin-panel admin-subscription-promos"><PanelHead eyebrow="Chargebee subscriptions" title="Create a customer promo code" icon={BadgeDollarSign} action={chargebeeUrl && <a className="admin-provider-link" href={`${chargebeeUrl}/coupons`} target="_blank" rel="noreferrer">Open Chargebee <ExternalLink size={13}/></a>} /><p className="admin-section-copy">Create a real subscription discount and a single-use customer code. Discounts are enforced by Chargebee at checkout.</p>
+    <div className="admin-promo-preview"><span><Tag size={18}/></span><div><small>Customer enters</small><strong>{form.code || "WELCOME20"}</strong></div><Badge tone="accent">{value} · {form.durationType.replaceAll("_", " ")}</Badge></div>
+    <div className="admin-promo-form">
+      <TextField label="Customer code" value={form.code} onChange={(event) => setForm({ ...form, code: event.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, "") })} placeholder="WELCOME20" />
+      <TextField label="Internal name" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Welcome offer" />
+      <SelectField label="Discount type" value={form.discountType} onChange={(event) => setForm({ ...form, discountType: event.target.value })}><option value="percentage">Percentage</option><option value="fixed_amount">Fixed amount</option></SelectField>
+      {form.discountType === "percentage" ? <TextField label="Percent off" type="number" min="0.01" max="100" value={form.discountPercentage} onChange={(event) => setForm({ ...form, discountPercentage: event.target.value })} /> : <TextField label="Amount in cents" type="number" min="1" value={form.discountAmount} onChange={(event) => setForm({ ...form, discountAmount: event.target.value })} />}
+      <SelectField label="Duration" value={form.durationType} onChange={(event) => setForm({ ...form, durationType: event.target.value })}><option value="one_time">First invoice</option><option value="limited_period">Limited period</option><option value="forever">Forever</option></SelectField>
+      {form.durationType === "limited_period" && <TextField label="Number of periods" type="number" min="1" value={form.period} onChange={(event) => setForm({ ...form, period: event.target.value })} />}
+      <TextField label="Redemption limit" type="number" min="1" value={form.maxRedemptions} onChange={(event) => setForm({ ...form, maxRedemptions: event.target.value })} placeholder="Unlimited" />
+      <TextField label="Valid until" type="date" value={form.validTill} onChange={(event) => setForm({ ...form, validTill: event.target.value })} />
+      <PrimaryButton disabled={busy || form.code.length < 3 || form.name.length < 2} onClick={create}><Tag size={16}/>{busy === "create" ? "Creating…" : "Create billing promo"}</PrimaryButton>
+    </div>{error && <div className="admin-error">{error}</div>}
+  </Card><Card className="admin-table-card"><div className="admin-table-tools"><div><small>Chargebee</small><h2>Subscription discounts</h2></div><SecondaryButton onClick={load} disabled={!!busy}><RefreshCw className={busy === "load" ? "spin" : ""} size={15}/>Refresh</SecondaryButton></div><div className="admin-table-scroll"><table><thead><tr><th>Promotion</th><th>Discount</th><th>Duration</th><th>Codes</th><th>Usage</th><th>Status</th><th/></tr></thead><tbody>{coupons.map((coupon) => <tr key={coupon.id}><td><strong>{coupon.name}</strong><small>{coupon.id}</small></td><td>{coupon.discountType === "percentage" ? `${coupon.discountPercentage}%` : money(coupon.discountAmount, coupon.currency || "CAD")}</td><td>{coupon.durationType?.replaceAll("_", " ")}</td><td>{coupon.sets?.flatMap((set) => set.name || []).join(", ") || "Direct coupon"}</td><td>{coupon.redemptions}{coupon.maxRedemptions ? ` / ${coupon.maxRedemptions}` : ""}</td><td><Badge tone={coupon.status === "active" ? "success" : "neutral"}>{coupon.status}</Badge></td><td>{coupon.status === "active" && <button className="admin-promo-toggle" disabled={!!busy} onClick={() => archiveCoupon(coupon.id)}>Archive</button>}</td></tr>)}{!coupons.length && <tr><td colSpan="7" className="admin-empty">{busy === "load" ? "Loading Chargebee promotions…" : "No subscription promotions yet."}</td></tr>}</tbody></table></div></Card></>;
+}
+
+function Promotions() { return <div className="admin-promotions"><SubscriptionPromotions/><div className="admin-local-ledger"><span>FamOS access grants</span><p>Internal unlocks and trials for support or partnership use. These do not discount a Chargebee invoice.</p></div><AccessPromotions/></div>; }
+
+function SaaSOperations({ onOpenHousehold, onOpenSupport }) {
+  const [snapshot, setSnapshot] = useState(null); const [busy, setBusy] = useState(""); const [error, setError] = useState("");
+  const load = async () => { setBusy("load"); const { data, error: loadError } = await supabase.rpc("admin_saas_operations_snapshot"); if (loadError) setError(loadError.message); else { setSnapshot(data || {}); setError(""); } setBusy(""); };
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const resetUsage = async (row) => { setBusy(`${row.household_id}-${row.metric}`); const { error: resetError } = await supabase.rpc("admin_reset_household_api_usage", { target_household: row.household_id, target_metric: row.metric }); if (resetError) setError(resetError.message); else await load(); setBusy(""); };
+  if (!snapshot && busy) return <Card className="admin-panel admin-chargebee-state"><RefreshCw className="spin"/><strong>Building today’s operations queue…</strong></Card>;
+  return <div className="admin-operations">{error && <div className="admin-error">{error}</div>}<section className="admin-metrics-grid">
+    <Metric icon={CreditCard} label="Past due" value={snapshot?.pastDue || 0} detail="Billing follow-up" tone="rose"/><Metric icon={Clock3} label="Trials ending" value={snapshot?.trialsEnding7d || 0} detail="Within 7 days" tone="yellow"/><Metric icon={MessageCircle} label="Support SLA" value={snapshot?.overdueSupport || 0} detail="Waiting over 24 hours" tone="fam"/><Metric icon={Gauge} label="Usage risk" value={snapshot?.usageAtRisk || 0} detail="At least 80% consumed" tone="mint"/>
+  </section><div className="admin-operations-toolbar"><div><span className="admin-kicker"><ShieldCheck size={13}/>Daily control room</span><p>Work the queues from left to right: revenue risk, customer support, then usage exceptions.</p></div><SecondaryButton onClick={load} disabled={!!busy}><RefreshCw className={busy === "load" ? "spin" : ""} size={15}/>Refresh</SecondaryButton></div>
+  <section className="admin-operations-grid"><Card className="admin-table-card"><div className="admin-table-tools"><div><small>Revenue retention</small><h2>Lifecycle attention</h2></div><Badge tone={(snapshot?.lifecycle?.length || 0) ? "warning" : "success"}>{snapshot?.lifecycle?.length || 0} accounts</Badge></div><div className="admin-queue-list">{snapshot?.lifecycle?.map((row) => <button key={row.household_id} onClick={() => onOpenHousehold(row.household_id)}><span className={`admin-queue-icon ${row.status === "past_due" ? "is-risk" : "is-watch"}`}>{row.status === "past_due" ? <AlertTriangle/> : <Clock3/>}</span><div><strong>{row.household_name}</strong><small>{row.status === "past_due" ? "Payment needs attention" : `Trial ends ${date(row.due_at)}`}</small></div><Badge tone={row.status === "past_due" ? "danger" : "warning"}>{row.status.replaceAll("_", " ")}</Badge><ChevronRight/></button>)}{!snapshot?.lifecycle?.length && <p className="admin-empty">No past-due accounts or trials ending this week.</p>}</div></Card>
+  <Card className="admin-table-card"><div className="admin-table-tools"><div><small>Response queue</small><h2>Oldest open support</h2></div><Badge tone={(snapshot?.overdueSupport || 0) ? "warning" : "success"}>{snapshot?.overdueSupport || 0} overdue</Badge></div><div className="admin-queue-list">{snapshot?.support?.slice(0,8).map((row) => <button key={row.id} onClick={() => onOpenSupport(row.id)}><span className={`admin-queue-icon ${row.age_hours >= 24 ? "is-risk" : ""}`}><MessageCircle/></span><div><strong>{row.subject}</strong><small>{row.household_name || row.sender_email || "Anonymous"} · {row.age_hours}h waiting</small></div><Badge tone={row.age_hours >= 24 ? "danger" : "neutral"}>{row.priority}</Badge><ChevronRight/></button>)}{!snapshot?.support?.length && <p className="admin-empty">The support queue is clear.</p>}</div></Card></section>
+  <Card className="admin-table-card"><div className="admin-table-tools"><div><small>Cost guardrail</small><h2>Monthly API usage</h2></div><span>Resets automatically each month</span></div><div className="admin-table-scroll"><table><thead><tr><th>Family</th><th>Meter</th><th>Consumption</th><th>Used</th><th>Updated</th><th/></tr></thead><tbody>{snapshot?.usage?.map((row) => <tr key={`${row.household_id}-${row.metric}`}><td><strong>{row.household_name}</strong></td><td>{row.metric === "famai_queries" ? "FamAI queries" : "Premium API operations"}</td><td><div className="admin-usage-meter"><i><b style={{ width: `${Math.min(100,row.percent_used)}%` }}/></i><span>{row.percent_used}%</span></div></td><td>{row.used_count} / {row.allowance}</td><td>{date(row.updated_at)}</td><td><button className="admin-provider-link" disabled={!!busy || !row.used_count} onClick={() => resetUsage(row)}>{busy === `${row.household_id}-${row.metric}` ? "Resetting…" : "Reset allowance"}</button></td></tr>)}{!snapshot?.usage?.length && <tr><td colSpan="6" className="admin-empty">No metered usage recorded this month.</td></tr>}</tbody></table></div></Card></div>;
 }
 
 function TopFamilies({ families = [], onOpen }) {
@@ -254,7 +295,7 @@ function ChargebeeRevenue({ range }) {
   </section>;
 }
 
-function SupportMessagesTable({ messages, onOpen, categoryFilter, setCategoryFilter, statusFilter, setStatusFilter, search, setSearch }) {
+function SupportMessagesTable({ messages, onOpen, categoryFilter, setCategoryFilter, statusFilter, setStatusFilter, archiveFilter, setArchiveFilter, search, setSearch }) {
   return <Card className="admin-table-card">
     <div className="admin-table-tools">
       <div><small>Inbox</small><h2>Support messages</h2></div>
@@ -272,6 +313,9 @@ function SupportMessagesTable({ messages, onOpen, categoryFilter, setCategoryFil
           <option value="read">Read</option>
           <option value="replied">Replied</option>
           <option value="closed">Closed</option>
+        </select>
+        <select value={archiveFilter} onChange={(event) => setArchiveFilter(event.target.value)} aria-label="Archive view">
+          <option value="active">Active inbox</option><option value="archived">Archived</option><option value="all">All messages</option>
         </select>
         <label><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search messages…" /></label>
       </div>
@@ -291,10 +335,11 @@ function SupportMessagesTable({ messages, onOpen, categoryFilter, setCategoryFil
   </Card>;
 }
 
-function SupportMessageDetail({ id, onClose, onChanged }) {
+function SupportMessageDetail({ id, onClose, onChanged, onDeleted }) {
   const [message, setMessage] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const load = async () => {
     const { data, error: detailError } = await supabase.rpc("admin_get_support_message", { target_id: id });
     if (detailError) setError(detailError.message); else setMessage(data);
@@ -306,6 +351,8 @@ function SupportMessageDetail({ id, onClose, onChanged }) {
     if (actionError) setError(actionError.message); else { await load(); onChanged(); }
     setBusy("");
   };
+  const archiveMessage = async (nextArchived) => { setBusy("archive"); setError(""); const { error: actionError } = await supabase.rpc("admin_archive_support_message", { target_id: id, next_archived: nextArchived }); if (actionError) setError(actionError.message); else { await load(); onChanged(); } setBusy(""); };
+  const deleteMessage = async () => { setBusy("delete"); setError(""); const { error: actionError } = await supabase.rpc("admin_delete_support_message", { target_id: id }); if (actionError) { setError(actionError.message); setBusy(""); } else onDeleted(); };
   if (!message) return <div className="admin-detail-loading">Loading message…</div>;
   const categoryIcon = message.category === "feature" ? Lightbulb : message.category === "bug" ? Bug : message.category === "ticket" ? Ticket : Mail;
   return <div className="admin-detail"><header>
@@ -315,12 +362,14 @@ function SupportMessageDetail({ id, onClose, onChanged }) {
       {message.status !== "read" && <button disabled={!!busy} onClick={() => updateStatus("read")}><CheckCircle2 size={14} /> {busy === "status" ? "…" : "Mark read"}</button>}
       {message.status !== "replied" && <button disabled={!!busy} onClick={() => updateStatus("replied")}><Send size={14} /> {busy === "status" ? "…" : "Mark replied"}</button>}
       {message.status !== "closed" && <button disabled={!!busy} onClick={() => updateStatus("closed")}><Archive size={14} /> {busy === "status" ? "…" : "Close"}</button>}
+      <button disabled={!!busy} onClick={() => archiveMessage(!message.archived_at)}>{message.archived_at ? <RefreshCw size={14}/> : <Archive size={14}/>} {busy === "archive" ? "…" : message.archived_at ? "Restore" : "Archive"}</button>
+      <button className="admin-support-delete" disabled={!!busy} onClick={() => setConfirmDelete(true)}><Trash2 size={14}/>Delete</button>
     </div>
   </header>
     {error && <div className="admin-error">{error}</div>}
     <Card className="admin-panel admin-support-detail-card">
       <div className="admin-support-detail-head">
-        <span className="admin-support-detail-icon">{categoryIcon ? <categoryIcon size={22} /> : <Mail size={22} />}</span>
+        <span className="admin-support-detail-icon">{categoryIcon ? (() => { const CategoryIcon = categoryIcon; return <CategoryIcon size={22} />; })() : <Mail size={22} />}</span>
         <div>
           <div className="admin-support-detail-meta">
             <span className={`admin-support-cat admin-cat-${message.category}`}>{message.category === "feature" ? "Feature idea" : message.category === "bug" ? "Bug report" : message.category === "ticket" ? "Support ticket" : "Email"}</span>
@@ -345,6 +394,7 @@ function SupportMessageDetail({ id, onClose, onChanged }) {
         </div>
       )}
     </Card>
+    <Modal open={confirmDelete} onClose={() => setConfirmDelete(false)} title="Permanently delete ticket"><div className="admin-delete-dialog"><div className="admin-delete-warning"><Trash2/><p><strong>This cannot be undone.</strong><br/>Archive the ticket instead if you may need its history later.</p></div><p>Delete <strong>{message.subject}</strong> permanently?</p><div><button onClick={() => setConfirmDelete(false)} disabled={!!busy}>Cancel</button><button className="danger" onClick={deleteMessage} disabled={!!busy}>{busy === "delete" ? "Deleting…" : "Delete ticket"}</button></div></div></Modal>
   </div>;
 }
 
@@ -358,6 +408,7 @@ export default function Admin() {
   const [supportSearch, setSupportSearch] = useState("");
   const [supportCategoryFilter, setSupportCategoryFilter] = useState("");
   const [supportStatusFilter, setSupportStatusFilter] = useState("");
+  const [supportArchiveFilter, setSupportArchiveFilter] = useState("active");
   const [supportSelected, setSupportSelected] = useState(null);
   const [supportRefreshKey, setSupportRefreshKey] = useState(0);
   const [supportCounts, setSupportCounts] = useState({});
@@ -387,22 +438,22 @@ export default function Admin() {
     supabase.rpc("admin_support_message_counts").then(({ data }) => {
       if (data) setSupportCounts(data);
     });
-    supabase.rpc("admin_list_support_messages", { category_filter: "", status_filter: "", search_text: "", page_limit: 5, page_offset: 0 }).then(({ data }) => {
+    supabase.rpc("admin_list_support_messages_v2", { category_filter: "", status_filter: "", search_text: "", archive_filter: "active", page_limit: 5, page_offset: 0 }).then(({ data }) => {
       if (data) setLatestSupportMessages(data);
     });
   }, [allowed, supportRefreshKey]);
   useEffect(() => {
     if (!allowed || section !== "support") return;
     const loadSupport = async () => {
-      const { data, error: supportError } = await supabase.rpc("admin_list_support_messages", {
-        category_filter: supportCategoryFilter, status_filter: supportStatusFilter, search_text: supportSearch, page_limit: 200, page_offset: 0,
+      const { data, error: supportError } = await supabase.rpc("admin_list_support_messages_v2", {
+        category_filter: supportCategoryFilter, status_filter: supportStatusFilter, search_text: supportSearch, archive_filter: supportArchiveFilter, page_limit: 200, page_offset: 0,
       });
       if (supportError) setError(supportError.message);
       else setSupportMessages(data || []);
     };
     loadSupport();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allowed, section, supportCategoryFilter, supportStatusFilter, supportSearch, supportRefreshKey]);
+  }, [allowed, section, supportCategoryFilter, supportStatusFilter, supportArchiveFilter, supportSearch, supportRefreshKey]);
   const confirmDelete = async (confirmation) => {
     setDeleteBusy(true); setDeleteError("");
     const promise = deleteTarget.kind === "household"
@@ -416,9 +467,9 @@ export default function Admin() {
   if (checking) return <main className={`admin-loading ${themeClass}`} data-color-scheme={colorScheme}>Checking admin access…</main>;
   if (!session) return <AdminLogin onSignedIn={check} />;
   if (!allowed) return <main className={`admin-denied ${themeClass}`} data-color-scheme={colorScheme}><XCircle /><h1>Admin access required</h1><p>{error}</p><button onClick={async () => { await supabase.auth.signOut(); setSession(null); }}>Use another account</button></main>;
-  if (supportSelected) return <main className={`admin-shell admin-detail-shell ${themeClass}`} data-color-scheme={colorScheme}><SupportMessageDetail id={supportSelected} onClose={() => setSupportSelected(null)} onChanged={() => setSupportRefreshKey((prev) => prev + 1)} /></main>;
+  if (supportSelected) return <main className={`admin-shell admin-detail-shell ${themeClass}`} data-color-scheme={colorScheme}><SupportMessageDetail id={supportSelected} onClose={() => setSupportSelected(null)} onChanged={() => setSupportRefreshKey((prev) => prev + 1)} onDeleted={() => { setSupportSelected(null); setSupportRefreshKey((prev) => prev + 1); }} /></main>;
   if (selected) return <main className={`admin-shell admin-detail-shell ${themeClass}`} data-color-scheme={colorScheme}><HouseholdDetail id={selected} onClose={() => setSelected(null)} onChanged={load} onDelete={setDeleteTarget} /><ConfirmDelete target={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={confirmDelete} busy={deleteBusy} error={deleteError} /></main>;
-  const nav = [["overview", "Overview", LayoutDashboard], ["families", "Families", Building2], ["users", "Users", Users], ["revenue", "Revenue", BadgeDollarSign], ["promotions", "Promotions", Tag], ["support", "Support", MessageCircle, supportCounts.new], ["flags", "Feature flags", Flag], ["audit", "Audit log", ShieldCheck], ["account", "Admin account", Settings2]];
+  const nav = [["overview", "Overview", LayoutDashboard], ["operations", "Operations", Gauge], ["families", "Families", Building2], ["users", "Users", Users], ["revenue", "Revenue", BadgeDollarSign], ["promotions", "Promotions", Tag], ["support", "Support", MessageCircle, supportCounts.new], ["flags", "Feature flags", Flag], ["audit", "Audit log", ShieldCheck], ["account", "Admin account", Settings2]];
   const activePercent = overview.households ? Math.round(Number(analytics.activeHouseholds30d || 0) / Number(overview.households) * 100) : 0;
   return <div className={`admin-shell ${themeClass}`} data-color-scheme={colorScheme}>    <aside><div className="admin-brand"><span className="admin-brand-icon"><img src="/brand/famos-icon.png" alt="FamOS" /></span><strong>Fam<span>OS</span></strong><small>Admin</small></div><nav>{nav.map(([key, label, Icon, badge]) => <button key={key} className={section === key ? "active" : ""} onClick={() => setSection(key)}><Icon size={18} />{badge ? <span className="admin-dot" /> : null}{label}{badge ? <span className="admin-badge">{badge}</span> : null}</button>)}</nav><button className="admin-signout" onClick={async () => { await supabase.auth.signOut(); setSession(null); }}><LogOut size={17} /> Sign out</button></aside>
     <main><header className="admin-topbar"><div><span className="admin-kicker"><ShieldCheck size={13} /> Operations center</span><h1>{nav.find(([key]) => key === section)?.[1]}</h1></div><div className="admin-topbar-actions">{["overview", "revenue"].includes(section) && <select aria-label="Statistics period" value={range} onChange={(event) => setRange(Number(event.target.value))}><option value="7">7 days</option><option value="14">14 days</option><option value="30">30 days</option><option value="90">90 days</option><option value="180">6 months</option><option value="365">12 months</option><option value="730">24 months</option></select>}<div className="admin-operator"><span>{session.user.email?.[0]?.toUpperCase()}</span><small>{session.user.email}</small></div></div></header>
@@ -445,16 +496,17 @@ export default function Admin() {
       </Card></section>
       <HouseholdTable households={households.slice(0, 8)} onOpen={setSelected} search={search} setSearch={setSearch} title="Recently created families" /></>}
       {section === "families" && <HouseholdTable households={households} onOpen={setSelected} search={search} setSearch={setSearch} />}
+      {section === "operations" && <SaaSOperations onOpenHousehold={setSelected} onOpenSupport={(id) => setSupportSelected(id)}/>}
       {section === "users" && <UsersTable users={users} search={userSearch} setSearch={setUserSearch} onDelete={(user) => setDeleteTarget({ kind: "user", id: user.user_id, email: user.email })} />}
       {section === "revenue" && <><ChargebeeRevenue range={range}/><div className="admin-local-ledger"><span>FamOS ledger</span><p>Webhook-mirrored reporting for reconciliation and historical product context.</p></div><section className="admin-metrics-grid"><Metric icon={CircleDollarSign} label="Mirrored MRR" value={money(overview.mrrCents, overview.currency)} detail="Active subscriptions" /><Metric icon={WalletCards} label="Recorded collected" value={money(analytics.revenueCollectedCents, overview.currency)} detail={`Net in ${range} days`} tone="mint" /><Metric icon={Users} label="ARPA" value={money(overview.payingHouseholds ? overview.mrrCents / overview.payingHouseholds : 0, overview.currency)} detail={`${overview.payingHouseholds || 0} paying families`} tone="yellow" /><Metric icon={CreditCard} label="Mirrored past due" value={overview.pastDueHouseholds || 0} detail={`${analytics.failedPayments || 0} failed payments`} tone="rose" /></section>
         <section className="admin-revenue-grid"><Card className="admin-panel admin-main-chart"><PanelHead eyebrow="Cash intelligence" title="Net revenue collected" icon={BadgeDollarSign} /><div className="admin-chart-summary"><strong>{money(analytics.revenueCollectedCents, overview.currency)}</strong><span>payments less refunds</span></div><TrendChart series={analytics.series} valueKey="revenueCents" currency /></Card><Card className="admin-panel admin-plan-mix"><PanelHead eyebrow="Subscriptions" title="Plan mix" icon={CreditCard} /><div>{(analytics.plans || []).map((plan) => <article key={`${plan.plan}-${plan.status}`}><span><i className={`status-${plan.status}`} />{plan.plan}</span><strong>{plan.accounts}</strong><small>{plan.status} · {money(plan.mrrCents)} MRR</small></article>)}{!analytics.plans?.length && <p className="admin-empty">No subscriptions recorded yet.</p>}</div></Card></section>
         <TopFamilies families={analytics.topFamilies} onOpen={setSelected} /><HouseholdTable households={households} onOpen={setSelected} search={search} setSearch={setSearch} title="Revenue by family" /></>}
       {section === "promotions" && <Promotions />}
-      {section === "support" && <SupportMessagesTable messages={supportMessages} onOpen={(id) => { setSupportSelected(id); setSupportRefreshKey((prev) => prev + 1); }} categoryFilter={supportCategoryFilter} setCategoryFilter={setSupportCategoryFilter} statusFilter={supportStatusFilter} setStatusFilter={setSupportStatusFilter} search={supportSearch} setSearch={setSupportSearch} />}
+      {section === "support" && <SupportMessagesTable messages={supportMessages} onOpen={(id) => { setSupportSelected(id); setSupportRefreshKey((prev) => prev + 1); }} categoryFilter={supportCategoryFilter} setCategoryFilter={setSupportCategoryFilter} statusFilter={supportStatusFilter} setStatusFilter={setSupportStatusFilter} archiveFilter={supportArchiveFilter} setArchiveFilter={setSupportArchiveFilter} search={supportSearch} setSearch={setSupportSearch} />}
       {section === "flags" && <Card className="admin-panel"><PanelHead eyebrow="Per-family controls" title="Feature management" icon={Settings2} /><p className="admin-section-copy">Open a family to configure calendars, meals, groceries, tasks, chat, Fam AI, finance, and communication entitlements.</p><HouseholdTable households={households} onOpen={setSelected} search={search} setSearch={setSearch} /></Card>}
       {section === "audit" && <Card className="admin-table-card"><div className="admin-table-tools"><div><small>Security</small><h2>Admin activity</h2></div></div><div className="admin-audit-list">{audit.map((entry) => <article key={entry.id}><span><ShieldCheck size={15} /></span><div><strong>{entry.action.replaceAll("_", " ")}</strong><small>{entry.admin_email} · {entry.target_type} {entry.target_id}</small></div><time>{date(entry.created_at)}</time></article>)}{!audit.length && <div className="admin-empty">No admin actions yet.</div>}</div></Card>}
       {section === "account" && <AdminAccount session={session} onSessionChanged={async () => { const { data } = await supabase.auth.getSession(); setSession(data.session); }} />}
-    </main><nav className="admin-mobile-nav">{[nav[0], nav[1], nav[2], nav[3], nav[5], nav[7]].map(([key, label, Icon]) => <button key={key} className={section === key ? "active" : ""} onClick={() => setSection(key)}><Icon /><small>{label}</small></button>)}</nav>
+    </main><nav className="admin-mobile-nav">{[nav[0], nav[1], nav[2], nav[4], nav[6], nav[8]].map(([key, label, Icon]) => <button key={key} className={section === key ? "active" : ""} onClick={() => setSection(key)}><Icon /><small>{label}</small></button>)}</nav>
     <ConfirmDelete target={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={confirmDelete} busy={deleteBusy} error={deleteError} />
   </div>;
 }

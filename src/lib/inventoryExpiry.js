@@ -10,8 +10,7 @@ export function inventoryExpiryStatus(item, now = new Date(), warningDays = 3) {
   if (!expiry || Number(item?.quantity || 0) <= 0) return null;
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12);
   const days = Math.round((expiry.getTime() - today.getTime()) / DAY_MS);
-  if (days < 0) return { state: "expired", days, label: "Expired", urgency: 0 };
-  if (days === 0) return { state: "today", days, label: "Use today", urgency: 1 };
+  if (days <= 0) return { state: "expired", days, label: "Passed", urgency: 0 };
   if (days <= warningDays) return { state: "soon", days, label: `Use within ${days} day${days === 1 ? "" : "s"}`, urgency: 2 + days };
   return null;
 }
@@ -28,7 +27,9 @@ export function inventoryExpiryProgress(item, now = new Date()) {
   const total = Math.max(DAY_MS, expiry.getTime() - start.getTime());
   const elapsed = Math.max(0, today.getTime() - start.getTime());
   const percent = Math.max(0, Math.min(100, Math.round((elapsed / total) * 100)));
-  return { percent, remainingPercent: 100 - percent };
+  const rawDaysRemaining = Math.round((expiry.getTime() - today.getTime()) / DAY_MS);
+  const daysRemaining = rawDaysRemaining <= 0 ? -1 : rawDaysRemaining;
+  return { percent, remainingPercent: 100 - percent, daysRemaining };
 }
 
 export function expiringInventory(items, now = new Date(), warningDays = 3) {

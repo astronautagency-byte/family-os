@@ -95,7 +95,13 @@ Deno.serve(async (request) => {
     // zone. The explicit FAMOS_FROM_EMAIL override still wins if the operator
     // wants to point the envelope at a different address.
     const FAMOS_MAIL_DOMAIN = Deno.env.get("FAMOS_MAIL_DOMAIN") || "mail.fam-os.app";
-    const fromEmail = Deno.env.get("FAMOS_FROM_EMAIL") || `FamOS <invites@${FAMOS_MAIL_DOMAIN}>`;
+    const configuredFromEmail = Deno.env.get("FAMOS_FROM_EMAIL") || "";
+    // Resend only accepts a From address on a verified sending domain. Keep a
+    // stale/root-domain override from silently breaking delivery after the
+    // dedicated mail subdomain has been verified.
+    const fromEmail = configuredFromEmail.includes(`@${FAMOS_MAIL_DOMAIN}`)
+      ? configuredFromEmail
+      : `FamOS <invites@${FAMOS_MAIL_DOMAIN}>`;
     const accessKeyId = Deno.env.get("AWS_ACCESS_KEY_ID");
     const secretAccessKey = Deno.env.get("AWS_SECRET_ACCESS_KEY");
     const region = Deno.env.get("AWS_REGION") || "ca-central-1";
@@ -167,6 +173,7 @@ Deno.serve(async (request) => {
             subject: content.title,
             html: content.html,
             text: content.text,
+            reply_to: "support@fam-os.app",
             tags: [{ name: "category", value: purpose === "invitation" ? "password-otp" : purpose === "admin_reset" ? "admin-password-reset" : "password-reset" }],
           }),
         });

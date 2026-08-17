@@ -3,7 +3,7 @@ import { AlertTriangle, Check, ChefHat, Croissant, Drumstick, Milk, Minus, Packa
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
 import useKitchenInventory from "../hooks/useKitchenInventory";
-import { inventoryExpiryProgress, inventoryExpiryStatus } from "../lib/inventoryExpiry";
+import { inventoryExpiryStatus } from "../lib/inventoryExpiry";
 
 function shelfLifeColor(daysRemaining) {
   if (daysRemaining <= 0) return "var(--color-warn)";
@@ -13,11 +13,13 @@ function shelfLifeColor(daysRemaining) {
 }
 
 function ShelfLifeBar({ item }) {
+  if (!item.expiresOn) return null;
+  const days = daysUntilExpiry(item.expiresOn);
+  if (days === null) return null;
   const progress = inventoryExpiryProgress(item);
-  if (!progress) return null;
-  const { percent, daysRemaining } = progress;
-  const color = shelfLifeColor(daysRemaining);
-  const label = daysRemaining <= 0 ? "Expired" : daysRemaining === 1 ? "1 day left" : `${daysRemaining} days left`;
+  const percent = progress ? progress.percent : Math.max(0, Math.min(100, Math.round(((7 - Math.max(0, days)) / 7) * 100)));
+  const color = shelfLifeColor(days);
+  const label = days <= 0 ? "Expired" : days === 1 ? "1 day left" : `${days} days left`;
   return (
     <div className="kw-shelf-life">
       <div className="kw-shelf-track">

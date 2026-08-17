@@ -16,6 +16,8 @@ test("admin login offers secure password recovery", () => {
   assert.match(passwordEmail, /not_active_admin/);
   assert.match(passwordEmail, /resetPasswordForEmail/);
   assert.doesNotMatch(passwordEmail, /password_email_relayed/);
+  assert.match(passwordEmail, /configuredFromEmail\.includes\(`@\$\{FAMOS_MAIL_DOMAIN\}`\)/);
+  assert.match(passwordEmail, /reply_to: "support@fam-os\.app"/);
   assert.match(admin, /If that admin account exists/);
 });
 

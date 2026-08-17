@@ -38,9 +38,10 @@ test("settings restores the Astronaut Digital credit", () => {
 
 test("Kitchen Watch renders an expiry progress meter", () => {
   assert.match(kitchen, /inventoryExpiryProgress/);
-  assert.match(kitchen, /<CircularProgress value=\{progress\.remainingPercent\}/);
-  assert.match(kitchen, /freshness left/);
-  assert.match(css, /\.inventory-expiry-progress/);
+  assert.match(kitchen, /<CircularProgress value=\{expired \? 100 : progress\.percent\}/);
+  assert.match(kitchen, /days until expiry/);
+  assert.match(kitchen, /color-mix\(in srgb,var\(--color-shopping\)/);
+  assert.match(css, /\.ui-circular-progress/);
 });
 
 test("mobile meal cuisine choices stay inside the viewport", () => {
