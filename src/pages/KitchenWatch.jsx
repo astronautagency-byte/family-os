@@ -4,6 +4,29 @@ import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
 import useKitchenInventory from "../hooks/useKitchenInventory";
 import { inventoryExpiryProgress, inventoryExpiryStatus } from "../lib/inventoryExpiry";
+
+function shelfLifeColor(daysRemaining) {
+  if (daysRemaining <= 0) return "var(--color-warn)";
+  if (daysRemaining <= 2) return "#D97706";
+  if (daysRemaining <= 5) return "#E07C24";
+  return "var(--color-good)";
+}
+
+function ShelfLifeBar({ item }) {
+  const progress = inventoryExpiryProgress(item);
+  if (!progress) return null;
+  const { percent, daysRemaining } = progress;
+  const color = shelfLifeColor(daysRemaining);
+  const label = daysRemaining <= 0 ? "Expired" : daysRemaining === 1 ? "1 day left" : `${daysRemaining} days left`;
+  return (
+    <div className="kw-shelf-life">
+      <div className="kw-shelf-track">
+        <div className="kw-shelf-fill" style={{ width: `${percent}%`, backgroundColor: color }} />
+      </div>
+      <span className="kw-shelf-label" style={{ color }}>{label}</span>
+    </div>
+  );
+}
 import { categorizeGroceryItem } from "../lib/groceryCategories";
 import { isIngredientOnList } from "../lib/mealIngredientCache";
 import { Badge, DateField, Modal, PrimaryButton, TextField } from "../components/ui";
@@ -171,6 +194,7 @@ export default function KitchenWatch() {
               <div className="kw-item-right">
                 {label && <span className={`kw-expiry-label ${isExpired ? "kw-expiry-label--expired" : ""} ${isSoon ? "kw-expiry-label--soon" : ""}`}>{label}</span>}
                 {item.expiresOn && <span className="kw-expiry-date">{expiryDateDisplay(item.expiresOn)}</span>}
+                <ShelfLifeBar item={item} />
                 <div className="kw-item-actions">
                   <DateField compact label="" value={item.expiresOn} onChange={(expiresOn) => updateItem(item.id, { expiresOn })}/>
                   <div className="kw-qty-controls">

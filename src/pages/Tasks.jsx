@@ -45,7 +45,7 @@ export default function Tasks(){
 
  const shareTask=async(task)=>{if(!task?.id)return;const due=task.due===todayISO()?"today":task.due?new Date(`${task.due}T12:00`).toLocaleDateString("en-CA",{weekday:"short",month:"short",day:"numeric"}):"whenever it fits";const url=buildShareUrl("task",task.id);await nativeShareWithFallback({title:"FamOS task",text:`${task.title}\nDue: ${due}`,url});};
 
- return <PullToRefresh onRefresh={refreshData}><div className="pb-28 reference-tasks famos-noscroll"><PageHeader title="Tasks" illustration="tasks" subtitle="Tiny missions, clear owners, fewer mysterious piles." action={<div className="task-header-actions"><button onClick={()=>setShowListPanel(true)}><ListPlus/> New list</button>{tasks.length>0&&<button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button>}</div>}/><div className="px-5 space-y-5">
+  return <PullToRefresh onRefresh={refreshData}><div className="pb-28 reference-tasks famos-noscroll"><PageHeader title="Tasks" illustration="tasks" subtitle="Tiny missions, clear owners, fewer mysterious piles."/><div className="task-toolbar"><button className="task-toolbar-btn" onClick={()=>setShowListPanel(true)}><ListPlus size={16}/> New list</button>{tasks.length>0&&<button className="task-toolbar-btn task-toolbar-reset" onClick={()=>setClearing(true)}><Trash2 size={16}/> Reset</button>}</div><div className="px-5 space-y-5">
   {/* Inline input — iOS Reminders style: type and hit Enter, task appears */}
  <form className="task-inline-form" onSubmit={submitInline}>
     <span className="task-inline-icon"><Plus size={16}/></span>

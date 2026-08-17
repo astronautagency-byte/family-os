@@ -41,6 +41,43 @@ export const PLAN_FEATURES = [
   },
 ];
 
+export const FEATURE_COMPARISON = [
+  { category: "Core Tools", features: [
+    { name: "Shared calendar", free: true, plus: true, pro: true },
+    { name: "Tasks & custom lists", free: true, plus: true, pro: true },
+    { name: "Shared shopping lists", free: true, plus: true, pro: true },
+    { name: "Family chat", free: true, plus: true, pro: true },
+    { name: "Kitchen Watch (expiry tracker)", free: true, plus: true, pro: true },
+  ]},
+  { category: "Calendar", features: [
+    { name: "Google two-way sync", free: false, plus: true, pro: true },
+    { name: "Outlook two-way sync", free: false, plus: true, pro: true },
+    { name: "Connected calendar accounts", free: "—", plus: "2", pro: "5" },
+    { name: "Places-powered event details", free: false, plus: true, pro: true },
+  ]},
+  { category: "Meals & Recipes", features: [
+    { name: "Recipe discovery", free: false, plus: true, pro: true },
+    { name: "Meal planning", free: false, plus: true, pro: true },
+    { name: "Cook Mode", free: false, plus: true, pro: true },
+    { name: "Kitchen inventory suggestions", free: false, plus: true, pro: true },
+  ]},
+  { category: "Shopping", features: [
+    { name: "Barcode scanning", free: true, plus: true, pro: true },
+    { name: "Product & barcode enrichment", free: false, plus: true, pro: true },
+    { name: "Focus Shop mode", free: false, plus: true, pro: true },
+  ]},
+  { category: "FamAI & Automation", features: [
+    { name: "FamAI queries per month", free: "3", plus: "75–100", pro: "250–300" },
+    { name: "Smart Capture", free: false, plus: true, pro: true },
+    { name: "Household automations", free: false, plus: true, pro: true },
+  ]},
+  { category: "Support & Extras", features: [
+    { name: "Activity history", free: "7 days", plus: "30 days", pro: "90 days" },
+    { name: "Priority support", free: false, plus: false, pro: true },
+    { name: "Future partner benefits", free: false, plus: false, pro: true },
+  ]},
+];
+
 export const PREMIUM_FEATURES = PLAN_FEATURES.map((plan) => ({
   id: plan.id,
   name: plan.name,

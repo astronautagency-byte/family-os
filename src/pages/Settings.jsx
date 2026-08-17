@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { AlertCircle, Bell, Bug, CalendarDays, Check, CheckCircle2, ChevronRight, Clipboard, Eye, EyeOff, ExternalLink, ImagePlus, Info, Lightbulb, Link2, Mail, MapPin, Megaphone, Palette, Pencil, Phone, Plus, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Ticket, Trash2, Upload, Users, Utensils } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
@@ -11,7 +11,7 @@ import { passwordError } from "../utils/passwordStrength";
 import { FAMILY_COLORS } from "../data/mockData";
 import { AVATAR_PRESETS } from "../data/avatarLibrary";
 import { PRICING_PLAN, formatMoney } from "../data/pricingPlan";
-import { PREMIUM_FEATURES, PLAN_FEATURES } from "../data/billingCatalog";
+import { PREMIUM_FEATURES, PLAN_FEATURES, FEATURE_COMPARISON } from "../data/billingCatalog";
 import { supabase } from "../lib/supabase";
 import AddressAutocomplete from "../components/AddressAutocomplete";
 import { formatPhoneInput, isValidPhoneNumber, normalizePhoneE164 } from "../utils/phone";
@@ -957,6 +957,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
         <section>
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">Plan & billing</h2>
           <Card className="p-4">
+            {/* Current plan header */}
             <div className="flex items-start gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0">
                 <Users size={18} color="var(--color-accent)" />
@@ -976,68 +977,155 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
                 </div>
               )}
             </div>
-            <div className="grid grid-cols-1 gap-2 text-[12.5px] text-[var(--color-ink-soft)]">
-              <div className="flex items-center justify-between gap-3 rounded-xl bg-[var(--color-surface-sunken)] px-3 py-2">
-                <span>Current household members</span>
-                <strong className="text-[var(--color-ink)]">{members.length}</strong>
+
+            {/* Plan cards with pricing */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+              {/* Free plan */}
+              <div className={`rounded-xl border ${!planFeature ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)]' : 'border-[var(--color-border)] bg-[var(--color-surface)]'} p-3`}>
+                <p className="font-semibold text-[14px] text-[var(--color-ink)]">FamOS Free</p>
+                <p className="font-[var(--font-display)] text-[24px] font-bold text-[var(--color-ink)] mt-1">$0</p>
+                <p className="text-[11px] text-[var(--color-ink-faint)]">forever free</p>
+                <p className="text-[12px] text-[var(--color-ink-soft)] mt-2">Core household tools</p>
               </div>
-              {PLAN_FEATURES.filter((plan) => !planFeature || plan.id !== planFeature.id).map((plan) => (
-                <button key={plan.id} type="button" className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 text-left" onClick={() => addPaidFeature(plan.id)} disabled={billingBusy || !isMasterOwner}>
-                  <span>
-                    <strong className="block text-[var(--color-ink)]">{plan.name}</strong>
-                    <small className="mt-0.5 block text-[var(--color-ink-soft)]">{plan.description}</small>
-                  </span>
-                  <span className="shrink-0 text-right">
-                    <span className="block font-bold text-[var(--color-accent)]">{formatMoney(plan.price)}/mo</span>
-                    <span className="block text-[11px] text-[var(--color-ink-faint)]">{formatMoney(plan.priceYearly)}/yr</span>
-                  </span>
-                </button>
-              ))}
-              {subStatusBadge && (
-                <div className={`flex items-center gap-2 rounded-xl px-3 py-2 ${subStatusBadge.tone === "good" ? "bg-[var(--color-good-soft)] text-[var(--color-good)]" : subStatusBadge.tone === "warn" ? "bg-[var(--color-warn-soft,#fde7d6)] text-[var(--color-warn)]" : "bg-[var(--color-surface-sunken)] text-[var(--color-ink-soft)]"}`}>
-                  <ShieldCheck size={14} className="mt-0.5 shrink-0" />
-                  <span>{subStatusBadge.label}{nextChargeLabel ? ` · ${nextChargeLabel}` : ""}</span>
-                </div>
-              )}
-              {paymentMethodLabel && (
-                <div className="flex items-center gap-2 text-[12.5px] text-[var(--color-ink-soft)]">
-                  <span className="font-bold text-[var(--color-ink)]">{paymentMethodLabel}</span>
-                  {subscription?.cancel_at_period_end && <span className="text-[var(--color-warn)]">· cancels at period end</span>}
-                </div>
-              )}
-              {!subStatusBadge && (
-                <div className="flex items-start gap-2 rounded-xl bg-[var(--color-good-soft)] px-3 py-2 text-[var(--color-good)]">
-                  <ShieldCheck size={14} className="mt-0.5 shrink-0" />
-                  <span>Your free tools remain available even without a paid plan.</span>
-                </div>
-              )}
-              {usageStatus && (
-                <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3" aria-label="Monthly premium usage">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <strong className="text-[var(--color-ink)]">Monthly usage</strong>
-                    <span className="text-[11px] text-[var(--color-ink-faint)]">Resets {formatNextCharge(usageStatus.nextReset)}</span>
-                  </div>
-                  {[
-                    ["FamAI questions", usageStatus.famai],
-                    ["Meal, recipe & Smart Capture actions", usageStatus.premiumOperations],
-                  ].map(([label, usage]) => {
-                    const percent = usage?.limit ? Math.min(100, Math.round((usage.used / usage.limit) * 100)) : 0;
-                    return usage ? (
-                      <div key={label} className="mb-3 last:mb-0">
-                        <div className="mb-1 flex items-center justify-between gap-3">
-                          <span>{label}</span>
-                          <strong className="text-[var(--color-ink)]">{usage.remaining} left</strong>
-                        </div>
-                        <div className="h-2 overflow-hidden rounded-full bg-[var(--color-surface-sunken)]" role="progressbar" aria-label={label} aria-valuenow={usage.used} aria-valuemin="0" aria-valuemax={usage.limit}>
-                          <div className="h-full rounded-full bg-[var(--color-accent)] transition-[width]" style={{ width: `${percent}%` }} />
-                        </div>
-                        <p className="mt-1 text-[11px] text-[var(--color-ink-faint)]">{usage.used} of {usage.limit} used</p>
-                      </div>
-                    ) : null;
-                  })}
-                </div>
-              )}
+
+              {/* Plus plan */}
+              <div className={`rounded-xl border ${planFeature?.id === 'plus' ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)]' : 'border-[var(--color-border)] bg-[var(--color-surface)]'} p-3`}>
+                <p className="font-semibold text-[14px] text-[var(--color-ink)]">FamOS Plus</p>
+                <p className="font-[var(--font-display)] text-[24px] font-bold text-[var(--color-accent)] mt-1">$14.99<span className="text-[12px] font-normal text-[var(--color-ink-faint)]">/mo</span></p>
+                <p className="text-[11px] text-[var(--color-ink-faint)]">$149/year (save 17%)</p>
+                <p className="text-[12px] text-[var(--color-ink-soft)] mt-2">Calendar sync, recipes, meal planning</p>
+                {(!planFeature || planFeature.id !== 'plus') && (
+                  <button type="button" className="mt-3 w-full rounded-lg bg-[var(--color-accent)] text-white text-[13px] font-semibold py-2 px-3 hover:opacity-90 transition-opacity" onClick={() => addPaidFeature('plus')} disabled={billingBusy || !isMasterOwner}>
+                    {billingBusy ? "Processing…" : "Upgrade to Plus"}
+                  </button>
+                )}
+                {planFeature?.id === 'plus' && (
+                  <span className="mt-3 block text-center text-[12px] font-semibold text-[var(--color-accent)]">Current plan</span>
+                )}
+              </div>
+
+              {/* Pro plan */}
+              <div className={`rounded-xl border ${planFeature?.id === 'pro' ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)]' : 'border-[var(--color-border)] bg-[var(--color-surface)]'} p-3`}>
+                <p className="font-semibold text-[14px] text-[var(--color-ink)]">FamOS Pro</p>
+                <p className="font-[var(--font-display)] text-[24px] font-bold text-[var(--color-accent)] mt-1">$19.99<span className="text-[12px] font-normal text-[var(--color-ink-faint)]">/mo</span></p>
+                <p className="text-[11px] text-[var(--color-ink-faint)]">$199/year (save 17%)</p>
+                <p className="text-[12px] text-[var(--color-ink-soft)] mt-2">Higher limits, priority support</p>
+                {(!planFeature || planFeature.id !== 'pro') && (
+                  <button type="button" className="mt-3 w-full rounded-lg bg-[var(--color-accent)] text-white text-[13px] font-semibold py-2 px-3 hover:opacity-90 transition-opacity" onClick={() => addPaidFeature('pro')} disabled={billingBusy || !isMasterOwner}>
+                    {billingBusy ? "Processing…" : "Upgrade to Pro"}
+                  </button>
+                )}
+                {planFeature?.id === 'pro' && (
+                  <span className="mt-3 block text-center text-[12px] font-semibold text-[var(--color-accent)]">Current plan</span>
+                )}
+              </div>
             </div>
+
+            {/* Feature comparison table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-[12.5px]">
+                <thead>
+                  <tr className="border-b border-[var(--color-border)]">
+                    <th className="text-left py-2 pr-3 font-semibold text-[var(--color-ink)]">Feature</th>
+                    <th className="text-center py-2 px-2 font-semibold text-[var(--color-ink)]">Free</th>
+                    <th className="text-center py-2 px-2 font-semibold text-[var(--color-accent)]">Plus</th>
+                    <th className="text-center py-2 px-2 font-semibold text-[var(--color-accent)]">Pro</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {FEATURE_COMPARISON.map((group) => (
+                    <React.Fragment key={group.category}>
+                      <tr>
+                        <td colSpan={4} className="pt-3 pb-1 font-semibold text-[var(--color-ink)] text-[11px] uppercase tracking-wider">{group.category}</td>
+                      </tr>
+                      {group.features.map((feature) => (
+                        <tr key={feature.name} className="border-b border-[var(--color-border)] last:border-0">
+                          <td className="py-2 pr-3 text-[var(--color-ink-soft)]">{feature.name}</td>
+                          <td className="text-center py-2 px-2">
+                            {feature.free === true ? (
+                              <Check size={15} className="inline text-[var(--color-good)]" />
+                            ) : feature.free === false ? (
+                              <X size={15} className="inline text-[var(--color-ink-faint)]" />
+                            ) : (
+                              <span className="text-[var(--color-ink)]">{feature.free}</span>
+                            )}
+                          </td>
+                          <td className="text-center py-2 px-2">
+                            {feature.plus === true ? (
+                              <Check size={15} className="inline text-[var(--color-good)]" />
+                            ) : feature.plus === false ? (
+                              <X size={15} className="inline text-[var(--color-ink-faint)]" />
+                            ) : (
+                              <span className="text-[var(--color-accent)] font-medium">{feature.plus}</span>
+                            )}
+                          </td>
+                          <td className="text-center py-2 px-2">
+                            {feature.pro === true ? (
+                              <Check size={15} className="inline text-[var(--color-good)]" />
+                            ) : feature.pro === false ? (
+                              <X size={15} className="inline text-[var(--color-ink-faint)]" />
+                            ) : (
+                              <span className="text-[var(--color-accent)] font-medium">{feature.pro}</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Subscription status */}
+            {subStatusBadge && (
+              <div className={`flex items-center gap-2 rounded-xl px-3 py-2 mt-3 ${subStatusBadge.tone === "good" ? "bg-[var(--color-good-soft)] text-[var(--color-good)]" : subStatusBadge.tone === "warn" ? "bg-[var(--color-warn-soft,#fde7d6)] text-[var(--color-warn)]" : "bg-[var(--color-surface-sunken)] text-[var(--color-ink-soft)]"}`}>
+                <ShieldCheck size={14} className="mt-0.5 shrink-0" />
+                <span>{subStatusBadge.label}{nextChargeLabel ? ` · ${nextChargeLabel}` : ""}</span>
+              </div>
+            )}
+            {paymentMethodLabel && (
+              <div className="flex items-center gap-2 text-[12.5px] text-[var(--color-ink-soft)] mt-2">
+                <span className="font-bold text-[var(--color-ink)]">{paymentMethodLabel}</span>
+                {subscription?.cancel_at_period_end && <span className="text-[var(--color-warn)]">· cancels at period end</span>}
+              </div>
+            )}
+
+            {/* Usage status */}
+            {usageStatus && (
+              <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3 mt-3" aria-label="Monthly premium usage">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <strong className="text-[var(--color-ink)]">Monthly usage</strong>
+                  <span className="text-[11px] text-[var(--color-ink-faint)]">Resets {formatNextCharge(usageStatus.nextReset)}</span>
+                </div>
+                {[
+                  ["FamAI questions", usageStatus.famai],
+                  ["Meal, recipe & Smart Capture actions", usageStatus.premiumOperations],
+                ].map(([label, usage]) => {
+                  const percent = usage?.limit ? Math.min(100, Math.round((usage.used / usage.limit) * 100)) : 0;
+                  return usage ? (
+                    <div key={label} className="mb-3 last:mb-0">
+                      <div className="mb-1 flex items-center justify-between gap-3">
+                        <span>{label}</span>
+                        <strong className="text-[var(--color-ink)]">{usage.remaining} left</strong>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-[var(--color-surface-sunken)]" role="progressbar" aria-label={label} aria-valuenow={usage.used} aria-valuemin="0" aria-valuemax={usage.limit}>
+                        <div className="h-full rounded-full bg-[var(--color-accent)] transition-[width]" style={{ width: `${percent}%` }} />
+                      </div>
+                      <p className="mt-1 text-[11px] text-[var(--color-ink-faint)]">{usage.used} of {usage.limit} used</p>
+                    </div>
+                  ) : null;
+                })}
+              </div>
+            )}
+
+            {/* Free tools note */}
+            {!subStatusBadge && (
+              <div className="flex items-start gap-2 rounded-xl bg-[var(--color-good-soft)] px-3 py-2 mt-3 text-[var(--color-good)]">
+                <ShieldCheck size={14} className="mt-0.5 shrink-0" />
+                <span>Your free tools remain available even without a paid plan.</span>
+              </div>
+            )}
+
             <SecondaryButton onClick={openBillingPortal} disabled={billingBusy} className="mt-3">
               {billingBusy ? "Opening billing portal…" : "Manage billing"}
             </SecondaryButton>
