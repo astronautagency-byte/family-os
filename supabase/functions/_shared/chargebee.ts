@@ -1,7 +1,6 @@
 export const FEATURE_ENV: Record<string, string> = {
-  meals: "CHARGEBEE_ITEM_MEALS",
-  fam_ai: "CHARGEBEE_ITEM_FAMAI",
-  family: "CHARGEBEE_ITEM_FAMILY",
+  plus: "CHARGEBEE_ITEM_PLUS",
+  pro: "CHARGEBEE_ITEM_PRO",
 };
 
 export const chargebeeConfig = () => {

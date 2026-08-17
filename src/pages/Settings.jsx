@@ -11,7 +11,7 @@ import { passwordError } from "../utils/passwordStrength";
 import { FAMILY_COLORS } from "../data/mockData";
 import { AVATAR_PRESETS } from "../data/avatarLibrary";
 import { PRICING_PLAN, formatMoney } from "../data/pricingPlan";
-import { PREMIUM_FEATURES } from "../data/billingCatalog";
+import { PREMIUM_FEATURES, PLAN_FEATURES } from "../data/billingCatalog";
 import { supabase } from "../lib/supabase";
 import AddressAutocomplete from "../components/AddressAutocomplete";
 import { formatPhoneInput, isValidPhoneNumber, normalizePhoneE164 } from "../utils/phone";
@@ -701,6 +701,12 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
   const [billingBusy, setBillingBusy] = useState(false);
   const [billingError, setBillingError] = useState("");
 
+  const planFeature = (() => {
+    if (!subscription?.chargebee_items?.length) return null;
+    const itemId = subscription.chargebee_items[0];
+    return PLAN_FEATURES.find((plan) => itemId.includes(plan.id)) || null;
+  })();
+
   // Auto-select the manual-mode clipboard textarea on mount so the
   // user lands with text already selected — next long-press → Copy
   // works without an intermediate tap to focus.
@@ -750,7 +756,11 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
     setBillingBusy(true);
     try {
       const { data, error } = await supabase.functions.invoke("chargebee-checkout", { body: { feature } });
-      if (error) throw error;
+      if (error) {
+        let message = data?.error || error.message;
+        try { if (error.context instanceof Response) message = (await error.context.clone().json())?.error || message; } catch { /* keep client message */ }
+        throw new Error(message);
+      }
       if (!data?.url) throw new Error("Couldn't open secure checkout.");
       window.location.assign(data.url);
     } catch (err) {
@@ -952,29 +962,35 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
                 <Users size={18} color="var(--color-accent)" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="font-medium text-[14.5px] text-[var(--color-ink)]">FamOS Free + optional extras</p>
+                <p className="font-medium text-[14.5px] text-[var(--color-ink)]">
+                  {planFeature ? planFeature.name : "FamOS Free"}
+                </p>
                 <p className="text-[12.5px] text-[var(--color-ink-soft)] mt-0.5">
-                  Calendar, Tasks, Shopping, Chat and Kitchen Watch are free · premium features are $4.99/month each
+                  {planFeature ? planFeature.tagline : "Calendar, Tasks, Shopping, Chat and Kitchen Watch are free"}
                 </p>
               </div>
-              <div className="text-right">
-                <p className="font-[var(--font-display)] text-[22px] font-bold text-[var(--color-ink)]">{formatMoney(estimatedMonthlyPlan)}</p>
-                <p className="text-[11px] text-[var(--color-ink-faint)]">est. / month</p>
-              </div>
+              {!planFeature && (
+                <div className="text-right">
+                  <p className="font-[var(--font-display)] text-[22px] font-bold text-[var(--color-ink)]">$0</p>
+                  <p className="text-[11px] text-[var(--color-ink-faint)]">free</p>
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-1 gap-2 text-[12.5px] text-[var(--color-ink-soft)]">
               <div className="flex items-center justify-between gap-3 rounded-xl bg-[var(--color-surface-sunken)] px-3 py-2">
                 <span>Current household members</span>
                 <strong className="text-[var(--color-ink)]">{members.length}</strong>
               </div>
-              <div className="flex items-center justify-between gap-3 rounded-xl bg-[var(--color-surface-sunken)] px-3 py-2">
-                <span className="inline-flex items-center gap-1.5"><Sparkles size={14} /> Premium feature</span>
-                <strong className="text-[var(--color-ink)]">{formatMoney(4.99)}/month each</strong>
-              </div>
-              {PREMIUM_FEATURES.map((feature) => (
-                <button key={feature.id} type="button" className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 text-left" onClick={() => addPaidFeature(feature.id)} disabled={billingBusy || !isMasterOwner}>
-                  <span><strong className="block text-[var(--color-ink)]">{feature.name}</strong><small className="mt-0.5 block text-[var(--color-ink-soft)]">{feature.description}</small></span>
-                  <span className="shrink-0 font-bold text-[var(--color-accent)]">Add · {formatMoney(feature.price)}/mo</span>
+              {PLAN_FEATURES.filter((plan) => !planFeature || plan.id !== planFeature.id).map((plan) => (
+                <button key={plan.id} type="button" className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 text-left" onClick={() => addPaidFeature(plan.id)} disabled={billingBusy || !isMasterOwner}>
+                  <span>
+                    <strong className="block text-[var(--color-ink)]">{plan.name}</strong>
+                    <small className="mt-0.5 block text-[var(--color-ink-soft)]">{plan.description}</small>
+                  </span>
+                  <span className="shrink-0 text-right">
+                    <span className="block font-bold text-[var(--color-accent)]">{formatMoney(plan.price)}/mo</span>
+                    <span className="block text-[11px] text-[var(--color-ink-faint)]">{formatMoney(plan.priceYearly)}/yr</span>
+                  </span>
                 </button>
               ))}
               {subStatusBadge && (
@@ -992,7 +1008,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
               {!subStatusBadge && (
                 <div className="flex items-start gap-2 rounded-xl bg-[var(--color-good-soft)] px-3 py-2 text-[var(--color-good)]">
                   <ShieldCheck size={14} className="mt-0.5 shrink-0" />
-                  <span>Your free tools remain available even without a paid extra.</span>
+                  <span>Your free tools remain available even without a paid plan.</span>
                 </div>
               )}
               {usageStatus && (
