@@ -3,7 +3,7 @@ import { AlertTriangle, Check, ChefHat, Croissant, Drumstick, Milk, Minus, Packa
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
 import useKitchenInventory from "../hooks/useKitchenInventory";
-import { inventoryExpiryStatus } from "../lib/inventoryExpiry";
+import { inventoryExpiryStatus, inventoryExpiryProgress } from "../lib/inventoryExpiry";
 
 function shelfLifeColor(daysRemaining) {
   if (daysRemaining <= 0) return "var(--color-warn)";
