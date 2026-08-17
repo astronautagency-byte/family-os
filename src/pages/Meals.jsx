@@ -14,6 +14,7 @@ import { addDays, formatDayLabel, todayISO } from "../lib/dates";
 import { canonicalIngredientName, isIngredientOnList } from "../lib/mealIngredientCache";
 import { invokeEdgeFunction, supabase } from "../lib/supabase";
 import { searchRecipes } from "../lib/recipeSearch";
+import { getRecipeCost, formatCost, getIngredientSubstitutes } from "../lib/spoonacularFeatures";
 import useVoiceCommands, { requestScreenWakeLock } from "../hooks/useVoiceCommands";
 import useKitchenInventory from "../hooks/useKitchenInventory";
 import { SHARED_RECIPE_KEY } from "../lib/sharedContent";
@@ -165,6 +166,10 @@ export default function Meals() {
   const [showSavedRecipes, setShowSavedRecipes] = useState(false);
   const [cookMeal, setCookMeal] = useState(null);
   const [cookRecipe, setCookRecipe] = useState(null);
+  const [recipeCost, setRecipeCost] = useState(null);
+  const [substituteModal, setSubstituteModal] = useState(null);
+  const [substituteLoading, setSubstituteLoading] = useState(false);
+  const [substituteResult, setSubstituteResult] = useState(null);
   const [cookLoading, setCookLoading] = useState(false);
   const [cookError, setCookError] = useState("");
   const [cookMode, setCookMode] = useState(false);
@@ -225,6 +230,29 @@ export default function Meals() {
     if (!cookMeal || !cookMode) releaseWakeLock();
   }, [cookMeal, cookMode, releaseWakeLock]);
   useEffect(() => () => releaseWakeLock(), [releaseWakeLock]);
+  // Fetch recipe cost when Cook Mode opens
+  useEffect(() => {
+    if (!cookRecipe?.id) { setRecipeCost(null); return; }
+    let cancelled = false;
+    getRecipeCost(cookRecipe.id).then((cost) => {
+      if (!cancelled) setRecipeCost(cost);
+    });
+    return () => { cancelled = true; };
+  }, [cookRecipe?.id]);
+  // Fetch ingredient substitutes
+  const fetchSubstitutes = useCallback(async (ingredientName) => {
+    setSubstituteModal(ingredientName);
+    setSubstituteLoading(true);
+    setSubstituteResult(null);
+    try {
+      const result = await getIngredientSubstitutes(ingredientName);
+      setSubstituteResult(result);
+    } catch {
+      setSubstituteResult({ ingredient: ingredientName, substitutes: [], message: "Could not find substitutes." });
+    } finally {
+      setSubstituteLoading(false);
+    }
+  }, []);
   useEffect(() => {
     if (!cookMeal) return undefined;
     const unlockBodyScroll = lockBodyScroll();
@@ -935,6 +963,7 @@ export default function Meals() {
                       {rouletteOptions.kitchenOnly && (recipe.usedIngredientCount > 0 || recipe.missedIngredientCount > 0) && (
                         <small className="roulette-ingredient-match">Uses {recipe.usedIngredientCount} at home · {recipe.missedIngredientCount} missing</small>
                       )}
+                      <small className="roulette-cost-hint">Tap for cost estimate</small>
                     </div>
                     <ChefHat size={16} className="roulette-picker-arrow" />
                   </button>
@@ -989,6 +1018,25 @@ export default function Meals() {
           <div className="consume-review-actions"><SecondaryButton onClick={() => setConsumeReview(null)}>Keep everything</SecondaryButton><PrimaryButton disabled={!consumeSelection.length} onClick={async () => { for (const id of consumeSelection) await removeInventoryItem(id); setConsumeReview(null); }}>Mark {consumeSelection.length} used</PrimaryButton></div>
         </div>
       </Modal>
+      <Modal open={!!substituteModal} onClose={() => { setSubstituteModal(null); setSubstituteResult(null); }} title={`Substitutes for ${substituteModal || ""}`}>
+        {substituteLoading && <p className="cook-status"><Sparkles size={16} /> Looking up substitutes…</p>}
+        {!substituteLoading && substituteResult && (
+          <div className="substitute-result">
+            {substituteResult.substitutes.length > 0 ? (
+              <>
+                <p className="substitute-intro">Here are alternatives for <strong>{substituteResult.ingredient}</strong>:</p>
+                <ul className="substitute-list">
+                  {substituteResult.substitutes.map((sub, i) => (
+                    <li key={i}>{sub}</li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <p className="substitute-empty">{substituteResult.message || `No substitutes found for ${substituteResult.ingredient}.`}</p>
+            )}
+          </div>
+        )}
+      </Modal>
       {cookMeal && cookRecipe && createPortal(
         <div className={`app-shell cook-mode-portal ${document.querySelector(".app-shell")?.classList.contains("theme-dark") ? "theme-dark" : ""}`}>
         <ErrorBoundary
@@ -1034,6 +1082,9 @@ export default function Meals() {
                   <span><Clock size={15} /> {cookRecipe.readyInMinutes || 35} min</span>
                   <span><Users size={15} /> Serves {cookRecipe.servings || 4}</span>
                   <span><ChefHat size={15} /> {cookRecipe.cuisine || "Family favourite"}</span>
+                  {recipeCost && recipeCost.totalCostPerServing > 0 && (
+                    <span className="cook-cost-badge">~{formatCost(recipeCost.totalCostPerServing)}/serving</span>
+                  )}
                 </div>
               </div>
             </section>
@@ -1048,9 +1099,22 @@ export default function Meals() {
                   <p className="cook-panel-note">{cookRecipe.ingredients.length ? "Tap below to push missing ingredients to your weekly grocery list." : "Ingredients load as soon as the recipe arrives."}</p>
                   <ul className="cook-plain-list">
                     {cookRecipe.ingredients.length ? (
-                      cookRecipe.ingredients.map((item, index) => (
-                        <li key={`${item}-${index}`}>{typeof item === "string" ? item : item?.name}</li>
-                      ))
+                      cookRecipe.ingredients.map((item, index) => {
+                        const name = typeof item === "string" ? item : item?.name;
+                        return (
+                          <li key={`${item}-${index}`} className="cook-ingredient-item">
+                            <span>{name}</span>
+                            <button
+                              type="button"
+                              className="cook-substitute-btn"
+                              onClick={() => fetchSubstitutes(name)}
+                              title={`Find substitutes for ${name}`}
+                            >
+                              Swap
+                            </button>
+                          </li>
+                        );
+                      })
                     ) : (
                       <li className="cook-empty-line">No ingredients yet — wait for the lookup to finish.</li>
                     )}
