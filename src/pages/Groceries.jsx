@@ -16,7 +16,7 @@ import { supabase } from "../lib/supabase";
 import { categorizeGroceryItem } from "../lib/groceryCategories";
 import { inventoryExpiryStatus } from "../lib/inventoryExpiry";
 
-const emptyDraft = { name: "", category: GROCERY_CATEGORIES[0], quantity: 1, unit: "", brand: "", imageUrl: "" };
+const emptyDraft = { name: "", category: "Other", categoryManual: false, quantity: 1, unit: "", brand: "", imageUrl: "", assigneeIds: [] };
 const INVENTORY_CATEGORIES = ["Produce", "Deli & Prepared Foods", "Dairy & Eggs", "Meat & Seafood", "Bakery"];
 const isKitchenWatchCategory = (category) => INVENTORY_CATEGORIES.includes(category);
 const emptyPhoto = { file: null, previewUrl: "", remoteUrl: "", uploading: false, error: "" };
@@ -211,8 +211,19 @@ function categoryFromItemName(name = "", fallback = GROCERY_CATEGORIES[0]) {
   return ITEM_NAME_CATEGORY_RULES.find((rule) => rule.pattern.test(normalized))?.category || fallback;
 }
 
+function GroceryCategorySelect({ value, itemName, onChange }) {
+  const suggested = categoryFromItemName(itemName, "Other");
+  const isSuggested = Boolean(itemName.trim()) && value === suggested && suggested !== "Other";
+  return (
+    <label className="grocery-category-select">
+      <span>Category {isSuggested && <em>Suggested from item name</em>}</span>
+      <div><GroceryIcon category={value}/><select value={value} onChange={(event) => onChange(event.target.value)} aria-label="Grocery category">{GROCERY_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}</select><ChevronDown size={16} aria-hidden="true"/></div>
+    </label>
+  );
+}
+
 export default function Groceries() {
-  const { groceries, groceryLists = [], addGroceryList, removeGroceryList, meals, addGrocery: addGroceryBase, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries, clearGroceries, memberById, refreshData } = useFamily();
+  const { groceries, groceryLists = [], addGroceryList, removeGroceryList, meals, addGrocery: addGroceryBase, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries, clearGroceries, members, memberById, refreshData } = useFamily();
   const auth = useAuth();
   const household = auth?.household;
   const { items: inventoryItems, addItem: addInventoryItem, updateItem: updateInventoryItem, removeItem: removeInventoryItem } = useKitchenInventory(household?.id, auth?.user?.id);
@@ -563,7 +574,7 @@ export default function Groceries() {
 
   const openEdit = (item) => {
     abandonDraftPhoto();
-    setDraft({ name: item.name, category: item.category, quantity: item.quantity ?? 1, unit: item.unit ?? "", brand: item.brand || "", imageUrl: item.imageUrl || "" });
+    setDraft({ name: item.name, category: item.category, categoryManual: true, quantity: item.quantity ?? 1, unit: item.unit ?? "", brand: item.brand || "", imageUrl: item.imageUrl || "", assigneeIds: item.assigneeIds || [] });
     setPhotoDraft({ file: null, previewUrl: "", remoteUrl: item.photoUrl || "", uploading: false, error: "" });
     setSaveError("");
     setEditingId(item.id);
@@ -573,7 +584,7 @@ export default function Groceries() {
     setDraft((current) => ({
       ...current,
       name,
-      category: categoryFromItemName(name, current.category),
+      category: current.categoryManual ? current.category : categoryFromItemName(name, "Other"),
     }));
   };
 
@@ -581,7 +592,7 @@ export default function Groceries() {
     setMasterDraft((current) => ({
       ...current,
       name,
-      category: categoryFromItemName(name, current.category),
+      category: current.categoryManual ? current.category : categoryFromItemName(name, "Other"),
     }));
   };
 
@@ -589,7 +600,7 @@ export default function Groceries() {
     setBarcodeDraft((current) => ({
       ...current,
       name,
-      category: categoryFromItemName(name, current.category),
+      category: current.categoryManual ? current.category : categoryFromItemName(name, "Other"),
     }));
   };
 
@@ -601,9 +612,9 @@ export default function Groceries() {
     const previousPhotoUrl = editingId !== "new" ? (groceries.find((g) => g.id === editingId)?.photoUrl || "") : "";
     try {
       if (editingId === "new") {
-        await addGrocery({ name: draft.name.trim(), category: draft.category, quantity: draft.quantity, unit: draft.unit.trim(), brand: draft.brand?.trim() || "", imageUrl: draft.imageUrl || "", addedBy: null, photoUrl });
+        await addGrocery({ name: draft.name.trim(), category: draft.category, quantity: draft.quantity, unit: draft.unit.trim(), brand: draft.brand?.trim() || "", imageUrl: draft.imageUrl || "", assigneeIds: draft.assigneeIds || [], addedBy: null, photoUrl });
       } else {
-        await updateGrocery(editingId, { name: draft.name.trim(), category: draft.category, quantity: draft.quantity, unit: draft.unit.trim(), brand: draft.brand?.trim() || "", imageUrl: draft.imageUrl || "", photoUrl, previousPhotoUrl });
+        await updateGrocery(editingId, { name: draft.name.trim(), category: draft.category, quantity: draft.quantity, unit: draft.unit.trim(), brand: draft.brand?.trim() || "", imageUrl: draft.imageUrl || "", assigneeIds: draft.assigneeIds || [], photoUrl, previousPhotoUrl });
       }
       setEditingId(null);
       photoPickIdRef.current += 1;
@@ -638,7 +649,7 @@ export default function Groceries() {
 
   const openMasterItem = (item = null) => {
     setMasterEditing(item?.id || "new");
-    setMasterDraft(item ? { name: item.name, category: item.category, quantity: item.quantity || 1, unit: item.unit || "" } : emptyDraft);
+    setMasterDraft(item ? { name: item.name, category: item.category, categoryManual: true, quantity: item.quantity || 1, unit: item.unit || "" } : emptyDraft);
   };
 
   const saveMasterItem = () => {
@@ -1145,6 +1156,7 @@ export default function Groceries() {
                   <ul>
                     {items.map((item) => {
                       const adder = item.addedBy ? memberById[item.addedBy] : null;
+                      const assignedPeople = (item.assigneeIds || []).map((id) => memberById[id]).filter(Boolean);
                       const qtyLabel = [item.quantity > 1 || item.unit ? item.quantity : null, item.unit]
                         .filter(Boolean)
                         .join(" ");
@@ -1174,6 +1186,12 @@ export default function Groceries() {
                           </button>
                           {adder && !item.checked && (
                             <Avatar member={adder} size="xs" className="shrink-0" aria-label={`Added by ${adder.name}`} />
+                          )}
+                          {assignedPeople.length > 0 && !item.checked && (
+                            <div className="assignment-avatars grocery-assignees" aria-label={`For ${assignedPeople.map((person) => person.name).join(", ")}`} title={`For ${assignedPeople.map((person) => person.name).join(", ")}`}>
+                              {assignedPeople.slice(0, 3).map((person) => <Avatar key={person.id} member={person} size="xs" />)}
+                              {assignedPeople.length > 3 && <span>+{assignedPeople.length - 3}</span>}
+                            </div>
                           )}
                           {(function isFavourite() {
                             const isFav = staples.some((staple) => staple.name.toLowerCase() === item.name.toLowerCase());
@@ -1224,23 +1242,7 @@ export default function Groceries() {
         />
         <TextField label="Brand (optional)" placeholder="e.g. Liberté" value={draft.brand || ""} onChange={(e) => setDraft((current) => ({ ...current, brand: e.target.value }))} />
 
-        <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-2">Category</p>
-        <div className="flex flex-wrap gap-2 mb-4">
-          {GROCERY_CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setDraft((d) => ({ ...d, category: cat }))}
-              className="rounded-full px-3 py-1.5 text-[13px] font-medium border transition-colors"
-              style={{
-                borderColor: draft.category === cat ? "var(--color-accent)" : "var(--color-border)",
-                backgroundColor: draft.category === cat ? "var(--color-accent-soft)" : "transparent",
-                color: draft.category === cat ? "var(--color-accent-strong)" : "var(--color-ink-soft)",
-              }}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+        <GroceryCategorySelect value={draft.category} itemName={draft.name} onChange={(category) => setDraft((current) => ({ ...current, category, categoryManual: true }))}/>
 
         <div className="grocery-quantity-row mb-4">
           <div className="form-field grocery-quantity-field">
@@ -1255,6 +1257,14 @@ export default function Groceries() {
               onChange={(e) => setDraft((d) => ({ ...d, unit: e.target.value }))}
             />
           </div>
+        </div>
+
+        <p className="task-assignee-label">For family members <small>Optional · choose one or more</small></p>
+        <div className="task-assignee-picker grocery-member-picker">
+          {members.map((member) => {
+            const selected = (draft.assigneeIds || []).includes(member.id);
+            return <button type="button" key={member.id} aria-pressed={selected} className={selected ? "selected" : ""} onClick={() => setDraft((current) => ({ ...current, assigneeIds: selected ? current.assigneeIds.filter((id) => id !== member.id) : [...(current.assigneeIds || []), member.id] }))}><Avatar member={member}/><span>{member.name}</span>{selected && <Check size={14}/>}</button>;
+          })}
         </div>
 
         {/* Photo pick — mobile uses capture="environment" so the picker
@@ -1316,8 +1326,7 @@ export default function Groceries() {
 
       <Modal open={!!masterEditing} onClose={() => setMasterEditing(null)} title={masterEditing === "new" ? "Save a favourite" : "Edit favourite"}>
         <TextField label="Item" placeholder="e.g. Greek yogurt" value={masterDraft.name} onChange={(e) => updateMasterName(e.target.value)} autoFocus />
-        <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-2">Category</p>
-        <div className="flex flex-wrap gap-2 mb-4">{GROCERY_CATEGORIES.map((category) => <button key={category} onClick={() => setMasterDraft((draft) => ({ ...draft, category }))} className="rounded-full px-3 py-1.5 text-[13px] font-medium border" style={{ borderColor: masterDraft.category === category ? "var(--color-accent)" : "var(--color-border)", backgroundColor: masterDraft.category === category ? "var(--color-accent-soft)" : "transparent" }}>{category}</button>)}</div>
+        <GroceryCategorySelect value={masterDraft.category} itemName={masterDraft.name} onChange={(category) => setMasterDraft((current) => ({ ...current, category, categoryManual: true }))}/>
         <div className="grocery-quantity-row mb-5"><div className="form-field grocery-quantity-field"><span className="form-label">Default quantity</span><Stepper value={masterDraft.quantity} onChange={(quantity) => setMasterDraft((draft) => ({ ...draft, quantity }))} /></div><div><TextField label="Unit" placeholder="bag, dozen, lb" value={masterDraft.unit} onChange={(e) => setMasterDraft((draft) => ({ ...draft, unit: e.target.value }))} /></div></div>
         <div className="flex gap-2">{masterEditing !== "new" && <SecondaryButton onClick={() => { setStaples((current) => current.filter((item) => item.id !== masterEditing)); setMasterEditing(null); }}>Remove</SecondaryButton>}<PrimaryButton onClick={saveMasterItem} disabled={!masterDraft.name.trim()}>Save favourite</PrimaryButton></div>
       </Modal>
@@ -1360,8 +1369,7 @@ export default function Groceries() {
             <TextField label="Brand" placeholder="e.g. Dave's Killer Bread" value={barcodeDraft.brand} onChange={(event) => setBarcodeDraft((draft) => ({ ...draft, brand: event.target.value }))} />
           </div>
         </div>
-        <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-2">Category</p>
-        <div className="flex flex-wrap gap-2 mb-4">{GROCERY_CATEGORIES.map((category) => <button key={category} onClick={() => setBarcodeDraft((draft) => ({ ...draft, category }))} className="rounded-full px-3 py-1.5 text-[13px] font-medium border" style={{ borderColor: barcodeDraft.category === category ? "var(--color-accent)" : "var(--color-border)", backgroundColor: barcodeDraft.category === category ? "var(--color-accent-soft)" : "transparent" }}>{category}</button>)}</div>
+        <GroceryCategorySelect value={barcodeDraft.category} itemName={barcodeDraft.name} onChange={(category) => setBarcodeDraft((current) => ({ ...current, category, categoryManual: true }))}/>
         <div className="barcode-detail-grid">
           <div className="form-field barcode-quantity-field"><span className="form-label">Quantity</span><Stepper value={barcodeDraft.quantity} onChange={(quantity) => setBarcodeDraft((draft) => ({ ...draft, quantity }))} /></div>
           <TextField label="Price (optional)" type="number" inputMode="decimal" min="0" step="0.01" placeholder="$0.00" value={barcodeDraft.price} onChange={(event) => setBarcodeDraft((draft) => ({ ...draft, price: event.target.value }))} />

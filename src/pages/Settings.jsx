@@ -731,7 +731,11 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
     setBillingBusy(true);
     try {
       const { data, error } = await supabase.functions.invoke("chargebee-portal");
-      if (error) throw error;
+      if (error) {
+        let message = data?.error || error.message;
+        try { if (error.context instanceof Response) message = (await error.context.clone().json())?.error || message; } catch { /* keep client message */ }
+        throw new Error(message);
+      }
       const url = data?.url;
       if (!url) throw new Error("Couldn't open the billing portal. Please try again in a moment.");
       window.location.assign(url);
@@ -804,7 +808,10 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
           <div className="flex items-end justify-between mb-3"><h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)]">Appearance</h2></div>
           <Card className="settings-color-scheme-card">
             <div className="settings-color-scheme-head"><span><Palette size={18}/></span><div><strong>App colour</strong><small>Pick a palette that feels like home. Every option is tuned for light and dark mode.</small></div></div>
-            <label className="settings-color-select"><span className="scheme-swatches" aria-hidden="true">{(APP_COLOR_SCHEMES.find((scheme) => scheme.id === colorScheme) || APP_COLOR_SCHEMES[0]).colors.map((color) => <i key={color} style={{ backgroundColor: color }}/>)}</span><span className="settings-color-select-copy"><strong>{(APP_COLOR_SCHEMES.find((scheme) => scheme.id === colorScheme) || APP_COLOR_SCHEMES[0]).label}</strong><small>{(APP_COLOR_SCHEMES.find((scheme) => scheme.id === colorScheme) || APP_COLOR_SCHEMES[0]).note}</small></span><select aria-label="App colour scheme" value={colorScheme} onChange={(event) => onColorSchemeChange(event.target.value)}>{APP_COLOR_SCHEMES.map((scheme) => <option key={scheme.id} value={scheme.id}>{scheme.label} — {scheme.note}</option>)}</select></label>
+            <details className="settings-color-select">
+              <summary aria-label="Choose app colour scheme"><span className="scheme-swatches" aria-hidden="true">{(APP_COLOR_SCHEMES.find((scheme) => scheme.id === colorScheme) || APP_COLOR_SCHEMES[0]).colors.map((color) => <i key={color} style={{ backgroundColor: color }}/>)}</span><span className="settings-color-select-copy"><strong>{(APP_COLOR_SCHEMES.find((scheme) => scheme.id === colorScheme) || APP_COLOR_SCHEMES[0]).label}</strong><small>{(APP_COLOR_SCHEMES.find((scheme) => scheme.id === colorScheme) || APP_COLOR_SCHEMES[0]).note}</small></span><ChevronDown size={17}/></summary>
+              <div className="settings-color-options" role="listbox" aria-label="App colour schemes">{APP_COLOR_SCHEMES.map((scheme) => <button type="button" role="option" aria-selected={scheme.id === colorScheme} className={scheme.id === colorScheme ? "selected" : ""} key={scheme.id} onClick={(event) => { onColorSchemeChange(scheme.id); event.currentTarget.closest("details")?.removeAttribute("open"); }}><span className="scheme-swatches" aria-hidden="true">{scheme.colors.map((color) => <i key={color} style={{ backgroundColor: color }}/>)}</span><span><strong>{scheme.label}</strong><small>{scheme.note}</small></span>{scheme.id === colorScheme && <Check size={16}/>}</button>)}</div>
+            </details>
           </Card>
         </section>
 

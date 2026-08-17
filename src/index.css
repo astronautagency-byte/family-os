@@ -4530,15 +4530,15 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 /* Curated personalization palettes. Semantic feature colours remain stable;
    the household's chosen palette controls global actions, active navigation,
    Today, Tasks and Family surfaces. */
-.app-shell[data-color-scheme="ocean"]{--color-accent:#0E7490;--color-accent-strong:#155E75;--color-accent-soft:#ECFEFF;--color-today:#0E7490;--color-tasks:#0E7490;--color-family:#0E7490;--color-family-soft:#ECFEFF;--color-family-strong:#155E75}
+.app-shell[data-color-scheme="ocean"]{--color-accent:#087EA4;--color-accent-strong:#075E78;--color-accent-soft:#E6F8FC;--color-today:#087EA4;--color-tasks:#087EA4;--color-family:#087EA4;--color-family-soft:#E6F8FC;--color-family-strong:#075E78}
 .app-shell[data-color-scheme="berry"]{--color-accent:#C11574;--color-accent-strong:#9E165F;--color-accent-soft:#FDF2FA;--color-today:#C11574;--color-tasks:#C11574;--color-family:#C11574;--color-family-soft:#FDF2FA;--color-family-strong:#9E165F}
-.app-shell[data-color-scheme="forest"]{--color-accent:#067647;--color-accent-strong:#05603A;--color-accent-soft:#ECFDF3;--color-today:#067647;--color-tasks:#067647;--color-family:#067647;--color-family-soft:#ECFDF3;--color-family-strong:#05603A}
-.app-shell[data-color-scheme="sunset"]{--color-accent:#C4320A;--color-accent-strong:#9C2A10;--color-accent-soft:#FFF4ED;--color-today:#C4320A;--color-tasks:#C4320A;--color-family:#C4320A;--color-family-soft:#FFF4ED;--color-family-strong:#9C2A10}
+.app-shell[data-color-scheme="forest"]{--color-accent:#067647;--color-accent-strong:#055C38;--color-accent-soft:#E9FBF2;--color-today:#067647;--color-tasks:#067647;--color-family:#067647;--color-family-soft:#E9FBF2;--color-family-strong:#055C38}
+.app-shell[data-color-scheme="sunset"]{--color-accent:#C4320A;--color-accent-strong:#942308;--color-accent-soft:#FFF0E8;--color-today:#C4320A;--color-tasks:#C4320A;--color-family:#C4320A;--color-family-soft:#FFF0E8;--color-family-strong:#942308}
 .app-shell.theme-dark[data-color-scheme="ocean"]{--color-accent:#67E8F9;--color-accent-strong:#A5F3FC;--color-accent-soft:#164E63;--color-today:#67E8F9;--color-tasks:#67E8F9;--color-family:#67E8F9;--color-family-soft:#164E63;--color-family-strong:#A5F3FC}
 .app-shell.theme-dark[data-color-scheme="berry"]{--color-accent:#F670C7;--color-accent-strong:#FCCEEE;--color-accent-soft:#4A1233;--color-today:#F670C7;--color-tasks:#F670C7;--color-family:#F670C7;--color-family-soft:#4A1233;--color-family-strong:#FCCEEE}
 .app-shell.theme-dark[data-color-scheme="forest"]{--color-accent:#75E0A7;--color-accent-strong:#A6F4C5;--color-accent-soft:#123B2B;--color-today:#75E0A7;--color-tasks:#75E0A7;--color-family:#75E0A7;--color-family-soft:#123B2B;--color-family-strong:#A6F4C5}
 .app-shell.theme-dark[data-color-scheme="sunset"]{--color-accent:#FF9C66;--color-accent-strong:#FFD6AE;--color-accent-soft:#4A1D12;--color-today:#FF9C66;--color-tasks:#FF9C66;--color-family:#FF9C66;--color-family-soft:#4A1D12;--color-family-strong:#FFD6AE}
-.app-shell[data-color-scheme="mist"]{--color-accent:#5D5F8D;--color-accent-strong:#484A73;--color-accent-soft:#F1F1F7;--color-today:#5D5F8D;--color-tasks:#5D5F8D;--color-family:#5D5F8D;--color-family-soft:#F1F1F7;--color-family-strong:#484A73}.app-shell[data-color-scheme="sage"]{--color-accent:#3F6F61;--color-accent-strong:#31594D;--color-accent-soft:#EDF5F1;--color-today:#3F6F61;--color-tasks:#3F6F61;--color-family:#3F6F61;--color-family-soft:#EDF5F1;--color-family-strong:#31594D}.app-shell[data-color-scheme="clay"]{--color-accent:#8A5A4F;--color-accent-strong:#70483F;--color-accent-soft:#F8F0ED;--color-today:#8A5A4F;--color-tasks:#8A5A4F;--color-family:#8A5A4F;--color-family-soft:#F8F0ED;--color-family-strong:#70483F}.app-shell[data-color-scheme="harbour"]{--color-accent:#4F6478;--color-accent-strong:#3E5265;--color-accent-soft:#EEF2F5;--color-today:#4F6478;--color-tasks:#4F6478;--color-family:#4F6478;--color-family-soft:#EEF2F5;--color-family-strong:#3E5265}
+.app-shell[data-color-scheme="mist"]{--color-accent:#5B5BD6;--color-accent-strong:#4141A5;--color-accent-soft:#EEEEFF;--color-today:#5B5BD6;--color-tasks:#5B5BD6;--color-family:#5B5BD6;--color-family-soft:#EEEEFF;--color-family-strong:#4141A5}.app-shell[data-color-scheme="sage"]{--color-accent:#237A57;--color-accent-strong:#185B40;--color-accent-soft:#EAF8F1;--color-today:#237A57;--color-tasks:#237A57;--color-family:#237A57;--color-family-soft:#EAF8F1;--color-family-strong:#185B40}.app-shell[data-color-scheme="clay"]{--color-accent:#9A3412;--color-accent-strong:#76280E;--color-accent-soft:#FFF0E8;--color-today:#9A3412;--color-tasks:#9A3412;--color-family:#9A3412;--color-family-soft:#FFF0E8;--color-family-strong:#76280E}.app-shell[data-color-scheme="harbour"]{--color-accent:#334EAC;--color-accent-strong:#263B82;--color-accent-soft:#EDF2FF;--color-today:#334EAC;--color-tasks:#334EAC;--color-family:#334EAC;--color-family-soft:#EDF2FF;--color-family-strong:#263B82}
 .app-shell.theme-dark[data-color-scheme="mist"]{--color-accent:#B9BADE;--color-accent-strong:#DDDDF2;--color-accent-soft:#34354F;--color-today:#B9BADE;--color-tasks:#B9BADE;--color-family:#B9BADE;--color-family-soft:#34354F;--color-family-strong:#DDDDF2}.app-shell.theme-dark[data-color-scheme="sage"]{--color-accent:#9BC5B5;--color-accent-strong:#CAE0D7;--color-accent-soft:#263F37;--color-today:#9BC5B5;--color-tasks:#9BC5B5;--color-family:#9BC5B5;--color-family-soft:#263F37;--color-family-strong:#CAE0D7}.app-shell.theme-dark[data-color-scheme="clay"]{--color-accent:#D3A99E;--color-accent-strong:#EACFC8;--color-accent-soft:#4B332E;--color-today:#D3A99E;--color-tasks:#D3A99E;--color-family:#D3A99E;--color-family-soft:#4B332E;--color-family-strong:#EACFC8}.app-shell.theme-dark[data-color-scheme="harbour"]{--color-accent:#AFC1D1;--color-accent-strong:#D5E0E8;--color-accent-soft:#2C3D4B;--color-today:#AFC1D1;--color-tasks:#AFC1D1;--color-family:#AFC1D1;--color-family-soft:#2C3D4B;--color-family-strong:#D5E0E8}
 .app-shell.theme-dark[data-color-scheme]{--color-on-accent:#101828}
 .settings-color-scheme-card{padding:14px!important}.settings-color-scheme-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}.settings-color-scheme-head>span{display:grid;place-items:center;width:36px;height:36px;border-radius:var(--radius-control);background:var(--color-accent-soft);color:var(--color-accent-strong)}.settings-color-scheme-head strong,.settings-color-scheme-head small{display:block}.settings-color-scheme-head strong{color:var(--color-ink);font-size:13px}.settings-color-scheme-head small{margin-top:2px;color:var(--color-ink-soft);font-size:11px}.settings-color-schemes{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}.settings-color-schemes>button{display:grid;grid-template-columns:auto minmax(0,1fr) 24px;align-items:center;gap:8px;padding:9px;border:1px solid var(--color-border);border-radius:var(--radius-control);background:var(--color-surface);text-align:left}.settings-color-schemes>button.selected{border-color:var(--color-accent);background:var(--color-accent-soft)}.scheme-swatches{display:flex}.scheme-swatches i{width:14px;height:28px;border:2px solid var(--color-surface);border-radius:var(--radius-pill);margin-left:-5px}.scheme-swatches i:first-child{margin-left:0}.settings-color-schemes strong,.settings-color-schemes small{display:block}.settings-color-schemes strong{color:var(--color-ink);font-size:11.5px}.settings-color-schemes small{margin-top:2px;color:var(--color-ink-soft);font-size:9.5px}.settings-color-schemes em{display:grid;place-items:center;width:22px;height:22px;border-radius:var(--radius-pill);background:var(--color-surface);color:var(--color-accent-strong);font-style:normal}
@@ -4918,18 +4918,18 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 @media(max-width:600px){.feature-paywall{align-items:start;padding:20px 14px 110px}.feature-paywall-price{display:grid;gap:6px}}
 
 /* App page headers: restore the editorial family artwork and keep titles at
-   half of the former 38px/32px scale. The illustration remains visible on
+   60% of the former 38px/32px scale. The illustration remains visible on
    mobile, but yields space to page actions instead of forcing overflow. */
 .app-shell .page-title,
 body .app-content .page-title{
-  font-size:19px!important;
+  font-size:23px!important;
   line-height:1.16!important;
   letter-spacing:-.025em!important;
 }
 .app-shell .page-header-aside .page-spot-frame{display:grid!important}
 @media(max-width:767px){
   .app-shell .page-title,
-  body .app-content .page-title{font-size:16px!important;line-height:1.18!important}
+  body .app-content .page-title{font-size:19px!important;line-height:1.18!important}
   .app-shell .page-header-aside{min-width:76px!important;max-width:92px!important}
   .app-shell .page-header-aside .page-spot-frame,
   .app-shell .page-header-aside .page-spot{width:76px!important;height:64px!important}
@@ -4937,7 +4937,7 @@ body .app-content .page-title{
 }
 @media(max-width:380px){
   .app-shell .page-title,
-  body .app-content .page-title{font-size:16px!important}
+  body .app-content .page-title{font-size:17px!important}
   .app-shell .page-header-aside{min-width:68px!important;max-width:76px!important}
   .app-shell .page-header-aside .page-spot-frame,
   .app-shell .page-header-aside .page-spot{width:68px!important;height:58px!important}
@@ -4948,14 +4948,26 @@ body .app-content .page-title{
 .shopping-list-switcher .shopping-list-tab.selected{border-color:var(--list-tone,var(--color-shopping));background:var(--color-shopping-soft)}
 .shopping-list-switcher .shopping-list-tab>button:first-child{border:0;border-radius:0;background:transparent}
 .shopping-list-switcher .shopping-list-tab.selected>button:first-child{color:var(--color-shopping-strong)}
+
+/* Grocery categories stay compact while retaining the full household taxonomy. */
+.grocery-category-select{display:grid;gap:7px;margin:0 0 16px;color:var(--color-ink-soft);font-size:12.5px;font-weight:600}
+.grocery-category-select>span{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.grocery-category-select>span em{color:var(--color-shopping-strong);font-size:10.5px;font-style:normal;font-weight:700}
+.grocery-category-select>div{position:relative;display:flex;align-items:center;gap:9px;min-height:44px;padding:0 38px 0 12px;border:1px solid var(--color-border);border-radius:var(--radius-control);background:var(--color-surface)}
+.grocery-category-select>div:focus-within{border-color:var(--color-accent);box-shadow:0 0 0 3px var(--color-focus-ring)}
+.grocery-category-select select{width:100%;min-width:0;appearance:none;border:0;outline:0;background:transparent;color:var(--color-ink);font:600 13.5px/1.2 var(--font-sans);cursor:pointer}
+.grocery-category-select>div>svg:last-child{position:absolute;right:12px;color:var(--color-ink-soft);pointer-events:none}
 .shopping-list-switcher .shopping-list-delete{min-height:30px;margin-right:4px;padding:0 7px;border:0;border-radius:999px;background:transparent;color:var(--color-ink-faint)}
 .shopping-list-switcher .shopping-list-delete:hover{background:var(--color-warn-soft);color:var(--color-warn)}
 
 /* One concise, accessible appearance selector replaces the full palette wall. */
-.settings-color-select{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:11px;margin-top:14px;padding:11px 44px 11px 12px;border:1px solid var(--color-border);border-radius:var(--radius-control);background:var(--color-surface);cursor:pointer}
+.settings-color-select{position:relative;margin-top:14px;border:1px solid var(--color-border);border-radius:var(--radius-control);background:var(--color-surface)}
 .settings-color-select:focus-within{border-color:var(--color-accent);box-shadow:0 0 0 3px var(--color-accent-soft)}
-.settings-color-select-copy strong,.settings-color-select-copy small{display:block}.settings-color-select-copy strong{color:var(--color-ink);font-size:12px}.settings-color-select-copy small{margin-top:2px;color:var(--color-ink-soft);font-size:10px}.settings-color-select select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
-.settings-color-select::after{content:"⌄";position:absolute;right:15px;top:50%;translate:0 -55%;color:var(--color-ink-soft);font-size:18px;font-weight:700;pointer-events:none}
+.settings-color-select>summary{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:11px;padding:11px 12px;cursor:pointer;list-style:none}.settings-color-select>summary::-webkit-details-marker{display:none}.settings-color-select[open]>summary>svg{rotate:180deg}.settings-color-select-copy strong,.settings-color-select-copy small{display:block}.settings-color-select-copy strong{color:var(--color-ink);font-size:12px}.settings-color-select-copy small{margin-top:2px;color:var(--color-ink-soft);font-size:10px}.settings-color-options{display:grid;gap:5px;max-height:330px;padding:7px;border-top:1px solid var(--color-border);overflow-y:auto}.settings-color-options button{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:11px;width:100%;padding:9px;border:1px solid transparent;border-radius:10px;text-align:left}.settings-color-options button:hover,.settings-color-options button.selected{border-color:color-mix(in srgb,var(--color-accent) 32%,var(--color-border));background:var(--color-accent-soft)}.settings-color-options button>span:nth-child(2) strong,.settings-color-options button>span:nth-child(2) small{display:block}.settings-color-options button>span:nth-child(2) strong{color:var(--color-ink);font-size:12px}.settings-color-options button>span:nth-child(2) small{margin-top:2px;color:var(--color-ink-soft);font-size:10px}.scheme-swatches{display:flex;align-items:center}.scheme-swatches i{width:17px;height:29px;border:2px solid var(--color-surface);border-radius:7px;box-shadow:var(--shadow-xs)}.scheme-swatches i+i{margin-left:-5px}
+
+/* Shared work can have several owners without making rows visually noisy. */
+.assignment-avatars{display:flex;align-items:center;flex:0 0 auto}.assignment-avatars>.family-avatar+.family-avatar{margin-left:-7px}.assignment-avatars>.family-avatar{box-shadow:0 0 0 2px var(--color-surface)}.assignment-avatars>span{display:grid;place-items:center;width:24px;height:24px;margin-left:-5px;border:2px solid var(--color-surface);border-radius:50%;background:var(--color-accent-soft);color:var(--color-accent-strong);font-size:9px;font-weight:800}.task-assignee-label small{margin-left:4px;color:var(--color-ink-faint);font-weight:500}.grocery-assignees{margin-left:-5px}
+.task-list-switcher .task-list-tab{display:flex;flex:0 0 auto;align-items:center;border:1px solid var(--color-border);border-radius:var(--radius-pill);background:var(--color-surface);overflow:hidden}.task-list-switcher .task-list-tab.selected{border-color:var(--list-tone,var(--color-tasks));background:var(--color-accent-soft)}.task-list-switcher .task-list-tab>button:first-child{display:flex;align-items:center;gap:6px;padding:8px 7px 8px 11px}.task-list-delete{display:grid;place-items:center;width:30px;height:30px;margin-right:3px;border-radius:50%;color:var(--color-ink-faint)}.task-list-delete:hover{background:var(--color-warn-soft);color:var(--color-warn)}
 
 /* Dashboard customization combines visibility and ordering in one calm panel. */
 .today-customize-panel{margin-top:8px;margin-bottom:14px;padding:10px 12px;border:1px solid var(--color-border);border-radius:12px;background:var(--color-accent-soft)}
