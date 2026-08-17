@@ -94,7 +94,6 @@ function GroceryItemImage({ item, memberById, focus = false }) {
       style={{ position: "relative", display: "grid", placeItems: "center", width: size, height: size, borderRadius: radius, border: "none", overflow: "hidden", flex: "0 0 auto", background: "var(--color-accent-soft)" }}
     >
       <img src={src} alt="" onError={() => setFailed(true)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-      {uploader && <Avatar member={uploader} size="xs" className="grocery-photo-attribution" />}
     </span>
   );
 }
