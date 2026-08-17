@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { AlertCircle, Bell, Bug, CalendarDays, Check, CheckCircle2, ChevronRight, Clipboard, Eye, EyeOff, ExternalLink, ImagePlus, Info, Lightbulb, Link2, Mail, MapPin, Megaphone, Palette, Pencil, Phone, Plus, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Ticket, Trash2, Upload, Users, Utensils } from "lucide-react";
+import { AlertCircle, Bell, Bug, CalendarDays, Check, CheckCircle2, ChevronRight, Clipboard, Eye, EyeOff, ExternalLink, ImagePlus, Info, Lightbulb, Link2, Mail, MapPin, Megaphone, Palette, Pencil, Phone, Plus, RefreshCw, RotateCcw, ShieldCheck, Shuffle, Sparkles, Ticket, Trash2, Upload, Users, Utensils } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Alert, Avatar, Card, MenuDropdown, Modal, PrimaryButton, SecondaryButton, TextAreaField, TextField } from "../components/ui";
@@ -9,7 +9,7 @@ import PageHeader from "../components/PageHeader";
 import PullToRefresh from "../components/PullToRefresh";
 import { passwordError } from "../utils/passwordStrength";
 import { FAMILY_COLORS } from "../data/mockData";
-import { AVATAR_PRESETS } from "../data/avatarLibrary";
+import { AVATAR_PRESETS, randomDiceBearAvatarUrl } from "../data/avatarLibrary";
 import { PRICING_PLAN, formatMoney } from "../data/pricingPlan";
 import { PREMIUM_FEATURES, PLAN_FEATURES, FEATURE_COMPARISON } from "../data/billingCatalog";
 import { supabase } from "../lib/supabase";
@@ -1300,6 +1300,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
               <ImagePlus size={15} /> Upload photo
             </label>
             <button type="button" onClick={() => { setAvatarUrl(""); setAvatarStatus("Initials selected. Save to apply it."); }}>Use initials</button>
+            <button type="button" onClick={() => { setAvatarUrl(randomDiceBearAvatarUrl()); setAvatarStatus("Surprise avatar ready. Save to apply it."); }}><Shuffle size={15} /> Surprise me</button>
           </div>
         </div>
         <div className="avatar-preset-grid">
@@ -1316,6 +1317,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
           ))}
         </div>
         {avatarStatus && <p className="avatar-status">{avatarStatus}</p>}
+        <p className="avatar-preset-note">Illustrations by DiceBear — or upload a photo, or just use your initials.</p>
 
         <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-2">Role</p>
         <div className="flex gap-2 mb-4">

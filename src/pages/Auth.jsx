@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Baby, Bell, BellRing, BriefcaseBusiness, CalendarDays, Check, CheckSquare, ChefHat, ChevronLeft, Eye, EyeOff, HeartHandshake, House, ImagePlus, Leaf, LoaderCircle, LockKeyhole, Mail, MessageCircle, MilkOff, Palette, Phone, Plus, Salad, Send, ShieldCheck, ShoppingCart, Smartphone, Sparkles, Trash2, UserRound, UsersRound, WalletCards, WheatOff } from "lucide-react";
+import { Baby, Bell, BellRing, BriefcaseBusiness, CalendarDays, Check, CheckSquare, ChefHat, ChevronLeft, Eye, EyeOff, HeartHandshake, House, ImagePlus, Leaf, LoaderCircle, LockKeyhole, Mail, MessageCircle, MilkOff, Palette, Phone, Plus, Salad, Send, ShieldCheck, ShoppingCart, Shuffle, Smartphone, Sparkles, Trash2, UserRound, UsersRound, WalletCards, WheatOff } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { Card, DateField, PrimaryButton, ProgressBar, SecondaryButton, TextField } from "../components/ui";
 import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
@@ -17,7 +17,7 @@ function base64UrlToUint8Array(value) {
   const raw = atob((value + padding).replace(/-/g, "+").replace(/_/g, "/"));
   return Uint8Array.from([...raw].map((character) => character.charCodeAt(0)));
 }
-import { AVATAR_PRESETS } from "../data/avatarLibrary";
+import { AVATAR_PRESETS, randomDiceBearAvatarUrl } from "../data/avatarLibrary";
 import AddressAutocomplete from "../components/AddressAutocomplete";
 import { formatPhoneInput, isValidPhoneNumber, normalizePhoneE164 } from "../utils/phone";
 import { APP_COLOR_SCHEMES } from "../data/appColorSchemes";
@@ -1096,7 +1096,10 @@ function AvatarPicker({ avatarUrl, setAvatarUrl, status, setStatus }) {
     <div className="onboarding-avatar-picker">
       <div className="onboarding-avatar-heading">
         <span><UserRound size={15} /> Choose your avatar</span>
-        <label><input type="file" accept="image/*" onChange={uploadAvatar} /><ImagePlus size={15} /> Upload photo</label>
+        <div className="onboarding-avatar-actions">
+          <label><input type="file" accept="image/*" onChange={uploadAvatar} /><ImagePlus size={15} /> Upload photo</label>
+          <button type="button" onClick={() => { setAvatarUrl(randomDiceBearAvatarUrl()); setStatus("Surprise avatar ready to use."); }}><Shuffle size={15} /> Surprise me</button>
+        </div>
       </div>
       <div className="onboarding-avatar-grid">
         {AVATAR_PRESETS.slice(0, 10).map((avatar) => (
@@ -1107,6 +1110,7 @@ function AvatarPicker({ avatarUrl, setAvatarUrl, status, setStatus }) {
         {avatarUrl?.startsWith("data:") && <button type="button" className="selected custom"><img src={avatarUrl} alt="Your uploaded avatar" /></button>}
       </div>
       {status && <p className="avatar-status">{status}</p>}
+      <p className="avatar-preset-note">Illustrations by DiceBear — or upload a photo, or use your initials.</p>
     </div>
   );
 }
