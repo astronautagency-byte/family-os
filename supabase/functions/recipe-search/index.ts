@@ -12,8 +12,8 @@ const corsHeaders = {
 
 const SPOONACULAR_URL = "https://api.spoonacular.com/recipes/complexSearch";
 const DEFAULT_SERVINGS = 4;
-const DEFAULT_RESULT_LIMIT = 12;
-const MAX_RESULT_LIMIT = 24;
+const DEFAULT_RESULT_LIMIT = 5;
+const MAX_RESULT_LIMIT = 5;
 const cleanText = (input = "", maxLength = 200) => String(input || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, maxLength);
 
 const cleanIngredients = (raw) => Array.isArray(raw)
