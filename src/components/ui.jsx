@@ -72,6 +72,57 @@ export function AvatarStack(props) {
   return <AvatarCircles {...props} />;
 }
 
+export function IconBox({ children, size = "md", className = "", bg = "accent", iconBg = "surface" }) {
+  const sizes = {
+    xs: "w-6 h-6",
+    sm: "w-8 h-8",
+    md: "w-10 h-10",
+    lg: "w-12 h-12",
+    xl: "w-14 h-14",
+  };
+  
+  const radius = "rounded-xl";
+  
+  const backgrounds = {
+    accent: "bg-[var(--color-accent-soft)]",
+    calendar: "bg-[var(--color-calendar-soft)]",
+    meals: "bg-[var(--color-meals-soft)]",
+    tasks: "bg-[var(--color-tasks-soft)]",
+    shopping: "bg-[var(--color-shopping-soft)]",
+    chat: "bg-[var(--color-chat-soft)]",
+    finance: "bg-[var(--color-finance-soft)]",
+    family: "bg-[var(--color-family-soft)]",
+    surface: "bg-[var(--color-surface-sunken)]",
+    warn: "bg-[var(--color-warn-soft)]",
+    good: "bg-[var(--color-good-soft)]",
+  };
+  
+  const iconColors = {
+    accent: "text-[var(--color-accent-strong)]",
+    calendar: "text-[var(--color-calendar-strong)]",
+    meals: "text-[var(--color-meals-strong)]",
+    tasks: "text-[var(--color-tasks-strong)]",
+    shopping: "text-[var(--color-shopping-strong)]",
+    chat: "text-[var(--color-chat-strong)]",
+    finance: "text-[var(--color-finance-strong)]",
+    family: "text-[var(--color-family-strong)]",
+    surface: "text-[var(--color-ink)]",
+    warn: "text-[var(--color-warn)]",
+    good: "text-[var(--color-good)]",
+  };
+  
+  const bgClass = backgrounds[bg] || backgrounds.accent;
+  const iconColorClass = iconColors[iconBg] || iconColors.accent;
+  
+  return (
+    <span
+      className={`${sizes[size]} flex items-center justify-center shrink-0 ${radius} ${bgClass} ${className}`}
+    >
+      {children}
+    </span>
+  );
+}
+
 export function Tag({ children, color, tone = "neutral" }) {
   if (color) {
     return (
@@ -130,10 +181,17 @@ export function MenuDropdown({ value, options = [], onChange, renderValue, rende
   );
 }
 
-export function Card({ children, className = "", as: As = "div", ...props }) {
+export function Card({ children, className = "", as: As = "div", variant = "default", ...props }) {
+  const variants = {
+    default: "bg-[var(--color-surface)] border border-[var(--color-border)]",
+    elevated: "bg-[var(--color-surface)] border border-[var(--color-border)] shadow-sm",
+    floating: "bg-[var(--color-surface)] border border-[var(--color-border)] shadow-lg",
+    sunken: "bg-[var(--color-surface-sunken)] border border-[var(--color-border)]",
+    interactive: "bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-border-strong)] hover:shadow-sm active:scale-[0.995] transition-all duration-150 ease-out",
+  };
   return (
     <As
-      className={`kinship-card m3-card bg-[var(--color-surface)] border border-[var(--color-border)] ${className}`}
+      className={`kinship-card ${variants[variant] || variants.default} ${className}`}
       {...props}
     >
       {children}
@@ -344,7 +402,7 @@ export function DateField({ label, value, onChange, min, max, disabled = false, 
 export function PrimaryButton({ children, className = "", ...props }) {
   return (
     <button
-      className={`primary-button-row m3-button m3-button-filled w-full ${className}`}
+      className={`m3-button m3-button-filled w-full ${className}`}
       {...props}
     >
       {children}
