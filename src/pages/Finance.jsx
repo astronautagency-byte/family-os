@@ -222,7 +222,7 @@ export default function Finance() {
       <div className="px-5 mt-2 space-y-5">
         <SegmentedControl options={[{ value: "weekly", label: "Weekly" }, { value: "monthly", label: "Monthly" }]} value={financePeriod} onChange={setFinancePeriod} label="Budget period" />
 
-        <Card className="p-4">
+        <Card className="p-4 bg-finance-soft border-finance">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-ink-faint)]">Spent this {financePeriod === "monthly" ? "month" : "week"}</p>
@@ -254,7 +254,7 @@ export default function Finance() {
         {byCategory.length > 0 && (
           <section>
             <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-ink-faint)] mb-2 px-1">By category</p>
-            <Card className="p-4 space-y-3">{byCategory.map((category) => (
+            <Card className="p-4 space-y-3 bg-finance-soft border-finance">{byCategory.map((category) => (
               <div key={category.id}>
                 <div className="flex justify-between text-[12.5px] mb-1.5"><span className="flex items-center gap-2 font-medium"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: category.color }} />{category.id}</span><span>{money.format(category.total)}</span></div>
                 <ProgressBar value={category.total} max={spent || 1} color={category.color} size="sm" />
@@ -268,7 +268,7 @@ export default function Finance() {
             <div><p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-ink-faint)]">Activity</p><h2 className="font-[var(--font-display)] text-[17px] font-semibold capitalize">{financePeriod} expenses</h2></div>
             <span className="text-[12px] text-[var(--color-ink-faint)]">{periodExpenses.length} logged</span>
           </div>
-          <Card className="p-1">
+          <Card className="p-1 bg-finance-soft border-finance">
             {periodExpenses.length === 0 ? <EmptyState icon={<WalletCards size={25} />} title={`No expenses this ${financePeriod === "monthly" ? "month" : "week"}`} subtitle="Either wonderfully thrifty or nobody has logged the snack run yet." /> : (
               <ul>{periodExpenses.map((expense) => {
                 const category = CATEGORIES.find((item) => item.id === expense.category) || CATEGORIES.at(-1);

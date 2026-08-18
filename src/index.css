@@ -5700,7 +5700,48 @@ body .app-content .page-title{
 .ui-switch-row{display:flex;align-items:center;justify-content:space-between;gap:14px;cursor:pointer}.ui-switch-copy strong,.ui-switch-copy small{display:block}.ui-switch-copy strong{color:var(--color-ink);font-size:12px}.ui-switch-copy small{margin-top:2px;color:var(--color-ink-soft);font-size:10px}.ui-switch{position:relative;width:38px;height:22px;flex:0 0 38px;border:1px solid var(--color-border-strong);border-radius:999px;background:var(--color-surface-sunken);transition:border-color .16s ease,background-color .16s ease}.ui-switch>span{position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--color-ink-faint);box-shadow:var(--shadow-xs);transition:translate .16s ease,background-color .16s ease}.ui-switch[aria-checked="true"]{border-color:var(--color-accent);background:var(--color-accent)}.ui-switch[aria-checked="true"]>span{translate:16px 0;background:var(--color-on-accent,#fff)}.ui-switch:focus-visible{outline:3px solid var(--color-focus-ring);outline-offset:2px}.ui-switch-row.is-disabled{cursor:not-allowed;opacity:.55}
 .ui-circular-progress{position:relative;display:grid;place-items:center;flex:0 0 auto}.ui-circular-progress svg{position:absolute;inset:0;width:100%;height:100%;rotate:-90deg}.ui-circular-progress circle{fill:none}.ui-circular-track{stroke:color-mix(in srgb,var(--ring-color) 14%,var(--color-surface))}.ui-circular-value{stroke:var(--ring-color);stroke-linecap:round;transition:stroke-dashoffset .35s ease}.ui-circular-label{position:relative;z-index:1;display:grid;place-items:center;max-width:70%;color:var(--color-ink);font-size:10px;line-height:1.05;text-align:center}.ui-circular-label strong{font-size:11px;font-weight:800}
 .ui-menu-dropdown{position:relative}.ui-menu-dropdown>summary{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;cursor:pointer;list-style:none}.ui-menu-dropdown>summary::-webkit-details-marker{display:none}.ui-menu-dropdown[open]>summary>svg{rotate:180deg}.ui-menu-options{display:grid}.ui-menu-options button{width:100%;text-align:left}
-.settings-color-select.ui-menu-dropdown>summary{grid-template-columns:auto minmax(0,1fr) auto}.settings-color-select .ui-menu-options{gap:5px;max-height:330px;padding:7px;border-top:1px solid var(--color-border);overflow-y:auto}.settings-color-select .ui-menu-options button{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:11px;padding:9px;border:1px solid transparent;border-radius:10px}.settings-color-select .ui-menu-options button:hover,.settings-color-select .ui-menu-options button.selected{border-color:color-mix(in srgb,var(--color-accent) 32%,var(--color-border));background:var(--color-accent-soft)}.settings-color-select .ui-menu-options button>span:nth-child(2) strong,.settings-color-select .ui-menu-options button>span:nth-child(2) small{display:block}.settings-color-select .ui-menu-options button>span:nth-child(2) strong{color:var(--color-ink);font-size:12px}.settings-color-select .ui-menu-options button>span:nth-child(2) small{margin-top:2px;color:var(--color-ink-soft);font-size:10px}
+/* Settings color selector — full width dropdown */
+.settings-color-select{
+  width:100%;
+}
+.settings-color-select.ui-menu-dropdown>summary{
+  width:100%;
+  grid-template-columns:auto minmax(0,1fr) auto;
+}
+.settings-color-select .ui-menu-options{
+  gap:var(--space-2);
+  max-height:330px;
+  padding:var(--space-2);
+  border-top:1px solid var(--color-border);
+  overflow-y:auto;
+}
+.settings-color-select .ui-menu-options button{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:var(--space-3);
+  padding:var(--space-3);
+  border:1px solid transparent;
+  border-radius:var(--radius-lg);
+}
+.settings-color-select .ui-menu-options button:hover,
+.settings-color-select .ui-menu-options button.selected{
+  border-color:color-mix(in srgb,var(--color-accent) 32%,var(--color-border));
+  background:var(--color-accent-soft);
+}
+.settings-color-select .ui-menu-options button>span:nth-child(2) strong,
+.settings-color-select .ui-menu-options button>span:nth-child(2) small{
+  display:block;
+}
+.settings-color-select .ui-menu-options button>span:nth-child(2) strong{
+  color:var(--color-ink);
+  font-size:var(--text-sm);
+}
+.settings-color-select .ui-menu-options button>span:nth-child(2) small{
+  margin-top:var(--space-1);
+  color:var(--color-ink-soft);
+  font-size:var(--text-xs);
+}
 
 /* Kitchen Watch expiry cards pair an at-a-glance ring with the editable date. */
 .kitchen-watch-page .inventory-item-grid article{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"copy expiry" "actions actions";align-items:center}.kitchen-watch-page .inventory-item-copy{grid-area:copy;min-width:0}.inventory-expiry-control{grid-area:expiry;display:flex;align-items:center;gap:10px}.inventory-expiry-control .date-field{width:112px;margin:0}.inventory-expiry-control .form-label{font-size:9px}.inventory-expiry-control .date-trigger{min-height:34px;padding:0 9px;font-size:10px}.inventory-expiry-control .date-trigger>svg:last-child{display:none}.inventory-item-copy .ui-badge{margin-top:7px;width:max-content}.task-group-title .ui-badge{min-height:25px;padding-inline:10px}.task-board-row>.avatar-circles{margin-left:auto}.task-board-row>.avatar-circles+.task-row-share{margin-left:0}
