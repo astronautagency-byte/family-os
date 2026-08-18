@@ -823,10 +823,11 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
               value={colorScheme}
               options={APP_COLOR_SCHEMES.map((scheme) => ({ ...scheme, value: scheme.id }))}
               onChange={onColorSchemeChange}
+              chevronPosition="left"
               renderValue={(scheme) => (
                 <>
                   <span className="scheme-emoji">{scheme.emoji}</span>
-                  <span className="scheme-swatches" aria-hidden="true">
+                  <span className="scheme-swatches scheme-swatches--small" aria-hidden="true">
                     {scheme.colors.map((color) => <i key={color} style={{ backgroundColor: color }} />)}
                   </span>
                   <span className="settings-color-select-copy">
@@ -838,7 +839,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
               renderOption={(scheme, selected) => (
                 <>
                   <span className="scheme-emoji">{scheme.emoji}</span>
-                  <span className="scheme-swatches" aria-hidden="true">
+                  <span className="scheme-swatches scheme-swatches--small" aria-hidden="true">
                     {scheme.colors.map((color) => <i key={color} style={{ backgroundColor: color }} />)}
                   </span>
                   <span>

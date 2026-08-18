@@ -5684,6 +5684,9 @@ body .app-content .page-title{
 .settings-color-select:focus-within{border-color:var(--color-accent);box-shadow:0 0 0 3px var(--color-accent-soft)}
 .settings-color-select>summary{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:11px;padding:11px 12px;cursor:pointer;list-style:none}.settings-color-select>summary::-webkit-details-marker{display:none}.settings-color-select[open]>summary>svg{rotate:180deg}.settings-color-select-copy strong,.settings-color-select-copy small{display:block}.settings-color-select-copy strong{color:var(--color-ink);font-size:12px}.settings-color-select-copy small{margin-top:2px;color:var(--color-ink-soft);font-size:10px}.settings-color-options{display:grid;gap:5px;max-height:330px;padding:7px;border-top:1px solid var(--color-border);overflow-y:auto}.settings-color-options button{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:11px;width:100%;padding:9px;border:1px solid transparent;border-radius:10px;text-align:left}.settings-color-options button:hover,.settings-color-options button.selected{border-color:color-mix(in srgb,var(--color-accent) 32%,var(--color-border));background:var(--color-accent-soft)}.settings-color-options button>span:nth-child(2) strong,.settings-color-options button>span:nth-child(2) small{display:block}.settings-color-options button>span:nth-child(2) strong{color:var(--color-ink);font-size:12px}.settings-color-options button>span:nth-child(2) small{margin-top:2px;color:var(--color-ink-soft);font-size:10px}.scheme-swatches{display:flex;align-items:center}.scheme-swatches i{width:17px;height:29px;border:2px solid var(--color-surface);border-radius:7px;box-shadow:var(--shadow-xs)}.scheme-swatches i+i{margin-left:-5px}
 
+/* Smaller swatches for compact dropdowns */
+.scheme-swatches--small{display:flex;gap:3px}.scheme-swatches--small i{width:14px;height:18px;border:1px solid var(--color-surface);border-radius:4px}
+
 /* Shared work can have several owners without making rows visually noisy. */
 .assignment-avatars{display:flex;align-items:center;flex:0 0 auto}.assignment-avatars>.family-avatar+.family-avatar{margin-left:-7px}.assignment-avatars>.family-avatar{box-shadow:0 0 0 2px var(--color-surface)}.assignment-avatars>span{display:grid;place-items:center;width:24px;height:24px;margin-left:-5px;border:2px solid var(--color-surface);border-radius:50%;background:var(--color-accent-soft);color:var(--color-accent-strong);font-size:9px;font-weight:800}.task-assignee-label small{margin-left:4px;color:var(--color-ink-faint);font-weight:500}.grocery-assignees{margin-left:-5px}
 .task-list-switcher .task-list-tab{display:flex;flex:0 0 auto;align-items:center;border:1px solid var(--color-border);border-radius:var(--radius-pill);background:var(--color-surface);overflow:hidden}.task-list-switcher .task-list-tab.selected{border-color:var(--list-tone,var(--color-tasks));background:var(--color-accent-soft)}.task-list-switcher .task-list-tab>button:first-child{display:flex;align-items:center;gap:6px;padding:8px 7px 8px 11px}.task-list-delete{display:grid;place-items:center;width:30px;height:30px;margin-right:3px;border-radius:50%;color:var(--color-ink-faint)}.task-list-delete:hover{background:var(--color-warn-soft);color:var(--color-warn)}
@@ -5700,13 +5703,18 @@ body .app-content .page-title{
 .ui-switch-row{display:flex;align-items:center;justify-content:space-between;gap:14px;cursor:pointer}.ui-switch-copy strong,.ui-switch-copy small{display:block}.ui-switch-copy strong{color:var(--color-ink);font-size:12px}.ui-switch-copy small{margin-top:2px;color:var(--color-ink-soft);font-size:10px}.ui-switch{position:relative;width:38px;height:22px;flex:0 0 38px;border:1px solid var(--color-border-strong);border-radius:999px;background:var(--color-surface-sunken);transition:border-color .16s ease,background-color .16s ease}.ui-switch>span{position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--color-ink-faint);box-shadow:var(--shadow-xs);transition:translate .16s ease,background-color .16s ease}.ui-switch[aria-checked="true"]{border-color:var(--color-accent);background:var(--color-accent)}.ui-switch[aria-checked="true"]>span{translate:16px 0;background:var(--color-on-accent,#fff)}.ui-switch:focus-visible{outline:3px solid var(--color-focus-ring);outline-offset:2px}.ui-switch-row.is-disabled{cursor:not-allowed;opacity:.55}
 .ui-circular-progress{position:relative;display:grid;place-items:center;flex:0 0 auto}.ui-circular-progress svg{position:absolute;inset:0;width:100%;height:100%;rotate:-90deg}.ui-circular-progress circle{fill:none}.ui-circular-track{stroke:color-mix(in srgb,var(--ring-color) 14%,var(--color-surface))}.ui-circular-value{stroke:var(--ring-color);stroke-linecap:round;transition:stroke-dashoffset .35s ease}.ui-circular-label{position:relative;z-index:1;display:grid;place-items:center;max-width:70%;color:var(--color-ink);font-size:10px;line-height:1.05;text-align:center}.ui-circular-label strong{font-size:11px;font-weight:800}
 .ui-menu-dropdown{position:relative}.ui-menu-dropdown>summary{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;cursor:pointer;list-style:none}.ui-menu-dropdown>summary::-webkit-details-marker{display:none}.ui-menu-dropdown[open]>summary>svg{rotate:180deg}.ui-menu-options{display:grid}.ui-menu-options button{width:100%;text-align:left}
-/* Settings color selector — full width dropdown */
+/* Settings color selector — full width dropdown with left chevron */
 .settings-color-select{
   width:100%;
 }
 .settings-color-select.ui-menu-dropdown>summary{
   width:100%;
-  grid-template-columns:auto minmax(0,1fr) auto;
+  grid-template-columns:auto minmax(0,1fr);
+}
+.settings-color-select.ui-menu-dropdown>summary>svg:last-child{
+  order: -1;
+  margin-right: auto;
+  margin-left: var(--space-3);
 }
 .settings-color-select .ui-menu-options{
   gap:var(--space-2);

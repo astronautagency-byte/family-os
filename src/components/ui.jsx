@@ -112,12 +112,17 @@ export function Switch({ checked, onChange, label, description, disabled = false
   );
 }
 
-export function MenuDropdown({ value, options = [], onChange, renderValue, renderOption, label = "Choose an option", className = "" }) {
+export function MenuDropdown({ value, options = [], onChange, renderValue, renderOption, label = "Choose an option", className = "", chevronPosition = "right" }) {
   const detailsRef = useRef(null);
   const selected = options.find((option) => option.value === value) || options[0];
+  const chevron = <ChevronDown size={17} />;
   return (
     <details className={`ui-menu-dropdown ${className}`} ref={detailsRef}>
-      <summary aria-label={label}>{renderValue ? renderValue(selected) : <span>{selected?.label}</span>}<ChevronDown size={17} /></summary>
+      <summary aria-label={label}>
+        {chevronPosition === "left" ? chevron : null}
+        {renderValue ? renderValue(selected) : <span>{selected?.label}</span>}
+        {chevronPosition === "right" ? chevron : null}
+      </summary>
       <div className="ui-menu-options" role="listbox" aria-label={label}>
         {options.map((option) => <button type="button" role="option" aria-selected={option.value === value} className={option.value === value ? "selected" : ""} key={option.value} onClick={() => { onChange?.(option.value); detailsRef.current?.removeAttribute("open"); }}>{renderOption ? renderOption(option, option.value === value) : <><span>{option.label}</span>{option.value === value && <Check size={16} />}</>}</button>)}
       </div>
