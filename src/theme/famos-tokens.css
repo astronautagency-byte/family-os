@@ -191,3 +191,234 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Color Scheme Overrides — applied via data-color-scheme attribute
+ * ───────────────────────────────────────────────────────────────────────── */
+
+/* FamOS Pop (default) — warm coral */
+:root[data-color-scheme="famos"],
+:root:not([data-color-scheme]) {
+  --color-accent: #E85D3D;
+  --color-accent-hover: #D44A2E;
+  --color-accent-soft: #FFF3F0;
+  --color-accent-strong: #B84226;
+  --color-tasks: #E85D3D;
+  --color-tasks-soft: #FFF3F0;
+  --color-family: #E85D3D;
+  --color-family-soft: #FFF3F0;
+}
+
+/* Ocean & Sky */
+:root[data-color-scheme="ocean"] {
+  --color-accent: #0D47A1;
+  --color-accent-hover: #1565C0;
+  --color-accent-soft: #E3F2FD;
+  --color-accent-strong: #0A3A7A;
+}
+:root[data-color-scheme="lagoon"] {
+  --color-accent: #006064;
+  --color-accent-hover: #00838F;
+  --color-accent-soft: #E0F7FA;
+  --color-accent-strong: #004D4F;
+}
+:root[data-color-scheme="horizon"] {
+  --color-accent: #0D1B3A;
+  --color-accent-hover: #1E3A8A;
+  --color-accent-soft: #E8EBF5;
+  --color-accent-strong: #081226;
+}
+
+/* Warm & Earthy */
+:root[data-color-scheme="sunset"] {
+  --color-accent: #E73F1E;
+  --color-accent-hover: #D83618;
+  --color-accent-soft: #FFF3F0;
+  --color-accent-strong: #B83218;
+}
+:root[data-color-scheme="terracotta"] {
+  --color-accent: #8B4513;
+  --color-accent-hover: #A0522D;
+  --color-accent-soft: #FDF8F5;
+  --color-accent-strong: #6B3410;
+}
+:root[data-color-scheme="autumn"] {
+  --color-accent: #C85C1E;
+  --color-accent-hover: #B05018;
+  --color-accent-soft: #FFF8F0;
+  --color-accent-strong: #964616;
+}
+:root[data-color-scheme="desert"] {
+  --color-accent: #524646;
+  --color-accent-hover: #6B5A5A;
+  --color-accent-soft: #F5F3F2;
+  --color-accent-strong: #3D3333;
+}
+
+/* Fresh & Green */
+:root[data-color-scheme="forest"] {
+  --color-accent: #1B5E20;
+  --color-accent-hover: #2E7D32;
+  --color-accent-soft: #E8F5E9;
+  --color-accent-strong: #124515;
+}
+:root[data-color-scheme="meadow"] {
+  --color-accent: #2E7D32;
+  --color-accent-hover: #388E3C;
+  --color-accent-soft: #E8F5E9;
+  --color-accent-strong: #1B5E20;
+}
+:root[data-color-scheme="eucalyptus"] {
+  --color-accent: #4A6B4F;
+  --color-accent-hover: #5A7F5F;
+  --color-accent-soft: #F0F4F0;
+  --color-accent-strong: #3A553E;
+}
+
+/* Soft & Pastel */
+:root[data-color-scheme="berry"] {
+  --color-accent: #C11574;
+  --color-accent-hover: #AD145E;
+  --color-accent-soft: #FCE4EC;
+  --color-accent-strong: #880E4F;
+}
+:root[data-color-scheme="peach"] {
+  --color-accent: #E87A5A;
+  --color-accent-hover: #D66A4A;
+  --color-accent-soft: #FFF3F0;
+  --color-accent-strong: #C46040;
+}
+:root[data-color-scheme="lavender"] {
+  --color-accent: #9B85D6;
+  --color-accent-hover: #8A72C8;
+  --color-accent-soft: #F3F1FA;
+  --color-accent-strong: #7A64B8;
+}
+:root[data-color-scheme="cotton"] {
+  --color-accent: #E87A9A;
+  --color-accent-hover: #D46A8A;
+  --color-accent-soft: #FFF0F5;
+  --color-accent-strong: #C45A7A;
+}
+
+/* Rich & Jewel */
+:root[data-color-scheme="jewel"] {
+  --color-accent: #6A1B9A;
+  --color-accent-hover: #7B1FA2;
+  --color-accent-soft: #F3E5F5;
+  --color-accent-strong: #4A148C;
+}
+:root[data-color-scheme="midnight"] {
+  --color-accent: #0D1B3A;
+  --color-accent-hover: #1E3A8A;
+  --color-accent-soft: #E8EBF5;
+  --color-accent-strong: #081226;
+}
+:root[data-color-scheme="velvet"] {
+  --color-accent: #5E3122;
+  --color-accent-hover: #7A3F2E;
+  --color-accent-soft: #FAF5F3;
+  --color-accent-strong: #46261A;
+}
+
+/* Monochrome & Minimal */
+:root[data-color-scheme="charcoal"] {
+  --color-accent: #1E1E1E;
+  --color-accent-hover: #333333;
+  --color-accent-soft: #F5F5F5;
+  --color-accent-strong: #0A0A0A;
+}
+:root[data-color-scheme="warm-gray"] {
+  --color-accent: #4E4943;
+  --color-accent-hover: #666059;
+  --color-accent-soft: #F5F3F0;
+  --color-accent-strong: #36322E;
+}
+:root[data-color-scheme="noir"] {
+  --color-accent: #0A0A0A;
+  --color-accent-hover: #1A1A1A;
+  --color-accent-soft: #F0F0F0;
+  --color-accent-strong: #000000;
+}
+
+/* Vibrant & Energetic */
+:root[data-color-scheme="neon"] {
+  --color-accent: #FF006E;
+  --color-accent-hover: #E60062;
+  --color-accent-soft: #FFF0F7;
+  --color-accent-strong: #CC0058;
+}
+:root[data-color-scheme="retro"] {
+  --color-accent: #FF1493;
+  --color-accent-hover: #E61385;
+  --color-accent-soft: #FFF0F7;
+  --color-accent-strong: #CC1076;
+}
+:root[data-color-scheme="tropical"] {
+  --color-accent: #00FF7F;
+  --color-accent-hover: #00E672;
+  --color-accent-soft: #F0FFF8;
+  --color-accent-strong: #00CC66;
+}
+
+/* Seasonal */
+:root[data-color-scheme="spring"] {
+  --color-accent: #4CAF50;
+  --color-accent-hover: #43A047;
+  --color-accent-soft: #E8F5E9;
+  --color-accent-strong: #388E3C;
+}
+:root[data-color-scheme="summer"] {
+  --color-accent: #0077BE;
+  --color-accent-hover: #0069A8;
+  --color-accent-soft: #E3F2FD;
+  --color-accent-strong: #005A92;
+}
+:root[data-color-scheme="winter"] {
+  --color-accent: #5A7D9A;
+  --color-accent-hover: #4A6D8A;
+  --color-accent-soft: #F0F4F8;
+  --color-accent-strong: #3A5D7A;
+}
+:root[data-color-scheme="cozy"] {
+  --color-accent: #4A2C2A;
+  --color-accent-hover: #5E3634;
+  --color-accent-soft: #FDF8F5;
+  --color-accent-strong: #36201E;
+}
+
+/* Dark mode overrides for schemes */
+.theme-dark[data-color-scheme="famos"],
+.theme-dark:not([data-color-scheme]) {
+  --color-accent: #F07A5A;
+  --color-accent-hover: #F59073;
+  --color-accent-soft: #3D1F16;
+  --color-accent-strong: #FFB899;
+}
+.theme-dark[data-color-scheme="ocean"] { --color-accent: #60A5FA; --color-accent-hover: #93C5FD; --color-accent-soft: #1E3A5F; --color-accent-strong: #3B82F6; }
+.theme-dark[data-color-scheme="lagoon"] { --color-accent: #22D3EE; --color-accent-hover: #5EEAD4; --color-accent-soft: #0F2E3A; --color-accent-strong: #0891B2; }
+.theme-dark[data-color-scheme="horizon"] { --color-accent: #3B82F6; --color-accent-hover: #60A5FA; --color-accent-soft: #1E3A5F; --color-accent-strong: #2563EB; }
+.theme-dark[data-color-scheme="sunset"] { --color-accent: #FB923C; --color-accent-hover: #FDB060; --color-accent-soft: #3D2614; --color-accent-strong: #F97316; }
+.theme-dark[data-color-scheme="terracotta"] { --color-accent: #CD5C5C; --color-accent-hover: #D98282; --color-accent-soft: #3D2020; --color-accent-strong: #B24A4A; }
+.theme-dark[data-color-scheme="autumn"] { --color-accent: #D4A843; --color-accent-hover: #DDB86A; --color-accent-soft: #3D3414; --color-accent-strong: #C4982F; }
+.theme-dark[data-color-scheme="desert"] { --color-accent: #A8A492; --color-accent-hover: #C0BCAC; --color-accent-soft: #2E2A28; --color-accent-strong: #8E8A7A; }
+.theme-dark[data-color-scheme="forest"] { --color-accent: #4ADE80; --color-accent-hover: #6EE7A7; --color-accent-soft: #13301E; --color-accent-strong: #22C55E; }
+.theme-dark[data-color-scheme="meadow"] { --color-accent: #8BC34A; --color-accent-hover: #9CCC65; --color-accent-soft: #1A3D16; --color-accent-strong: #7CB342; }
+.theme-dark[data-color-scheme="eucalyptus"] { --color-accent: #8FA28A; --color-accent-hover: #A5B8A0; --color-accent-soft: #2A322A; --color-accent-strong: #6B8E6B; }
+.theme-dark[data-color-scheme="berry"] { --color-accent: #F472B6; --color-accent-hover: #F9A8D4; --color-accent-soft: #3D142A; --color-accent-strong: #EC4899; }
+.theme-dark[data-color-scheme="peach"] { --color-accent: #FDB39C; --color-accent-hover: #FEC9B8; --color-accent-soft: #3D1F16; --color-accent-strong: #F59E8E; }
+.theme-dark[data-color-scheme="lavender"] { --color-accent: #C4B5FD; --color-accent-hover: #DDD6FE; --color-accent-soft: #2C1A4A; --color-accent-strong: #A78BFA; }
+.theme-dark[data-color-scheme="cotton"] { --color-accent: #F9A8D4; --color-accent-hover: #FCD5E6; --color-accent-soft: #3D142A; --color-accent-strong: #F472B6; }
+.theme-dark[data-color-scheme="jewel"] { --color-accent: #D8B4FE; --color-accent-hover: #E9D5FF; --color-accent-soft: #2A1A4A; --color-accent-strong: #C084FC; }
+.theme-dark[data-color-scheme="midnight"] { --color-accent: #60A5FA; --color-accent-hover: #93C5FD; --color-accent-soft: #1E3A5F; --color-accent-strong: #3B82F6; }
+.theme-dark[data-color-scheme="velvet"] { --color-accent: #FDB39C; --color-accent-hover: #FEC9B8; --color-accent-soft: #3D1F16; --color-accent-strong: #F59E8E; }
+.theme-dark[data-color-scheme="charcoal"] { --color-accent: #E0E0E0; --color-accent-hover: #F5F5F5; --color-accent-soft: #1A1A1A; --color-accent-strong: #FFFFFF; }
+.theme-dark[data-color-scheme="warm-gray"] { --color-accent: #D4D0C8; --color-accent-hover: #E8E4DC; --color-accent-soft: #1E1C1A; --color-accent-strong: #C8C4BC; }
+.theme-dark[data-color-scheme="noir"] { --color-accent: #FFFFFF; --color-accent-hover: #F0F0F0; --color-accent-soft: #0A0A0A; --color-accent-strong: #E0E0E0; }
+.theme-dark[data-color-scheme="neon"] { --color-accent: #FF006E; --color-accent-hover: #FF3385; --color-accent-soft: #3D001A; --color-accent-strong: #FF66A3; }
+.theme-dark[data-color-scheme="retro"] { --color-accent: #FF1493; --color-accent-hover: #FF4DB3; --color-accent-soft: #3D001A; --color-accent-strong: #FF66B3; }
+.theme-dark[data-color-scheme="tropical"] { --color-accent: #00FF7F; --color-accent-hover: #33FF99; --color-accent-soft: #003D1F; --color-accent-strong: #00E66A; }
+.theme-dark[data-color-scheme="spring"] { --color-accent: #81C784; --color-accent-hover: #A5D6A7; --color-accent-soft: #13301E; --color-accent-strong: #66BB6A; }
+.theme-dark[data-color-scheme="summer"] { --color-accent: #64B5F6; --color-accent-hover: #90CAF9; --color-accent-soft: #1E3A5F; --color-accent-strong: #42A5F5; }
+.theme-dark[data-color-scheme="winter"] { --color-accent: #90CAF9; --color-accent-hover: #BBDEFB; --color-accent-soft: #1E3A5F; --color-accent-strong: #64B5F6; }
+.theme-dark[data-color-scheme="cozy"] { --color-accent: #E8B4B8; --color-accent-hover: #F0D0D4; --color-accent-soft: #3D1F16; --color-accent-strong: #D48A8E; }
