@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { AlertCircle, Bell, Bug, CalendarDays, Check, CheckCircle2, ChevronRight, Clipboard, Eye, EyeOff, ExternalLink, ImagePlus, Info, Lightbulb, Link2, Mail, MapPin, Megaphone, Palette, Pencil, Phone, Plus, RefreshCw, RotateCcw, ShieldCheck, Shuffle, Sparkles, Ticket, Trash2, Upload, Users, Utensils } from "lucide-react";
+import { AlertCircle, Bell, Bug, CalendarDays, Check, CheckCircle2, ChevronRight, Clipboard, Eye, EyeOff, ExternalLink, ImagePlus, Info, Lightbulb, Link2, Mail, MapPin, Megaphone, Palette, Pencil, Phone, Plus, RefreshCw, RotateCcw, ShieldCheck, Shuffle, Sparkles, Ticket, Trash2, Upload, Users, Utensils, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Alert, Avatar, Card, MenuDropdown, Modal, PrimaryButton, SecondaryButton, TextAreaField, TextField } from "../components/ui";
