@@ -3636,7 +3636,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   }
   .page-title {
     max-width: 18ch;
-    font-size: clamp(24px, 7vw, 28px);
+    font-size: clamp(12px, 4vw, 14px);
     line-height: 1.08;
     letter-spacing: -.03em;
     text-wrap: balance;
