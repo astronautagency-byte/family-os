@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Baby, Bell, BellRing, BriefcaseBusiness, CalendarDays, Check, CheckSquare, ChefHat, ChevronLeft, Eye, EyeOff, HeartHandshake, House, ImagePlus, Leaf, LoaderCircle, LockKeyhole, Mail, MessageCircle, MilkOff, Palette, Phone, Plus, Salad, Send, ShieldCheck, ShoppingCart, Shuffle, Smartphone, Sparkles, Trash2, UserRound, UsersRound, WalletCards, WheatOff } from "lucide-react";
+import { Baby, Bell, BellRing, BriefcaseBusiness, CalendarDays, Check, CheckSquare, ChefHat, ChevronLeft, Eye, EyeOff, HeartHandshake, House, ImagePlus, Leaf, LoaderCircle, LockKeyhole, Mail, MessageCircle, MilkOff, Palette, Phone, Plus, Salad, Send, ShieldCheck, ShoppingCart, Smartphone, Sparkles, Trash2, UserRound, UsersRound, WalletCards, WheatOff } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { Card, DateField, PrimaryButton, ProgressBar, SecondaryButton, TextField } from "../components/ui";
 import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
@@ -17,7 +17,6 @@ function base64UrlToUint8Array(value) {
   const raw = atob((value + padding).replace(/-/g, "+").replace(/_/g, "/"));
   return Uint8Array.from([...raw].map((character) => character.charCodeAt(0)));
 }
-import { AVATAR_PRESETS, randomDiceBearAvatarUrl } from "../data/avatarLibrary";
 import AddressAutocomplete from "../components/AddressAutocomplete";
 import { formatPhoneInput, isValidPhoneNumber, normalizePhoneE164 } from "../utils/phone";
 import { APP_COLOR_SCHEMES } from "../data/appColorSchemes";
@@ -357,7 +356,7 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
   const [longitude, setLongitude] = useState(null);
   const [groceryImportText, setGroceryImportText] = useState("");
   const [partnerPersonalizationOptIn, setPartnerPersonalizationOptIn] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState(AVATAR_PRESETS[0]?.url || "");
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [avatarStatus, setAvatarStatus] = useState("");
   const [ownerStep, setOwnerStep] = useState(0);
   const [memberStep, setMemberStep] = useState(0);
@@ -399,7 +398,7 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
         setLongitude(draft.longitude ?? null);
         setGroceryImportText(draft.groceryImportText || "");
         setPartnerPersonalizationOptIn(Boolean(draft.partnerPersonalizationOptIn));
-        setAvatarUrl(draft.avatarUrl || AVATAR_PRESETS[0]?.url || "");
+        setAvatarUrl(draft.avatarUrl || "");
         if (Array.isArray(draft.inviteMembers) && draft.inviteMembers.length) {
           setInviteMembers(draft.inviteMembers.map((member) => ({ ...newInviteMember(), ...member })));
         } else if (draft.inviteEmails) {
@@ -1095,22 +1094,14 @@ function AvatarPicker({ avatarUrl, setAvatarUrl, status, setStatus }) {
   return (
     <div className="onboarding-avatar-picker">
       <div className="onboarding-avatar-heading">
-        <span><UserRound size={15} /> Choose your avatar</span>
+        <span><UserRound size={15} /> Your avatar</span>
         <div className="onboarding-avatar-actions">
           <label><input type="file" accept="image/*" onChange={uploadAvatar} /><ImagePlus size={15} /> Upload photo</label>
-          <button type="button" onClick={() => { setAvatarUrl(randomDiceBearAvatarUrl()); setStatus("Surprise avatar ready to use."); }}><Shuffle size={15} /> Surprise me</button>
         </div>
       </div>
-      <div className="onboarding-avatar-grid">
-        {AVATAR_PRESETS.slice(0, 10).map((avatar) => (
-          <button key={avatar.id} type="button" className={avatarUrl === avatar.url ? "selected" : ""} onClick={() => { setAvatarUrl(avatar.url); setStatus(""); }} aria-label={`Use ${avatar.label} avatar`}>
-            <img src={avatar.url} alt="" />
-          </button>
-        ))}
-        {avatarUrl?.startsWith("data:") && <button type="button" className="selected custom"><img src={avatarUrl} alt="Your uploaded avatar" /></button>}
-      </div>
+      {avatarUrl?.startsWith("data:") && <div className="avatar-preview"><img src={avatarUrl} alt="Your uploaded avatar" /></div>}
       {status && <p className="avatar-status">{status}</p>}
-      <p className="avatar-preset-note">Illustrations by DiceBear — or upload a photo, or use your initials.</p>
+      <p className="avatar-preset-note">Upload a photo, or your initials will be used.</p>
     </div>
   );
 }
