@@ -713,7 +713,7 @@ export default function Meals() {
         {weekDays.map((date) => {
           const isToday = date === todayISO();
           return (
-            <Card key={date} className="meal-day-card p-4">
+            <Card key={date} className="meal-day-card p-4 bg-meals-soft border-meals">
               <div className="flex items-center justify-between mb-3">
                 <p className="font-[var(--font-display)] font-semibold text-[15px] text-[var(--color-ink)]">
                   {formatDayLabel(date)}
