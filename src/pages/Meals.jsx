@@ -771,10 +771,15 @@ export default function Meals() {
                             </p>
                             <div className="meal-slot-meta">
                               {adder && <span className="meal-slot-adder"><Avatar member={adder} size="xs" aria-label={`Added by ${adder.name}`} /><small>Added by {adder.name}</small></span>}
-                              <span className="meal-cook-hint"><ChefHat size={12} /> Cook</span>
+                              {cooks.length > 0 && (
+                                <span className="meal-cook-hint flex items-center gap-1">
+                                  <ChefHat size={12} />
+                                  <span>Who's cooking:</span>
+                                  <AvatarStack members={cooks} size="xs" />
+                                </span>
+                              )}
                             </div>
                           </div>
-                          {cooks.length > 0 && <AvatarStack members={cooks} size="sm" />}
                         </div>
                       ) : (
                         <div className="meal-slot-button flex flex-col items-start gap-1.5">
@@ -815,12 +820,13 @@ export default function Meals() {
                             </button>
                           );
                         })()}
-                        {(meal?.source !== 'manual') && meal?.title && (
+                        {/* Cook button only in preview modal, not in slot actions */}
+                        {false && meal?.title && (
                           <button className="meal-start-cooking" onClick={() => openCookRecipe(meal)} aria-label={`Start cooking ${meal.title}`}>
                             <ChefHat size={15} /><span>Cook</span>
                           </button>
                         )}
-                        {(meal?.source !== 'manual') && (
+                        {false && (
                           <button className="meal-slot-tool meal-surprise-action" onClick={() => rouletteForSlot(date, slot)} aria-label={`Find ${SLOT_META[slot].label.toLowerCase()} meal ideas`} title="Find meal ideas">
                             <Sparkles size={15} /><span>Find Meal Ideas</span>
                           </button>
@@ -843,13 +849,21 @@ export default function Meals() {
         <div className="meal-preview">
           <p className="font-[var(--font-display)] text-[19px] font-semibold mb-4">{draft.title}</p>
           {draft.notes && <p className="text-[14px] text-[var(--color-ink-soft)] mb-4">{draft.notes}</p>}
-          <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-2">Who's cooking?</p>
+          <div className="flex items-center gap-2 mb-3">
+            <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)]">Who's cooking:</p>
+            {draft.cookIds.length > 0 && (
+              <AvatarStack members={draft.cookIds.map(id => memberById[id]).filter(Boolean)} size="xs" />
+            )}
+          </div>
+          {draft.notes && <p className="text-[14px] text-[var(--color-ink-soft)] mb-4">{draft.notes}</p>}
+          <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-2">Assign cooks:</p>
           <div className="flex flex-wrap gap-2 mb-5">
             {members.map((m) => {
               const active = draft.cookIds.includes(m.id);
               return (
                 <button
                   key={m.id}
+                  onClick={() => toggleCook(m.id)}
                   className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium border transition-colors"
                   style={{
                     borderColor: active ? colorVar(m.color) : "var(--color-border)",
