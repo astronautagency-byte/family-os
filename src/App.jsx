@@ -36,6 +36,7 @@ const Landing = lazy(() => import("./pages/Landing"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Admin = lazy(() => import("./pages/Admin"));
+const Partner = lazy(() => import("./pages/Partner"));
 const Features = lazy(() => import("./pages/Features"));
 
 const PageFallback = () => (
@@ -65,7 +66,7 @@ const PageErrorFallback = ({ retry, reloadLatest, goToday }) => (
 const VALID_TABS = ["today","calendar","meals","tasks","groceries","kitchen","chat","famai","settings"];
 const PUBLIC_ROUTES = ["privacy", "terms", "pricing", "signin", "signup"];
 const ROUTE_ALIASES = { "sign-in": "signin", "lsign-in": "signin", "sign-up": "signup" };
-const VALID_ROUTES = [...VALID_TABS, "landing", "admin", ...PUBLIC_ROUTES];
+const VALID_ROUTES = [...VALID_TABS, "landing", "admin", "partner", ...PUBLIC_ROUTES];
 const FEATURES_PATH_REGEX = /^\/features(?:\/([a-z-]+))?\/?$/i;
 const normalizeRoute = (route = "") => ROUTE_ALIASES[route] || route;
 const pathRoute = () => normalizeRoute(window.location.pathname.replace(/^\/+|\/+$/g, ""));
@@ -289,6 +290,7 @@ export default function App() {
   if (configured && loading) return <AuthLoading />;
   if (configured && passwordRecovery) return <ResetPassword />;
   if (publicRoute === "admin") return <Suspense fallback={<PageFallback />}><Admin /></Suspense>;
+  if (publicRoute === "partner") return <Suspense fallback={<PageFallback />}><Partner /></Suspense>;
   if (publicRoute === "features") return <Suspense fallback={<PageFallback />}><Features /></Suspense>;
   if (publicRoute === "landing" || publicRoute === "pricing") return <Suspense fallback={<PageFallback />}><Landing signedIn={!!session} /></Suspense>;
   if (publicRoute === "privacy") return <Suspense fallback={<PageFallback />}><Privacy signedIn={!!session} /></Suspense>;
