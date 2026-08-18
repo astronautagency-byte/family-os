@@ -819,11 +819,30 @@ function OnboardingColourScheme({ value, onChange }) {
   return (
     <div className="onboarding-scheme-picker">
       <span><Palette size={15}/> Make it yours</span>
-      <p>Choose the app colours you’ll see. This only changes your view, not anyone else’s.</p>
-      <div role="radiogroup" aria-label="Choose your app colour scheme">
+      <p>Choose the app colours you'll see. This only changes your view, not anyone else's.</p>
+      <div className="onboarding-color-grid" role="radiogroup" aria-label="Choose your app colour scheme">
         {APP_COLOR_SCHEMES.map((scheme) => {
           const selected = value === scheme.id;
-          return <button type="button" role="radio" aria-checked={selected} key={scheme.id} className={selected ? "selected" : ""} onClick={() => onChange(scheme.id)}><span className="onboarding-scheme-swatches" aria-hidden="true">{scheme.colors.map((color) => <i key={color} style={{ backgroundColor: color }}/>)}</span><strong>{scheme.label}</strong><small>{scheme.note}</small>{selected && <Check size={14}/>}</button>;
+          return (
+            <button
+              key={scheme.id}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              className={`onboarding-color-option ${selected ? "selected" : ""}`}
+              onClick={() => onChange(scheme.id)}
+            >
+              <span className="scheme-emoji">{scheme.emoji}</span>
+              <span className="scheme-swatches" aria-hidden="true">
+                {scheme.colors.map((color) => <i key={color} style={{ backgroundColor: color }} />)}
+              </span>
+              <div className="scheme-info">
+                <strong>{scheme.label}</strong>
+                <small>{scheme.note}</small>
+              </div>
+              {selected && <Check size={16} className="scheme-check" />}
+            </button>
+          );
         })}
       </div>
     </div>

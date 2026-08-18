@@ -1,232 +1,193 @@
 /* ─────────────────────────────────────────────────────────────────────────
- * FamOS design tokens (single source of truth)
+ * FamOS design tokens — premium, Airbnb/Wander quality
  *
- *   - All colors / fonts / sizes / radii / motion durations that are read
- *     from more than one place in src/index.css + src/components/* live here.
- *   - Daypart overrides (morning / day / evening) ship in this file too so
- *     App.jsx's data-daypart switching has exactly one place to look.
- *   - This file is plain CSS — no @vibe, no monday-com cascade layer — so a
- *     reset to a single hex literal swap is a one-line edit, not a fork.
- *
- *   Cascade order, loaded from src/index.css:
- *     1. tailwindcss foundation
- *     2. @font-face declarations
- *     3. this file  ← @theme tokens + daypart overrides
- *     4. component CSS that reads the tokens
- *   ─────────────────────────────────────────────────────────────────── */
+ * Principles:
+ *   - Pure white canvas (#FFFFFF), near-black ink (#111827)
+ *   - Single refined accent voltage, used sparingly
+ *   - Subtle surfaces with 4-8% opacity borders
+ *   - Generous whitespace (8px base spacing)
+ *   - Soft elevation system (3 levels max)
+ *   - Consistent radius scale (4, 8, 12, 16, 24, 9999)
+ *   - Modest type weights, photography/iconography carries visual weight
+ * ─────────────────────────────────────────────────────────────────── */
 
 @theme {
   /* ── Type ─────────────────────────────────────────────────────── */
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-display: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
 
-  /* ── Surfaces (premium neutral palette) ───────────────────────── */
+  /* ── Surfaces ─────────────────────────────────────────────────── */
   --color-canvas: #FFFFFF;
   --color-surface: #FFFFFF;
-  --color-surface-sunken: #F7F7F9;
-  --color-surface-strong: #F0F1F3;
-  --color-border: #E4E5E7;
-  --color-border-strong: #D1D5DB;
+  --color-surface-raised: #FAFAFA;
+  --color-surface-sunken: #F5F5F5;
+  --color-border: rgba(17, 24, 39, 0.06);
+  --color-border-strong: rgba(17, 24, 39, 0.10);
+  --color-border-focus: rgba(17, 24, 39, 0.18);
 
   /* ── Ink ──────────────────────────────────────────────────────── */
   --color-ink: #111827;
   --color-ink-soft: #4B5563;
-  --color-ink-faint: #7B8794;
+  --color-ink-muted: #7B8794;
+  --color-ink-faint: #9CA3AF;
 
-  /* ── Accent + sunrise gradient ────────────────────────────────── */
-  --color-accent: #5B4BF0;
-  --color-accent-soft: #EEEDFF;
-  --color-accent-strong: #4338C8;
+  /* ── Accent voltage (single brand color, used sparingly) ──────── */
+  --color-accent: #E85D3D;
+  --color-accent-hover: #D44A2E;
+  --color-accent-soft: #FFF3F0;
+  --color-accent-strong: #B84226;
   --color-on-accent: #FFFFFF;
-  --color-on-vibrant: #0F1020;
-  --color-on-status: #FFFFFF;
-  --sunrise-gradient: linear-gradient(120deg, #B8D8FF 0%, #8F82FF 32%, #D75EAA 60%, #FF5239 80%, #F2A08D 100%);
 
   /* ── Status ───────────────────────────────────────────────────── */
-  --color-warn: #D92D20;
-  --color-warn-soft: #FEF3F2;
-  --color-good: #027A48;
-  --color-good-soft: #ECFDF3;
+  --color-warn: #DC2626;
+  --color-warn-soft: #FEF2F2;
+  --color-warn-border: #FECACA;
+  --color-good: #16A34A;
+  --color-good-soft: #F0FDF4;
+  --color-good-border: #BBF7D0;
 
-  /* ── Product colour roles ────────────────────────────────────── */
-  --color-today: #7F56D9;
-  --color-calendar: #3478F6;
-  --color-meals: #E07A2F;
-  --color-tasks: #7F56D9;
-  --color-shopping: #169B62;
-  --color-chat: #D94F91;
-  --color-finance: #D65D49;
-  --color-family: #A463D8;
+  /* ── Category roles (for charts, badges — never primary actions) ── */
+  --color-calendar: #3B82F6;
+  --color-calendar-soft: #EFF6FF;
+  --color-meals: #F59E0B;
+  --color-meals-soft: #FFFBEB;
+  --color-tasks: #E85D3D;
+  --color-tasks-soft: #FFF3F0;
+  --color-shopping: #10B981;
+  --color-shopping-soft: #ECFDF5;
+  --color-chat: #EC4899;
+  --color-chat-soft: #FDF2F8;
+  --color-finance: #8B5CF6;
+  --color-finance-soft: #F5F3FF;
+  --color-family: #E85D3D;
+  --color-family-soft: #FFF3F0;
 
-  /* Category pairings follow the Untitled pattern: soft surface + strong ink.
-     Category base colors are reserved for charts, dots and decorative marks. */
-  --color-calendar-soft: #EFF8FF;
-  --color-calendar-strong: #175CD3;
-  --color-meals-soft: #FFF6ED;
-  --color-meals-strong: #9C4A10;
-  --color-shopping-soft: #ECFDF3;
-  --color-shopping-strong: #067647;
-  --color-chat-soft: #FDF2FA;
-  --color-chat-strong: #C11574;
-  --color-finance-soft: #FEF3F2;
-  --color-finance-strong: #B42318;
-  --color-family-soft: #F4EBFF;
-  --color-family-strong: #6941C6;
-
-  /* ── Family colour palette (members, pastels, accents) ───────── */
-  --color-fam-coral: #FF5239;
-  --color-fam-marigold: #F2A08D;
-  --color-fam-moss: #63A5E8;
-  --color-fam-sky: #7988F5;
-  --color-fam-plum: #A463D8;
-  --color-fam-rose: #DC5B9E;
-  --pastel-pink: #FFDDE8;
-  --pastel-peach: #FFE4CE;
-  --pastel-yellow: #FFF1AE;
-  --pastel-mint: #D9F4E8;
-  --pastel-blue: #DDEEFF;
-  --pastel-lilac: #E8E2FF;
-
-  /* ── Type scale ───────────────────────────────────────────────── */
+  /* ── Type scale (modest weights, Airbnb-style) ────────────────── */
   --text-xs: 12px;
   --text-sm: 14px;
-  --text-body: 14px;
+  --text-body: 15px;
+  --text-body-lg: 16px;
   --text-section: 18px;
-  --text-page: 28px;
+  --text-page: 24px;
+  --text-display: 32px;
+  --text-display-lg: 40px;
 
-  /* ── Radius scale (premium rounded aesthetic) ────────────────── */
-  --radius-pill: 999px;          /* pill buttons, status chips              */
-  --radius-card: 16px;           /* elevated containers — more rounded     */
-  --radius-section: 16px;        /* grouped content                          */
-  --radius-control: 10px;        /* form controls                            */
-  --radius-md: 10px;             /* compact surface                          */
-  --radius-pill-sm: 10px;        /* compact chip                             */
-  --radius-sm: 10px;             /* icon tile                                */
-  --radius-xs: 8px;              /* micro control                            */
+  /* ── Radius scale (consistent, Airbnb/Wander) ────────────────── */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+  --radius-pill: 9999px;
 
-  /* ── Motion durations ─────────────────────────────────────────── */
-  --motion-fast: 160ms;          /* hover / focus / colour transitions      */
-  --motion-normal: 200ms;        /* mid-paced width / opacity changes       */
-  --motion-base: 240ms;          /* layout-level transforms / shadows      */
+  /* ── Elevation / shadows (3 levels max) ───────────────────────── */
+  --shadow-xs: 0 1px 2px rgba(17, 24, 39, 0.04);
+  --shadow-sm: 0 2px 4px rgba(17, 24, 39, 0.05);
+  --shadow-md: 0 4px 12px rgba(17, 24, 39, 0.06);
+  --shadow-lg: 0 8px 24px rgba(17, 24, 39, 0.08);
+  --shadow-floating: 0 12px 32px rgba(17, 24, 39, 0.10);
+
+  /* ── Motion ───────────────────────────────────────────────────── */
+  --motion-fast: 140ms;
+  --motion-normal: 200ms;
+  --motion-base: 280ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── Spacing (8px base) ───────────────────────────────────────── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
- * Dark theme overrides (added 2026-07-22, theme-system migration).
- *
- *   App.jsx toggles `theme-dark` on `.app-shell`. Every token below is the
- *   dark-mode companion of the @theme default above. The cascade is symmetric:
- *   every selector anywhere in src/index.css + src/components/* that reads
- *   var(--color-*) auto-flips — no per-component dark-mode patch is needed.
- *
- *   Contrast targets (WCAG AA on the dark canvas #0F1020):
- *     - --color-ink              9.8:1   primary text
- *     - --color-ink-soft         5.6:1   secondary text
- *     - --color-ink-faint        5.5:1   captions, placeholders
- *     - --color-accent           6.7:1   interactive / brand elements
- *     - --color-accent-strong    11.6:1  emphasis links
- *     - --color-warn             4.7:1   error / failure UI
- *     - --color-good             6.1:1   success UI
- *
- *   We dropped the elevated-on-canvas card pattern (used to force cards as
- *   white surfaces via background:var(--color-surface)!important) — cards
- *   now read --color-surface (#1C1E36) directly, dark-on-darker, and
- *   inherit bright --color-ink automatically.
- *   ───────────────────────────────────────────────────────────────────────── */
+ * Dark theme — symmetric token flip, WCAG AA contrast
+ * ───────────────────────────────────────────────────────────────────────── */
 
 .theme-dark {
-  --color-canvas:           #0F1020;
-  --color-surface:          #161B26;
-  --color-surface-sunken:   #1F242F;
-  --color-surface-strong:   #272E3A;
-  --color-border:           #333741;
-  --color-border-strong:    #454A55;
+  --color-canvas: #0B0F1A;
+  --color-surface: #111722;
+  --color-surface-raised: #161D2B;
+  --color-surface-sunken: #0F141E;
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-border-strong: rgba(255, 255, 255, 0.10);
+  --color-border-focus: rgba(255, 255, 255, 0.18);
 
-  --color-ink:              #F5F5F6;
-  --color-ink-soft:         #CECFD2;
-  --color-ink-faint:        #94969C;
+  --color-ink: #F5F5F6;
+  --color-ink-soft: #CECFD2;
+  --color-ink-muted: #94969C;
+  --color-ink-faint: #7B7D82;
 
-  --color-accent:           #9E77ED;
-  --color-accent-soft:      #2C1C5F;
-  --color-accent-strong:    #B692F6;
-  --color-on-accent:        #0F1020;
-  --color-on-vibrant:       #0F1020;
-  --color-on-status:        #0F1020;
+  --color-accent: #F07A5A;
+  --color-accent-hover: #F59073;
+  --color-accent-soft: #3D1F16;
+  --color-accent-strong: #FFB899;
+  --color-on-accent: #0B0F1A;
 
-  --color-warn:             #FF7547;           /* warnings / failures — 4.7:1 vs canvas        */
-  --color-warn-soft:        #3D1F0F;           /* warn-tinted surface                          */
-  --color-good:             #52C996;           /* success — 6.1:1 vs canvas                    */
-  --color-good-soft:        #163025;           /* good-tinted surface                          */
+  --color-warn: #EF4444;
+  --color-warn-soft: #3D1515;
+  --color-warn-border: #7F1D1D;
+  --color-good: #4ADE80;
+  --color-good-soft: #13301E;
+  --color-good-border: #14532D;
 
-  --color-today:            #B692F6;
-  --color-calendar:         #75A7FF;
-  --color-meals:            #F3A45F;
-  --color-tasks:            #B692F6;
-  --color-shopping:         #52C996;
-  --color-chat:             #F18BC0;
-  --color-finance:          #FF8A75;
-  --color-family:           #D6A7F5;
-  --color-calendar-soft:    #102A56;
-  --color-calendar-strong:  #B2CCFF;
-  --color-meals-soft:       #3B2614;
-  --color-meals-strong:     #FEC84B;
-  --color-shopping-soft:    #123B2B;
-  --color-shopping-strong:  #75E0A7;
-  --color-chat-soft:        #3B1730;
-  --color-chat-strong:      #F9A7D3;
-  --color-finance-soft:     #3B1A18;
-  --color-finance-strong:   #FDA29B;
-  --color-family-soft:      #2C1C5F;
-  --color-family-strong:    #D6BBFB;
+  --color-calendar: #60A5FA;
+  --color-calendar-soft: #1E3A5F;
+  --color-meals: #FBBF24;
+  --color-meals-soft: #3D340A;
+  --color-tasks: #F07A5A;
+  --color-tasks-soft: #3D1F16;
+  --color-shopping: #34D399;
+  --color-shopping-soft: #0F2E22;
+  --color-chat: #F472B6;
+  --color-chat-soft: #3D142A;
+  --color-finance: #A78BFA;
+  --color-finance-soft: #2A1A4A;
+  --color-family: #F07A5A;
+  --color-family-soft: #3D1F16;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-floating: 0 12px 32px rgba(0, 0, 0, 0.4);
 }
 
-/* ── Daypart overrides ─────────────────────────────────────────────────────
- *   App.jsx writes document.documentElement.dataset.daypart so this CSS picks
- *   up the right sunrise-gradient by hour-of-day. The "day" value matches the
- *   @theme default exactly so SSR / first-paint doesn't flash pink.
- *   ─────────────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────────────────
+ * Daypart gradient (subtle, never overpowers content)
+ * ───────────────────────────────────────────────────────────────────────── */
 
 :root[data-daypart="morning"] {
-  --sunrise-gradient: linear-gradient(120deg, #C8E2FF 0%, #A99BFF 35%, #E878AD 64%, #FF745D 83%, #F4B09E 100%);
+  --sunrise-gradient: linear-gradient(120deg, #E0F2FE 0%, #FDE68A 35%, #FED7AA 64%, #FDBA74 83%, #FFEDD5 100%);
 }
 
 :root[data-daypart="day"] {
-  --sunrise-gradient: linear-gradient(120deg, #B8D8FF 0%, #8F82FF 32%, #D75EAA 60%, #FF5239 80%, #F2A08D 100%);
+  --sunrise-gradient: linear-gradient(120deg, #FFEDD5 0%, #FDE68A 32%, #FED7AA 60%, #FDBA74 80%, #FFF7ED 100%);
 }
 
 :root[data-daypart="evening"] {
-  --sunrise-gradient: linear-gradient(120deg, #879CEB 0%, #8D6ADB 34%, #C851A5 60%, #F44336 82%, #DE8B83 100%);
+  --sunrise-gradient: linear-gradient(120deg, #F5F0FF 0%, #EDE9FE 34%, #FCE7F3 60%, #FFD6E8 82%, #FFF1F2 100%);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
- * Migration notes (2026-07-21)
- *   - Radius scale additions are a pure refactor: every previous raw
- *     `border-radius: <px>` declaration now reads `var(--radius-*)`.
- *     Visual output is byte-identical — swapping tokens never changes a px
- *     value.
- *   - --motion-normal was previously referenced (`.cook-focus-screen` entry
- *     animation + `.cook-progress-track` width transition in src/index.css)
- *     but never declared; the dangling read silently fell back to 0s,
- *     removing the intended cook-mode fade-in. We've introduced 200ms as
- *     the natural midpoint between --motion-fast (160ms) and --motion-base
- *     (240ms) — this restores the original animation intent.
- *
- * Scope of the audit:
- *   - In scope: src/index.css (the live app chrome).
- *   - Out of scope (intentional):
- *       · src/landing.css + src/landing-theme.css — the public marketing
- *         landing page runs on a separate visual identity (clay/cream
- *         palette, framer-motion card stack) that lives in landing-theme
- *         and doesn't share values with the app chrome. Sweeping it
- *         would conflate two brands.
- *       · src/admin.css — admin console ships its own dense data-table
- *         styles; not user-facing.
- *       · src/components/*.jsx inline style props — JSX style={{...}}
- *         are JS objects, not CSS, and would require a different theme
- *         bridge (probably a useThemeTokens() hook).
- *   - Mileage: ~155 radius literals were swept to var() readers. The
- *     ~30 raw literals that remain post-sweep (10px, 22px, 20px, 15px,
- *     9px, 28px, 8px, 7px, 30px, 17px) each appear <8 times and were
- *     judged not to earn their own token — promoting them would be
- *     additive, not deduplicative (per the user constraint "no new
- *     design system").
- *   ─────────────────────────────────────────────────────────────────── */
+ * Reduced motion
+ * ───────────────────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
