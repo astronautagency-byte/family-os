@@ -71,8 +71,19 @@ const INDUSTRIES = [
 const BUDGET_RANGES = ["Under $500/mo", "$500–$2k/mo", "$2k–$5k/mo", "$5k–$10k/mo", "$10k+/mo", "Not sure yet"];
 const COMPANY_SIZES = ["Just me", "2–10", "11–50", "51–200", "200+"];
 
+function PartnerShell({ children }) {
+  return (
+    <main className="minimal-auth">
+      <div className="minimal-auth-inner">
+        <img src="/brand/famos-logo.png" alt="FamOS" className="minimal-auth-logo" />
+        {children}
+      </div>
+    </main>
+  );
+}
+
 function PartnerLogin({ onSignedIn }) {
-  const [step, setStep] = useState("auth"); // auth | profile | pending | denied
+  const [step, setStep] = useState("auth"); // auth | profile | pending
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -126,30 +137,24 @@ function PartnerLogin({ onSignedIn }) {
 
   if (step === "pending") {
     return (
-      <div className="partner-login">
-        <div className="partner-login-card" style={{ textAlign: "center" }}>
-          <div className="partner-brand" style={{ justifyContent: "center" }}>
-            <div className="partner-brand-icon"><CheckCircle2 size={20} /></div>
-          </div>
-          <h2 style={{ margin: "0 0 8px", fontSize: "17px", fontWeight: 800 }}>Application submitted</h2>
-          <p style={{ margin: "0 0 20px", color: "var(--color-ink-soft)", fontSize: "12.5px", lineHeight: 1.5 }}>
-            Thanks for your interest in FamOS Ad Partners. We review applications within 1–2 business days.
-            You'll get access to the dashboard as soon as your account is approved.
-          </p>
-          <button className="pbtn pbtn-ghost pbtn-full" onClick={() => supabase.auth.signOut()}>Sign out</button>
-        </div>
-      </div>
+      <PartnerShell>
+        <h1 className="minimal-auth-title">Application submitted</h1>
+        <p className="minimal-auth-subtitle">
+          Thanks for your interest in FamOS Ad Partners. We review applications within 1–2 business days.
+        </p>
+        <Card className="minimal-auth-card">
+          <button className="minimal-auth-btn" type="button" onClick={() => supabase.auth.signOut()}>Sign out</button>
+        </Card>
+      </PartnerShell>
     );
   }
 
   if (step === "profile") {
     return (
-      <div className="partner-login">
-        <div className="partner-login-card">
-          <div className="partner-brand">
-            <div className="partner-brand-icon"><Megaphone size={20} /></div>
-            <div><strong>Tell us about your brand</strong><small>This helps us match your ads to the right families.</small></div>
-          </div>
+      <PartnerShell>
+        <h1 className="minimal-auth-title">Tell us about your brand</h1>
+        <p className="minimal-auth-subtitle">This helps us match your ads to the right families.</p>
+        <Card className="minimal-auth-card">
           <form onSubmit={handleApply}>
             <label className="pfield"><span>Company name *</span>
               <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Acme Inc." required />
@@ -181,18 +186,16 @@ function PartnerLogin({ onSignedIn }) {
             </button>
           </form>
           <button type="button" className="pswitch" onClick={() => setStep("auth")}>← Back to sign in</button>
-        </div>
-      </div>
+        </Card>
+      </PartnerShell>
     );
   }
 
   return (
-    <div className="partner-login">
-      <div className="partner-login-card">
-        <div className="partner-brand">
-          <div className="partner-brand-icon"><Megaphone size={20} /></div>
-          <div><strong>FamOS Ad Partners</strong><small>Reach families who plan their week in one place.</small></div>
-        </div>
+    <PartnerShell>
+      <h1 className="minimal-auth-title">Create partner account</h1>
+      <p className="minimal-auth-subtitle">Join FamOS Ad Partners to reach families who plan their week in one place.</p>
+      <Card className="minimal-auth-card">
         <form onSubmit={handleAuth}>
           <label className="pfield"><span>Email</span>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@brand.com" required />
@@ -211,8 +214,8 @@ function PartnerLogin({ onSignedIn }) {
             Sign in
           </button>
         </div>
-      </div>
-    </div>
+      </Card>
+    </PartnerShell>
   );
 }
 
@@ -629,6 +632,7 @@ export default function Partner() {
   const [partner, setPartner] = useState(null);
   const [checking, setChecking] = useState(true);
   const [allowed, setAllowed] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [tab, setTab] = useState("campaigns");
   const [campaigns, setCampaigns] = useState([]);
   const [loadingCampaigns, setLoadingCampaigns] = useState(false);
@@ -651,13 +655,15 @@ export default function Partner() {
   const check = useCallback(async () => {
     const { data: { session: s } } = await supabase.auth.getSession();
     setSession(s);
-    if (!s) { setAllowed(false); setChecking(false); return; }
+    if (!s) { setAllowed(false); setShowProfile(false); setChecking(false); return; }
     const me = await getMyPartner();
     if (me && (me.status === "active" || me.status === "pending")) {
       setPartner(me);
       setAllowed(true);
+      setShowProfile(false);
     } else {
       setAllowed(false);
+      setShowProfile(true);
     }
     setChecking(false);
   }, []);
@@ -794,30 +800,33 @@ export default function Partner() {
 
   if (checking) return <div className="partner-shell"><div className="partner-loading">Loading dashboard…</div></div>;
   if (!session) return <PartnerLogin onSignedIn={check} />;
-  if (!allowed) return (
-    <div className="partner-shell">
-      <div className="partner-denied">
-        <div className="partner-denied-icon"><ShieldCheck size={26} /></div>
-        {partner?.status === "pending" ? (
-          <>
-            <h1>Application under review</h1>
-            <p>Your application for <strong>{partner.company_name}</strong> is being reviewed. We'll get you access within 1–2 business days.</p>
-          </>
-        ) : partner?.status === "rejected" ? (
-          <>
-            <h1>Application not approved</h1>
-            <p>Your application for <strong>{partner.company_name}</strong> was not approved at this time. Contact partners@fam-os.app for details.</p>
-          </>
-        ) : (
-          <>
-            <h1>No partner account</h1>
-            <p>This account isn't linked to a FamOS advertising partner. Sign up below to get started.</p>
-          </>
-        )}
-        <button className="pbtn pbtn-ghost" onClick={() => supabase.auth.signOut()}>Sign out</button>
+  if (!allowed) {
+    if (showProfile) return <PartnerProfile onApplied={check} />;
+    return (
+      <div className="partner-shell">
+        <div className="partner-denied">
+          <div className="partner-denied-icon"><ShieldCheck size={26} /></div>
+          {partner?.status === "pending" ? (
+            <>
+              <h1>Application under review</h1>
+              <p>Your application for <strong>{partner.company_name}</strong> is being reviewed. We'll get you access within 1–2 business days.</p>
+            </>
+          ) : partner?.status === "rejected" ? (
+            <>
+              <h1>Application not approved</h1>
+              <p>Your application for <strong>{partner.company_name}</strong> was not approved at this time. Contact partners@fam-os.app for details.</p>
+            </>
+          ) : (
+            <>
+              <h1>No partner account</h1>
+              <p>This account isn't linked to a FamOS advertising partner. Sign up below to get started.</p>
+            </>
+          )}
+          <button className="pbtn pbtn-ghost" onClick={() => supabase.auth.signOut()}>Sign out</button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
   const showDetail = selected && tab === "campaigns";
   const showEditor = tab === "editor";
