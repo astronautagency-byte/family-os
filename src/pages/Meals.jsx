@@ -8,6 +8,8 @@ import PageHeader from "../components/PageHeader";
 import PullToRefresh from "../components/PullToRefresh";
 import ConfirmAction from "../components/ConfirmAction";
 import ErrorBoundary from "../components/ErrorBoundary";
+import NativeAdBanner from "../components/NativeAdBanner";
+import { AD_PLACEMENTS } from "../lib/adNetwork";
 import { MEAL_SLOTS } from "../data/mockData";
 import { buildCookSearchLadder, recipeSearchProfileForMeal } from "../data/recipeBox";
 import { addDays, formatDayLabel, todayISO } from "../lib/dates";
@@ -652,6 +654,8 @@ export default function Meals() {
   return (
     <PullToRefresh onRefresh={refreshData}><div className="pb-24 reference-meals">
       <PageHeader eyebrow="Nourish & connect" title="Meal planner" illustration="meals" subtitle="Answer “what’s for dinner?” before anyone asks it." action={meals.length?<button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button>:null} />
+
+      <NativeAdBanner placement={AD_PLACEMENTS.MEALS} />
 
       <div className="meal-range-toggle px-5" aria-label="Meal planning range"><button className={horizon===7?"selected":""} onClick={()=>setHorizon(7)}>1 week</button><button className={horizon===14?"selected":""} onClick={()=>setHorizon(14)}>2 weeks</button></div>
 

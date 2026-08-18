@@ -8,6 +8,8 @@ import PageHeader from "../components/PageHeader";
 import PullToRefresh from "../components/PullToRefresh";
 import ConfirmAction from "../components/ConfirmAction";
 import CelebrationConfetti from "../components/CelebrationConfetti";
+import NativeAdBanner from "../components/NativeAdBanner";
+import { AD_PLACEMENTS } from "../lib/adNetwork";
 import { canonicalIngredientName, isIngredientOnList, loadIngredientCache, saveIngredientCache } from "../lib/mealIngredientCache";
 import { formatDayLabel, todayISO } from "../lib/dates";
 import { GROCERY_CATEGORIES } from "../data/mockData";
@@ -1032,6 +1034,8 @@ export default function Groceries() {
           {groceries.length > 0 && <button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button>}
         </div>}
       />
+
+      <NativeAdBanner placement={AD_PLACEMENTS.SHOPPING} />
 
       <div className="shopping-list-switcher" role="tablist" aria-label="Shopping lists">
         <button type="button" role="tab" aria-selected={activeGroceryListId === "all"} className={activeGroceryListId === "all" ? "selected" : ""} onClick={() => setActiveGroceryListId("all")}><ShoppingBasket size={15}/><span>All shopping</span><em>{groceries.filter((item) => !item.checked).length}</em></button>

@@ -16,6 +16,8 @@ import { invokeEdgeFunction } from "../lib/supabase";
 import { parseQuickAdd } from "../lib/quickCapture";
 import { buildShareUrl, nativeShareWithFallback } from "../lib/share";
 import { eventCacheKey, readEventCache, writeEventCache, clearEventCache } from "../lib/eventSearchCache";
+import NativeAdBanner from "../components/NativeAdBanner";
+import { AD_PLACEMENTS } from "../lib/adNetwork";
 
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 
@@ -839,6 +841,8 @@ export default function CalendarPage() {
             </button>
           </div>
         </div>
+
+        <NativeAdBanner placement={AD_PLACEMENTS.CALENDAR} />
 
         <div className="px-5">
           <div className="apple-calendar-controls">

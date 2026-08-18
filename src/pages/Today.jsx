@@ -12,6 +12,8 @@ import { supabase } from "../lib/supabase";
 import { dailyEncouragement, formatTime, fullDateLabel, greetingInfo, todayISO } from "../lib/dates";
 import useKitchenInventory from "../hooks/useKitchenInventory";
 import { expiringInventory } from "../lib/inventoryExpiry";
+import NativeAdBanner from "../components/NativeAdBanner";
+import { AD_PLACEMENTS } from "../lib/adNetwork";
 
 // Map a normalised weather "kind" (+ day/night) to a lucide icon and label.
 const WEATHER_KIND = {
@@ -517,6 +519,8 @@ export default function Today({ goTo }) {
       />
 
       {editingDashboard && <div className="today-customize-panel mx-5"><div className="today-customize-hint"><span><GripVertical size={15}/> Choose what appears, then drag cards to rearrange them.</span><button type="button" onClick={() => { setDashboardOrder(defaultDashboardOrder); setHiddenDashboardCards([]); }}><RotateCcw size={14}/> Reset</button></div><div className="today-card-toggles">{DASHBOARD_CARDS.map((card) => { const visible = !hiddenDashboardCards.includes(card.id); return <label key={card.id}><input type="checkbox" checked={visible} onChange={() => toggleDashboardCard(card.id)}/><span aria-hidden="true"/><strong>{card.label}</strong></label>; })}</div></div>}
+
+      <NativeAdBanner placement={AD_PLACEMENTS.HOME} />
 
       <div className="px-5 mt-2 today-bento-grid">
         <section className="broadcast-home" aria-label="Family broadcast">
