@@ -375,6 +375,13 @@ export default function Meals() {
     setEditing({ date, slot, mealId: existing?.id || null });
   };
 
+  const openMealPreview = (meal) => {
+    if (!meal?.title) return;
+    setDraft({ title: meal.title ?? "", notes: meal.notes ?? "", cookIds: meal.cookIds ?? [] });
+    setShowSavedRecipes(false);
+    setEditing({ date: meal.date, slot: meal.slot, mealId: meal.id || null });
+  };
+
   useEffect(() => {
     try {
       const raw = window.sessionStorage.getItem(SHARED_RECIPE_KEY);
@@ -741,10 +748,7 @@ export default function Meals() {
                   return (
                     <div className={`meal-slot-row ${slot === "dinner" ? "is-dinner" : ""}`} key={slot}>
                       {meal?.title ? (
-                        <button
-                          onClick={() => openCookRecipe(meal)}
-                          className="meal-slot-button flex items-center gap-3 text-left transition-colors"
-                        >
+                        <div className="meal-slot-button flex items-center gap-3 text-left transition-colors">
                           <span
                             className="meal-slot-clear"
                             onClick={(e) => { e.stopPropagation(); removeMeal(meal.id); }}
@@ -757,11 +761,11 @@ export default function Meals() {
                             <X size={14} />
                           </span>
                           <Icon size={16} color="var(--color-ink-faint)" className="shrink-0" />
-                          <div className="flex-1 min-w-0">
+                          <div className="flex-1 min-w-0" onClick={() => openMealPreview(meal)}>
                             <p className="meal-slot-label text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-ink-faint)]">
                               {SLOT_META[slot].label}
                             </p>
-                            <p className="meal-slot-value text-[14px] truncate has-meal text-[var(--color-ink)] font-medium">
+                            <p className="meal-slot-value text-[14px] truncate has-meal text-[var(--color-ink)] font-medium cursor-pointer hover:underline">
                               {meal.title}
                             </p>
                             <div className="meal-slot-meta">
@@ -770,7 +774,7 @@ export default function Meals() {
                             </div>
                           </div>
                           {cooks.length > 0 && <AvatarStack members={cooks} size="sm" />}
-                        </button>
+                        </div>
                       ) : (
                         <div className="meal-slot-button flex flex-col items-start gap-1.5">
                           <p className="meal-slot-label text-[12px] font-semibold uppercase tracking-wide text-[var(--color-accent)]">
@@ -794,6 +798,8 @@ export default function Meals() {
                         {(() => {
                           const badge = meal?.id && mealMissingCount[meal.id];
                           if (!badge) return null;
+                          const isSpoonacular = meal.source === 'spoonacular';
+                          if (!isSpoonacular) return null;
                           const allCovered = badge.missing === 0;
                           const justAdded = badgeAddedRef.current.has(meal.id);
                           return (
@@ -813,9 +819,11 @@ export default function Meals() {
                             <ChefHat size={15} /><span>Cook</span>
                           </button>
                         )}
-                        <button className="meal-slot-tool meal-surprise-action" onClick={() => rouletteForSlot(date, slot)} aria-label={`Find ${SLOT_META[slot].label.toLowerCase()} meal ideas`} title="Find meal ideas">
-                          <Sparkles size={15} /><span>Find Meal Ideas</span>
-                        </button>
+                        {(meal?.source !== 'manual') && (
+                          <button className="meal-slot-tool meal-surprise-action" onClick={() => rouletteForSlot(date, slot)} aria-label={`Find ${SLOT_META[slot].label.toLowerCase()} meal ideas`} title="Find meal ideas">
+                            <Sparkles size={15} /><span>Find Meal Ideas</span>
+                          </button>
+                        )}
                         <button className="meal-slot-tool" onClick={() => { openEditor(date, slot); setShowSavedRecipes(true); }} aria-label={`Choose a saved recipe for ${SLOT_META[slot].label.toLowerCase()}`} title="Saved recipes">
                           <Bookmark size={15} /><span>Saved</span>
                         </button>
