@@ -5613,7 +5613,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 
 /* ── Shelf life progress bar ── */
 .kw-shelf-life{width:100%;margin-top:8px}
-.kw-shelf-track{width:100%;height:10px;border-radius:var(--radius-pill);background:var(--color-surface-sunken);overflow:hidden}
+.kw-shelf-track{width:100%;height:16px;border-radius:var(--radius-pill);background:var(--color-surface-sunken);overflow:hidden}
 .kw-shelf-fill{height:100%;border-radius:var(--radius-pill);transition:width .4s ease,background-color .3s ease}
 .kw-shelf-label{display:block;margin-top:4px;font-size:11px;font-weight:600;line-height:1}
 .kw-item-actions{display:flex;align-items:center;gap:6px;margin-top:8px}
