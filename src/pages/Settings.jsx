@@ -817,28 +817,38 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
           <div className="flex items-end justify-between mb-3"><h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)]">🎨 Appearance</h2></div>
           <Card className="settings-color-scheme-card">
             <div className="settings-color-scheme-head"><span><Palette size={18}/></span><div><strong>App colour</strong><small>Pick a palette that feels like home. Every option is tuned for light and dark mode.</small></div></div>
-            <div className="settings-color-scheme-grid">
-              {APP_COLOR_SCHEMES.map((scheme) => (
-                <button
-                  key={scheme.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={colorScheme === scheme.id}
-                  className={`settings-color-scheme-option ${colorScheme === scheme.id ? "selected" : ""}`}
-                  onClick={() => onColorSchemeChange(scheme.id)}
-                >
+            <MenuDropdown
+              className="settings-color-select"
+              label="App colour schemes"
+              value={colorScheme}
+              options={APP_COLOR_SCHEMES.map((scheme) => ({ ...scheme, value: scheme.id }))}
+              onChange={onColorSchemeChange}
+              renderValue={(scheme) => (
+                <>
                   <span className="scheme-emoji">{scheme.emoji}</span>
                   <span className="scheme-swatches" aria-hidden="true">
                     {scheme.colors.map((color) => <i key={color} style={{ backgroundColor: color }} />)}
                   </span>
-                  <div className="scheme-info">
+                  <span className="settings-color-select-copy">
                     <strong>{scheme.label}</strong>
                     <small>{scheme.note}</small>
-                  </div>
-                  {colorScheme === scheme.id && <Check size={16} className="scheme-check" />}
-                </button>
-              ))}
-            </div>
+                  </span>
+                </>
+              )}
+              renderOption={(scheme, selected) => (
+                <>
+                  <span className="scheme-emoji">{scheme.emoji}</span>
+                  <span className="scheme-swatches" aria-hidden="true">
+                    {scheme.colors.map((color) => <i key={color} style={{ backgroundColor: color }} />)}
+                  </span>
+                  <span>
+                    <strong>{scheme.label}</strong>
+                    <small>{scheme.note}</small>
+                  </span>
+                  {selected && <Check size={16} />}
+                </>
+              )}
+            />
           </Card>
         </section>
 

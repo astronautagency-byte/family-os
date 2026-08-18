@@ -820,31 +820,37 @@ function OnboardingColourScheme({ value, onChange }) {
     <div className="onboarding-scheme-picker">
       <span><Palette size={15}/> Make it yours</span>
       <p>Choose the app colours you'll see. This only changes your view, not anyone else's.</p>
-      <div className="onboarding-color-grid" role="radiogroup" aria-label="Choose your app colour scheme">
-        {APP_COLOR_SCHEMES.map((scheme) => {
-          const selected = value === scheme.id;
-          return (
-            <button
-              key={scheme.id}
-              type="button"
-              role="radio"
-              aria-checked={selected}
-              className={`onboarding-color-option ${selected ? "selected" : ""}`}
-              onClick={() => onChange(scheme.id)}
-            >
-              <span className="scheme-emoji">{scheme.emoji}</span>
-              <span className="scheme-swatches" aria-hidden="true">
-                {scheme.colors.map((color) => <i key={color} style={{ backgroundColor: color }} />)}
-              </span>
-              <div className="scheme-info">
-                <strong>{scheme.label}</strong>
-                <small>{scheme.note}</small>
-              </div>
-              {selected && <Check size={16} className="scheme-check" />}
-            </button>
-          );
-        })}
-      </div>
+      <MenuDropdown
+        label="App colour schemes"
+        value={value}
+        options={APP_COLOR_SCHEMES.map((scheme) => ({ ...scheme, value: scheme.id }))}
+        onChange={onChange}
+        renderValue={(scheme) => (
+          <>
+            <span className="scheme-emoji">{scheme.emoji}</span>
+            <span className="scheme-swatches" aria-hidden="true">
+              {scheme.colors.map((color) => <i key={color} style={{ backgroundColor: color }} />)}
+            </span>
+            <span className="settings-color-select-copy">
+              <strong>{scheme.label}</strong>
+              <small>{scheme.note}</small>
+            </span>
+          </>
+        )}
+        renderOption={(scheme, selected) => (
+          <>
+            <span className="scheme-emoji">{scheme.emoji}</span>
+            <span className="scheme-swatches" aria-hidden="true">
+              {scheme.colors.map((color) => <i key={color} style={{ backgroundColor: color }} />)}
+            </span>
+            <span>
+              <strong>{scheme.label}</strong>
+              <small>{scheme.note}</small>
+            </span>
+            {selected && <Check size={16} />}
+          </>
+        )}
+      />
     </div>
   );
 }
