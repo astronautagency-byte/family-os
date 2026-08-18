@@ -815,7 +815,7 @@ export default function Meals() {
                             </button>
                           );
                         })()}
-                        {meal?.title && (
+                        {(meal?.source !== 'manual') && meal?.title && (
                           <button className="meal-start-cooking" onClick={() => openCookRecipe(meal)} aria-label={`Start cooking ${meal.title}`}>
                             <ChefHat size={15} /><span>Cook</span>
                           </button>
