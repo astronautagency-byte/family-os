@@ -1,14 +1,24 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { BarChart3, CalendarDays, CheckCircle2, ChevronRight, Copy, ExternalLink, Globe2, Landmark, LayoutDashboard, MapPin, Megaphone, Pencil, Plus, RefreshCw, Sparkles, Target, Trash2, TrendingUp, Upload, Users, X } from "lucide-react";
+import {
+  BarChart3, CalendarDays, CheckCircle2, ChevronDown, ChevronRight, Copy, CreditCard,
+  ExternalLink, Filter, Globe2, Landmark, LayoutDashboard, Link2, MapPin, Megaphone,
+  MoreHorizontal, Pencil, Pause, Play, Plus, RefreshCw, Search, ShieldCheck, Sparkles,
+  Target, Trash2, TrendingUp, Upload, Users, X,
+} from "lucide-react";
 import { supabase } from "../lib/supabase";
 import {
   getMyPartner,
   getMyCampaigns,
   getCampaignMetrics,
+  getCampaignDaily,
   createCampaign,
   updateCampaign,
   deleteCampaign,
+  toggleCampaign,
   uploadCreative,
+  getMyInvoices,
+  getMyPayments,
+  getBillingSummary,
 } from "../lib/partnerApi";
 import { AD_PLACEMENTS } from "../lib/adNetwork";
 
@@ -26,50 +36,29 @@ const PLACEMENT_ICONS = {
   [AD_PLACEMENTS.SHOPPING]: Landmark,
   [AD_PLACEMENTS.TASKS]: Target,
 };
-
 const PRODUCT_CATEGORIES = [
-  "Groceries & snacks",
-  "Dairy & eggs",
-  "Meat & seafood",
-  "Produce",
-  "Baby & kids",
-  "Household & cleaning",
-  "Personal care",
-  "Vitamins & wellness",
-  "Toys & games",
-  "Services & memberships",
+  "Groceries & snacks", "Dairy & eggs", "Meat & seafood", "Produce",
+  "Baby & kids", "Household & cleaning", "Personal care", "Vitamins & wellness",
+  "Toys & games", "Services & memberships",
 ];
-
-const STATUS_LABEL = {
-  draft: "Draft",
-  active: "Active",
-  paused: "Paused",
-  ended: "Ended",
+const STATUS_LABEL = { draft: "Draft", active: "Active", paused: "Paused", ended: "Ended" };
+const STATUS_CLASSES = {
+  draft: "status-draft", active: "status-active", paused: "status-paused", ended: "status-ended",
 };
-
 const money = (cents) => `$${(cents / 100).toFixed(2)}`;
+const pct = (num, den) => den ? ((num / den) * 100).toFixed(1) : "0.0";
+const fmt = (n) => (n || 0).toLocaleString();
 
 const EMPTY_FORM = {
-  name: "",
-  headline: "",
-  body_text: "",
-  cta_text: "Learn more",
-  cta_url: "",
-  image_url: "",
-  imageFile: null,
-  placements: [AD_PLACEMENTS.HOME],
-  product_categories: [],
-  target_family_min: "",
-  target_family_max: "",
-  target_countries: [],
-  target_regions: [],
-  target_cities: [],
-  target_postal_codes: [],
-  start_date: "",
-  end_date: "",
-  budget_cents: "50000",
-  status: "draft",
+  name: "", headline: "", body_text: "", cta_text: "Learn more", cta_url: "",
+  image_url: "", imageFile: null, placements: [AD_PLACEMENTS.HOME],
+  product_categories: [], target_family_min: "", target_family_max: "",
+  target_countries: [], target_regions: [], target_cities: [],
+  target_postal_codes: [], start_date: "", end_date: "",
+  budget_cents: "50000", status: "draft", cpm_cents: "700",
 };
+
+/* ── Login ─────────────────────────────────────────────────────────────── */
 
 function PartnerLogin({ onSignedIn }) {
   const [email, setEmail] = useState("");
@@ -78,48 +67,39 @@ function PartnerLogin({ onSignedIn }) {
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState("signin");
 
-  const submit = async (event) => {
-    event.preventDefault();
+  const submit = async (e) => {
+    e.preventDefault();
     setError("");
     setBusy(true);
     try {
-      if (mode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-      }
+      const fn = mode === "signin" ? "signInWithPassword" : "signUp";
+      const { error } = await supabase.auth[fn]({ email, password });
+      if (error) throw error;
       onSignedIn();
-    } catch (err) {
-      setError(err.message || "Sign-in failed");
-    } finally {
-      setBusy(false);
-    }
+    } catch (err) { setError(err.message || "Sign-in failed"); }
+    finally { setBusy(false); }
   };
 
   return (
     <div className="partner-login">
       <div className="partner-login-card">
         <div className="partner-brand">
-          <Megaphone size={20} />
-          <div><strong>FamOS Partners</strong><small>Reach families who plan their week in one place.</small></div>
+          <div className="partner-brand-icon"><Megaphone size={20} /></div>
+          <div><strong>FamOS Ad Partners</strong><small>Reach families who plan their week in one place.</small></div>
         </div>
         <form onSubmit={submit}>
-          <label className="partner-field">
-            <span>Email</span>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@brand.com" required autoComplete="email" />
+          <label className="pfield"><span>Email</span>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@brand.com" required />
           </label>
-          <label className="partner-field">
-            <span>Password</span>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required autoComplete={mode === "signin" ? "current-password" : "new-password"} />
+          <label className="pfield"><span>Password</span>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
           </label>
-          {error && <p className="partner-error" role="alert">{error}</p>}
-          <button className="partner-primary-btn" type="submit" disabled={busy || !email || !password}>
+          {error && <p className="pform-error">{error}</p>}
+          <button className="pbtn pbtn-primary pbtn-full" type="submit" disabled={busy || !email || !password}>
             {busy ? "Please wait…" : mode === "signin" ? "Sign in to dashboard" : "Create partner account"}
           </button>
         </form>
-        <button type="button" className="partner-switch-mode" onClick={() => setMode((current) => current === "signin" ? "signup" : "signin")}>
+        <button type="button" className="pswitch" onClick={() => setMode((m) => m === "signin" ? "signup" : "signin")}>
           {mode === "signin" ? "New advertiser? Create an account" : "Already a partner? Sign in"}
         </button>
       </div>
@@ -127,67 +107,438 @@ function PartnerLogin({ onSignedIn }) {
   );
 }
 
-function MiniChart({ points }) {
-  const values = points || [];
+/* ── Metric Chart (SVG line chart) ────────────────────────────────────── */
+
+function MetricChart({ data, dataKey, color = "var(--partner-accent)", height = 120 }) {
+  if (!data || data.length < 2) return null;
+  const values = data.map((d) => d[dataKey] || 0);
   const max = Math.max(...values, 1);
+  const w = 100;
+  const pad = 2;
+  const points = values.map((v, i) => {
+    const x = pad + (i / (values.length - 1)) * (w - pad * 2);
+    const y = pad + (1 - v / max) * (height - pad * 2);
+    return `${x},${y}`;
+  }).join(" ");
+
   return (
-    <div className="partner-mini-chart" aria-hidden="true">
-      {values.map((value, index) => {
-        const height = Math.max(6, Math.round((value / max) * 56));
-        return <i key={index} style={{ height }} />;
-      })}
+    <div className="pchart" style={{ height }}>
+      <svg viewBox={`0 0 ${w} ${height}`} preserveAspectRatio="none" style={{ width: "100%", height: "100%" }}>
+        <defs>
+          <linearGradient id={`pg-${dataKey}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.18" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <polygon
+          points={`${pad},${height} ${points} ${w - pad},${height}`}
+          fill={`url(#pg-${dataKey})`}
+        />
+        <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
     </div>
   );
 }
 
-function CampaignCard({ campaign, onOpen }) {
-  const Icon = PLACEMENT_ICONS[campaign.placements?.[0]] || Sparkles;
+/* ── Campaign Table Row ───────────────────────────────────────────────── */
+
+function CampaignRow({ campaign, onOpen, onToggle }) {
   const ctr = campaign.ctr_pct ?? (campaign.impressions ? (campaign.clicks / campaign.impressions) * 100 : 0);
+  const cpc = campaign.clicks ? campaign.spent_cents / campaign.clicks : 0;
+  const budgetPct = campaign.budget_cents ? (campaign.spent_cents / campaign.budget_cents) * 100 : 0;
+  const isActive = campaign.status === "active";
+
   return (
-    <button type="button" className="partner-campaign-card" onClick={() => onOpen(campaign)}>
-      <div className="partner-campaign-top">
-        <span className="partner-campaign-icon"><Icon size={15} /></span>
-        <span className={`partner-status partner-status-${campaign.status}`}>{STATUS_LABEL[campaign.status] || campaign.status}</span>
-      </div>
-      <strong className="partner-campaign-name">{campaign.name}</strong>
-      <p className="partner-campaign-headline">{campaign.headline}</p>
-      <div className="partner-campaign-metrics">
-        <span><strong>{campaign.impressions?.toLocaleString() || 0}</strong>Impressions</span>
-        <span><strong>{campaign.clicks?.toLocaleString() || 0}</strong>Clicks</span>
-        <span><strong>{Number(ctr || 0).toFixed(1)}%</strong>CTR</span>
-      </div>
-      <div className="partner-campaign-footer">
-        <span className="partner-placement-tags">{campaign.placements?.map((key) => PLACEMENT_LABELS[key] || key).join(" · ")}</span>
-        <ChevronRight size={15} />
-      </div>
-    </button>
+    <tr className="pcampaign-row" onClick={() => onOpen(campaign)}>
+      <td className="pcampaign-toggle" onClick={(e) => e.stopPropagation()}>
+        <button
+          className={`ptoggle ${isActive ? "ptoggle-on" : ""}`}
+          onClick={() => onToggle(campaign, isActive ? "paused" : "active")}
+          aria-label={isActive ? "Pause campaign" : "Resume campaign"}
+        >
+          <span className="ptoggle-thumb" />
+        </button>
+      </td>
+      <td className="pcampaign-status"><span className={`pbadge ${STATUS_CLASSES[campaign.status]}`}>{STATUS_LABEL[campaign.status]}</span></td>
+      <td className="pcampaign-name">
+        <strong>{campaign.name}</strong>
+        <span className="pcampaign-headline">{campaign.headline}</span>
+      </td>
+      <td className="pcampaign-placements">
+        {campaign.placements?.map((k) => PLACEMENT_LABELS[k] || k).join(", ") || "All"}
+      </td>
+      <td className="pcampaign-num">{fmt(campaign.impressions)}</td>
+      <td className="pcampaign-num">{fmt(campaign.clicks)}</td>
+      <td className="pcampaign-num">{pct(campaign.clicks, campaign.impressions)}%</td>
+      <td className="pcampaign-num">{money(cpc)}</td>
+      <td className="pcampaign-num">{money(campaign.spent_cents)}</td>
+      <td className="pcampaign-budget">
+        <div className="pbudget-bar"><div className="pbudget-fill" style={{ width: `${Math.min(budgetPct, 100)}%` }} /></div>
+        <span>{money(campaign.budget_cents)}</span>
+      </td>
+      <td className="pcampaign-actions" onClick={(e) => e.stopPropagation()}>
+        <button className="picon-btn" onClick={() => onOpen(campaign)}><ChevronRight size={15} /></button>
+      </td>
+    </tr>
   );
 }
 
-function CampaignSkeleton() {
-  return <div className="partner-campaign-card is-skeleton"><span /><span /><span /></div>;
+/* ── Campaign Detail ──────────────────────────────────────────────────── */
+
+function CampaignDetail({ campaign, onBack, onEdit, onDelete, onToast, refresh }) {
+  const [daily, setDaily] = useState([]);
+  const [metrics, setMetrics] = useState([]);
+
+  useEffect(() => {
+    if (!campaign?.id) return;
+    getCampaignDaily(campaign.id).then(setDaily).catch(() => setDaily([]));
+    getCampaignMetrics(campaign.id).then(setMetrics).catch(() => setMetrics([]));
+  }, [campaign?.id]);
+
+  const toggleStatus = async () => {
+    const next = campaign.status === "active" ? "paused" : "active";
+    await toggleCampaign(campaign.id, next);
+    onToast(`Campaign ${next === "active" ? "resumed" : "paused"}`);
+    refresh();
+  };
+
+  const ctr = campaign.ctr_pct ?? (campaign.impressions ? (campaign.clicks / campaign.impressions) * 100 : 0);
+  const cpc = campaign.clicks ? campaign.spent_cents / campaign.clicks : 0;
+  const cpm = campaign.impressions ? (campaign.spent_cents / campaign.impressions) * 1000 : campaign.cpm_cents || 700;
+  const budgetPct = campaign.budget_cents ? (campaign.spent_cents / campaign.budget_cents) * 100 : 0;
+
+  return (
+    <div className="pdetail">
+      <div className="pdetail-top">
+        <button className="pback" onClick={onBack}>← All campaigns</button>
+        <div className="pdetail-actions">
+          <button className="pbtn pbtn-ghost" onClick={toggleStatus}>
+            {campaign.status === "active" ? <><Pause size={13} /> Pause</> : <><Play size={13} /> Resume</>}
+          </button>
+          <button className="pbtn pbtn-ghost" onClick={() => onEdit(campaign)}><Pencil size={13} /> Edit</button>
+          <button className="pbtn pbtn-danger" onClick={() => onDelete(campaign)}><Trash2 size={13} /> Delete</button>
+        </div>
+      </div>
+
+      <div className="pdetail-hero">
+        {campaign.image_url ? <img src={campaign.image_url} alt="" className="pdetail-img" /> : <div className="pdetail-img pdetail-img-placeholder"><Megaphone size={24} /></div>}
+        <div className="pdetail-hero-info">
+          <div className="pdetail-hero-top">
+            <span className={`pbadge ${STATUS_CLASSES[campaign.status]}`}>{STATUS_LABEL[campaign.status]}</span>
+            <span className="pdetail-cpm">CPM: {money(cpm)}</span>
+          </div>
+          <h2>{campaign.name}</h2>
+          <p>{campaign.headline}</p>
+          {campaign.body_text && <small>{campaign.body_text}</small>}
+          <a className="plink" href={campaign.cta_url} target="_blank" rel="noreferrer">{campaign.cta_text} <ExternalLink size={11} /></a>
+        </div>
+      </div>
+
+      <div className="pkpi-grid">
+        <div className="pkpi"><span>Impressions</span><strong>{fmt(campaign.impressions)}</strong></div>
+        <div className="pkpi"><span>Clicks</span><strong>{fmt(campaign.clicks)}</strong></div>
+        <div className="pkpi"><span>CTR</span><strong>{pct(campaign.clicks, campaign.impressions)}%</strong></div>
+        <div className="pkpi"><span>CPC</span><strong>{money(cpc)}</strong></div>
+        <div className="pkpi"><span>CPM</span><strong>{money(cpm)}</strong></div>
+        <div className="pkpi"><span>Spend</span><strong>{money(campaign.spent_cents)}</strong></div>
+        <div className="pkpi"><span>Budget</span><strong>{money(campaign.budget_cents)}</strong></div>
+        <div className="pkpi"><span>Budget used</span><strong>{budgetPct.toFixed(1)}%</strong></div>
+      </div>
+
+      {daily.length > 1 && (
+        <div className="pchart-section">
+          <h3>Daily performance</h3>
+          <div className="pchart-dual">
+            <div className="pchart-panel">
+              <span className="pchart-label">Impressions</span>
+              <MetricChart data={daily} dataKey="impressions" color="var(--partner-accent)" />
+            </div>
+            <div className="pchart-panel">
+              <span className="pchart-label">Clicks</span>
+              <MetricChart data={daily} dataKey="clicks" color="#10b981" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="ptargeting-section">
+        <h3>Targeting</h3>
+        <div className="ptarget-row"><span><Target size={13} /> Placements</span><div>{campaign.placements?.map((k) => <i key={k}>{PLACEMENT_LABELS[k] || k}</i>)}</div></div>
+        {campaign.product_categories?.length > 0 && (
+          <div className="ptarget-row"><span><Sparkles size={13} /> Products</span><div>{campaign.product_categories.map((c, i) => <i key={i}>{c}</i>)}</div></div>
+        )}
+        {(campaign.target_family_min || campaign.target_family_max) && (
+          <div className="ptarget-row"><span><Users size={13} /> Family size</span><div><i>{campaign.target_family_min || "Any"}–{campaign.target_family_max || "any"} people</i></div></div>
+        )}
+        {campaign.target_countries?.length > 0 && (
+          <div className="ptarget-row"><span><Globe2 size={13} /> Countries</span><div>{campaign.target_countries.map((c, i) => <i key={i}>{c}</i>)}</div></div>
+        )}
+        {campaign.target_regions?.length > 0 && (
+          <div className="ptarget-row"><span><MapPin size={13} /> Regions</span><div>{campaign.target_regions.map((c, i) => <i key={i}>{c}</i>)}</div></div>
+        )}
+        {campaign.target_cities?.length > 0 && (
+          <div className="ptarget-row"><span><MapPin size={13} /> Cities</span><div>{campaign.target_cities.map((c, i) => <i key={i}>{c}</i>)}</div></div>
+        )}
+        {campaign.target_postal_codes?.length > 0 && (
+          <div className="ptarget-row"><span><MapPin size={13} /> Postal codes</span><div>{campaign.target_postal_codes.map((c, i) => <i key={i}>{c}</i>)}</div></div>
+        )}
+        {campaign.start_date && (
+          <div className="ptarget-row"><span><CalendarDays size={13} /> Schedule</span><div><i>{new Date(campaign.start_date).toLocaleDateString()} — {campaign.end_date ? new Date(campaign.end_date).toLocaleDateString() : "No end"}</i></div></div>
+        )}
+      </div>
+    </div>
+  );
 }
+
+/* ── Campaign Editor ──────────────────────────────────────────────────── */
+
+function CampaignEditor({ editing, draft, setDraft, saving, saveError, onSave, onClose, togglePlacement, toggleProduct }) {
+  return (
+    <div className="peditor">
+      <div className="peditor-top">
+        <h2>{editing ? "Edit campaign" : "Create campaign"}</h2>
+        <button className="pback" onClick={onClose}><X size={15} /> Close</button>
+      </div>
+
+      <label className="pfield"><span>Campaign name</span>
+        <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Spring produce push" />
+      </label>
+
+      <div className="pfield-row">
+        <label className="pfield"><span>Headline</span>
+          <input value={draft.headline} onChange={(e) => setDraft({ ...draft, headline: e.target.value })} placeholder="Fresh ideas start here" maxLength={200} />
+        </label>
+        <label className="pfield"><span>Body text (optional)</span>
+          <input value={draft.body_text} onChange={(e) => setDraft({ ...draft, body_text: e.target.value })} placeholder="A warm line to families." />
+        </label>
+      </div>
+
+      <div className="pfield-row">
+        <label className="pfield"><span>CTA text</span>
+          <input value={draft.cta_text} onChange={(e) => setDraft({ ...draft, cta_text: e.target.value })} />
+        </label>
+        <label className="pfield"><span>CTA URL</span>
+          <input value={draft.cta_url} onChange={(e) => setDraft({ ...draft, cta_url: e.target.value })} placeholder="https://brand.com/offer" type="url" />
+        </label>
+      </div>
+
+      <div className="pupload-area">
+        <span>Creative image</span>
+        {draft.image_url ? (
+          <div className="pupload-preview">
+            <img src={draft.image_file_preview || draft.image_url} alt="" />
+            <button type="button" onClick={() => setDraft({ ...draft, image_url: "", imageFile: null })}><X size={14} /> Remove</button>
+          </div>
+        ) : (
+          <label className="pupload-box">
+            <Upload size={18} />
+            <span>Upload image (JPEG / PNG / WebP, up to 5MB)</span>
+            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              setDraft({ ...draft, imageFile: file, image_file_preview: URL.createObjectURL(file) });
+            }} />
+          </label>
+        )}
+      </div>
+
+      <div className="ptarget-block">
+        <h3><Target size={15} /> Placements</h3>
+        <p>Where your ad appears for free-plan families.</p>
+        <div className="pchips">
+          {Object.entries(PLACEMENT_LABELS).map(([key, label]) => {
+            const Icon = PLACEMENT_ICONS[key];
+            return (
+              <button type="button" key={key} className={`pchip ${draft.placements.includes(key) ? "pchip-selected" : ""}`} onClick={() => togglePlacement(key)}>
+                <Icon size={14} /> {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="ptarget-block">
+        <h3><Sparkles size={15} /> Product categories</h3>
+        <p>Optional — limiting categories targets households most likely to care.</p>
+        <div className="pchips">
+          {PRODUCT_CATEGORIES.map((cat) => (
+            <button type="button" key={cat} className={`pchip ${draft.product_categories.includes(cat) ? "pchip-selected" : ""}`} onClick={() => toggleProduct(cat)}>
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="ptarget-block">
+        <h3><Users size={15} /> Family size (optional)</h3>
+        <div className="pfield-row pfield-narrow">
+          <label className="pfield"><span>Min people</span>
+            <input type="number" min="1" max="30" value={draft.target_family_min} onChange={(e) => setDraft({ ...draft, target_family_min: e.target.value })} placeholder="Any" />
+          </label>
+          <label className="pfield"><span>Max people</span>
+            <input type="number" min="1" max="30" value={draft.target_family_max} onChange={(e) => setDraft({ ...draft, target_family_max: e.target.value })} placeholder="Any" />
+          </label>
+        </div>
+      </div>
+
+      <div className="ptarget-block">
+        <h3><Globe2 size={15} /> Location (optional)</h3>
+        <div className="pfield-row">
+          <label className="pfield"><span>Countries</span>
+            <input value={draft.target_countries.join(", ")} onChange={(e) => setDraft({ ...draft, target_countries: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} placeholder="Canada, USA" />
+          </label>
+          <label className="pfield"><span>Regions / provinces</span>
+            <input value={draft.target_regions.join(", ")} onChange={(e) => setDraft({ ...draft, target_regions: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} placeholder="Ontario, British Columbia" />
+          </label>
+        </div>
+        <div className="pfield-row">
+          <label className="pfield"><span>Cities</span>
+            <input value={draft.target_cities.join(", ")} onChange={(e) => setDraft({ ...draft, target_cities: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} placeholder="Toronto, Vancouver" />
+          </label>
+          <label className="pfield"><span>Postal codes</span>
+            <input value={draft.target_postal_codes.join(", ")} onChange={(e) => setDraft({ ...draft, target_postal_codes: e.target.value.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean) })} placeholder="M5V, V6B" />
+          </label>
+        </div>
+      </div>
+
+      <div className="ptarget-block">
+        <h3><CalendarDays size={15} /> Schedule & budget</h3>
+        <div className="pfield-row">
+          <label className="pfield"><span>Start date</span>
+            <input type="date" value={draft.start_date} onChange={(e) => setDraft({ ...draft, start_date: e.target.value })} />
+          </label>
+          <label className="pfield"><span>End date</span>
+            <input type="date" value={draft.end_date} onChange={(e) => setDraft({ ...draft, end_date: e.target.value })} />
+          </label>
+        </div>
+        <div className="pfield-row">
+          <label className="pfield"><span>Budget (CAD)</span>
+            <input type="number" min="0" step="100" value={draft.budget_cents} onChange={(e) => setDraft({ ...draft, budget_cents: e.target.value })} placeholder="500" />
+          </label>
+          <label className="pfield"><span>CPM rate (cents)</span>
+            <input type="number" min="100" step="50" value={draft.cpm_cents} onChange={(e) => setDraft({ ...draft, cpm_cents: e.target.value })} placeholder="700" />
+          </label>
+        </div>
+      </div>
+
+      {saveError && <p className="pform-error">{saveError}</p>}
+      <div className="peditor-actions">
+        <button className="pbtn pbtn-ghost" onClick={onClose}>Cancel</button>
+        <button className="pbtn pbtn-primary" onClick={onSave} disabled={saving}>{saving ? "Saving…" : editing ? "Save changes" : "Create campaign"}</button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Billing Tab ──────────────────────────────────────────────────────── */
+
+function BillingTab({ billing, invoices, payments }) {
+  return (
+    <div className="pbilling">
+      <div className="pbilling-header">
+        <div>
+          <h2>Billing & spend</h2>
+          <p>Track your ad spend, invoices, and payment history.</p>
+        </div>
+      </div>
+
+      <div className="pbilling-summary">
+        <div className="pbilling-stat"><span>Total impressions</span><strong>{fmt(billing?.total_impressions)}</strong></div>
+        <div className="pbilling-stat"><span>Total clicks</span><strong>{fmt(billing?.total_clicks)}</strong></div>
+        <div className="pbilling-stat"><span>Total spend</span><strong>{money(billing?.total_spent_cents)}</strong></div>
+        <div className="pbilling-stat"><span>Outstanding</span><strong className={billing?.outstanding_cents > 0 ? "pstat-warn" : ""}>{money(billing?.outstanding_cents)}</strong></div>
+        <div className="pbilling-stat"><span>Active campaigns</span><strong>{billing?.active_count || 0}</strong></div>
+        <div className="pbilling-stat"><span>Avg CPM</span><strong>{money(billing?.avg_cpm_cents)}</strong></div>
+      </div>
+
+      <div className="pbilling-section">
+        <h3>Recent invoices</h3>
+        {invoices.length === 0 ? (
+          <p className="pbilling-empty">No invoices yet. Invoices are generated at the end of each billing cycle.</p>
+        ) : (
+          <div className="pinvoice-table-wrap">
+            <table className="pinvoice-table">
+              <thead>
+                <tr>
+                  <th>Period</th>
+                  <th>Impressions</th>
+                  <th>Clicks</th>
+                  <th>CPM</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoices.map((inv) => (
+                  <tr key={inv.id}>
+                    <td>{new Date(inv.billing_period_start).toLocaleDateString()} — {new Date(inv.billing_period_end).toLocaleDateString()}</td>
+                    <td>{fmt(inv.total_impressions)}</td>
+                    <td>{fmt(inv.total_clicks)}</td>
+                    <td>{money(inv.cpm_cents)}</td>
+                    <td><strong>{money(inv.total_cents)}</strong></td>
+                    <td><span className={`pbadge pbadge-${inv.status}`}>{inv.status}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="pbilling-section">
+        <h3>Payment history</h3>
+        {payments.length === 0 ? (
+          <p className="pbilling-empty">No payments recorded yet.</p>
+        ) : (
+          <div className="pinvoice-table-wrap">
+            <table className="pinvoice-table">
+              <thead>
+                <tr><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th></tr>
+              </thead>
+              <tbody>
+                {payments.map((pay) => (
+                  <tr key={pay.id}>
+                    <td>{new Date(pay.created_at).toLocaleDateString()}</td>
+                    <td><strong>{money(pay.amount_cents)}</strong></td>
+                    <td>{pay.method}</td>
+                    <td>{pay.reference || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Main Component ───────────────────────────────────────────────────── */
 
 export default function Partner() {
   const [session, setSession] = useState(null);
   const [partner, setPartner] = useState(null);
   const [checking, setChecking] = useState(true);
   const [allowed, setAllowed] = useState(false);
-  const [section, setSection] = useState("overview");
+  const [tab, setTab] = useState("campaigns");
   const [campaigns, setCampaigns] = useState([]);
   const [loadingCampaigns, setLoadingCampaigns] = useState(false);
   const [selected, setSelected] = useState(null);
-  const [metrics, setMetrics] = useState([]);
   const [editing, setEditing] = useState(null);
   const [draft, setDraft] = useState({ ...EMPTY_FORM });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [toast, setToast] = useState("");
+  const [invoices, setInvoices] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [billing, setBilling] = useState(null);
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
 
   const check = useCallback(async () => {
-    const { data: { session: activeSession } } = await supabase.auth.getSession();
-    setSession(activeSession);
-    if (!activeSession) { setAllowed(false); setChecking(false); return; }
+    const { data: { session: s } } = await supabase.auth.getSession();
+    setSession(s);
+    if (!s) { setAllowed(false); setChecking(false); return; }
     const me = await getMyPartner();
     if (me && (me.status === "active" || me.status === "pending")) {
       setPartner(me);
@@ -196,7 +547,6 @@ export default function Partner() {
       setAllowed(false);
     }
     setChecking(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => { check(); }, [check]);
@@ -208,57 +558,41 @@ export default function Partner() {
     setLoadingCampaigns(false);
   }, []);
 
-  useEffect(() => {
-    if (allowed) loadCampaigns();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allowed]);
+  const loadBilling = useCallback(async () => {
+    const [inv, pay, sum] = await Promise.all([getMyInvoices(), getMyPayments(), getBillingSummary()]);
+    setInvoices(inv);
+    setPayments(pay);
+    setBilling(sum);
+  }, []);
 
   useEffect(() => {
-    if (selected?.id) {
-      getCampaignMetrics(selected.id).then(setMetrics).catch(() => setMetrics([]));
-    } else {
-      setMetrics([]);
+    if (allowed) {
+      loadCampaigns();
+      loadBilling();
     }
-  }, [selected]);
+  }, [allowed, loadCampaigns, loadBilling]);
 
   useEffect(() => {
     if (!toast) return undefined;
-    const timer = window.setTimeout(() => setToast(""), 3000);
-    return () => window.clearTimeout(timer);
+    const t = window.setTimeout(() => setToast(""), 3000);
+    return () => window.clearTimeout(t);
   }, [toast]);
 
-  const openCreate = () => {
-    setEditing(null);
-    setDraft({ ...EMPTY_FORM });
-    setSaveError("");
-    setSection("editor");
-  };
-
-  const openEdit = (campaign) => {
-    setEditing(campaign);
+  const openCreate = () => { setEditing(null); setDraft({ ...EMPTY_FORM }); setSaveError(""); setTab("editor"); };
+  const openEdit = (c) => {
+    setEditing(c);
     setDraft({
-      ...EMPTY_FORM,
-      name: campaign.name,
-      headline: campaign.headline,
-      body_text: campaign.body_text,
-      cta_text: campaign.cta_text,
-      cta_url: campaign.cta_url,
-      image_url: campaign.image_url,
-      placements: campaign.placements || [],
-      product_categories: campaign.product_categories || [],
-      target_family_min: campaign.target_family_min ?? "",
-      target_family_max: campaign.target_family_max ?? "",
-      target_countries: campaign.target_countries || [],
-      target_regions: campaign.target_regions || [],
-      target_cities: campaign.target_cities || [],
-      target_postal_codes: campaign.target_postal_codes || [],
-      start_date: campaign.start_date ? campaign.start_date.slice(0, 10) : "",
-      end_date: campaign.end_date ? campaign.end_date.slice(0, 10) : "",
-      budget_cents: campaign.budget_cents,
-      status: campaign.status,
+      ...EMPTY_FORM, name: c.name, headline: c.headline, body_text: c.body_text,
+      cta_text: c.cta_text, cta_url: c.cta_url, image_url: c.image_url,
+      placements: c.placements || [], product_categories: c.product_categories || [],
+      target_family_min: c.target_family_min ?? "", target_family_max: c.target_family_max ?? "",
+      target_countries: c.target_countries || [], target_regions: c.target_regions || [],
+      target_cities: c.target_cities || [], target_postal_codes: c.target_postal_codes || [],
+      start_date: c.start_date ? c.start_date.slice(0, 10) : "",
+      end_date: c.end_date ? c.end_date.slice(0, 10) : "",
+      budget_cents: c.budget_cents, cpm_cents: c.cpm_cents || 700, status: c.status,
     });
-    setSaveError("");
-    setSection("editor");
+    setSaveError(""); setTab("editor");
   };
 
   const save = async () => {
@@ -270,27 +604,19 @@ export default function Partner() {
     setSaving(true);
     try {
       let imageUrl = draft.image_url;
-      if (draft.imageFile) {
-        imageUrl = await uploadCreative(draft.imageFile, session.user.id);
-      }
+      if (draft.imageFile) imageUrl = await uploadCreative(draft.imageFile, session.user.id);
       const payload = {
-        p_name: draft.name,
-        p_headline: draft.headline,
-        p_body_text: draft.body_text,
-        p_cta_text: draft.cta_text,
-        p_cta_url: draft.cta_url,
-        p_image_url: imageUrl,
-        p_placements: draft.placements,
-        p_product_categories: draft.product_categories,
+        p_name: draft.name, p_headline: draft.headline, p_body_text: draft.body_text,
+        p_cta_text: draft.cta_text, p_cta_url: draft.cta_url, p_image_url: imageUrl,
+        p_placements: draft.placements, p_product_categories: draft.product_categories,
         p_target_family_min: draft.target_family_min === "" ? null : Number(draft.target_family_min),
         p_target_family_max: draft.target_family_max === "" ? null : Number(draft.target_family_max),
-        p_target_countries: draft.target_countries,
-        p_target_regions: draft.target_regions,
-        p_target_cities: draft.target_cities,
-        p_target_postal_codes: draft.target_postal_codes,
+        p_target_countries: draft.target_countries, p_target_regions: draft.target_regions,
+        p_target_cities: draft.target_cities, p_target_postal_codes: draft.target_postal_codes,
         p_start_date: draft.start_date ? `${draft.start_date}T00:00:00Z` : null,
         p_end_date: draft.end_date ? `${draft.end_date}T23:59:59Z` : null,
         p_budget_cents: Number(draft.budget_cents) || 0,
+        p_cpm_cents: Number(draft.cpm_cents) || 700,
         p_status: draft.status,
       };
       if (editing) {
@@ -298,366 +624,183 @@ export default function Partner() {
         setToast("Campaign updated");
       } else {
         await createCampaign(payload);
-        setToast("Campaign created — it will go live once approved");
+        setToast("Campaign created");
       }
-      setSection("overview");
+      setTab("campaigns");
       loadCampaigns();
-    } catch (err) {
-      setSaveError(err.message || "Failed to save campaign");
-    } finally {
-      setSaving(false);
+    } catch (err) { setSaveError(err.message || "Failed to save"); }
+    finally { setSaving(false); }
+  };
+
+  const handleToggle = async (campaign, nextStatus) => {
+    await toggleCampaign(campaign.id, nextStatus);
+    setToast(`Campaign ${nextStatus === "active" ? "resumed" : "paused"}`);
+    loadCampaigns();
+  };
+
+  const handleDelete = async (campaign) => {
+    if (!window.confirm(`Delete "${campaign.name}"? This can't be undone.`)) return;
+    await deleteCampaign(campaign.id);
+    setSelected(null);
+    setToast("Campaign deleted");
+    loadCampaigns();
+  };
+
+  const togglePlacement = (key) => setDraft((c) => ({ ...c, placements: c.placements.includes(key) ? c.placements.filter((i) => i !== key) : [...c.placements, key] }));
+  const toggleProduct = (cat) => setDraft((c) => ({ ...c, product_categories: c.product_categories.includes(cat) ? c.product_categories.filter((i) => i !== cat) : [...c.product_categories, cat] }));
+
+  const totals = useMemo(() => campaigns.reduce((a, c) => ({
+    impressions: a.impressions + (c.impressions || 0),
+    clicks: a.clicks + (c.clicks || 0),
+    spent: a.spent + (c.spent_cents || 0),
+  }), { impressions: 0, clicks: 0, spent: 0 }), [campaigns]);
+
+  const filteredCampaigns = useMemo(() => {
+    let list = campaigns;
+    if (filterStatus !== "all") list = list.filter((c) => c.status === filterStatus);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter((c) => c.name.toLowerCase().includes(q) || c.headline.toLowerCase().includes(q));
     }
-  };
+    return list;
+  }, [campaigns, filterStatus, search]);
 
-  const togglePlacement = (key) => {
-    setDraft((current) => ({
-      ...current,
-      placements: current.placements.includes(key)
-        ? current.placements.filter((item) => item !== key)
-        : [...current.placements, key],
-    }));
-  };
-
-  const toggleProduct = (category) => {
-    setDraft((current) => ({
-      ...current,
-      product_categories: current.product_categories.includes(category)
-        ? current.product_categories.filter((item) => item !== category)
-        : [...current.product_categories, category],
-    }));
-  };
-
-  const toggleListValue = (key, value) => {
-    setDraft((current) => {
-      const list = current[key] || [];
-      const next = list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
-      return { ...current, [key]: next };
-    });
-  };
-
-  const totals = useMemo(() => {
-    return campaigns.reduce((acc, campaign) => ({
-      impressions: acc.impressions + (campaign.impressions || 0),
-      clicks: acc.clicks + (campaign.clicks || 0),
-      spent: acc.spent + (campaign.spent_cents || 0),
-    }), { impressions: 0, clicks: 0, spent: 0 });
-  }, [campaigns]);
-
-  const chartValues = useMemo(() => metrics.map((m) => m.impressions || 0), [metrics]);
-  const last7 = useMemo(() => {
-    if (!metrics.length) return [];
-    return metrics.slice(-7).map((m) => m.impressions || 0);
-  }, [metrics]);
-
-  if (checking) {
-    return <div className="partner-shell"><div className="partner-loading">Loading dashboard…</div></div>;
-  }
-
-  if (!session) {
-    return <PartnerLogin onSignedIn={check} />;
-  }
-
-  if (!allowed) {
-    return (
-      <div className="partner-shell">
-        <div className="partner-denied">
-          <span className="partner-denied-icon"><ShieldCheckStop /></span>
-          <h1>No partner account</h1>
-          <p>This account isn't linked to an approved FamOS advertising partner. If you applied, please allow time for review — or reach out to partners@fam-os.app.</p>
-          <button className="partner-secondary-btn" onClick={() => supabase.auth.signOut()}>Sign out</button>
-        </div>
+  if (checking) return <div className="partner-shell"><div className="partner-loading">Loading dashboard…</div></div>;
+  if (!session) return <PartnerLogin onSignedIn={check} />;
+  if (!allowed) return (
+    <div className="partner-shell">
+      <div className="partner-denied">
+        <div className="partner-denied-icon"><ShieldCheck size={26} /></div>
+        <h1>No partner account</h1>
+        <p>This account isn't linked to an approved FamOS advertising partner. If you applied, please allow time for review — or reach out to partners@fam-os.app.</p>
+        <button className="pbtn pbtn-ghost" onClick={() => supabase.auth.signOut()}>Sign out</button>
       </div>
-    );
-  }
+    </div>
+  );
 
-  const nav = [
-    ["overview", "Campaigns", "overview" === section],
-    ["editor", "New campaign", false],
-  ];
+  const showDetail = selected && tab === "campaigns";
+  const showEditor = tab === "editor";
+  const showBilling = tab === "billing";
+  const showCampaigns = tab === "campaigns" && !selected && !showEditor;
 
   return (
     <div className="partner-shell">
-      <header className="partner-topbar">
-        <div className="partner-topbar-title">
-          <span className="partner-topbar-logo"><Megaphone size={18} /></span>
-          <div>
+      <header className="ptopbar">
+        <div className="ptopbar-left">
+          <div className="ptopbar-logo"><Megaphone size={18} /></div>
+          <div className="ptopbar-brand">
             <strong>FamOS Ad Partners</strong>
             <small>{partner?.company_name}</small>
           </div>
         </div>
-        <div className="partner-topbar-actions">
-          {partner?.status === "active" && <span className="partner-verified"><CheckCircle2 size={13} /> Verified partner</span>}
-          <button className="partner-signout" onClick={() => supabase.auth.signOut()}>Sign out</button>
+        <nav className="ptopbar-tabs">
+          <button className={`ptab ${tab === "campaigns" ? "ptab-active" : ""}`} onClick={() => { setTab("campaigns"); setSelected(null); }}>
+            <LayoutDashboard size={14} /> Campaigns
+          </button>
+          <button className={`ptab ${tab === "billing" ? "ptab-active" : ""}`} onClick={() => setTab("billing")}>
+            <CreditCard size={14} /> Billing
+          </button>
+        </nav>
+        <div className="ptopbar-right">
+          {partner?.status === "active" && <span className="pverified"><CheckCircle2 size={13} /> Verified</span>}
+          <button className="psignout" onClick={() => supabase.auth.signOut()}>Sign out</button>
         </div>
       </header>
 
-      <div className="partner-layout">
-        <div className="partner-stats">
-          <div><span>Total impressions</span><strong>{totals.impressions.toLocaleString()}</strong></div>
-          <div><span>Total clicks</span><strong>{totals.clicks.toLocaleString()}</strong></div>
-          <div><span>Avg CTR</span><strong>{(totals.impressions ? (totals.clicks / totals.impressions) * 100 : 0).toFixed(1)}%</strong></div>
-          <div><span>Est. spend</span><strong>{money(totals.spent)}</strong></div>
-        </div>
-
-        <div className="partner-content">
-          <div className="partner-section-head">
-            <div>
-              <h1>Your campaigns</h1>
-              <p>Create targeted ads that reach families based on placement, product interest, family size, and location.</p>
+      <div className="playout">
+        {showCampaigns && (
+          <div className="pcampaigns-view">
+            <div className="pcampaigns-header">
+              <div className="pcampaigns-stats">
+                <div className="pstat"><span>Impressions</span><strong>{fmt(totals.impressions)}</strong></div>
+                <div className="pstat"><span>Clicks</span><strong>{fmt(totals.clicks)}</strong></div>
+                <div className="pstat"><span>CTR</span><strong>{pct(totals.clicks, totals.impressions)}%</strong></div>
+                <div className="pstat"><span>Total spend</span><strong>{money(totals.spent)}</strong></div>
+                <div className="pstat"><span>Campaigns</span><strong>{campaigns.length}</strong></div>
+              </div>
+              <div className="pcampaigns-actions">
+                <div className="psearch-wrap">
+                  <Search size={14} />
+                  <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search campaigns…" />
+                </div>
+                <select className="pfilter" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+                  <option value="all">All statuses</option>
+                  <option value="active">Active</option>
+                  <option value="paused">Paused</option>
+                  <option value="draft">Draft</option>
+                  <option value="ended">Ended</option>
+                </select>
+                <button className="pbtn pbtn-primary" onClick={openCreate}><Plus size={15} /> New campaign</button>
+              </div>
             </div>
-            <button className="partner-primary-btn" onClick={openCreate}><Plus size={15} /> New campaign</button>
+
+            {toast && <div className="ptoast">{toast}</div>}
+
+            {loadingCampaigns ? (
+              <div className="pcampaigns-loading">Loading…</div>
+            ) : filteredCampaigns.length === 0 ? (
+              <div className="pcampaigns-empty">
+                <Megaphone size={32} />
+                <strong>{search || filterStatus !== "all" ? "No matching campaigns" : "No campaigns yet"}</strong>
+                <p>{search || filterStatus !== "all" ? "Try a different search or filter." : "Create your first ad to start reaching families."}</p>
+                {!search && filterStatus === "all" && <button className="pbtn pbtn-primary" onClick={openCreate}><Plus size={15} /> New campaign</button>}
+              </div>
+            ) : (
+              <div className="pcampaigns-table-wrap">
+                <table className="pcampaigns-table">
+                  <thead>
+                    <tr>
+                      <th className="pcampaign-toggle" />
+                      <th>Status</th>
+                      <th>Campaign</th>
+                      <th>Placements</th>
+                      <th>Impressions</th>
+                      <th>Clicks</th>
+                      <th>CTR</th>
+                      <th>CPC</th>
+                      <th>Spend</th>
+                      <th>Budget</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredCampaigns.map((c) => (
+                      <CampaignRow key={c.id} campaign={c} onOpen={setSelected} onToggle={handleToggle} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
+        )}
 
-          {toast && <div className="partner-toast">{toast}</div>}
+        {showDetail && (
+          <CampaignDetail
+            campaign={selected}
+            onBack={() => setSelected(null)}
+            onEdit={openEdit}
+            onDelete={handleDelete}
+            onToast={setToast}
+            refresh={loadCampaigns}
+          />
+        )}
 
-          {selected ? (
-            <div className="partner-detail">
-              <div className="partner-detail-top">
-                <button className="partner-back" onClick={() => setSelected(null)}>← All campaigns</button>
-                <div className="partner-detail-actions">
-                  <button className="partner-secondary-btn" onClick={() => openEdit(selected)}><Pencil size={13} /> Edit</button>
-                  <button
-                    className="partner-danger-btn"
-                    onClick={async () => {
-                      if (!window.confirm(`Delete "${selected.name}"? This can't be undone.`)) return;
-                      await deleteCampaign(selected.id);
-                      setSelected(null);
-                      loadCampaigns();
-                      setToast("Campaign deleted");
-                    }}
-                  ><Trash2 size={13} /> Delete</button>
-                </div>
-              </div>
+        {showEditor && (
+          <CampaignEditor
+            editing={editing}
+            draft={draft}
+            setDraft={setDraft}
+            saving={saving}
+            saveError={saveError}
+            onSave={save}
+            onClose={() => setTab("campaigns")}
+            togglePlacement={togglePlacement}
+            toggleProduct={toggleProduct}
+          />
+        )}
 
-              <div className="partner-detail-hero">
-                {selected.image_url && <img src={selected.image_url} alt="" />}
-                <div>
-                  <span className={`partner-status partner-status-${selected.status}`}>{STATUS_LABEL[selected.status]}</span>
-                  <h2>{selected.name}</h2>
-                  <p>{selected.headline}</p>
-                  {selected.body_text && <small>{selected.body_text}</small>}
-                  <a className="partner-link" href={selected.cta_url} target="_blank" rel="noreferrer">{selected.cta_text} <ExternalLink size={12} /></a>
-                </div>
-              </div>
-
-              <div className="partner-detail-grid">
-                <div className="partner-kpi"><span>Impressions</span><strong>{selected.impressions?.toLocaleString() || 0}</strong></div>
-                <div className="partner-kpi"><span>Clicks</span><strong>{selected.clicks?.toLocaleString() || 0}</strong></div>
-                <div className="partner-kpi"><span>CTR</span><strong>{Number(selected.ctr_pct || 0).toFixed(2)}%</strong></div>
-                <div className="partner-kpi"><span>Budget used</span><strong>{Number(selected.budget_used_pct || 0).toFixed(1)}%</strong></div>
-              </div>
-
-              <div className="partner-trend">
-                <h3>Impressions · last {Math.max(chartValues.length, 1)} day{chartValues.length === 1 ? "" : "s"}</h3>
-                <MiniChart points={last7} />
-              </div>
-
-              <div className="partner-targeting">
-                <h3>Targeting</h3>
-                <div className="partner-target-row">
-                  <span><Target size={13} /> Placements</span>
-                  <div>{selected.placements?.map((key) => <i key={key}>{PLACEMENT_LABELS[key] || key}</i>)}</div>
-                </div>
-                {selected.product_categories?.length > 0 && (
-                  <div className="partner-target-row"><span><Sparkles size={13} /> Products</span><div>{selected.product_categories.map((c, index) => <i key={index}>{c}</i>)}</div></div>
-                )}
-                {(selected.target_family_min || selected.target_family_max) && (
-                  <div className="partner-target-row"><span><Users size={13} /> Family size</span><div><i>{selected.target_family_min || "Any"}–{selected.target_family_max || "any"} people</i></div></div>
-                )}
-                {selected.target_countries?.length > 0 && (
-                  <div className="partner-target-row"><span><Globe2 size={13} /> Countries</span><div>{selected.target_countries.map((c, index) => <i key={index}>{c}</i>)}</div></div>
-                )}
-                {selected.target_cities?.length > 0 && (
-                  <div className="partner-target-row"><span><MapPin size={13} /> Cities</span><div>{selected.target_cities.map((c, index) => <i key={index}>{c}</i>)}</div></div>
-                )}
-              </div>
-            </div>
-          ) : section === "editor" ? (
-            <div className="partner-editor">
-              <div className="partner-editor-top">
-                <h2>{editing ? "Edit campaign" : "Create campaign"}</h2>
-                <button className="partner-back" onClick={() => setSection("overview")}><X size={15} /> Close</button>
-              </div>
-
-              <label className="partner-field">
-                <span>Campaign name</span>
-                <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Spring produce push" />
-              </label>
-
-              <div className="partner-field-row">
-                <label className="partner-field">
-                  <span>Headline</span>
-                  <input value={draft.headline} onChange={(e) => setDraft({ ...draft, headline: e.target.value })} placeholder="Fresh ideas start in the produce aisle" maxLength={200} />
-                </label>
-                <label className="partner-field">
-                  <span>Body text (optional)</span>
-                  <input value={draft.body_text} onChange={(e) => setDraft({ ...draft, body_text: e.target.value })} placeholder="A warm line to families at 6pm." />
-                </label>
-              </div>
-
-              <div className="partner-field-row">
-                <label className="partner-field">
-                  <span>CTA text</span>
-                  <input value={draft.cta_text} onChange={(e) => setDraft({ ...draft, cta_text: e.target.value })} />
-                </label>
-                <label className="partner-field">
-                  <span>CTA URL</span>
-                  <input value={draft.cta_url} onChange={(e) => setDraft({ ...draft, cta_url: e.target.value })} placeholder="https://brand.com/offer" type="url" />
-                </label>
-              </div>
-
-              <div className="partner-upload-area">
-                <span>Creative image</span>
-                {draft.image_url ? (
-                  <div className="partner-upload-preview">
-                    <img src={draft.image_file_preview || draft.image_url} alt="" />
-                    <button type="button" onClick={() => setDraft({ ...draft, image_url: "", imageFile: null })}><X size={14} /> Remove</button>
-                  </div>
-                ) : (
-                  <label className="partner-upload-box">
-                    <Upload size={18} />
-                    <span>Upload image (JPEG / PNG / WebP, up to 5MB)</span>
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        setDraft({ ...draft, imageFile: file, image_file_preview: URL.createObjectURL(file) });
-                      }}
-                    />
-                  </label>
-                )}
-              </div>
-
-              <div className="partner-target-block">
-                <h3><Target size={15} /> Placements</h3>
-                <p>Where your ad appears for free-plan families.</p>
-                <div className="partner-chip-list">
-                  {Object.entries(PLACEMENT_LABELS).map(([key, label]) => {
-                    const Icon = PLACEMENT_ICONS[key];
-                    const active = draft.placements.includes(key);
-                    return (
-                      <button type="button" key={key} className={`partner-chip ${active ? "selected" : ""}`} onClick={() => togglePlacement(key)}>
-                        <Icon size={14} /> {label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="partner-target-block">
-                <h3><Sparkles size={15} /> Product categories</h3>
-                <p>Optional — limiting categories shows your ad to households most likely to care.</p>
-                <div className="partner-chip-list">
-                  {PRODUCT_CATEGORIES.map((category) => {
-                    const active = draft.product_categories.includes(category);
-                    return (
-                      <button type="button" key={category} className={`partner-chip ${active ? "selected" : ""}`} onClick={() => toggleProduct(category)}>
-                        {category}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="partner-target-block">
-                <h3><Users size={15} /> Family size (optional)</h3>
-                <div className="partner-field-row partner-field-narrow">
-                  <label className="partner-field">
-                    <span>Min people</span>
-                    <input type="number" min="1" max="30" value={draft.target_family_min} onChange={(e) => setDraft({ ...draft, target_family_min: e.target.value })} placeholder="Any" />
-                  </label>
-                  <label className="partner-field">
-                    <span>Max people</span>
-                    <input type="number" min="1" max="30" value={draft.target_family_max} onChange={(e) => setDraft({ ...draft, target_family_max: e.target.value })} placeholder="Any" />
-                  </label>
-                </div>
-              </div>
-
-              <div className="partner-target-block">
-                <h3><Globe2 size={15} /> Location (optional)</h3>
-                <div className="partner-field-row">
-                  <label className="partner-field">
-                    <span>Countries</span>
-                    <input value={draft.target_countries.join(", ")} onChange={(e) => setDraft({ ...draft, target_countries: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} placeholder="Canada, USA" />
-                  </label>
-                  <label className="partner-field">
-                    <span>Regions / provinces</span>
-                    <input value={draft.target_regions.join(", ")} onChange={(e) => setDraft({ ...draft, target_regions: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} placeholder="Ontario, British Columbia" />
-                  </label>
-                </div>
-                <div className="partner-field-row">
-                  <label className="partner-field">
-                    <span>Cities</span>
-                    <input value={draft.target_cities.join(", ")} onChange={(e) => setDraft({ ...draft, target_cities: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} placeholder="Toronto, Vancouver" />
-                  </label>
-                  <label className="partner-field">
-                    <span>Postal codes</span>
-                    <input value={draft.target_postal_codes.join(", ")} onChange={(e) => setDraft({ ...draft, target_postal_codes: e.target.value.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean) })} placeholder="M5V, V6B" />
-                  </label>
-                </div>
-              </div>
-
-              <div className="partner-target-block">
-                <h3><CalendarDays size={15} /> Schedule & budget</h3>
-                <div className="partner-field-row">
-                  <label className="partner-field">
-                    <span>Start date</span>
-                    <input type="date" value={draft.start_date} onChange={(e) => setDraft({ ...draft, start_date: e.target.value })} />
-                  </label>
-                  <label className="partner-field">
-                    <span>End date</span>
-                    <input type="date" value={draft.end_date} onChange={(e) => setDraft({ ...draft, end_date: e.target.value })} />
-                  </label>
-                  <label className="partner-field">
-                    <span>Budget (CAD)</span>
-                    <input type="number" min="0" step="100" value={draft.budget_cents} onChange={(e) => setDraft({ ...draft, budget_cents: Math.round(Number(e.target.value) * 100) })} placeholder="500" />
-                  </label>
-                </div>
-              </div>
-
-              {saveError && <p className="partner-error" role="alert">{saveError}</p>}
-              <div className="partner-editor-actions">
-                <button className="partner-secondary-btn" onClick={() => setSection("overview")}>Cancel</button>
-                <button className="partner-primary-btn" onClick={save} disabled={saving}>{saving ? "Saving…" : editing ? "Save changes" : "Create campaign"}</button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="partner-campaigns-list">
-                {loadingCampaigns ? (
-                  <>
-                    <CampaignSkeleton />
-                    <CampaignSkeleton />
-                  </>
-                ) : campaigns.length === 0 ? (
-                  <div className="partner-empty">
-                    <Megaphone size={26} />
-                    <strong>No campaigns yet</strong>
-                    <p>Create your first ad to start reaching families.</p>
-                    <button className="partner-primary-btn" onClick={openCreate}><Plus size={15} /> New campaign</button>
-                  </div>
-                ) : (
-                  campaigns.map((campaign) => (
-                    <CampaignCard key={campaign.id} campaign={campaign} onOpen={setSelected} />
-                  ))
-                )}
-              </div>
-            </>
-          )}
-        </div>
+        {showBilling && <BillingTab billing={billing} invoices={invoices} payments={payments} />}
       </div>
     </div>
-  );
-}
-
-function ShieldCheckStop() {
-  return (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path>
-      <path d="m14.5 9.5-5 5"></path>
-      <path d="m9.5 9.5 5 5"></path>
-    </svg>
   );
 }
