@@ -20,24 +20,25 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-display: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
 
-  /* ── Surfaces ─────────────────────────────────────────────────── */
-  --color-canvas: #F9FAFB;
+  /* ── Surfaces (premium neutral palette) ───────────────────────── */
+  --color-canvas: #FFFFFF;
   --color-surface: #FFFFFF;
-  --color-surface-sunken: #F2F4F7;
-  --color-border: #EAECF0;
-  --color-border-strong: #D0D5DD;
+  --color-surface-sunken: #F7F7F9;
+  --color-surface-strong: #F0F1F3;
+  --color-border: #E4E5E7;
+  --color-border-strong: #D1D5DB;
 
   /* ── Ink ──────────────────────────────────────────────────────── */
-  --color-ink: #101828;
-  --color-ink-soft: #475467;
-  --color-ink-faint: #667085;
+  --color-ink: #111827;
+  --color-ink-soft: #4B5563;
+  --color-ink-faint: #7B8794;
 
   /* ── Accent + sunrise gradient ────────────────────────────────── */
-  --color-accent: #7F56D9;
-  --color-accent-soft: #F4EBFF;
-  --color-accent-strong: #6941C6;
+  --color-accent: #5B4BF0;
+  --color-accent-soft: #EEEDFF;
+  --color-accent-strong: #4338C8;
   --color-on-accent: #FFFFFF;
-  --color-on-vibrant: #0C111D;
+  --color-on-vibrant: #0F1020;
   --color-on-status: #FFFFFF;
   --sunrise-gradient: linear-gradient(120deg, #B8D8FF 0%, #8F82FF 32%, #D75EAA 60%, #FF5239 80%, #F2A08D 100%);
 
@@ -93,15 +94,15 @@
   --text-section: 18px;
   --text-page: 28px;
 
-  /* ── Radius scale (deduplicated from 46+30+25+15+11+11 sites) ── */
+  /* ── Radius scale (premium rounded aesthetic) ────────────────── */
   --radius-pill: 999px;          /* pill buttons, status chips              */
-  --radius-card: 12px;           /* elevated containers                    */
-  --radius-section: 12px;        /* grouped content                        */
-  --radius-control: 8px;         /* Preline default control                */
-  --radius-md: 8px;              /* compact surface                        */
-  --radius-pill-sm: 8px;         /* compact chip                           */
-  --radius-sm: 8px;              /* icon tile                              */
-  --radius-xs: 6px;              /* micro control                          */
+  --radius-card: 16px;           /* elevated containers — more rounded     */
+  --radius-section: 16px;        /* grouped content                          */
+  --radius-control: 10px;        /* form controls                            */
+  --radius-md: 10px;             /* compact surface                          */
+  --radius-pill-sm: 10px;        /* compact chip                             */
+  --radius-sm: 10px;             /* icon tile                                */
+  --radius-xs: 8px;              /* micro control                            */
 
   /* ── Motion durations ─────────────────────────────────────────── */
   --motion-fast: 160ms;          /* hover / focus / colour transitions      */
@@ -133,9 +134,10 @@
  *   ───────────────────────────────────────────────────────────────────────── */
 
 .theme-dark {
-  --color-canvas:           #0C111D;
+  --color-canvas:           #0F1020;
   --color-surface:          #161B26;
   --color-surface-sunken:   #1F242F;
+  --color-surface-strong:   #272E3A;
   --color-border:           #333741;
   --color-border-strong:    #454A55;
 
@@ -146,9 +148,9 @@
   --color-accent:           #9E77ED;
   --color-accent-soft:      #2C1C5F;
   --color-accent-strong:    #B692F6;
-  --color-on-accent:        #101828;
-  --color-on-vibrant:       #0C111D;
-  --color-on-status:        #101828;
+  --color-on-accent:        #0F1020;
+  --color-on-vibrant:       #0F1020;
+  --color-on-status:        #0F1020;
 
   --color-warn:             #FF7547;           /* warnings / failures — 4.7:1 vs canvas        */
   --color-warn-soft:        #3D1F0F;           /* warn-tinted surface                          */
