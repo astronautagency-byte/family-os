@@ -880,7 +880,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
               ))}
               {pendingInvites.map((invite) => (
                 <li key={invite.id} className="family-roster-pending">
-                  <div className="family-invite-avatar">{(invite.invited_name || invite.email).slice(0, 1).toUpperCase()}</div>
+                  <div className="family-invite-avatar">{(invite.invited_name || invite.email || "?").slice(0, 1).toUpperCase()}</div>
                   <div className="family-invite-details min-w-0 flex-1">
                     <p>{invite.invited_name || invite.email}</p>
                     <div className="family-invite-meta">

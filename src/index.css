@@ -1457,10 +1457,10 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .fam-ai-chat{
   flex:1 1 0;
   overflow-y:auto;
-  padding:16px 20px 12px;
+  padding:20px 24px 16px;
   display:flex;
   flex-direction:column;
-  gap:8px;
+  gap:16px;
   scroll-behavior:smooth;
 }
 
@@ -1471,7 +1471,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .fam-ai-msg-row{
   display:flex;
   align-items:flex-start;
-  gap:10px;
+  gap:14px;
   max-width:580px;
   margin:0 auto;
   width:100%;
@@ -1483,20 +1483,20 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 /* Message avatar */
 .fam-ai-msg-avatar{
   flex:0 0 auto;
-  width:30px;
-  height:30px;
+  width:34px;
+  height:34px;
   display:grid;
   place-items:center;
   border-radius:50%;
   background:var(--color-accent-soft);
   color:var(--color-accent-strong);
-  font-size:12px;
+  font-size:13px;
   font-weight:750;
 }
 .fam-ai-msg-avatar.user{
   background:var(--color-ink);
   color:#fff;
-  font-size:11px;
+  font-size:12px;
 }
 
 /* Message bubble */
@@ -1505,16 +1505,16 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   min-width:0;
 }
 .fam-ai-msg-body p{
-  padding:10px 14px;
-  border-radius:4px 16px 16px 16px;
-  font-size:14px;
-  line-height:1.55;
+  padding:12px 16px;
+  border-radius:18px 20px 20px 20px;
+  font-size:14.5px;
+  line-height:1.6;
   color:var(--color-ink);
   white-space:pre-wrap;
   word-break:break-word;
 }
 .fam-ai-msg.user .fam-ai-msg-body p{
-  border-radius:16px 4px 16px 16px;
+  border-radius:20px 18px 20px 20px;
   background:color-mix(in srgb,var(--color-accent) 14%,transparent);
   color:var(--color-ink);
 }
@@ -1526,7 +1526,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .fam-ai-thinking{
   display:flex;
   align-items:center;
-  gap:5px;
+  gap:6px;
   padding:14px 18px;
 }
 .fam-ai-thinking i{

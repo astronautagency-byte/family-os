@@ -55,14 +55,29 @@ const PageFallback = () => (
     </div>
   </div>
 );
-const PageErrorFallback = ({ retry, reloadLatest, goToday }) => (
-  <section className="app-page-error" role="alert">
-    <ShieldCheck size={24} />
-    <h1>This page needs another try</h1>
-    <p>The rest of FamOS is still available and your household data is safe.</p>
-    <div><button onClick={retry}>Try this page again</button><button onClick={reloadLatest}>Load latest version</button><button onClick={goToday}>Return to Today</button></div>
-  </section>
-);
+const PageErrorFallback = ({ retry, reloadLatest, goToday }) => {
+  const crash = (() => {
+    try {
+      const raw = localStorage.getItem("famos:recent-crash:v1");
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  })();
+  return (
+    <section className="app-page-error" role="alert">
+      <ShieldCheck size={24} />
+      <h1>This page needs another try</h1>
+      <p>The rest of FamOS is still available and your household data is safe.</p>
+      {crash?.id && <p className="app-page-error-id">Diagnostic: {crash.id}</p>}
+      {crash?.message && (
+        <details className="app-page-error-details">
+          <summary>Error details</summary>
+          <pre>{crash.message}</pre>
+        </details>
+      )}
+      <div><button onClick={retry}>Try this page again</button><button onClick={reloadLatest}>Load latest version</button><button onClick={goToday}>Return to Today</button></div>
+    </section>
+  );
+};
 const VALID_TABS = ["today","calendar","meals","tasks","groceries","kitchen","chat","famai","settings"];
 const PUBLIC_ROUTES = ["privacy", "terms", "pricing", "signin", "signup"];
 const ROUTE_ALIASES = { "sign-in": "signin", "lsign-in": "signin", "sign-up": "signup" };
