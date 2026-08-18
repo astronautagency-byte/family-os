@@ -167,6 +167,7 @@ export default function App() {
   }, [darkMode]);
   useEffect(() => {
     localStorage.setItem("familyos:color-scheme", colorScheme);
+    document.documentElement.dataset.colorScheme = colorScheme;
   }, [colorScheme]);
   useEffect(() => {
     localStorage.setItem("familyos:tablet-mode", String(tabletMode));
