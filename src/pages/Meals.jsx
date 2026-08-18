@@ -730,13 +730,21 @@ export default function Meals() {
                   const Icon = SLOT_META[slot].icon;
                   const cooks = (meal?.cookIds ?? []).map((id) => memberById[id]).filter(Boolean);
                   const adder = meal?.createdBy ? memberById[meal.createdBy] : null;
+                  const [inlineInput, setInlineInput] = useState("");
+                  const handleInlineAdd = (e) => {
+                    if (e.key === "Enter" && inlineInput.trim()) {
+                      const title = inlineInput.trim();
+                      setInlineInput("");
+                      addMeal({ date, slot, title, notes: "", cookIds: [] });
+                    }
+                  };
                   return (
                     <div className={`meal-slot-row ${slot === "dinner" ? "is-dinner" : ""}`} key={slot}>
-                      <button
-                        onClick={() => meal?.title ? openCookRecipe(meal) : openEditor(date, slot)}
-                        className="meal-slot-button flex items-center gap-3 text-left transition-colors"
-                      >
-                        {meal?.title && (
+                      {meal?.title ? (
+                        <button
+                          onClick={() => openCookRecipe(meal)}
+                          className="meal-slot-button flex items-center gap-3 text-left transition-colors"
+                        >
                           <span
                             className="meal-slot-clear"
                             onClick={(e) => { e.stopPropagation(); removeMeal(meal.id); }}
@@ -748,22 +756,35 @@ export default function Meals() {
                           >
                             <X size={14} />
                           </span>
-                        )}
-                        <Icon size={16} color="var(--color-ink-faint)" className="shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="meal-slot-label text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-ink-faint)]">
-                            {SLOT_META[slot].label}
-                          </p>
-                          <p className={`meal-slot-value text-[14px] truncate ${meal?.title ? "has-meal text-[var(--color-ink)] font-medium" : "is-empty text-[var(--color-ink-faint)]"}`}>
-                            {meal?.title || "Add a meal"}
-                          </p>
-                          {meal?.title && <div className="meal-slot-meta">
-                            {adder && <span className="meal-slot-adder"><Avatar member={adder} size="xs" aria-label={`Added by ${adder.name}`} /><small>Added by {adder.name}</small></span>}
-                            <span className="meal-cook-hint"><ChefHat size={12} /> Cook</span>
-                          </div>}
+                          <Icon size={16} color="var(--color-ink-faint)" className="shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="meal-slot-label text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-ink-faint)]">
+                              {SLOT_META[slot].label}
+                            </p>
+                            <p className="meal-slot-value text-[14px] truncate has-meal text-[var(--color-ink)] font-medium">
+                              {meal.title}
+                            </p>
+                            <div className="meal-slot-meta">
+                              {adder && <span className="meal-slot-adder"><Avatar member={adder} size="xs" aria-label={`Added by ${adder.name}`} /><small>Added by {adder.name}</small></span>}
+                              <span className="meal-cook-hint"><ChefHat size={12} /> Cook</span>
+                            </div>
+                          </div>
+                          {cooks.length > 0 && <AvatarStack members={cooks} size="sm" />}
+                        </button>
+                      ) : (
+                        <div className="meal-slot-button flex items-center gap-3 text-left">
+                          <Icon size={16} color="var(--color-accent)" className="shrink-0" />
+                          <input
+                            type="text"
+                            value={inlineInput}
+                            onChange={(e) => setInlineInput(e.target.value)}
+                            onKeyDown={handleInlineAdd}
+                            placeholder="What's cooking good looking?"
+                            className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[14px] text-[var(--color-ink)] placeholder:text-[var(--color-ink-faint)]"
+                            autoFocus
+                          />
                         </div>
-                        {cooks.length > 0 && <AvatarStack members={cooks} size="sm" />}
-                      </button>
+                      )}
                       <div className="meal-slot-actions">
                         {(() => {
                           const badge = meal?.id && mealMissingCount[meal.id];
