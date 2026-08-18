@@ -104,6 +104,59 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 }
 .notion-shadow { box-shadow: 0 2px 4px rgba(27,25,53,.06); }
 
+/* Playful colorful backgrounds — for cards, sections, accents */
+.bg-accent-soft { background: var(--color-accent-soft) !important; }
+.bg-accent-strong { background: var(--color-accent) !important; color: var(--color-on-accent) !important; }
+.bg-calendar-soft { background: var(--color-calendar-soft) !important; }
+.bg-calendar-strong { background: var(--color-calendar) !important; color: white !important; }
+.bg-meals-soft { background: var(--color-meals-soft) !important; }
+.bg-meals-strong { background: var(--color-meals) !important; color: white !important; }
+.bg-tasks-soft { background: var(--color-tasks-soft) !important; }
+.bg-tasks-strong { background: var(--color-tasks) !important; color: white !important; }
+.bg-shopping-soft { background: var(--color-shopping-soft) !important; }
+.bg-shopping-strong { background: var(--color-shopping) !important; color: white !important; }
+.bg-chat-soft { background: var(--color-chat-soft) !important; }
+.bg-chat-strong { background: var(--color-chat) !important; color: white !important; }
+.bg-finance-soft { background: var(--color-finance-soft) !important; }
+.bg-finance-strong { background: var(--color-finance) !important; color: white !important; }
+.bg-family-soft { background: var(--color-family-soft) !important; }
+.bg-family-strong { background: var(--color-family) !important; color: white !important; }
+
+/* Surface variants */
+.bg-surface { background: var(--color-surface) !important; }
+.bg-surface-raised { background: var(--color-surface-raised) !important; }
+.bg-surface-sunken { background: var(--color-surface-sunken) !important; }
+.bg-canvas { background: var(--color-canvas) !important; }
+
+/* Gradient backgrounds */
+.bg-sunrise { background: var(--sunrise-gradient) !important; }
+.bg-accent-gradient { background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-hover) 100%) !important; color: var(--color-on-accent) !important; }
+
+/* Border accents */
+.border-accent { border-color: var(--color-accent) !important; }
+.border-calendar { border-color: var(--color-calendar) !important; }
+.border-meals { border-color: var(--color-meals) !important; }
+.border-tasks { border-color: var(--color-tasks) !important; }
+.border-shopping { border-color: var(--color-shopping) !important; }
+.border-chat { border-color: var(--color-chat) !important; }
+.border-finance { border-color: var(--color-finance) !important; }
+.border-family { border-color: var(--color-family) !important; }
+
+/* Text colors */
+.text-accent { color: var(--color-accent) !important; }
+.text-accent-strong { color: var(--color-accent-strong) !important; }
+.text-calendar { color: var(--color-calendar) !important; }
+.text-meals { color: var(--color-meals) !important; }
+.text-tasks { color: var(--color-tasks) !important; }
+.text-shopping { color: var(--color-shopping) !important; }
+.text-chat { color: var(--color-chat) !important; }
+.text-finance { color: var(--color-finance) !important; }
+.text-family { color: var(--color-family) !important; }
+.text-ink { color: var(--color-ink) !important; }
+.text-ink-soft { color: var(--color-ink-soft) !important; }
+.text-ink-muted { color: var(--color-ink-muted) !important; }
+.text-on-accent { color: var(--color-on-accent) !important; }
+
 .app-shell { width:100%; min-width:0; min-height:100dvh; }
 .app-content { width:100%; min-width:0; max-width:512px; min-height:100dvh; margin:0 auto; background:linear-gradient(180deg,var(--color-canvas) 0,var(--color-canvas) 100%); touch-action:pan-y; overscroll-behavior-y:auto; -webkit-overflow-scrolling:touch; }
 .app-content :where(.overflow-y-auto,[class*="overflow-y-auto"]){overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}

@@ -565,7 +565,7 @@ export default function Today({ goTo }) {
             </div>
           )}
         </section>
-        <Card className={`weather-now-card p-4 ${editingDashboard ? "is-customizing" : ""}`} style={dashboardPosition("weather")} {...dashboardDragProps("weather")}>
+        <Card className={`weather-now-card p-4 ${editingDashboard ? "is-customizing" : ""} bg-calendar-soft border-calendar`} style={dashboardPosition("weather")} {...dashboardDragProps("weather")}>
           {moveHandle("weather")}
           {weather?.alerts?.length > 0 && (
             <div className="weather-alerts">
@@ -601,7 +601,7 @@ export default function Today({ goTo }) {
         </Card>
         <section className={`today-bento-kitchen ${editingDashboard ? "is-customizing" : ""}`} aria-labelledby="kitchen-watch-title" style={dashboardPosition("kitchen")} {...dashboardDragProps("kitchen")}>
           {moveHandle("kitchen")}
-          <Card className="today-kitchen-watch p-4">
+          <Card className="today-kitchen-watch p-4 bg-shopping-soft border-shopping">
             <div className="flex items-start justify-between gap-3 mb-3">
               <div className="flex items-start gap-3">
                 <span className="w-10 h-10 rounded-xl bg-[var(--color-shopping-soft)] text-[var(--color-shopping-strong)] flex items-center justify-center shrink-0"><Refrigerator size={19} /></span>
@@ -625,7 +625,7 @@ export default function Today({ goTo }) {
         </section>
         <section className={`today-bento-schedule ${editingDashboard ? "is-customizing" : ""}`} style={dashboardPosition("schedule")} {...dashboardDragProps("schedule")}>
           {moveHandle("schedule")}
-          <Card className="today-flow-card p-4">
+          <Card className="today-flow-card p-4 bg-tasks-soft border-tasks">
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Today’s schedule</p>
@@ -675,7 +675,7 @@ export default function Today({ goTo }) {
         </section>
 
         <section className="m3-grid lg:grid-cols-2 today-bento-meal-grid">
-          <Card className={`today-meals-card p-4 ${editingDashboard ? "is-customizing" : ""}`} style={dashboardPosition("meals")} {...dashboardDragProps("meals")}>
+          <Card className={`today-meals-card p-4 ${editingDashboard ? "is-customizing" : ""} bg-meals-soft border-meals`} style={dashboardPosition("meals")} {...dashboardDragProps("meals")}>
             {moveHandle("meals")}
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
@@ -732,7 +732,7 @@ export default function Today({ goTo }) {
             </div>
           </Card>
 
-          <Card className={`today-groceries-card p-4 ${editingDashboard ? "is-customizing" : ""}`} style={dashboardPosition("groceries")} {...dashboardDragProps("groceries")}>
+          <Card className={`today-groceries-card p-4 ${editingDashboard ? "is-customizing" : ""} bg-shopping-soft border-shopping`} style={dashboardPosition("groceries")} {...dashboardDragProps("groceries")}>
             {moveHandle("groceries")}
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
@@ -767,7 +767,7 @@ export default function Today({ goTo }) {
 
         <section className={`today-bento-tasks ${editingDashboard ? "is-customizing" : ""}`} style={dashboardPosition("tasks")} {...dashboardDragProps("tasks")}>
           {moveHandle("tasks")}
-          <Card className="today-tasks-card p-4">
+          <Card className="today-tasks-card p-4 bg-family-soft border-family">
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Tasks</p>
@@ -808,7 +808,7 @@ export default function Today({ goTo }) {
         </section>
         <section className={`today-bento-messages ${editingDashboard ? "is-customizing" : ""}`} aria-labelledby="latest-family-messages" style={dashboardPosition("messages")} {...dashboardDragProps("messages")}>
           {moveHandle("messages")}
-          <Card className="today-messages-card p-4">
+          <Card className="today-messages-card p-4 bg-chat-soft border-chat">
             <div className="flex items-center justify-between gap-3 mb-3">
               <div><p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Family chat</p><h2 id="latest-family-messages" className="ui-section-title">Latest messages</h2></div>
               <button onClick={() => goTo("chat")} className="text-[13px] font-semibold text-[var(--color-accent)] flex items-center gap-0.5">Open chat <ChevronRight size={14}/></button>
