@@ -343,6 +343,12 @@ export default function Partner() {
     }), { impressions: 0, clicks: 0, spent: 0 });
   }, [campaigns]);
 
+  const chartValues = useMemo(() => metrics.map((m) => m.impressions || 0), [metrics]);
+  const last7 = useMemo(() => {
+    if (!metrics.length) return [];
+    return metrics.slice(-7).map((m) => m.impressions || 0);
+  }, [metrics]);
+
   if (checking) {
     return <div className="partner-shell"><div className="partner-loading">Loading dashboard…</div></div>;
   }
@@ -368,12 +374,6 @@ export default function Partner() {
     ["overview", "Campaigns", "overview" === section],
     ["editor", "New campaign", false],
   ];
-
-  const chartValues = useMemo(() => metrics.map((m) => m.impressions || 0), [metrics]);
-  const last7 = useMemo(() => {
-    if (!metrics.length) return [];
-    return metrics.slice(-7).map((m) => m.impressions || 0);
-  }, [metrics]);
 
   return (
     <div className="partner-shell">
