@@ -163,7 +163,8 @@ export default function Meals() {
   const { items: inventoryItems, ingredientNames: inventoryIngredientNames, removeItem: removeInventoryItem } = useKitchenInventory(household?.id, user?.id);
   const [horizon, setHorizon] = useState(7);
   const [clearing, setClearing] = useState(false);
-  const [editing, setEditing] = useState(null); // { date, slot }
+  const [editing, setEditing] = useState(null); // { date, slot, mealId }
+  const [previewMeal, setPreviewMeal] = useState(null);
   const [draft, setDraft] = useState({ title: "", notes: "", cookIds: [] });
   const [showSavedRecipes, setShowSavedRecipes] = useState(false);
   const [cookMeal, setCookMeal] = useState(null);
@@ -379,7 +380,7 @@ export default function Meals() {
     if (!meal?.title) return;
     setDraft({ title: meal.title ?? "", notes: meal.notes ?? "", cookIds: meal.cookIds ?? [] });
     setShowSavedRecipes(false);
-    setEditing({ date: meal.date, slot: meal.slot, mealId: meal.id || null });
+    setPreviewMeal({ date: meal.date, slot: meal.slot, mealId: meal.id || null });
   };
 
   useEffect(() => {
@@ -831,12 +832,45 @@ export default function Meals() {
                     </div>
                   );
                 })}
-              </div>
-            </Card>
+</div>
+    </Card>
           );
         })}
       </div>
 
+      {/* Meal Preview Modal — read-only preview for manual meals */}
+      <Modal open={!!previewMeal} onClose={() => setPreviewMeal(null)} title={previewMeal ? `${SLOT_META[previewMeal.slot].label} · ${formatDayLabel(previewMeal.date)}` : ""}>
+        <div className="meal-preview">
+          <p className="font-[var(--font-display)] text-[19px] font-semibold mb-4">{draft.title}</p>
+          {draft.notes && <p className="text-[14px] text-[var(--color-ink-soft)] mb-4">{draft.notes}</p>}
+          <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-2">Who's cooking?</p>
+          <div className="flex flex-wrap gap-2 mb-5">
+            {members.map((m) => {
+              const active = draft.cookIds.includes(m.id);
+              return (
+                <button
+                  key={m.id}
+                  className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium border transition-colors"
+                  style={{
+                    borderColor: active ? colorVar(m.color) : "var(--color-border)",
+                    backgroundColor: active ? `color-mix(in srgb, ${colorVar(m.color)} 14%, white)` : "transparent",
+                    color: active ? colorVar(m.color) : "var(--color-ink-soft)",
+                  }}
+                >
+                  {m.name}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => { setPreviewMeal(null); openCookRecipe(previewMeal); }} className="rounded-xl bg-[var(--color-accent)] text-[var(--color-on-accent)] px-4 py-3 flex items-center justify-center gap-1.5 text-[13px] font-medium shrink-0 w-full">
+              <ChefHat size={16} /> Cook
+            </button>
+            <SecondaryButton onClick={() => { setPreviewMeal(null); openEditor(previewMeal.date, previewMeal.slot); }}>Edit</SecondaryButton>
+            <SecondaryButton onClick={() => setPreviewMeal(null)}>Close</SecondaryButton>
+          </div>
+        </div>
+      </Modal>
       <Modal open={!!editing} onClose={() => setEditing(null)} title={editing ? `${SLOT_META[editing.slot].label} · ${formatDayLabel(editing.date)}` : ""}>
         <TextField
           label="What are we cooking?"
