@@ -735,7 +735,7 @@ export default function Meals() {
                     if (e.key === "Enter" && inlineInput.trim()) {
                       const title = inlineInput.trim();
                       setInlineInput("");
-                      addMeal({ date, slot, title, notes: "", cookIds: [] });
+                      setMealForSlot(date, slot, { title, notes: "", cookIds: [] });
                     }
                   };
                   return (
@@ -772,17 +772,22 @@ export default function Meals() {
                           {cooks.length > 0 && <AvatarStack members={cooks} size="sm" />}
                         </button>
                       ) : (
-                        <div className="meal-slot-button flex items-center gap-3 text-left">
-                          <Icon size={16} color="var(--color-accent)" className="shrink-0" />
-                          <input
-                            type="text"
-                            value={inlineInput}
-                            onChange={(e) => setInlineInput(e.target.value)}
-                            onKeyDown={handleInlineAdd}
-                            placeholder="What's cooking good looking?"
-                            className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[14px] text-[var(--color-ink)] placeholder:text-[var(--color-ink-faint)]"
-                            autoFocus
-                          />
+                        <div className="meal-slot-button flex flex-col items-start gap-1.5">
+                          <p className="meal-slot-label text-[12px] font-semibold uppercase tracking-wide text-[var(--color-accent)]">
+                            {SLOT_META[slot].label}
+                          </p>
+                          <div className="flex items-center gap-3 w-full">
+                            <Icon size={16} color="var(--color-accent)" className="shrink-0" />
+                            <input
+                              type="text"
+                              value={inlineInput}
+                              onChange={(e) => setInlineInput(e.target.value)}
+                              onKeyDown={handleInlineAdd}
+                              placeholder="What's cooking good looking?"
+                              className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[14px] text-[var(--color-ink)] placeholder:text-[var(--color-ink-faint)]"
+                              autoFocus
+                            />
+                          </div>
                         </div>
                       )}
                       <div className="meal-slot-actions">
