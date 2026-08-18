@@ -4,6 +4,9 @@ import "./index.css";
 import App from "./App.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
+import { setupSelfUpdate } from "./lib/selfUpdate.js";
+
+setupSelfUpdate();
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
