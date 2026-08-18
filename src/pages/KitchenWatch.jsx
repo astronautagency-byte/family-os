@@ -12,22 +12,74 @@ function shelfLifeColor(daysRemaining) {
   return "var(--color-good)";
 }
 
-function ShelfLifeBar({ item }) {
+function ShelfLifeRing({ item, size = 56, strokeWidth = 6 }) {
   if (!item.expiresOn) return null;
   const days = daysUntilExpiry(item.expiresOn);
   if (days === null) return null;
   const progress = inventoryExpiryProgress(item);
   if (!progress) return null;
   const color = shelfLifeColor(days);
-  const label = days <= 0 ? "Expired" : days === 1 ? "1 day left" : `${days} days left`;
+  const percent = Math.max(0, Math.min(100, progress.percent));
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference * (1 - percent / 100);
+  
+  const label = days <= 0 ? "Expired" : days === 1 ? "1 day" : `${days} days`;
+  
+  // Gradient ID for the progress ring
+  const gradientId = `shelf-life-gradient-${item.id}`;
+  
   return (
-    <div style={{ width: "100%", marginTop: 6 }}>
-      <div style={{ width: "100%", height: 4, borderRadius: 2, background: "var(--color-border, #e5e7eb)", overflow: "hidden" }}>
-        <div style={{ height: "100%", borderRadius: 2, width: `${progress.percent}%`, backgroundColor: color, transition: "width .4s ease, background-color .3s ease" }} />
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, marginTop: 8 }}>
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+        <defs>
+          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={color} />
+            <stop offset="100%" stopColor={color} stopOpacity="0.4" />
+          </linearGradient>
+        </defs>
+        {/* Background track */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="var(--color-surface-sunken)"
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+        />
+        {/* Progress ring */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={`url(#${gradientId})`}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          style={{
+            transition: "stroke-dashoffset 0.6s ease-out, stroke 0.3s ease",
+            filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.1))"
+          }}
+        />
+      </svg>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--color-ink)" }}>
+          {days <= 0 ? "Expired" : days === 1 ? "1 day left" : `${days} days left`}
+        </div>
+        <div style={{ fontSize: 10, color: "var(--color-ink-faint)", marginTop: 2 }}>
+          Expires {days <= 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`}
+        </div>
       </div>
-      <span style={{ color, fontSize: 11, fontWeight: 600 }}>{label}</span>
     </div>
   );
+}
+
+// Keep backward compatibility
+function ShelfLifeBar({ item }) {
+  return <ShelfLifeRing item={item} size={56} strokeWidth={6} />;
 }
 import { categorizeGroceryItem } from "../lib/groceryCategories";
 import { isIngredientOnList } from "../lib/mealIngredientCache";
