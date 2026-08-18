@@ -1,5 +1,19 @@
 import { supabase } from "./supabase";
 
+export async function partnerApply({ companyName, websiteUrl, contactName, industry, companySize, monthlyBudget }) {
+  if (!supabase) throw new Error("Supabase not configured");
+  const { data, error } = await supabase.rpc("partner_apply", {
+    p_company_name: companyName,
+    p_website_url: websiteUrl || "",
+    p_contact_name: contactName || "",
+    p_industry: industry || "",
+    p_company_size: companySize || "",
+    p_monthly_budget: monthlyBudget || "",
+  });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 export async function getMyPartner() {
   if (!supabase) return null;
   const { data, error } = await supabase.rpc("get_my_partner");
@@ -99,6 +113,36 @@ export async function getBillingSummary() {
     return null;
   }
   return data || null;
+}
+
+export async function getAnalyticsDaily() {
+  if (!supabase) return [];
+  const { data, error } = await supabase.rpc("partner_analytics_daily");
+  if (error) {
+    console.warn("[partner] partner_analytics_daily failed:", error.message);
+    return [];
+  }
+  return Array.isArray(data) ? data : [];
+}
+
+export async function getAnalyticsPlacement() {
+  if (!supabase) return [];
+  const { data, error } = await supabase.rpc("partner_analytics_placement");
+  if (error) {
+    console.warn("[partner] partner_analytics_placement failed:", error.message);
+    return [];
+  }
+  return Array.isArray(data) ? data : [];
+}
+
+export async function getAnalyticsTopCampaigns() {
+  if (!supabase) return [];
+  const { data, error } = await supabase.rpc("partner_analytics_top_campaigns");
+  if (error) {
+    console.warn("[partner] partner_analytics_top_campaigns failed:", error.message);
+    return [];
+  }
+  return Array.isArray(data) ? data : [];
 }
 
 export async function uploadCreative(file, userId) {

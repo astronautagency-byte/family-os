@@ -5285,3 +5285,27 @@ body .app-content .page-title{
   .pcampaigns-stats{gap:8px}
   .pstat{min-width:0;flex:1;padding:10px 12px}.pstat>strong{font-size:15px}
 }
+
+/* Analytics tab */
+.panalytics{display:flex;flex-direction:column;gap:16px}
+.panalytics-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.panalytics-header h2{margin:0;font-size:17px;font-weight:800}
+.panalytics-header p{margin:4px 0 0;color:var(--color-ink-soft);font-size:12.5px}
+.panalytics-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.panalytic-stat{padding:14px 16px;border:1px solid var(--color-border);border-radius:11px;background:var(--color-surface)}
+.panalytic-stat>span{display:block;color:var(--color-ink-faint);font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.panalytic-stat>strong{display:block;margin-top:4px;font-size:18px;font-weight:800;letter-spacing:-.01em}
+.panalytics-charts{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.panalytic-chart{padding:16px;border:1px solid var(--color-border);border-radius:12px;background:var(--color-surface)}
+.panalytic-chart h3{margin:0 0 12px;font-size:12px;font-weight:700;color:var(--color-ink-faint);text-transform:uppercase;letter-spacing:.04em}
+.ppacement-table,.ptop-campaigns-table{width:100%;border-collapse:collapse;font-size:11.5px}
+.ppacement-table th,.ptop-campaigns-table th{padding:8px 10px;text-align:left;font-size:9.5px;font-weight:700;color:var(--color-ink-faint);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--color-border);background:var(--color-surface-sunken)}
+.ppacement-table td,.ptop-campaigns-table td{padding:8px 10px;border-bottom:1px solid color-mix(in srgb,var(--color-border) 50%,transparent)}
+.ppacement-table tr:last-child td,.ptop-campaigns-table tr:last-child td{border-bottom:0}
+.panalytics-empty,.panalytics-loading{display:flex;flex-direction:column;align-items:center;gap:8px;padding:40px;text-align:center;color:var(--color-ink-soft)}
+.panalytics-empty strong{color:var(--color-ink);font-size:15px}
+.pempty{color:var(--color-ink-soft);font-size:12.5px;padding:20px;text-align:center}
+@media(max-width:768px){
+  .panalytics-summary{grid-template-columns:1fr 1fr}
+  .panalytics-charts{grid-template-columns:1fr}
+}

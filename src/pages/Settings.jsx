@@ -474,7 +474,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
     setHouseholdAddress(householdProfileExtra?.address || "");
     setHouseholdLatitude(householdProfileExtra?.latitude ?? null);
     setHouseholdLongitude(householdProfileExtra?.longitude ?? null);
-    setHouseholdDietary(householdProfileExtra?.dietaryRestrictions || []);
+    setHouseholdDietary(Array.isArray(householdProfileExtra?.dietaryRestrictions) ? householdProfileExtra.dietaryRestrictions : []);
     setHouseholdAvoid(householdProfileExtra?.avoidIngredients || "");
     setHouseholdStatus("");
     setEditingHousehold(true);
@@ -837,7 +837,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
                 <span><Utensils size={14} /> Household dietary preferences</span>
               </div>
               <div className="settings-dietary-pills">
-                {(householdProfileExtra?.dietaryRestrictions || []).length
+                {Array.isArray(householdProfileExtra?.dietaryRestrictions) && householdProfileExtra.dietaryRestrictions.length
                   ? householdProfileExtra.dietaryRestrictions.map((restriction) => <span key={restriction}>{restriction}</span>)
                   : <em>No dietary restrictions added</em>}
               </div>

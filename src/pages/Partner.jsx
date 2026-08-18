@@ -3,7 +3,7 @@ import {
   BarChart3, CalendarDays, CheckCircle2, ChevronDown, ChevronRight, Copy, CreditCard,
   ExternalLink, Filter, Globe2, Landmark, LayoutDashboard, Link2, MapPin, Megaphone,
   MoreHorizontal, Pencil, Pause, Play, Plus, RefreshCw, Search, ShieldCheck, Sparkles,
-  Target, Trash2, TrendingUp, Upload, Users, X,
+  Target, Trash2, TrendingUp, Upload, Users, X, PieChart,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import {
@@ -19,6 +19,9 @@ import {
   getMyInvoices,
   getMyPayments,
   getBillingSummary,
+  getAnalyticsDaily,
+  getAnalyticsPlacement,
+  getAnalyticsTopCampaigns,
 } from "../lib/partnerApi";
 import { AD_PLACEMENTS } from "../lib/adNetwork";
 
@@ -58,27 +61,130 @@ const EMPTY_FORM = {
   budget_cents: "50000", status: "draft", cpm_cents: "700",
 };
 
-/* ── Login ─────────────────────────────────────────────────────────────── */
+/* ── Login / Signup ────────────────────────────────────────────────────── */
+
+const INDUSTRIES = [
+  "Groceries & food", "Baby & kids", "Household & cleaning", "Health & wellness",
+  "Personal care", "Pet supplies", "Toys & games", "Clothing & apparel",
+  "Electronics", "Education", "Restaurants & dining", "Services & subscriptions", "Other",
+];
+const BUDGET_RANGES = ["Under $500/mo", "$500–$2k/mo", "$2k–$5k/mo", "$5k–$10k/mo", "$10k+/mo", "Not sure yet"];
+const COMPANY_SIZES = ["Just me", "2–10", "11–50", "51–200", "200+"];
 
 function PartnerLogin({ onSignedIn }) {
+  const [step, setStep] = useState("auth"); // auth | profile | pending | denied
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [mode, setMode] = useState("signin");
 
-  const submit = async (e) => {
+  // Company profile fields
+  const [companyName, setCompanyName] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [companySize, setCompanySize] = useState("");
+  const [monthlyBudget, setMonthlyBudget] = useState("");
+
+  const handleAuth = async (e) => {
     e.preventDefault();
     setError("");
     setBusy(true);
     try {
-      const fn = mode === "signin" ? "signInWithPassword" : "signUp";
-      const { error } = await supabase.auth[fn]({ email, password });
-      if (error) throw error;
+      const { error: signUpErr } = await supabase.auth.signUp({ email, password });
+      if (signUpErr) throw signUpErr;
+      setStep("profile");
+    } catch (err) { setError(err.message || "Sign-up failed"); }
+    finally { setBusy(false); }
+  };
+
+  const handleSignIn = async () => {
+    setError("");
+    setBusy(true);
+    try {
+      const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInErr) throw signInErr;
       onSignedIn();
     } catch (err) { setError(err.message || "Sign-in failed"); }
     finally { setBusy(false); }
   };
+
+  const handleApply = async (e) => {
+    e.preventDefault();
+    setError("");
+    if (!companyName.trim()) { setError("Company name is required"); return; }
+    setBusy(true);
+    try {
+      const result = await partnerApply({ companyName, websiteUrl, contactName: "", industry, companySize, monthlyBudget });
+      if (result?.status === "active") {
+        onSignedIn();
+      } else {
+        setStep("pending");
+      }
+    } catch (err) { setError(err.message || "Application failed"); }
+    finally { setBusy(false); }
+  };
+
+  if (step === "pending") {
+    return (
+      <div className="partner-login">
+        <div className="partner-login-card" style={{ textAlign: "center" }}>
+          <div className="partner-brand" style={{ justifyContent: "center" }}>
+            <div className="partner-brand-icon"><CheckCircle2 size={20} /></div>
+          </div>
+          <h2 style={{ margin: "0 0 8px", fontSize: "17px", fontWeight: 800 }}>Application submitted</h2>
+          <p style={{ margin: "0 0 20px", color: "var(--color-ink-soft)", fontSize: "12.5px", lineHeight: 1.5 }}>
+            Thanks for your interest in FamOS Ad Partners. We review applications within 1–2 business days.
+            You'll get access to the dashboard as soon as your account is approved.
+          </p>
+          <button className="pbtn pbtn-ghost pbtn-full" onClick={() => supabase.auth.signOut()}>Sign out</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === "profile") {
+    return (
+      <div className="partner-login">
+        <div className="partner-login-card">
+          <div className="partner-brand">
+            <div className="partner-brand-icon"><Megaphone size={20} /></div>
+            <div><strong>Tell us about your brand</strong><small>This helps us match your ads to the right families.</small></div>
+          </div>
+          <form onSubmit={handleApply}>
+            <label className="pfield"><span>Company name *</span>
+              <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Acme Inc." required />
+            </label>
+            <label className="pfield"><span>Website</span>
+              <input type="url" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder="https://example.com" />
+            </label>
+            <label className="pfield"><span>Industry</span>
+              <select value={industry} onChange={(e) => setIndustry(e.target.value)}>
+                <option value="">Select industry</option>
+                {INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}
+              </select>
+            </label>
+            <label className="pfield"><span>Company size</span>
+              <select value={companySize} onChange={(e) => setCompanySize(e.target.value)}>
+                <option value="">Select size</option>
+                {COMPANY_SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </label>
+            <label className="pfield"><span>Monthly ad budget</span>
+              <select value={monthlyBudget} onChange={(e) => setMonthlyBudget(e.target.value)}>
+                <option value="">Select range</option>
+                {BUDGET_RANGES.map((b) => <option key={b} value={b}>{b}</option>)}
+              </select>
+            </label>
+            {error && <p className="pform-error">{error}</p>}
+            <button className="pbtn pbtn-primary pbtn-full" type="submit" disabled={busy || !companyName.trim()}>
+              {busy ? "Please wait…" : "Submit application"}
+            </button>
+          </form>
+          <button type="button" className="pswitch" onClick={() => setStep("auth")}>← Back to sign in</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="partner-login">
@@ -87,7 +193,7 @@ function PartnerLogin({ onSignedIn }) {
           <div className="partner-brand-icon"><Megaphone size={20} /></div>
           <div><strong>FamOS Ad Partners</strong><small>Reach families who plan their week in one place.</small></div>
         </div>
-        <form onSubmit={submit}>
+        <form onSubmit={handleAuth}>
           <label className="pfield"><span>Email</span>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@brand.com" required />
           </label>
@@ -96,12 +202,15 @@ function PartnerLogin({ onSignedIn }) {
           </label>
           {error && <p className="pform-error">{error}</p>}
           <button className="pbtn pbtn-primary pbtn-full" type="submit" disabled={busy || !email || !password}>
-            {busy ? "Please wait…" : mode === "signin" ? "Sign in to dashboard" : "Create partner account"}
+            {busy ? "Please wait…" : "Create partner account"}
           </button>
         </form>
-        <button type="button" className="pswitch" onClick={() => setMode((m) => m === "signin" ? "signup" : "signin")}>
-          {mode === "signin" ? "New advertiser? Create an account" : "Already a partner? Sign in"}
-        </button>
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "14px", alignItems: "center" }}>
+          <span style={{ fontSize: "11px", color: "var(--color-ink-faint)" }}>Already have an account?</span>
+          <button className="pbtn pbtn-ghost pbtn-full" type="button" onClick={handleSignIn} disabled={busy || !email || !password}>
+            Sign in
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -532,6 +641,10 @@ export default function Partner() {
   const [invoices, setInvoices] = useState([]);
   const [payments, setPayments] = useState([]);
   const [billing, setBilling] = useState(null);
+  const [analyticsDaily, setAnalyticsDaily] = useState([]);
+  const [analyticsPlacement, setAnalyticsPlacement] = useState([]);
+  const [analyticsTopCampaigns, setAnalyticsTopCampaigns] = useState([]);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
@@ -565,12 +678,26 @@ export default function Partner() {
     setBilling(sum);
   }, []);
 
+  const loadAnalytics = useCallback(async () => {
+    setLoadingAnalytics(true);
+    const [daily, placement, top] = await Promise.all([
+      getAnalyticsDaily(),
+      getAnalyticsPlacement(),
+      getAnalyticsTopCampaigns(),
+    ]);
+    setAnalyticsDaily(daily);
+    setAnalyticsPlacement(placement);
+    setAnalyticsTopCampaigns(top);
+    setLoadingAnalytics(false);
+  }, []);
+
   useEffect(() => {
     if (allowed) {
       loadCampaigns();
       loadBilling();
+      loadAnalytics();
     }
-  }, [allowed, loadCampaigns, loadBilling]);
+  }, [allowed, loadCampaigns, loadBilling, loadAnalytics]);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -671,8 +798,22 @@ export default function Partner() {
     <div className="partner-shell">
       <div className="partner-denied">
         <div className="partner-denied-icon"><ShieldCheck size={26} /></div>
-        <h1>No partner account</h1>
-        <p>This account isn't linked to an approved FamOS advertising partner. If you applied, please allow time for review — or reach out to partners@fam-os.app.</p>
+        {partner?.status === "pending" ? (
+          <>
+            <h1>Application under review</h1>
+            <p>Your application for <strong>{partner.company_name}</strong> is being reviewed. We'll get you access within 1–2 business days.</p>
+          </>
+        ) : partner?.status === "rejected" ? (
+          <>
+            <h1>Application not approved</h1>
+            <p>Your application for <strong>{partner.company_name}</strong> was not approved at this time. Contact partners@fam-os.app for details.</p>
+          </>
+        ) : (
+          <>
+            <h1>No partner account</h1>
+            <p>This account isn't linked to a FamOS advertising partner. Sign up below to get started.</p>
+          </>
+        )}
         <button className="pbtn pbtn-ghost" onClick={() => supabase.auth.signOut()}>Sign out</button>
       </div>
     </div>
@@ -681,6 +822,7 @@ export default function Partner() {
   const showDetail = selected && tab === "campaigns";
   const showEditor = tab === "editor";
   const showBilling = tab === "billing";
+  const showAnalytics = tab === "analytics";
   const showCampaigns = tab === "campaigns" && !selected && !showEditor;
 
   return (
@@ -696,6 +838,9 @@ export default function Partner() {
         <nav className="ptopbar-tabs">
           <button className={`ptab ${tab === "campaigns" ? "ptab-active" : ""}`} onClick={() => { setTab("campaigns"); setSelected(null); }}>
             <LayoutDashboard size={14} /> Campaigns
+          </button>
+          <button className={`ptab ${tab === "analytics" ? "ptab-active" : ""}`} onClick={() => setTab("analytics")}>
+            <TrendingUp size={14} /> Analytics
           </button>
           <button className={`ptab ${tab === "billing" ? "ptab-active" : ""}`} onClick={() => setTab("billing")}>
             <CreditCard size={14} /> Billing
@@ -800,6 +945,97 @@ export default function Partner() {
         )}
 
         {showBilling && <BillingTab billing={billing} invoices={invoices} payments={payments} />}
+        {showAnalytics && <AnalyticsTab daily={analyticsDaily} placement={analyticsPlacement} topCampaigns={analyticsTopCampaigns} loading={loadingAnalytics} />}
+      </div>
+    </div>
+  );
+}
+
+/* ── Analytics Tab ────────────────────────────────────────────────────── */
+
+function AnalyticsTab({ daily, placement, topCampaigns, loading }) {
+  const totalImpressions = daily.reduce((sum, d) => sum + (d.impressions || 0), 0);
+  const totalClicks = daily.reduce((sum, d) => sum + (d.clicks || 0), 0);
+  const totalSpend = daily.reduce((sum, d) => sum + (d.spend_cents || 0), 0);
+  const avgCtr = totalImpressions ? ((totalClicks / totalImpressions) * 100).toFixed(2) : "0.00";
+
+  if (loading) return <div className="panalytics-loading">Loading analytics…</div>;
+  if (!daily.length) return <div className="panalytics-empty"><BarChart3 size={32} /><strong>No data yet</strong><p>Run some campaigns to see analytics.</p></div>;
+
+  return (
+    <div className="panalytics">
+      <div className="panalytics-header">
+        <div>
+          <h2>Analytics</h2>
+          <p>Cross-campaign performance insights.</p>
+        </div>
+      </div>
+
+      <div className="panalytics-summary">
+        <div className="panalytic-stat"><span>Total impressions</span><strong>{fmt(totalImpressions)}</strong></div>
+        <div className="panalytic-stat"><span>Total clicks</span><strong>{fmt(totalClicks)}</strong></div>
+        <div className="panalytic-stat"><span>Avg CTR</span><strong>{avgCtr}%</strong></div>
+        <div className="panalytic-stat"><span>Total spend</span><strong>{money(totalSpend)}</strong></div>
+      </div>
+
+      <div className="panalytics-charts">
+        <div className="panalytic-chart">
+          <h3>Performance over time</h3>
+          <div className="pchart-dual">
+            <div className="pchart-panel">
+              <span className="pchart-label">Impressions</span>
+              <MetricChart data={daily} dataKey="impressions" color="var(--partner-accent)" />
+            </div>
+            <div className="pchart-panel">
+              <span className="pchart-label">Clicks</span>
+              <MetricChart data={daily} dataKey="clicks" color="#10b981" />
+            </div>
+          </div>
+        </div>
+
+        <div className="panalytic-chart">
+          <h3>By placement</h3>
+          {placement.length ? (
+            <table className="ppacement-table">
+              <thead><tr><th>Placement</th><th>Impressions</th><th>Clicks</th><th>CTR</th></tr></thead>
+              <tbody>
+                {placement.map((p) => (
+                  <tr key={p.placement}>
+                    <td><strong>{PLACEMENT_LABELS[p.placement] || p.placement}</strong></td>
+                    <td>{fmt(p.impressions)}</td>
+                    <td>{fmt(p.clicks)}</td>
+                    <td>{p.impressions ? ((p.clicks / p.impressions) * 100).toFixed(2) : "0.00"}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="pempty">No placement data</p>
+          )}
+        </div>
+      </div>
+
+      <div className="panalytic-chart">
+        <h3>Top campaigns</h3>
+        {topCampaigns.length ? (
+          <table className="ptop-campaigns-table">
+            <thead><tr><th>Campaign</th><th>Status</th><th>Impressions</th><th>Clicks</th><th>CTR</th><th>CPC</th></tr></thead>
+            <tbody>
+              {topCampaigns.slice(0, 10).map((c) => (
+                <tr key={c.id}>
+                  <td><strong>{c.name}</strong></td>
+                  <td><span className={`pbadge ${STATUS_CLASSES[c.status]}`}>{STATUS_LABEL[c.status]}</span></td>
+                  <td>{fmt(c.impressions)}</td>
+                  <td>{fmt(c.clicks)}</td>
+                  <td>{c.ctr}%</td>
+                  <td>{money(c.cpc)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p className="pempty">No campaign data</p>
+        )}
       </div>
     </div>
   );
