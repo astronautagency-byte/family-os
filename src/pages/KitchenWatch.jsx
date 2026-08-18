@@ -12,7 +12,7 @@ function shelfLifeColor(daysRemaining) {
   return "var(--color-good)";
 }
 
-function ShelfLifeRing({ item, size = 56, strokeWidth = 6 }) {
+function ShelfLifeRing({ item, size = 48, strokeWidth = 5 }) {
   if (!item.expiresOn) return null;
   const days = daysUntilExpiry(item.expiresOn);
   if (days === null) return null;
@@ -20,20 +20,19 @@ function ShelfLifeRing({ item, size = 56, strokeWidth = 6 }) {
   if (!progress) return null;
   const color = shelfLifeColor(days);
   const percent = Math.max(0, Math.min(100, progress.percent));
-  const radius = (size - strokeWidth) / 2;
+  const radius = (size - 5) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - percent / 100);
   
-  const label = days <= 0 ? "Expired" : days === 1 ? "1 day" : `${days} days`;
+  const label = days <= 0 ? "Expired" : days === 1 ? "1 day left" : `${days} days left`;
   
-  // Gradient ID for the progress ring
   const gradientId = `shelf-life-gradient-${item.id}`;
   
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, marginTop: 8 }}>
-      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+    <div className="kw-shelf-ring">
+      <svg className="kw-shelf-svg" width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
         <defs>
-          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient id={`shelf-life-gradient-${item.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor={color} />
             <stop offset="100%" stopColor={color} stopOpacity="0.4" />
           </linearGradient>
@@ -42,34 +41,32 @@ function ShelfLifeRing({ item, size = 56, strokeWidth = 6 }) {
         <circle
           cx={size / 2}
           cy={size / 2}
-          r={radius}
+          r={(size - 5) / 2}
           fill="none"
           stroke="var(--color-surface-sunken)"
-          strokeWidth={strokeWidth}
+          strokeWidth={5}
           strokeLinecap="round"
         />
         {/* Progress ring */}
         <circle
           cx={size / 2}
           cy={size / 2}
-          r={radius}
+          r={(size - 5) / 2}
           fill="none"
-          stroke={`url(#${gradientId})`}
-          strokeWidth={strokeWidth}
+          stroke={`url(#shelf-life-gradient-${item.id})`}
+          strokeWidth={5}
           strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
+          strokeDasharray={2 * Math.PI * (size - 5) / 2}
+          strokeDashoffset={2 * Math.PI * (size - 5) / 2 * (1 - progress.percent / 100)}
           style={{
             transition: "stroke-dashoffset 0.6s ease-out, stroke 0.3s ease",
             filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.1))"
           }}
         />
       </svg>
-      <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--color-ink)" }}>
-          {days <= 0 ? "Expired" : days === 1 ? "1 day left" : `${days} days left`}
-        </div>
-        <div style={{ fontSize: 10, color: "var(--color-ink-faint)", marginTop: 2 }}>
+      <div className="kw-ring-label">
+        <div className="kw-ring-days">{days <= 0 ? "Expired" : days === 1 ? "1 day left" : `${days} days left`}</div>
+        <div className="kw-ring-expires">
           Expires {days <= 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`}
         </div>
       </div>

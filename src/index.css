@@ -5593,11 +5593,42 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .kw-group-header h3{margin:0;color:var(--color-ink);font-size:14px;font-weight:750}
 .kw-group-count{color:var(--color-ink-faint);font-size:12px;font-weight:600}
 .kw-group-items{display:grid;gap:8px}
-.kw-item{display:grid;grid-template-columns:1fr auto;gap:12px;padding:12px 14px;border:1px solid var(--color-border);border-radius:var(--radius-card);background:var(--color-surface);transition:border-color .15s,box-shadow .15s}
+.kw-item{display:grid;grid-template-columns:1fr auto;gap:12px;padding:10px 14px;border:1px solid var(--color-border);border-radius:var(--radius-card);background:var(--color-surface);transition:border-color .15s,box-shadow .15s}
 .kw-item:active{box-shadow:var(--shadow-xs)}
 .kw-item--expired{border-left:3px solid var(--color-warn);background:color-mix(in srgb,var(--color-warn) 4%,var(--color-surface))}
 .kw-item--soon{border-left:3px solid #E07C24;background:color-mix(in srgb,#E07C24 4%,var(--color-surface))}
-.kw-item-left{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1}
+.kw-item-left{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+.kw-item-img{width:40px;height:40px;border-radius:10px;object-fit:cover;flex:0 0 40px}
+.kw-item-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:10px;background:var(--color-surface-sunken);flex:0 0 40px}
+.kw-item-info{min-width:0}
+.kw-item-info strong{display:block;color:var(--color-ink);font-size:16px;font-weight:650;line-height:1.3;text-transform:capitalize;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kw-item-info small{display:block;color:var(--color-ink-soft);font-size:11px;margin-top:1px}
+.kw-item-meta{display:flex;align-items:center;gap:5px;margin-top:2px;color:var(--color-ink-faint);font-size:10px;font-weight:600;text-transform:capitalize}
+.kw-item-qty{padding:1px 5px;border-radius:var(--radius-pill);background:var(--color-surface-sunken);font-size:9px}
+.kw-item-right{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:0 0 auto;padding-left:12px;min-width:72px}
+.kw-expiry-label{font-size:13px;font-weight:700;color:var(--color-good);white-space:nowrap}
+.kw-expiry-label--expired{color:var(--color-warn)}
+.kw-expiry-label--soon{color:#E07C24}
+.kw-expiry-date{color:var(--color-ink);font-size:13px;font-weight:600}
+
+/* ── Shelf life progress ring ── */
+.kw-shelf-ring{display:flex;flex-direction:column;align-items:flex-end;gap:4px;margin-top:0}
+.kw-shelf-svg{width:40px;height:40px;transform:rotate(-90deg)}
+.kw-shelf-track{fill:none;stroke:var(--color-surface-sunken);stroke-width:5;stroke-linecap:round}
+.kw-shelf-fill{fill:none;stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .6s ease-out,stroke .3s ease;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.1))}
+.kw-ring-label{display:flex;flex-direction:column;align-items:flex-end;gap:1px;margin-top:2px;text-align:right}
+.kw-ring-days{font-size:11px;font-weight:700;color:var(--color-ink)}
+.kw-ring-expires{font-size:10px;color:var(--color-ink-faint)}
+.kw-item-right{display:flex;flex-direction:column;align-items:flex-end;gap:1px;flex:0 0 auto;padding-left:12px;min-width:72px}
+.kw-expiry-label{font-size:12px;font-weight:700;color:var(--color-good);white-space:nowrap}
+.kw-expiry-label--expired{color:var(--color-warn)}
+.kw-expiry-label--soon{color:#E07C24}
+.kw-expiry-date{color:var(--color-ink);font-size:12px;font-weight:600}
+.kw-item{display:grid;grid-template-columns:1fr auto;gap:12px;padding:10px 14px;border:1px solid var(--color-border);border-radius:var(--radius-card);background:var(--color-surface);transition:border-color .15s,box-shadow .15s}
+.kw-item:active{box-shadow:var(--shadow-xs)}
+.kw-item--expired{border-left:3px solid var(--color-warn);background:color-mix(in srgb,var(--color-warn) 4%,var(--color-surface))}
+.kw-item--soon{border-left:3px solid #E07C24;background:color-mix(in srgb,#E07C24 4%,var(--color-surface))}
+.kw-item-left{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
 .kw-item-img{width:40px;height:40px;border-radius:10px;object-fit:cover;flex:0 0 40px}
 .kw-item-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:10px;background:var(--color-surface-sunken);flex:0 0 40px}
 .kw-item-info{min-width:0}
@@ -5612,16 +5643,18 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .kw-expiry-date{color:var(--color-ink);font-size:13px;font-weight:600}
 
 /* ── Shelf life progress ring ── */
-.kw-shelf-life{width:48px;height:48px;margin-top:0}
+.kw-shelf-ring{display:flex;flex-direction:column;align-items:flex-end;gap:3px;margin-top:0}
 .kw-shelf-svg{width:40px;height:40px;transform:rotate(-90deg)}
 .kw-shelf-track{fill:none;stroke:var(--color-surface-sunken);stroke-width:5;stroke-linecap:round}
 .kw-shelf-fill{fill:none;stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .6s ease-out,stroke .3s ease;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.1))}
-.kw-shelf-label{display:block;margin-top:4px;font-size:11px;font-weight:600;line-height:1}
-.kw-item-right{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:0 0 auto;padding-left:12px;min-width:72px}
-.kw-expiry-label{font-size:13px;font-weight:700;color:var(--color-good);white-space:nowrap}
+.kw-ring-label{display:flex;flex-direction:column;align-items:flex-end;gap:1px;margin-top:1px;text-align:right}
+.kw-ring-days{font-size:11px;font-weight:700;color:var(--color-ink)}
+.kw-ring-expires{font-size:10px;color:var(--color-ink-faint)}
+.kw-item-right{display:flex;flex-direction:column;align-items:flex-end;gap:1px;flex:0 0 auto;padding-left:12px;min-width:72px}
+.kw-expiry-label{font-size:12px;font-weight:700;color:var(--color-good);white-space:nowrap}
 .kw-expiry-label--expired{color:var(--color-warn)}
 .kw-expiry-label--soon{color:#E07C24}
-.kw-expiry-date{color:var(--color-ink);font-size:13px;font-weight:600}
+.kw-expiry-date{color:var(--color-ink);font-size:12px;font-weight:600}
 .kw-empty{display:flex;flex-direction:column;align-items:center;gap:8px;margin:32px 20px;padding:24px;border:1px dashed var(--color-border);border-radius:var(--radius-card);color:var(--color-ink-soft);text-align:center}
 .kw-empty h3{color:var(--color-ink);font-size:15px;font-weight:700}
 .kw-empty p{font-size:12px}
