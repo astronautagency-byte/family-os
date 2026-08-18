@@ -939,7 +939,7 @@ const INITIAL_FAM_AI_MESSAGE = {
               )}
               <div className="fam-ai-msg-body">
                 <div className="fam-ai-msg-meta"><strong>{message.role === "assistant" ? "Fam AI" : (members[0]?.name || "You")}</strong><span>{message.role === "assistant" ? "Household assistant" : "You"}</span></div>
-                <p>{message.content}</p>
+                <p className={message.role === "assistant" ? "fam-ai-msg-bubble" : "fam-ai-msg-bubble user"}>{message.content}</p>
               </div>
             </div>
           </div>

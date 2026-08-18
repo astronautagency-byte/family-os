@@ -2118,27 +2118,33 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   font-size:12px;
 }
 
-/* Message bubble */
+/* Message bubble — colorful per role */
 .fam-ai-msg-body{
   flex:1;
   min-width:0;
 }
-.fam-ai-msg-body p{
-  padding:12px 16px;
-  border-radius:18px 20px 20px 20px;
-  font-size:14.5px;
+.fam-ai-msg-bubble{
+  padding:14px 18px;
+  border-radius:var(--radius-2xl);
+  font-size:15px;
   line-height:1.6;
   color:var(--color-ink);
   white-space:pre-wrap;
   word-break:break-word;
+  max-width:480px;
 }
-.fam-ai-msg.user .fam-ai-msg-body p{
-  border-radius:20px 18px 20px 20px;
-  background:color-mix(in srgb,var(--color-accent) 14%,transparent);
+.fam-ai-msg.user .fam-ai-msg-bubble{
+  border-radius:var(--radius-2xl) var(--radius-2xl) var(--radius-md) var(--radius-2xl);
+  background:var(--color-accent-soft);
   color:var(--color-ink);
+  margin-left:auto;
+  box-shadow:var(--shadow-xs);
 }
-.fam-ai-msg:not(.user) .fam-ai-msg-body p{
-  background:color-mix(in srgb,var(--color-ink) 6%,transparent);
+.fam-ai-msg:not(.user) .fam-ai-msg-bubble{
+  border-radius:var(--radius-2xl) var(--radius-2xl) var(--radius-2xl) var(--radius-md);
+  background:var(--color-surface-sunken);
+  border:1px solid var(--color-border);
+  box-shadow:var(--shadow-xs);
 }
 
 /* Thinking dots */
@@ -2162,7 +2168,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   animation-delay:300ms;
 }
 
-/* Prompt suggestion cards */
+/* Prompt suggestion cards — colorful per category */
 .fam-ai-suggestions{
   flex:0 0 auto;
   padding:0 20px 14px;
@@ -2179,54 +2185,58 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .fam-ai-suggestion-grid{
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:8px;
+  gap:10px;
   max-width:580px;
   margin:0 auto;
 }
 .fam-ai-suggestion{
   display:flex;
   align-items:center;
-  gap:10px;
+  gap:12px;
   width:100%;
-  min-height:48px;
-  padding:10px 13px;
-  border:1.5px solid var(--color-border);
-  border-radius:var(--radius-control);
+  min-height:52px;
+  padding:12px 14px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-xl);
   background:var(--color-surface);
   color:var(--color-ink);
-  font-size:13px;
-  font-weight:650;
+  font-size:13.5px;
+  font-weight:600;
   text-align:left;
-  line-height:1.2;
-  transition:border-color .18s ease,transform .14s ease,box-shadow .18s ease;
+  line-height:1.3;
+  transition:border-color var(--motion-fast) var(--ease-out),
+             background var(--motion-fast) var(--ease-out),
+             transform var(--motion-fast) var(--ease-out);
 }
 .fam-ai-suggestion:hover{
   border-color:var(--color-accent);
-  box-shadow:0 4px 14px rgba(81,72,200,.1);
+  background:var(--color-surface-raised);
+  transform:translateY(-2px);
+  box-shadow:var(--shadow-sm);
 }
 .fam-ai-suggestion:active{
-  transform:scale(.97);
+  transform:scale(.98);
 }
 .fam-ai-suggestion-icon{
   flex:0 0 auto;
   display:grid;
   place-items:center;
-  width:30px;
-  height:30px;
-  border-radius:9px;
-  color:#fff;
+  width:34px;
+  height:34px;
+  border-radius:var(--radius-lg);
+  color:var(--color-on-accent);
 }
 .fam-ai-suggestion.tasks .fam-ai-suggestion-icon{
-  background:#7952e8
+  background:var(--color-tasks);
 }
 .fam-ai-suggestion.meals .fam-ai-suggestion-icon{
-  background:#f3b23c
+  background:var(--color-meals);
 }
 .fam-ai-suggestion.calendar .fam-ai-suggestion-icon{
-  background:#5aa9ee
+  background:var(--color-calendar);
 }
 .fam-ai-suggestion.groceries .fam-ai-suggestion-icon{
-  background:#55b982
+  background:var(--color-shopping);
 }
 .fam-ai-suggestion-text{
   min-width:0;
@@ -2234,15 +2244,15 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   text-overflow:ellipsis;
 }
 
-/* Review actions panel */
+/* Review actions panel — premium */
 .fam-ai-review{
   flex:0 0 auto;
   margin:0 20px 12px;
-  padding:14px;
+  padding:var(--space-4);
   border:1px solid var(--color-border);
-  border-radius:var(--radius-card);
+  border-radius:var(--radius-xl);
   background:var(--color-surface);
-  box-shadow:0 6px 20px rgba(24,22,48,.06);
+  box-shadow:var(--shadow-lg);
 }
 .fam-ai-review-head{
   display:flex;
@@ -2252,8 +2262,8 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .fam-ai-review-head-label{
   display:flex;
   align-items:center;
-  gap:7px;
-  color:var(--color-accent-strong);
+  gap:var(--space-2);
+  color:var(--color-accent);
 }
 .fam-ai-review-head-label strong{
   font-size:13px;
