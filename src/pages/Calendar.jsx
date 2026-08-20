@@ -860,14 +860,14 @@ export default function CalendarPage() {
                   const count = source.id === "all" ? allEvents.length : allEvents.filter(event => sourceId(event) === source.id).length;
                   return <button type="button" role="tab" aria-selected={sourceFilter === source.id} key={source.id} className={`calendar-sources-tab ${sourceFilter === source.id ? "selected" : ""}`} style={{"--calendar-tone":source.color}} onClick={() => setSourceFilter(source.id)}><i style={{ backgroundColor: source.color }} /><span>{source.label}</span><em>{count}</em></button>;
                 })}
-              </div>
+</div>
             </div>
-          )}
-          <div className="apple-date-strip" aria-label="Selected week">{dayStrip.map((date) => { const key=iso(date); return <button type="button" key={key} className={`${key===selectedDate?"selected":""} ${key===todayStr?"today":""}`} onClick={()=>{setSelectedDate(key);setMonth(new Date(date.getFullYear(),date.getMonth(),1));}}><small>{date.toLocaleDateString("en-CA",{weekday:"narrow"})}</small><strong>{date.getDate()}</strong><i>{visibleEvents.some(event=>event.start.slice(0,10)===key)?"•":""}</i></button>;})}</div>
-          {/* ── Month grid (always shown — the grid IS the date picker now) ── */}
+           )}
+           <div className="apple-date-strip" data-pull-ignore aria-label="Selected week">{dayStrip.map((date) => { const key=iso(date); return <button type="button" key={key} className={`${key===selectedDate?"selected":""} ${key===todayStr?"today":""}`} onClick={()=>{setSelectedDate(key);setMonth(new Date(date.getFullYear(),date.getMonth(),1));}}><small>{date.toLocaleDateString("en-CA",{weekday:"narrow"})}</small><strong>{date.getDate()}</strong><i>{visibleEvents.some(event=>event.start.slice(0,10)===key)?"•":""}</i></button>;})}</div>
+           {/* ── Month grid (always shown — the grid IS the date picker now) ── */}
 
-          {/* ── Month grid ── */}
-          {viewMode === "month" && <div className="calendar-month apple-calendar-month">
+           {/* ── Month grid ── */}
+           {viewMode === "month" && <div className="calendar-month apple-calendar-month" data-pull-ignore>
               <div className="calendar-month-header">
                 <button onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}><ChevronLeft size={16} /></button>
                 <strong>{monthLabel}</strong>
@@ -907,10 +907,10 @@ export default function CalendarPage() {
               </div>
             </div>}
 
-          {viewMode !== "month" && <CalendarTimeGrid dates={timeGridDates} events={visibleEvents} selectedDate={selectedDate} onSelectDate={setSelectedDate} onSelectEvent={setSelectedEvent} />}
+          {viewMode !== "month" && <CalendarTimeGrid data-pull-ignore dates={timeGridDates} events={visibleEvents} selectedDate={selectedDate} onSelectDate={setSelectedDate} onSelectEvent={setSelectedEvent} />}
 
           {/* ── Agenda below the grid — iOS-style list with section header + inline weather ── */}
-          {viewMode === "month" && <div className="calendar-agenda-section" ref={agendaRef}>
+          {viewMode === "month" && <div className="calendar-agenda-section" ref={agendaRef} data-pull-ignore>
             <div className="calendar-agenda-header">
               <span className="calendar-agenda-label">{selectedLabel}</span>
               {selectedDate === todayStr && weather && (
