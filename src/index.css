@@ -158,8 +158,21 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .text-on-accent { color: var(--color-on-accent) !important; }
 
 .app-shell { width:100%; min-width:0; min-height:100dvh; }
-.app-content { width:100%; min-width:0; max-width:512px; min-height:100dvh; margin:0 auto; background:linear-gradient(180deg,var(--color-canvas) 0,var(--color-canvas) 100%); touch-action:pan-y; overscroll-behavior-y:auto; -webkit-overflow-scrolling:touch; }
-.app-content :where(.overflow-y-auto,[class*="overflow-y-auto"]){overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
+.app-content { width:100%; min-width:0; max-width:512px; min-height:100dvh; margin:0 auto; background:linear-gradient(180deg,var(--color-canvas) 0,var(--color-canvas) 100%); touch-action:pan-y; overscroll-behavior-y:contain; -webkit-overflow-scrolling:touch; scroll-behavior: smooth; }
+.app-content :where(.overflow-y-auto,[class*="overflow-y-auto"]){overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch; scroll-behavior: smooth; }
+
+/* Smooth scrolling for all scrollable areas */
+* {
+  -webkit-overflow-scrolling: touch;
+}
+html {
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
 
 /* Premium card — Airbnb/Wander quality — BASE */
 .kinship-card {
@@ -4226,10 +4239,10 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .pull-to-refresh-host {
   position: relative;
   touch-action: pan-y;
-  transition: transform 220ms cubic-bezier(.18,.86,.32,1);
+  /* No transition on drag - handled by pointer events */
 }
-.pull-to-refresh-host[style*="translate3d"] {
-  transition: none;
+.pull-to-refresh-host:not([style*="translate3d(0, 0px, 0)"]) {
+  transition: transform 220ms cubic-bezier(.18,.86,.32,1);
 }
 .pull-to-refresh-indicator {
   position: absolute;

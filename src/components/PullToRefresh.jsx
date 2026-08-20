@@ -1,12 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { LoaderCircle } from "lucide-react";
 
 const PULL_THRESHOLD = 72;
-const PULL_RESISTANCE = 0.55; // multiplier on raw dragY, so the page resists over-stretching
+const PULL_RESISTANCE = 0.55;
 
-// Pull-to-refresh hook. Returns `{ dragY, refreshing }` so the wrapper can
-// animate the pointer-driven offset and show a small status indicator while
-// the underlying promise is in flight.
 export function usePullToRefresh({ onRefresh, threshold = PULL_THRESHOLD, horizontalGuard = 14 } = {}) {
   const onRefreshRef = useRef(onRefresh);
   useEffect(() => { onRefreshRef.current = onRefresh; }, [onRefresh]);
@@ -16,16 +13,14 @@ export function usePullToRefresh({ onRefresh, threshold = PULL_THRESHOLD, horizo
   const lastDragRef = useRef(0);
   const [dragY, setDragY] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const hostRef = useRef(null);
 
   useEffect(() => {
-    // Bail-out heuristic: ignore touches that originate on form controls,
-    // horizontally-scrolling surfaces (Calendar day strip, tab strips), or
-    // any element opted out via `data-pull-ignore`.
     const isInteractiveOrHorizontal = (target) => {
       if (!(target instanceof Element)) return false;
       const tag = target.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
-      if (tag === "BUTTON") return false; // buttons still scroll vertically; let the gesture through
+      if (tag === "BUTTON") return false;
       let el = target;
       while (el && el !== document.body) {
         if (el.dataset && el.dataset.pullIgnore !== undefined) return true;
@@ -34,21 +29,25 @@ export function usePullToRefresh({ onRefresh, threshold = PULL_THRESHOLD, horizo
       }
       return false;
     };
+
+    const getScrollContainer = () => {
+      return hostRef.current || document.scrollingElement || document.documentElement;
+    };
+
     const down = (event) => {
       if (refreshing) return;
       if (event.pointerType === "mouse" && event.button !== 0) return;
       if (isInteractiveOrHorizontal(event.target)) return;
-      const scrolling = document.scrollingElement || document.documentElement;
-      const scrollTopAtTop = scrolling.scrollTop <= 0;
-      if (!scrollTopAtTop) {
-        const innerTop = document.querySelector("[data-pull-top]");
-        if (!innerTop || innerTop.scrollTop > 0) return;
-      }
+      const container = getScrollContainer();
+      const scrollTopAtTop = container.scrollTop <= 0;
+      if (!scrollTopAtTop) return;
+      
       startRef.current = { x: event.clientX, y: event.clientY };
       draggingRef.current = false;
       horizontalLockRef.current = false;
       lastDragRef.current = 0;
     };
+
     const move = (event) => {
       const start = startRef.current;
       if (!start) return;
@@ -56,8 +55,6 @@ export function usePullToRefresh({ onRefresh, threshold = PULL_THRESHOLD, horizo
       const dy = event.clientY - start.y;
       if (!draggingRef.current) {
         if (dy < 4) return;
-        // If the very first 14 px of movement is mostly horizontal, let the
-        // user scroll horizontally (Calendar day strip) instead.
         if (Math.abs(dx) > Math.abs(dy) + horizontalGuard) {
           horizontalLockRef.current = true;
           startRef.current = null;
@@ -76,6 +73,7 @@ export function usePullToRefresh({ onRefresh, threshold = PULL_THRESHOLD, horizo
       lastDragRef.current = resisted;
       setDragY(resisted);
     };
+
     const finishDrag = async (released) => {
       const wasDragging = draggingRef.current;
       draggingRef.current = false;
@@ -96,10 +94,12 @@ export function usePullToRefresh({ onRefresh, threshold = PULL_THRESHOLD, horizo
         lastDragRef.current = 0;
       }
     };
+
     const up = () => {
       horizontalLockRef.current = false;
       finishDrag(lastDragRef.current);
     };
+
     const cancel = () => {
       horizontalLockRef.current = false;
       startRef.current = null;
@@ -107,29 +107,41 @@ export function usePullToRefresh({ onRefresh, threshold = PULL_THRESHOLD, horizo
       lastDragRef.current = 0;
       setDragY(0);
     };
-    document.addEventListener("pointerdown", down, { passive: true });
-    document.addEventListener("pointermove", move, { passive: true });
-    document.addEventListener("pointerup", up, { passive: true });
-    document.addEventListener("pointercancel", cancel, { passive: true });
+
+    const handleTouchMove = (event) => {
+      if (draggingRef.current && event.cancelable) {
+        event.preventDefault();
+      }
+    };
+
+    const container = getScrollContainer();
+    container.addEventListener("pointerdown", down, { passive: true });
+    container.addEventListener("pointermove", move, { passive: false });
+    container.addEventListener("pointerup", up, { passive: true });
+    container.addEventListener("pointercancel", cancel, { passive: true });
+    container.addEventListener("touchmove", handleTouchMove, { passive: false });
+
     return () => {
-      document.removeEventListener("pointerdown", down);
-      document.removeEventListener("pointermove", move);
-      document.removeEventListener("pointerup", up);
-      document.removeEventListener("pointercancel", cancel);
+      container.removeEventListener("pointerdown", down);
+      container.removeEventListener("pointermove", move);
+      container.removeEventListener("pointerup", up);
+      container.removeEventListener("pointercancel", cancel);
+      container.removeEventListener("touchmove", handleTouchMove);
     };
   }, [threshold, horizontalGuard, refreshing]);
 
-  return { dragY, refreshing };
+  return { dragY, refreshing, hostRef };
 }
 
 export default function PullToRefresh({ onRefresh, children, className = "" }) {
-  const { dragY, refreshing } = usePullToRefresh({ onRefresh });
-  const transformStyle = dragY ? { transform: `translate3d(0, ${dragY}px, 0)` } : undefined;
+  const { dragY, refreshing, hostRef } = usePullToRefresh({ onRefresh });
+  
   return (
     <div
+      ref={hostRef}
       data-pull-top
       className={`pull-to-refresh-host ${className}`.trim()}
-      style={transformStyle}
+      style={{ transform: dragY ? `translate3d(0, ${dragY}px, 0)` : 'none' }}
       aria-busy={refreshing || undefined}
     >
       {refreshing && (
