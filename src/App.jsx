@@ -87,11 +87,11 @@ const normalizeRoute = (route = "") => ROUTE_ALIASES[route] || route;
 const pathRoute = () => normalizeRoute(window.location.pathname.replace(/^\/+|\/+$/g, ""));
 const isFeaturesPath = () => FEATURES_PATH_REGEX.test(window.location.pathname.replace(/\/+$/g, ""));
 const routeFromLocation = () => {
-  const hashRoute = normalizeRoute(window.location.hash.slice(1));
-  if (VALID_ROUTES.includes(hashRoute)) return hashRoute;
   const route = pathRoute();
   if (isFeaturesPath()) return "features";
-  return [...PUBLIC_ROUTES, "admin"].includes(route) ? route : "";
+  if ([...PUBLIC_ROUTES, "admin", "partner"].includes(route)) return route;
+  if (VALID_TABS.includes(route)) return route;
+  return "";
 };
 const tabFromLocation = () => VALID_TABS.includes(routeFromLocation()) ? routeFromLocation() : "today";
 
@@ -131,7 +131,9 @@ export default function App() {
     }
     setUpgradeFeature("");
     setTabState(next);
-    window.history.replaceState(null, "", `#${next}`);
+    if (VALID_TABS.includes(next)) {
+      window.history.pushState({ tab: next }, "", `/${next === "today" ? "" : next}`);
+    }
   };
   const shellRef = useRef(null);
   const { configured, session, household, loading, passwordRecovery, onboardingRequired } = useAuth();
@@ -154,12 +156,21 @@ export default function App() {
   }, []);
   useEffect(() => {
     const onLocationChange = () => { setRoute(routeFromLocation()); setTabState(tabFromLocation()); };
-    window.addEventListener("hashchange", onLocationChange);
     window.addEventListener("popstate", onLocationChange);
     return () => {
-      window.removeEventListener("hashchange", onLocationChange);
       window.removeEventListener("popstate", onLocationChange);
     };
+  }, []);
+
+  // Backward compatibility: redirect old hash URLs (/#/calendar) to clean paths (/calendar)
+  useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    if (hash && VALID_ROUTES.includes(hash)) {
+      const path = hash === "today" ? "/" : `/${hash}`;
+      window.history.replaceState({ tab: hash }, "", path);
+      setRoute(routeFromLocation());
+      setTabState(tabFromLocation());
+    }
   }, []);
 
   useEffect(() => {
@@ -299,7 +310,7 @@ export default function App() {
     else if (eventId) setTab("calendar");
     else if ((sharedTitle || sharedText || sharedUrl) && classifySharedContent({ title: sharedTitle, text: sharedText, url: sharedUrl }) === "recipe") setTab("meals");
     else if (listId || sharedTitle || sharedText || sharedUrl) setTab("groceries");
-    const cleanUrl = window.location.pathname + window.location.hash;
+    const cleanUrl = window.location.pathname;
     window.history.replaceState({}, "", cleanUrl);
   }, [session]);
 

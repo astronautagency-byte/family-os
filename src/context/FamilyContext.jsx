@@ -144,7 +144,9 @@ function showLocalNotification(title, options) {
   const notice = new Notification(title, options);
   notice.onclick = () => {
     window.focus();
-    window.location.hash = options.data?.url?.replace("/#", "") || "today";
+    const route = options.data?.url?.replace("/#", "") || "today";
+    window.history.pushState({ tab: route }, "", route === "today" ? "/" : `/${route}`);
+    window.dispatchEvent(new Event("popstate"));
     notice.close();
   };
   return notice;

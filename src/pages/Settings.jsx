@@ -549,7 +549,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
       setInviteStatus(result?.message || "Invitation sent.");
       if (invitePhone.trim() && result?.sms?.requested && !result.sms.sent) {
         const normalizedPhone = normalizePhoneE164(invitePhone);
-        const joinUrl = `${window.location.origin}/signin?invited=1&email=${encodeURIComponent(inviteEmail.trim().toLowerCase())}`;
+        const joinUrl = `${window.location.origin}/sign-in?invited=1&email=${encodeURIComponent(inviteEmail.trim().toLowerCase())}`;
         const message = `You’re invited to ${household?.name || "a family home"} on FamOS. Join your family home: ${joinUrl} Reply STOP to opt out.`;
         const originalPhone = invitePhone.trim();
         if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
@@ -1307,8 +1307,8 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
                 Made by the FamOS team. We'd love to hear what's working and what would feel even more like home.
               </p>
               <div className="mt-3 flex flex-wrap gap-3">
-                <button onClick={() => { window.location.hash = "privacy"; }} className="text-[12px] font-semibold text-[var(--color-accent)]">Privacy policy</button>
-                <button onClick={() => { window.location.hash = "terms"; }} className="text-[12px] font-semibold text-[var(--color-accent)]">Terms of service</button>
+                <button onClick={() => { window.history.pushState(null, "", "/privacy"); window.dispatchEvent(new Event("popstate")); }} className="text-[12px] font-semibold text-[var(--color-accent)]">Privacy policy</button>
+                <button onClick={() => { window.history.pushState(null, "", "/terms"); window.dispatchEvent(new Event("popstate")); }} className="text-[12px] font-semibold text-[var(--color-accent)]">Terms of service</button>
                 <a href="https://getastronaut.io" target="_blank" rel="noreferrer" className="text-[12px] font-semibold text-[var(--color-accent)] inline-flex items-center gap-1">Astronaut Digital <ExternalLink size={12}/></a>
               </div>
             </div>

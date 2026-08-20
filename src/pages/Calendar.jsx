@@ -1105,7 +1105,7 @@ export default function CalendarPage() {
           {discoverError && (
             <div className="event-discovery-error">
               {discoverError}
-              {!discoverLocation && <button onClick={() => { setDiscovering(false); window.location.hash = "settings"; }}>Open Settings</button>}
+              {!discoverLocation && <button onClick={() => { setDiscovering(false); window.history.pushState({ tab: "settings" }, "", "/settings"); window.dispatchEvent(new Event("popstate")); }}>Open Settings</button>}
               <button className="event-discovery-retry" onClick={() => {
                 const cities = discoverCities.length ? discoverCities : (discoverLocation ? [discoverLocation] : []);
                 refreshFromNetwork(cities);

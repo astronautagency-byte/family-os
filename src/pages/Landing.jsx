@@ -80,7 +80,8 @@ const go = (route) => {
     window.dispatchEvent(new Event("popstate"));
     return;
   }
-  window.location.hash = route;
+  window.history.pushState({ tab: route }, "", route === "today" ? "/" : `/${route}`);
+  window.dispatchEvent(new Event("popstate"));
 };
 
 const stages = [
@@ -139,13 +140,14 @@ function PricingSection({ signedIn }) {
       // Queue the chosen billing freq + addons via the signup return path so
       // it's restored after sign-up. signup reads ?returnPath=<url>.
       const params = new URLSearchParams({ returnPath: "/pricing" });
-      window.location.hash = `signup?${params.toString()}`;
+      window.history.pushState(null, "", `/sign-up?${params.toString()}`);
+      window.dispatchEvent(new Event("popstate"));
       return;
     }
     setCheckoutBusy(true);
     const addons = pricingAddOns.filter(({ id }) => addOns[id]).map(({ id }) => id);
     if (!addons.length) {
-      window.location.assign(signedIn ? "/#today" : "/sign-up");
+      window.location.assign(signedIn ? "/" : "/sign-up");
       return;
     }
     try {

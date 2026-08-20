@@ -456,7 +456,8 @@ export default function Groceries() {
   };
   const findMealsFromInventory = () => {
     window.sessionStorage.setItem("famos:meal-ideas-intent:v1", JSON.stringify({ date: todayISO(), slot: "dinner", kitchenOnly: true }));
-    window.location.hash = "meals";
+    window.history.pushState({ tab: "meals" }, "", "/meals");
+    window.dispatchEvent(new Event("popstate"));
   };
   const changeInventoryQuantity = (item, delta) => updateInventoryItem(item.id, { quantity: Math.max(1, Number(item.quantity || 1) + delta) });
   const handleToggleGrocery = async (item) => {

@@ -964,7 +964,7 @@ export function AuthProvider({ children }) {
         name: name.trim(),
         delivery_channel: resolvedChannel,
         householdId: household.id,
-        redirectTo: `${window.location.origin}/signin?invite=1`,
+        redirectTo: `${window.location.origin}/sign-in?invite=1`,
       });
     } catch (error) {
       inviteError = error instanceof Error
