@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, BarChart3, Bookmark, CalendarPlus, Check, ChefHat, Clock, Coffee, Dices, Image as ImageIcon, ListChecks, Mic, MicOff, Refrigerator, ShoppingCart, Soup, Sparkles, Trash2, Users, X } from "lucide-react";
+import { ArrowLeft, BarChart3, Bookmark, CalendarPlus, Check, ChefHat, Clock, Coffee, Dices, Image as ImageIcon, ListChecks, Mic, MicOff, Pencil, Refrigerator, ShoppingCart, Soup, Sparkles, Trash2, Users, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, AvatarStack, Card, Modal, PrimaryButton, ProgressBar, SecondaryButton, TextField, colorVar } from "../components/ui";
@@ -746,48 +746,52 @@ export default function Meals() {
                       setMealForSlot(date, slot, { title, notes: "", cookIds: [] });
                     }
                   };
+                  const slotColor = slot === "breakfast" ? "#22A06B" : slot === "lunch" ? "#E85D3A" : "#D94F4F";
                   return (
                     <div className={`meal-slot-row ${slot === "dinner" ? "is-dinner" : ""}`} key={slot}>
                       {meal?.title ? (
-                        <div className="meal-slot-button flex items-center gap-3 text-left transition-colors">
-                          <span
-                            className="meal-slot-clear"
-                            onClick={(e) => { e.stopPropagation(); removeMeal(meal.id); }}
-                            aria-label={`Clear ${meal.title}`}
-                            title="Clear this meal"
-                            role="button"
-                            tabIndex={0}
-                            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); removeMeal(meal.id); } }}
-                          >
-                            <X size={14} />
-                          </span>
-                          <Icon size={16} color="var(--color-ink-faint)" className="shrink-0" />
-                          <div className="flex-1 min-w-0" onClick={() => openMealPreview(meal)}>
-                            <p className="meal-slot-label text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-ink-faint)]">
-                              {SLOT_META[slot].label}
-                            </p>
-                            <p className="meal-slot-value text-[14px] truncate has-meal text-[var(--color-ink)] font-medium cursor-pointer hover:underline">
-                              {meal.title}
-                            </p>
-                            <div className="meal-slot-meta">
-                              {adder && <span className="meal-slot-adder"><Avatar member={adder} size="xs" aria-label={`Added by ${adder.name}`} /><small>Added by {adder.name}</small></span>}
+                        <div className="meal-slot-card" style={{ borderLeftColor: slotColor }}>
+                          <div className="meal-slot-card-header">
+                            <div className="meal-slot-card-left">
+                              <span className="meal-slot-label" style={{ color: slotColor }}>
+                                {SLOT_META[slot].label}
+                              </span>
+                              <p className="meal-slot-value has-meal">{meal.title}</p>
+                            </div>
+                            <div className="meal-slot-card-right">
                               {cooks.length > 0 && (
-                                <span className="meal-cook-hint flex items-center gap-1">
-                                  <ChefHat size={12} />
-                                  <span>Who's cooking:</span>
-                                  <AvatarStack members={cooks} size="xs" />
-                                </span>
+                                <AvatarStack members={cooks} size="xs" />
                               )}
+                            </div>
+                          </div>
+                          <div className="meal-slot-card-meta">
+                            <ChefHat size={12} />
+                            <span>What's cooking good looking?</span>
+                          </div>
+                          <div className="meal-slot-card-actions">
+                            <button className="meal-cook-mode-btn" onClick={() => openCookRecipe(meal)}>
+                              <ChefHat size={14} /> Cook mode
+                            </button>
+                            <button className="meal-save-recipe-btn" onClick={() => saveRecipeToLibrary(meal)}>
+                              <Bookmark size={14} /> Save recipe
+                            </button>
+                            <div className="meal-slot-card-tools">
+                              <button className="meal-tool-btn" onClick={() => openEditor(date, slot)} aria-label="Edit meal">
+                                <Pencil size={15} />
+                              </button>
+                              <button className="meal-tool-btn meal-tool-delete" onClick={() => removeMeal(meal.id)} aria-label="Delete meal">
+                                <Trash2 size={15} />
+                              </button>
                             </div>
                           </div>
                         </div>
                       ) : (
                         <div className="meal-slot-button flex flex-col items-start gap-1.5">
-                          <p className="meal-slot-label text-[12px] font-semibold uppercase tracking-wide text-[var(--color-accent)]">
+                          <p className="meal-slot-label text-[12px] font-semibold uppercase tracking-wide" style={{ color: slotColor }}>
                             {SLOT_META[slot].label}
                           </p>
                           <div className="flex items-center gap-3 w-full">
-                            <Icon size={16} color="var(--color-accent)" className="shrink-0" />
+                            <Icon size={16} color={slotColor} className="shrink-0" />
                             <input
                               type="text"
                               value={inlineInput}

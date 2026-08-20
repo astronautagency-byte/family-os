@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, Check, ChefHat, Croissant, Drumstick, Milk, Minus, Package, Plus, Refrigerator, Search, Snowflake, X, Carrot, Sandwich, Trash2, Clock, Leaf } from "lucide-react";
+import { AlertTriangle, Check, ChefHat, Croissant, Drumstick, Milk, Minus, Package, Plus, Refrigerator, Search, Snowflake, X, Carrot, Sandwich, Trash2, Clock, Leaf, CalendarClock } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
 import useKitchenInventory from "../hooks/useKitchenInventory";
@@ -7,20 +7,20 @@ import { daysUntilExpiry, inventoryExpiryProgress, toLocalDay } from "../lib/inv
 
 const CATEGORY_COLORS = {
   "Produce": { bg: "color-mix(in srgb, var(--color-shopping) 12%, var(--color-surface))", icon: "var(--color-shopping-strong)" },
-  "Dairy & Eggs": { bg: "color-mix(in srgb, var(--color-meals) 12%, var(--color-surface))", icon: "var(--color-meals-strong)" },
+  "Dairy & Eggs": { bg: "color-mix(in srgb, #E85D3A 12%, var(--color-surface))", icon: "#E85D3A" },
   "Meat & Seafood": { bg: "color-mix(in srgb, var(--color-warn) 12%, var(--color-surface))", icon: "var(--color-warn)" },
   "Bakery": { bg: "color-mix(in srgb, #E07C24 12%, var(--color-surface))", icon: "#E07C24" },
   "Deli & Prepared Foods": { bg: "color-mix(in srgb, var(--color-chat) 12%, var(--color-surface))", icon: "var(--color-chat-strong)" },
 };
 
 function shelfLifeColor(daysRemaining) {
-  if (daysRemaining <= 0) return "var(--color-warn)";
-  if (daysRemaining <= 2) return "#D97706";
-  if (daysRemaining <= 5) return "#E07C24";
-  return "var(--color-shopping)";
+  if (daysRemaining <= 0) return "#E85D3A";
+  if (daysRemaining <= 2) return "#E85D3A";
+  if (daysRemaining <= 5) return "#E85D3A";
+  return "#E85D3A";
 }
 
-function ShelfLifeRing({ item, size = 100, strokeWidth = 8 }) {
+function ShelfLifeRing({ item, size = 90, strokeWidth = 7 }) {
   if (!item.expiresOn) return null;
   const days = daysUntilExpiry(item.expiresOn);
   if (days === null) return null;
@@ -33,16 +33,15 @@ function ShelfLifeRing({ item, size = 100, strokeWidth = 8 }) {
   const offset = circumference * (1 - percent / 100);
 
   return (
-    <div className="kw-shelf-ring-new">
-      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+    <div className="kw-shelf-ring">
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)" }}>
         <circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="var(--color-surface-sunken)"
+          stroke="#F3E8E0"
           strokeWidth={strokeWidth}
-          strokeLinecap="round"
         />
         <circle
           cx={size / 2}
@@ -59,14 +58,10 @@ function ShelfLifeRing({ item, size = 100, strokeWidth = 8 }) {
       </svg>
       <div className="kw-ring-center">
         <span className="kw-ring-percent">{Math.round(percent)}%</span>
-        <span className="kw-ring-sublabel">Shelf life</span>
+        <span className="kw-ring-label">Shelf life</span>
       </div>
     </div>
   );
-}
-
-function ShelfLifeBar({ item }) {
-  return <ShelfLifeRing item={item} size={100} strokeWidth={8} />;
 }
 import { categorizeGroceryItem } from "../lib/groceryCategories";
 import { isIngredientOnList } from "../lib/mealIngredientCache";
@@ -182,7 +177,7 @@ export default function KitchenWatch() {
   };
 
   return <PullToRefresh onRefresh={refreshData}><div className="kw-page">
-    <PageHeader title="Kitchen Watch" subtitle="Track what's in your kitchen and know what to use first." illustration="groceries" action={<button type="button" className="kw-add-btn" onClick={() => openDraft()}><Plus size={15}/> Add item</button>} />
+    <PageHeader eyebrow="Track what's expiring" title="Kitchen Watch" subtitle="A few taps now can prevent a kitchen-table summit later." illustration="groceries" action={<button type="button" className="kw-add-btn" onClick={() => openDraft()}><Plus size={15}/> Add item</button>} />
 
     {purchaseQueue.length > 0 && <section className="kw-purchase-queue"><div className="kw-pq-header"><p>From Shopping</p><h2>Put fresh purchases away</h2><small>Add a date so reminders start.</small></div><div className="kw-pq-items">{purchaseQueue.slice(0, 6).map((item) => <article key={item.id} className="kw-pq-item"><span>{item.name}</span><div><button onClick={() => openDraft(item, "fridge")}>Fridge</button><button onClick={() => openDraft(item, "freezer")}>Freezer</button><button onClick={() => openDraft(item, "pantry")}>Pantry</button></div></article>)}</div></section>}
 
@@ -212,30 +207,31 @@ export default function KitchenWatch() {
             const expiryText = days !== null ? (days <= 0 ? "Expired" : days === 0 ? "Expires today" : days === 1 ? "Expires tomorrow" : `Expires in ${days} days`) : null;
             return (
               <article key={item.id} className={`kw-card ${isExpired ? "kw-card--expired" : ""} ${isSoon ? "kw-card--soon" : ""}`}>
-                <div className="kw-card-top">
-                  <div className="kw-card-cat" style={{ background: catColors.bg }}>
-                    <span className="kw-card-cat-icon" style={{ background: catColors.icon }}><CatIcon size={14} color="#fff" /></span>
-                    <span className="kw-card-cat-label">{item.category}</span>
-                  </div>
-                  <h4 className="kw-card-name">{item.name}</h4>
-                  {expiryText && (
-                    <p className={`kw-card-expiry ${isExpired ? "kw-card-expiry--expired" : ""} ${isSoon ? "kw-card-expiry--soon" : ""}`}>
-                      {expiryText}
+                <div className="kw-card-body">
+                  <div className="kw-card-left">
+                    <div className="kw-card-cat" style={{ background: catColors.bg }}>
+                      <span className="kw-card-cat-icon" style={{ background: catColors.icon }}><CatIcon size={14} color="#fff" /></span>
+                      <span className="kw-card-cat-label">{item.category}</span>
+                    </div>
+                    <h4 className="kw-card-name">{item.name}</h4>
+                    {expiryText && (
+                      <p className={`kw-card-expiry ${isExpired ? "kw-card-expiry--expired" : ""} ${isSoon ? "kw-card-expiry--soon" : ""}`}>
+                        {expiryText}
+                      </p>
+                    )}
+                    <p className="kw-card-location">
+                      {LOCATION_LABELS[item.location] || item.location}
+                      {item.quantity > 1 && ` · x${item.quantity}${item.unit ? ` ${item.unit}` : ""}`}
                     </p>
-                  )}
-                  <p className="kw-card-location">
-                    {LOCATION_LABELS[item.location] || item.location}
-                    {item.quantity > 1 && ` · x${item.quantity}${item.unit ? ` ${item.unit}` : ""}`}
-                  </p>
-                </div>
-                <div className="kw-card-bottom">
-                  <div className="kw-card-actions-left">
-                    <DateField compact label="" value={item.expiresOn} onChange={(expiresOn) => updateItem(item.id, { expiresOn })} />
-                    {isExpired && <button type="button" className="kw-replace-btn" disabled={onList} onClick={() => replaceItem(item)}><ChefHat size={13}/> {onList ? "On list" : "Replace"}</button>}
+                    <div className="kw-card-actions">
+                      <button type="button" className="kw-change-date-btn" onClick={() => openDraft(item, item.location)}>
+                        <CalendarClock size={14}/> Change date
+                      </button>
+                    </div>
                   </div>
                   <div className="kw-card-right">
-                    <ShelfLifeBar item={item} />
-                    <button type="button" className="kw-delete-btn" onClick={() => setConfirmDelete(item)} aria-label={`Remove ${item.name}`}><Trash2 size={16}/></button>
+                    <ShelfLifeRing item={item} />
+                    <button type="button" className="kw-delete-btn" onClick={() => setConfirmDelete(item)} aria-label={`Remove ${item.name}`}><Trash2 size={18}/></button>
                   </div>
                 </div>
               </article>

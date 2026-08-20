@@ -5617,13 +5617,14 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .watch-purchase-prompt{display:flex;align-items:flex-start;gap:11px;margin-bottom:18px;padding:13px;border:1px solid color-mix(in srgb,var(--color-shopping) 24%,var(--color-border));border-radius:var(--radius-control);background:var(--color-shopping-soft)}.watch-purchase-prompt>span{display:grid;place-items:center;width:40px;height:40px;flex:0 0 40px;border-radius:12px;background:var(--color-surface);color:var(--color-shopping-strong)}.watch-purchase-prompt strong{display:block;color:var(--color-ink);font-size:14px}.watch-purchase-prompt p{margin-top:3px;color:var(--color-ink-soft);font-size:11.5px;line-height:1.45}.watch-purchase-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.inventory-replace-button{border-color:color-mix(in srgb,var(--color-warn) 45%,var(--color-border))!important;background:var(--color-warn-soft)!important;color:var(--color-warn)!important}
 @media(max-width:520px){.watch-purchase-actions{grid-template-columns:1fr}}
 
-/* Kitchen Watch v3 — Card-based layout with prominent progress ring */
+/* Kitchen Watch v4 — Premium card layout with shelf-life ring */
 .kw-page{min-width:0;padding-bottom:24px}
-.kw-page .page-header-action .inventory-add-button,.kw-add-btn{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 12px;border:1px solid var(--color-shopping);border-radius:var(--radius-control);background:var(--color-shopping-soft);color:var(--color-shopping-strong);font-size:11.5px;font-weight:750}
-.kw-alert-banner{display:flex;align-items:center;gap:8px;margin:0 20px 14px;padding:11px 14px;border:1px solid color-mix(in srgb,var(--color-warn) 30%,var(--color-border));border-radius:var(--radius-control);background:color-mix(in srgb,var(--color-warn) 8%,var(--color-warn-soft));color:var(--color-warn);font-size:12.5px;font-weight:650}
+.kw-page .page-header-action .inventory-add-button,.kw-add-btn{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 14px;border:1px solid #E85D3A;border-radius:var(--radius-control);background:#E85D3A;color:#fff;font-size:12px;font-weight:700;transition:all .15s ease}
+.kw-add-btn:hover{background:#d4522e;transform:translateY(-1px);box-shadow:0 2px 8px rgba(232,93,58,0.25)}
+.kw-alert-banner{display:flex;align-items:center;gap:8px;margin:0 20px 14px;padding:12px 16px;border:1px solid color-mix(in srgb,#E85D3A 25%,var(--color-border));border-radius:var(--radius-control);background:color-mix(in srgb,#E85D3A 8%,#FFF5F2);color:#E85D3A;font-size:13px;font-weight:700}
 .kw-alert-banner svg{flex:0 0 auto}
-.kw-search-bar{display:flex;align-items:center;gap:8px;margin:0 20px 14px;padding:0 12px;min-height:40px;border:1px solid var(--color-border);border-radius:var(--radius-control);background:var(--color-surface);transition:border-color .15s,box-shadow .15s}
-.kw-search-bar:focus-within{border-color:var(--color-accent);box-shadow:0 0 0 3px var(--color-accent-soft)}
+.kw-search-bar{display:flex;align-items:center;gap:8px;margin:0 20px 14px;padding:0 12px;min-height:42px;border:1px solid var(--color-border);border-radius:var(--radius-control);background:var(--color-surface);transition:border-color .15s,box-shadow .15s}
+.kw-search-bar:focus-within{border-color:#E85D3A;box-shadow:0 0 0 3px rgba(232,93,58,0.1)}
 .kw-search-bar svg{flex:0 0 auto;color:var(--color-ink-faint)}
 .kw-search-bar input{flex:1;min-width:0;border:0;background:transparent;color:var(--color-ink);font-size:13px;outline:none}
 .kw-search-bar input::placeholder{color:var(--color-ink-faint)}
@@ -5635,40 +5636,37 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .kw-group-count{color:var(--color-ink-faint);font-size:12px;font-weight:600}
 .kw-group-items{display:grid;gap:12px}
 
-/* New card-based item layout */
-.kw-card{position:relative;display:flex;flex-direction:column;gap:12px;padding:16px;border:1px solid var(--color-border);border-radius:var(--radius-section);background:var(--color-surface);transition:border-color .15s,box-shadow .15s}
+/* Card-based item layout — horizontal split */
+.kw-card{position:relative;border:1px solid var(--color-border);border-radius:var(--radius-section);background:var(--color-surface);transition:border-color .15s,box-shadow .15s;overflow:hidden}
 .kw-card:active{box-shadow:var(--shadow-xs)}
-.kw-card--expired{border-color:color-mix(in srgb,var(--color-warn) 40%,var(--color-border));background:color-mix(in srgb,var(--color-warn) 4%,var(--color-surface))}
-.kw-card--soon{border-color:color-mix(in srgb,var(--color-shopping) 40%,var(--color-border));background:color-mix(in srgb,var(--color-shopping) 4%,var(--color-surface))}
-
-.kw-card-top{display:flex;flex-direction:column;gap:4px}
+.kw-card--expired{border-color:color-mix(in srgb,#E85D3A 35%,var(--color-border));background:color-mix(in srgb,#E85D3A 4%,var(--color-surface))}
+.kw-card--soon{border-color:color-mix(in srgb,#E85D3A 25%,var(--color-border));background:color-mix(in srgb,#E85D3A 3%,var(--color-surface))}
+.kw-card-body{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:16px}
+.kw-card-left{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}
 .kw-card-cat{display:inline-flex;align-items:center;gap:6px;width:fit-content;padding:4px 10px 4px 4px;border-radius:var(--radius-pill)}
 .kw-card-cat-icon{display:grid;place-items:center;width:24px;height:24px;border-radius:var(--radius-sm)}
 .kw-card-cat-label{font-size:11px;font-weight:650;color:var(--color-ink-soft)}
 .kw-card-name{margin:4px 0 0;color:var(--color-ink);font-size:18px;font-weight:750;line-height:1.2;text-transform:capitalize}
-.kw-card-expiry{margin:4px 0 0;font-size:13px;font-weight:700;color:var(--color-good)}
-.kw-card-expiry--expired{color:var(--color-warn)}
-.kw-card-expiry--soon{color:var(--color-shopping-strong)}
+.kw-card-expiry{margin:4px 0 0;font-size:13px;font-weight:700;color:#E85D3A}
+.kw-card-expiry--expired{color:#E85D3A}
+.kw-card-expiry--soon{color:#E85D3A}
 .kw-card-location{margin:2px 0 0;color:var(--color-ink-faint);font-size:12px;font-weight:500}
+.kw-card-right{display:flex;flex-direction:column;align-items:center;gap:8px;flex:0 0 auto}
 
-.kw-card-bottom{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding-top:8px;border-top:1px solid var(--color-border)}
-.kw-card-actions-left{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0}
-.kw-card-right{display:flex;align-items:center;gap:12px;flex:0 0 auto}
-
-/* Shelf life ring — large, centered */
-.kw-shelf-ring-new{position:relative;display:grid;place-items:center;width:100px;height:100px;flex:0 0 100px}
+/* Shelf life ring */
+.kw-shelf-ring{position:relative;display:grid;place-items:center;width:90px;height:90px;flex:0 0 90px}
 .kw-ring-center{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
-.kw-ring-percent{color:var(--color-ink);font-size:20px;font-weight:750;line-height:1}
-.kw-ring-sublabel{color:var(--color-ink-faint);font-size:10px;font-weight:500}
+.kw-ring-percent{color:#E85D3A;font-size:18px;font-weight:700;line-height:1}
+.kw-ring-label{color:var(--color-ink-faint);font-size:9px;font-weight:500}
 
-/* Action buttons */
-.kw-card .date-field{margin:0}
-.kw-card .date-trigger{min-height:32px;padding:0 10px;font-size:11px;border-radius:var(--radius-pill);border:1px solid var(--color-border);background:var(--color-surface);color:var(--color-ink-soft);gap:4px}
-.kw-card .date-trigger:hover{border-color:var(--color-shopping);color:var(--color-shopping-strong)}
+/* Card action buttons */
+.kw-card-actions{display:flex;gap:6px;margin-top:8px}
+.kw-change-date-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border:1px solid #E85D3A;border-radius:var(--radius-pill);background:#E85D3A;color:#fff;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s ease;white-space:nowrap}
+.kw-change-date-btn:hover{background:#d4522e;transform:translateY(-1px);box-shadow:0 2px 6px rgba(232,93,58,0.2)}
+.kw-delete-btn{display:grid;place-items:center;width:36px;height:36px;border:1px solid var(--color-border);border-radius:var(--radius-pill);background:var(--color-surface);color:var(--color-ink-faint);cursor:pointer;transition:all .15s ease}
+.kw-delete-btn:hover{background:color-mix(in srgb,#E85D3A 8%,var(--color-surface));border-color:#E85D3A;color:#E85D3A}
 .kw-replace-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:1px solid color-mix(in srgb,var(--color-warn) 45%,var(--color-border));border-radius:var(--radius-pill);background:var(--color-warn-soft);color:var(--color-warn);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
 .kw-replace-btn:disabled{opacity:.5;cursor:not-allowed}
-.kw-delete-btn{display:grid;place-items:center;width:32px;height:32px;border:0;border-radius:var(--radius-pill);background:transparent;color:var(--color-ink-faint);cursor:pointer;transition:background .15s,color .15s}
-.kw-delete-btn:hover{background:color-mix(in srgb,var(--color-warn) 10%,transparent);color:var(--color-warn)}
 
 /* Legacy compat (purchase queue, modals, etc.) */
 .kw-empty{display:flex;flex-direction:column;align-items:center;gap:8px;margin:32px 20px;padding:24px;border:1px dashed var(--color-border);border-radius:var(--radius-card);color:var(--color-ink-soft);text-align:center}
@@ -6183,4 +6181,123 @@ reference-tasks,
 }
 .modal-card .form-field:last-of-type {
   margin-bottom: var(--space-5);
+}
+
+/* Meal Planner v2 — Premium card layout with slot colors */
+.meal-slot-card {
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius-section);
+  background: var(--color-surface);
+  transition: all 0.15s ease;
+}
+.meal-slot-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+.meal-slot-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.meal-slot-card-left {
+  flex: 1;
+  min-width: 0;
+}
+.meal-slot-card-right {
+  flex: 0 0 auto;
+}
+.meal-slot-card .meal-slot-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.meal-slot-card .meal-slot-value {
+  margin: 2px 0 0;
+  color: var(--color-ink);
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.3;
+}
+.meal-slot-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  color: var(--color-ink-faint);
+  font-size: 12px;
+}
+.meal-slot-card-meta svg {
+  flex: 0 0 auto;
+}
+.meal-slot-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.meal-cook-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.meal-cook-mode-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(var(--color-accent-rgb, 105, 91, 217), 0.25);
+}
+.meal-save-recipe-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-ink-soft);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.meal-save-recipe-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+.meal-slot-card-tools {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.meal-tool-btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-ink-faint);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.meal-tool-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+.meal-tool-delete:hover {
+  border-color: var(--color-warn);
+  color: var(--color-warn);
+  background: color-mix(in srgb, var(--color-warn) 6%, var(--color-surface));
 }
