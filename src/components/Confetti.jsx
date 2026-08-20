@@ -1,26 +1,7 @@
 import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from "react";
 
-const PARTY_COLORS = [
-  "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4",
-  "#FFEAA7", "#DDA0DD", "#98D8C8", "#F7DC6F",
-  "#BB8FCE", "#85C1E9", "#F8B500", "#FF6F61",
-  "#6B5B95", "#88B04B", "#F7CAC9", "#92A8D1",
-];
-
-function createParticle(w, h) {
-  return {
-    x: Math.random() * w,
-    y: Math.random() * h - h,
-    color: PARTY_COLORS[Math.floor(Math.random() * PARTY_COLORS.length)],
-    size: Math.random() * 8 + 4,
-    speedY: Math.random() * 3 + 2,
-    speedX: (Math.random() - 0.5) * 2,
-    angle: Math.random() * Math.PI * 2,
-    spin: (Math.random() - 0.5) * 0.2,
-    phase: Math.random() * Math.PI * 2,
-    oscillateSpeed: Math.random() * 0.05 + 0.02,
-    shape: Math.random() > 0.5 ? "rect" : "circle",
-  };
+function randomInRange(min, max) {
+  return Math.random() * (max - min) + min;
 }
 
 export default function Confetti() {
@@ -29,18 +10,47 @@ export default function Confetti() {
   const particlesRef = useRef([]);
   const startRef = useRef(null);
   const [active, setActive] = useState(false);
-  const durationRef = useRef(3000);
+  const durationRef = useRef(2500);
 
-  const fire = useCallback((particleCount = 80, duration = 3000) => {
+  const COLORS = [
+    "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4",
+    "#FFEAA7", "#DDA0DD", "#98D8C8", "#F7DC6F",
+    "#BB8FCE", "#85C1E9", "#F8B500", "#FF6F61",
+    "#6B5B95", "#88B04B", "#F7CAC9", "#92A8D1",
+  ];
+
+  const fire = useCallback((particleCount = 120, duration = 2500, origin) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     durationRef.current = duration;
-    particlesRef.current = Array.from({ length: particleCount }, () =>
-      createParticle(canvas.width, canvas.height)
-    );
     startRef.current = Date.now();
+
+    const cx = origin?.x ?? canvas.width / 2;
+    const cy = origin?.y ?? canvas.height / 2;
+
+    particlesRef.current = Array.from({ length: particleCount }, () => {
+      const angle = randomInRange(0, Math.PI * 2);
+      const speed = randomInRange(8, 22);
+      return {
+        x: cx,
+        y: cy,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - randomInRange(5, 15),
+        color: COLORS[Math.floor(randomInRange(0, COLORS.length))],
+        size: randomInRange(6, 12),
+        rotation: randomInRange(0, Math.PI * 2),
+        rotationSpeed: randomInRange(-0.2, 0.2),
+        gravity: 0.5,
+        drag: 0.99,
+        alpha: 1,
+        shape: Math.random() > 0.5 ? "square" : "circle",
+        wobble: randomInRange(-0.1, 0.1),
+        wobbleSpeed: randomInRange(0.05, 0.15),
+        wobblePhase: randomInRange(0, Math.PI * 2),
+      };
+    });
     setActive(true);
   }, []);
 
@@ -54,30 +64,43 @@ export default function Confetti() {
     const elapsed = Date.now() - startRef.current;
     const progress = Math.min(elapsed / durationRef.current, 1);
 
-    particlesRef.current.forEach((p) => {
-      p.y += p.speedY;
-      p.x += Math.sin(p.phase) * 0.5 + p.speedX;
-      p.phase += p.oscillateSpeed;
-      p.angle += p.spin;
+    particlesRef.current.forEach((p, i) => {
+      p.vy += p.gravity;
+      p.vx *= p.drag;
+      p.vy *= p.drag;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.rotation += p.rotationSpeed;
+      p.wobblePhase += p.wobbleSpeed;
 
-      const alpha = progress < 0.8 ? 1 : 1 - (progress - 0.8) / 0.2;
+      if (progress > 0.6) {
+        p.alpha = Math.max(0, 1 - (progress - 0.6) / 0.4);
+      }
+
+      if (p.alpha <= 0) {
+        particlesRef.current.splice(i, 1);
+        return;
+      }
+
       ctx.save();
-      ctx.globalAlpha = alpha;
+      ctx.globalAlpha = p.alpha;
       ctx.translate(p.x, p.y);
-      ctx.rotate(p.angle);
+      ctx.rotate(p.rotation + Math.sin(p.wobblePhase) * p.wobble);
       ctx.fillStyle = p.color;
 
-      if (p.shape === "rect") {
-        ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
-      } else {
+      const size = p.size * (0.5 + 0.5 * p.alpha);
+
+      if (p.shape === "circle") {
         ctx.beginPath();
-        ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+        ctx.arc(0, 0, size / 2, 0, Math.PI * 2);
         ctx.fill();
+      } else {
+        ctx.fillRect(-size / 2, -size / 2, size, size);
       }
       ctx.restore();
     });
 
-    if (progress < 1) {
+    if (particlesRef.current.length > 0 && progress < 1) {
       animRef.current = requestAnimationFrame(animate);
     } else {
       ctx.clearRect(0, 0, width, height);
@@ -85,11 +108,10 @@ export default function Confetti() {
     }
   }, []);
 
-  // Listen for custom confetti events
   useEffect(() => {
     const handler = (e) => {
-      const { particleCount, duration } = e.detail || {};
-      fire(particleCount, duration);
+      const { particleCount, duration, origin } = e.detail || {};
+      fire(particleCount, duration, origin);
     };
     window.addEventListener("famos:confetti", handler);
     return () => window.removeEventListener("famos:confetti", handler);

@@ -11,6 +11,7 @@ import CelebrationConfetti from "../components/CelebrationConfetti";
 import NativeAdBanner from "../components/NativeAdBanner";
 import { AD_PLACEMENTS } from "../lib/adNetwork";
 import { SmartSuggestionsPanel } from "../components/SmartSuggestions";
+import { FocusShoppingItem } from "../components/FocusShoppingItem";
 import { canonicalIngredientName, isIngredientOnList, loadIngredientCache, saveIngredientCache } from "../lib/mealIngredientCache";
 import { formatDayLabel, todayISO } from "../lib/dates";
 import { GROCERY_CATEGORIES } from "../data/mockData";
@@ -1500,16 +1501,15 @@ export default function Groceries() {
             </div>
           </div>
           <div className="focus-shopping-list">
-            {focusItems.map((item) => {
-              const qtyLabel = [item.quantity > 1 || item.unit ? item.quantity : null, item.unit].filter(Boolean).join(" ");
-              return (
-                <button key={item.id} className={`focus-shopping-item ${item.checked ? "is-checked" : ""}`} onClick={() => handleToggleGrocery(item)}>
-                  <span className="focus-shopping-check" aria-hidden="true">{item.checked ? "✓" : ""}</span>
-                  <GroceryItemImage item={item} memberById={memberById} focus />
-                  <span className="focus-shopping-copy"><strong>{item.name}</strong><small>{item.category}{qtyLabel ? ` · ${qtyLabel}` : ""}{item.brand ? ` · ${item.brand}` : ""}</small></span>
-                </button>
-              );
-            })}
+            {focusItems.map((item) => (
+              <FocusShoppingItem
+                key={item.id}
+                item={item}
+                memberById={memberById}
+                onToggle={handleToggleGrocery}
+                onUpdateExpiry={updateGrocery}
+              />
+            ))}
           </div>
           <button className="focus-shopping-done" onClick={() => setFocusMode(false)}>Done shopping</button>
         </div>
