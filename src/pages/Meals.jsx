@@ -693,7 +693,7 @@ export default function Meals() {
 
       <NativeAdBanner placement={AD_PLACEMENTS.MEALS} />
 
-      <SmartSuggestionsPanel maxItems={2} className="meals-smart-suggestions" />
+      <SmartSuggestionsPanel maxItems={2} className="meals-smart-suggestions" currentPage="meals" />
 
       <div className="meal-range-toggle px-5" aria-label="Meal planning range"><button className={horizon===7?"selected":""} onClick={()=>setHorizon(7)}>1 week</button><button className={horizon===14?"selected":""} onClick={()=>setHorizon(14)}>2 weeks</button></div>
 

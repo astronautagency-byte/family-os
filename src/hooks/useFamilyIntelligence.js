@@ -8,7 +8,16 @@ import {
   dismissSuggestion as dismissSuggestionEngine,
 } from "../lib/intelligentEngine";
 
-export function useFamilyIntelligence() {
+const PAGE_RELEVANT_TYPES = {
+  calendar: ["calendar-to-task"],
+  tasks: ["task-to-grocery", "task-to-meal"],
+  meals: ["meal-to-grocery"],
+  groceries: ["task-to-grocery", "meal-to-grocery"],
+  today: ["calendar-to-task", "task-to-grocery", "meal-to-grocery"],
+  kitchen: ["meal-to-grocery"],
+};
+
+export function useFamilyIntelligence(currentPage = "today") {
   const { events, tasks, groceries, meals, items: kitchenInventory } = useFamily();
   const [suggestions, setSuggestions] = useState([]);
   const [patterns, setPatterns] = useState({});
@@ -24,12 +33,15 @@ export function useFamilyIntelligence() {
         meals,
         kitchenInventory,
       });
-      setSuggestions(result.suggestions);
+      // Filter suggestions relevant to current page
+      const relevantTypes = PAGE_RELEVANT_TYPES[currentPage] || [];
+      const filtered = result.suggestions.filter((s) => relevantTypes.includes(s.type));
+      setSuggestions(filtered);
       setPatterns(result.patterns);
     } finally {
       setIsAnalyzing(false);
     }
-  }, [events, tasks, groceries, meals, kitchenInventory]);
+  }, [events, tasks, groceries, meals, kitchenInventory, currentPage]);
 
   useEffect(() => {
     const timer = setTimeout(analyze, 500);

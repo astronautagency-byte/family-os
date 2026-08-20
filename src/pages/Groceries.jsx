@@ -1039,7 +1039,7 @@ export default function Groceries() {
 
       <NativeAdBanner placement={AD_PLACEMENTS.SHOPPING} />
 
-      <SmartSuggestionsPanel maxItems={2} className="groceries-smart-suggestions" />
+      <SmartSuggestionsPanel maxItems={2} className="groceries-smart-suggestions" currentPage="groceries" />
 
       <div className="shopping-list-switcher" role="tablist" aria-label="Shopping lists">
         <button type="button" role="tab" aria-selected={activeGroceryListId === "all"} className={activeGroceryListId === "all" ? "selected" : ""} onClick={() => setActiveGroceryListId("all")}><ShoppingBasket size={15}/><span>All shopping</span><em>{groceries.filter((item) => !item.checked).length}</em></button>

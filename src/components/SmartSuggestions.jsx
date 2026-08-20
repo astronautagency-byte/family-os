@@ -131,8 +131,8 @@ function SmartSuggestionCard({ suggestion, onAccept, onDismiss }) {
   );
 }
 
-export function SmartSuggestionsPanel({ maxItems = 3, className = "" }) {
-  const { suggestions, acceptSuggestion, dismissSuggestion, isAnalyzing } = useFamilyIntelligence();
+export function SmartSuggestionsPanel({ maxItems = 3, className = "", currentPage = "today" }) {
+  const { suggestions, acceptSuggestion, dismissSuggestion, isAnalyzing } = useFamilyIntelligence(currentPage);
   const { createTaskFromEvent } = useCalendarToTask();
   const { addGroceryFromTask } = useTaskToGrocery();
   const { addGroceryFromMeal } = useMealToGrocery();

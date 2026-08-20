@@ -845,7 +845,7 @@ export default function CalendarPage() {
 
         <NativeAdBanner placement={AD_PLACEMENTS.CALENDAR} />
 
-        <SmartSuggestionsPanel maxItems={2} className="calendar-smart-suggestions" />
+        <SmartSuggestionsPanel maxItems={2} className="calendar-smart-suggestions" currentPage="calendar" />
 
         <div className="px-5">
           <div className="apple-calendar-controls">
