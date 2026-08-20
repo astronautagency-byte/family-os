@@ -4753,7 +4753,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   .app-shell .primary-nav .nav-icon{width:32px;height:32px;flex:0 0 32px;border-radius:var(--radius-control)}
   .app-shell .primary-nav .nav-label{display:block;font-size:13px;text-align:left}
   .app-shell .primary-nav .nav-item.is-active{background:var(--color-accent-soft)}
-  .kw-group-items{grid-template-columns:1fr 1fr!important}
+  .kw-page .kw-group-items{grid-template-columns:1fr 1fr!important}
 }
 @media(max-width:767px){
   .app-shell .page-title,body .app-content .page-title{font-size:20px!important;line-height:28px!important;letter-spacing:-.02em!important}

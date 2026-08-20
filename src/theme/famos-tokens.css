@@ -80,6 +80,7 @@
   --radius-xl: 8px;
   --radius-2xl: 12px;
   --radius-3xl: 16px;
+  --radius-section: 12px;
   --radius-pill: 9999px;
 
   /* ── Elevation / shadows (3 levels max) ───────────────────────── */
