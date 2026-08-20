@@ -3,6 +3,7 @@ import { Baby, Bell, BellRing, BriefcaseBusiness, CalendarDays, Check, CheckSqua
 import { useAuth } from "../context/AuthContext";
 import { Card, DateField, PrimaryButton, ProgressBar, SecondaryButton, TextField } from "../components/ui";
 import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
+import { ColorSchemePicker } from "../components/ColorSchemePicker";
 // Namespace import (vs. named `passwordError`) makes every call a property
 // access — esbuild/Terser can no longer minify `passwordError` and a local
 // destructured `error` to the identical short identifier `n`, which was the
@@ -820,36 +821,9 @@ function OnboardingColourScheme({ value, onChange }) {
     <div className="onboarding-scheme-picker">
       <span><Palette size={15}/> Make it yours</span>
       <p>Choose the app colours you'll see. This only changes your view, not anyone else's.</p>
-      <MenuDropdown
-        label="App colour schemes"
+      <ColorSchemePicker
         value={value}
-        options={APP_COLOR_SCHEMES.map((scheme) => ({ ...scheme, value: scheme.id }))}
         onChange={onChange}
-        renderValue={(scheme) => (
-          <>
-            <span className="scheme-emoji">{scheme.emoji}</span>
-            <span className="scheme-swatches" aria-hidden="true">
-              {scheme.colors.map((color) => <i key={color} style={{ backgroundColor: color }} />)}
-            </span>
-            <span className="settings-color-select-copy">
-              <strong>{scheme.label}</strong>
-              <small>{scheme.note}</small>
-            </span>
-          </>
-        )}
-        renderOption={(scheme, selected) => (
-          <>
-            <span className="scheme-emoji">{scheme.emoji}</span>
-            <span className="scheme-swatches" aria-hidden="true">
-              {scheme.colors.map((color) => <i key={color} style={{ backgroundColor: color }} />)}
-            </span>
-            <span>
-              <strong>{scheme.label}</strong>
-              <small>{scheme.note}</small>
-            </span>
-            {selected && <Check size={16} />}
-          </>
-        )}
       />
     </div>
   );

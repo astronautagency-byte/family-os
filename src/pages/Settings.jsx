@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { AlertCircle, Bell, Bug, CalendarDays, Check, CheckCircle2, ChevronRight, Clipboard, Eye, EyeOff, ExternalLink, ImagePlus, Info, Lightbulb, Link2, Mail, MapPin, Megaphone, Palette, Pencil, Phone, Plus, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Ticket, Trash2, Upload, Users, Utensils, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
-import { Alert, Avatar, Card, MenuDropdown, Modal, PrimaryButton, SecondaryButton, TextAreaField, TextField } from "../components/ui";
+import { Alert, Avatar, Card, Modal, PrimaryButton, SecondaryButton, TextAreaField, TextField } from "../components/ui";
+import { ColorSchemePicker } from "../components/ColorSchemePicker";
 import ConfirmAction from "../components/ConfirmAction";
 import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
 import PageHeader from "../components/PageHeader";
@@ -817,38 +818,9 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
           <div className="flex items-end justify-between mb-3"><h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)]">🎨 Appearance</h2></div>
           <Card className="settings-color-scheme-card">
             <div className="settings-color-scheme-head"><span><Palette size={18}/></span><div><strong>App colour</strong><small>Pick a palette that feels like home. Every option is tuned for light and dark mode.</small></div></div>
-            <MenuDropdown
-              className="settings-color-select"
-              label="App colour schemes"
+            <ColorSchemePicker
               value={colorScheme}
-              options={APP_COLOR_SCHEMES.map((scheme) => ({ ...scheme, value: scheme.id }))}
               onChange={onColorSchemeChange}
-              chevronPosition="left"
-              renderValue={(scheme) => (
-                <>
-                  <span className="scheme-emoji">{scheme.emoji}</span>
-                  <span className="scheme-swatches scheme-swatches--small" aria-hidden="true">
-                    {scheme.colors.map((color) => <i key={color} style={{ backgroundColor: color }} />)}
-                  </span>
-                  <span className="settings-color-select-copy">
-                    <strong>{scheme.label}</strong>
-                    <small>{scheme.note}</small>
-                  </span>
-                </>
-              )}
-              renderOption={(scheme, selected) => (
-                <>
-                  <span className="scheme-emoji">{scheme.emoji}</span>
-                  <span className="scheme-swatches scheme-swatches--small" aria-hidden="true">
-                    {scheme.colors.map((color) => <i key={color} style={{ backgroundColor: color }} />)}
-                  </span>
-                  <span>
-                    <strong>{scheme.label}</strong>
-                    <small>{scheme.note}</small>
-                  </span>
-                  {selected && <Check size={16} />}
-                </>
-              )}
             />
           </Card>
         </section>
