@@ -96,6 +96,24 @@ const routeFromLocation = () => {
 };
 const tabFromLocation = () => VALID_TABS.includes(routeFromLocation()) ? routeFromLocation() : "today";
 
+const APP_DOMAIN = "home.fam-os.app";
+const MARKETING_DOMAIN = "fam-os.app";
+
+function ensureCorrectDomain(session) {
+  if (typeof window === "undefined") return;
+  const hostname = window.location.hostname;
+  const isAppDomain = hostname === APP_DOMAIN || hostname.startsWith("home.fam-os");
+  const isMarketingDomain = hostname === MARKETING_DOMAIN || hostname.startsWith("fam-os.app");
+  
+  if (session && isMarketingDomain) {
+    // Signed in on marketing domain → redirect to app domain
+    window.location.replace(`https://${APP_DOMAIN}${window.location.pathname}${window.location.search}`);
+  } else if (!session && isAppDomain && !window.location.pathname.startsWith("/signin") && !window.location.pathname.startsWith("/signup")) {
+    // Not signed in on app domain → redirect to marketing domain
+    window.location.replace(`https://${MARKETING_DOMAIN}/signin`);
+  }
+}
+
 export default function App() {
   const [tab, setTabState] = useState(() => {
     const requestedTab = tabFromLocation();
@@ -146,9 +164,10 @@ export default function App() {
       document.documentElement.dataset.daypart = hour < 12 ? "morning" : hour < 17 ? "day" : "evening";
     };
     applyDaypart();
+    ensureCorrectDomain(session);
     const timer = window.setInterval(applyDaypart, 60_000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [session]);
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 700px) and (max-width: 1100px)");
     const onChange = (event) => setIsTabletViewport(event.matches);

@@ -795,14 +795,13 @@ export default function Meals() {
                             <div className="meal-slot-input-wrapper">
                               <Icon size={16} color={slotColor} className="shrink-0" />
                               <input
-                                type="text"
-                                value={inlineInput}
-                                onChange={(e) => setInlineInput(e.target.value)}
-                                onKeyDown={handleInlineAdd}
-                                placeholder="What's cooking good looking?"
-                                className="meal-slot-input"
-                                autoFocus
-                              />
+type="text"
+                              value={inlineInput}
+                              onChange={(e) => setInlineInput(e.target.value)}
+                              onKeyDown={handleInlineAdd}
+                              placeholder="What's cooking good looking?"
+                              className="meal-slot-input"
+                            />
                             </div>
                           )}
                           <div className="meal-slot-footer">
