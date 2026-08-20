@@ -5667,21 +5667,17 @@ html {
 .kw-card--soon{border-color:color-mix(in srgb,#E85D3A 25%,var(--color-border));background:color-mix(in srgb,#E85D3A 3%,var(--color-surface))}
 .kw-card-body{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:16px}
 .kw-card-left{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}
-.kw-card-cat{display:inline-flex;align-items:center;gap:6px;width:fit-content;padding:4px 10px 4px 4px;border-radius:var(--radius-pill)}
-.kw-card-cat-icon{display:grid;place-items:center;width:24px;height:24px;border-radius:var(--radius-sm)}
+.kw-card-cat{display:inline-flex;align-items:center;gap:6px;width:fit-content;padding:4px 0;border-radius:var(--radius-pill);background:transparent}
+.kw-card-cat-icon{display:grid;place-items:center;width:20px;height:20px;border-radius:var(--radius-sm)}
 .kw-card-cat-label{font-size:11px;font-weight:650;color:var(--color-ink-soft)}
 .kw-card-name{margin:4px 0 0;color:var(--color-ink);font-size:18px;font-weight:750;line-height:1.2;text-transform:capitalize}
 .kw-card-expiry{margin:4px 0 0;font-size:13px;font-weight:700;color:#E85D3A}
 .kw-card-expiry--expired{color:#E85D3A}
 .kw-card-expiry--soon{color:#E85D3A}
+.kw-card-date{display:inline-flex;align-items:center;gap:4px;margin:4px 0 0;font-size:12px;color:var(--color-ink-soft)}
+.kw-card-date svg{flex:0 0 auto}
 .kw-card-location{margin:2px 0 0;color:var(--color-ink-faint);font-size:12px;font-weight:500}
 .kw-card-right{display:flex;flex-direction:column;align-items:center;gap:8px;flex:0 0 auto}
-
-/* Shelf life ring */
-.kw-shelf-ring{position:relative;display:grid;place-items:center;width:90px;height:90px;flex:0 0 90px}
-.kw-ring-center{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
-.kw-ring-percent{color:#E85D3A;font-size:18px;font-weight:700;line-height:1}
-.kw-ring-label{color:var(--color-ink-faint);font-size:9px;font-weight:500}
 
 /* Card action buttons */
 .kw-card-actions{display:flex;gap:6px;margin-top:8px}
@@ -6399,12 +6395,331 @@ reference-tasks,
   color: var(--color-accent);
 }
 
+/* Meal Planner Grid View — Calendar-style grid */
+.meal-grid-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
-/* ═════════════════════════════════════════════════════════════════════════════
-   MICRO-ANIMATIONS — Premium motion design (modern, smooth, natural)
-   Uses Material Design easing: cubic-bezier(0.25, 0.46, 0.45, 0.94)
-   Respects prefers-reduced-motion
-   ════════════════════════════════════════════════════════════════════════════ */
+.meal-grid-header {
+  display: grid;
+  grid-template-columns: 80px repeat(7, 1fr);
+  gap: 8px;
+  padding: 0 4px;
+}
+
+.meal-grid-corner {
+  padding: 8px 4px;
+}
+
+.meal-grid-time-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-ink-faint);
+}
+
+.meal-grid-day-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+}
+
+.meal-grid-day-header.is-today {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.meal-grid-day-header p {
+  margin: 0;
+  text-align: center;
+}
+
+.meal-grid-body {
+  display: grid;
+  grid-template-columns: 80px repeat(7, 1fr);
+  gap: 8px;
+}
+
+.meal-grid-row {
+  display: contents;
+}
+
+.meal-grid-slot-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  border-left-width: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  writing-mode: vertical-lr;
+  text-orientation: mixed;
+  height: 100%;
+  min-height: 120px;
+}
+
+.meal-grid-cell {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.meal-grid-cell:hover {
+  border-color: var(--color-accent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.meal-grid-cell-filled {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.meal-grid-cell-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.meal-grid-cell-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-ink);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meal-grid-cell-avatars {
+  flex: 0 0 auto;
+}
+
+.meal-grid-cell-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+}
+
+.meal-grid-action-btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-ink-faint);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex: 0 0 28px;
+}
+
+.meal-grid-action-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.meal-grid-action-btn.meal-cook-mode-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+  background: var(--color-accent);
+}
+
+.meal-grid-action-btn.meal-delete-btn:hover {
+  border-color: var(--color-warn);
+  color: var(--color-warn);
+  background: color-mix(in srgb, var(--color-warn) 6%, var(--color-surface));
+}
+
+.meal-grid-cell-empty {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.meal-grid-cell-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.meal-grid-cell-input {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--color-ink);
+  font-size: 12px;
+  outline: none;
+}
+
+.meal-grid-cell-input::placeholder {
+  color: var(--color-ink-faint);
+}
+
+.meal-grid-cell-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+}
+
+.meal-view-toggle {
+  display: flex;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.meal-view-toggle button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-ink-soft);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.meal-view-toggle button:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.meal-view-toggle button.selected {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.meal-range-toggle button {
+  padding: 8px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-ink-soft);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.meal-range-toggle button:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.meal-range-toggle button.selected {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+/* Responsive adjustments */
+@media (max-width: 700px) {
+  .meal-grid-header,
+  .meal-grid-body {
+    grid-template-columns: 60px repeat(7, 1fr);
+    gap: 4px;
+  }
+  
+  .meal-grid-slot-label {
+    writing-mode: horizontal-tb;
+    text-orientation: mixed;
+    height: auto;
+    min-height: auto;
+    padding: 6px 4px;
+    font-size: 10px;
+  }
+  
+  .meal-grid-cell {
+    min-height: 80px;
+  }
+  
+  .meal-grid-action-btn {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .meal-grid-cell-title {
+    font-size: 11px;
+  }
+  
+  .meal-grid-cell-input {
+    font-size: 11px;
+  }
+  
+  .meal-grid-action-btn {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .meal-view-toggle {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .meal-grid-header,
+  .meal-grid-body {
+    grid-template-columns: 50px repeat(7, 1fr);
+    gap: 2px;
+  }
+  
+  .meal-grid-slot-label {
+    font-size: 9px;
+    padding: 4px 2px;
+  }
+  
+  .meal-grid-cell {
+    min-height: 70px;
+  }
+  
+  .meal-grid-cell-title {
+    font-size: 10px;
+  }
+  
+  .meal-grid-action-btn {
+    width: 22px;
+    height: 22px;
+  }
+  
+  .meal-grid-cell-input {
+    font-size: 10px;
+  }
+}
 
 /* Modern easing curves */
 :root {
@@ -6623,7 +6938,6 @@ input:focus, textarea:focus, select:focus {
 }
 
 /* Progress ring animation — smooth spring */
-.kw-shelf-ring svg circle:last-child,
 .meal-slot-ring svg circle:last-child {
   transition: stroke-dashoffset 0.9s cubic-bezier(0.34, 1.56, 0.64, 1), stroke 0.3s var(--ease-standard);
 }

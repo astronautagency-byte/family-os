@@ -1,80 +1,17 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, Check, ChefHat, Croissant, Drumstick, Milk, Minus, Package, Plus, Refrigerator, Search, Snowflake, X, Carrot, Sandwich, Trash2, Clock, Leaf, CalendarClock } from "lucide-react";
+import { AlertTriangle, ChefHat, Croissant, Drumstick, Milk, Minus, Package, Plus, Refrigerator, Search, Snowflake, X, Carrot, Sandwich, Trash2, Clock, Leaf, CalendarClock } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
 import useKitchenInventory from "../hooks/useKitchenInventory";
-import { daysUntilExpiry, inventoryExpiryProgress, toLocalDay } from "../lib/inventoryExpiry";
+import { daysUntilExpiry, toLocalDay } from "../lib/inventoryExpiry";
 
-const CATEGORY_COLORS = {
-  "Produce": { bg: "color-mix(in srgb, var(--color-shopping) 12%, var(--color-surface))", icon: "var(--color-shopping-strong)" },
-  "Dairy & Eggs": { bg: "color-mix(in srgb, #E85D3A 12%, var(--color-surface))", icon: "#E85D3A" },
-  "Meat & Seafood": { bg: "color-mix(in srgb, var(--color-warn) 12%, var(--color-surface))", icon: "var(--color-warn)" },
-  "Bakery": { bg: "color-mix(in srgb, #E07C24 12%, var(--color-surface))", icon: "#E07C24" },
-  "Deli & Prepared Foods": { bg: "color-mix(in srgb, var(--color-chat) 12%, var(--color-surface))", icon: "var(--color-chat-strong)" },
-};
-
-function shelfLifeColor(daysRemaining) {
-  if (daysRemaining <= 0) return "#E85D3A";
-  if (daysRemaining <= 2) return "#E85D3A";
-  if (daysRemaining <= 5) return "#E85D3A";
-  return "#E85D3A";
-}
-
-function ShelfLifeRing({ item, size = 90, strokeWidth = 7 }) {
-  if (!item.expiresOn) return null;
-  const days = daysUntilExpiry(item.expiresOn);
-  if (days === null) return null;
-  const progress = inventoryExpiryProgress(item);
-  if (!progress) return null;
-  const color = shelfLifeColor(days);
-  const percent = Math.max(0, Math.min(100, progress.remainingPercent));
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - percent / 100);
-
-  return (
-    <div className="kw-shelf-ring">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)" }}>
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="#F3E8E0"
-          strokeWidth={strokeWidth}
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke={color}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          style={{ transition: "stroke-dashoffset 0.6s ease-out, stroke 0.3s ease" }}
-        />
-      </svg>
-      <div className="kw-ring-center">
-        <span className="kw-ring-percent">{Math.round(percent)}%</span>
-        <span className="kw-ring-label">Shelf life</span>
-      </div>
-    </div>
-  );
-}
-import { categorizeGroceryItem } from "../lib/groceryCategories";
-import { isIngredientOnList } from "../lib/mealIngredientCache";
-import { Badge, DateField, Modal, PrimaryButton, TextField } from "../components/ui";
-import PageHeader from "../components/PageHeader";
-import PullToRefresh from "../components/PullToRefresh";
-
-export const KITCHEN_WATCH_CATEGORIES = ["Produce", "Deli & Prepared Foods", "Dairy & Eggs", "Meat & Seafood", "Bakery"];
 const CATEGORY_ICONS = { Produce: Carrot, "Deli & Prepared Foods": Sandwich, "Dairy & Eggs": Milk, "Meat & Seafood": Drumstick, Bakery: Croissant };
 const LOCATION_ICONS = { fridge: Refrigerator, freezer: Snowflake, pantry: Package };
 const LOCATION_LABELS = { fridge: "Fridge", freezer: "Freezer", pantry: "Pantry" };
 const emptyDraft = { name: "", quantity: 1, unit: "", location: "fridge", expiresOn: "", sourceGroceryId: null, category: KITCHEN_WATCH_CATEGORIES[0], brand: "", barcode: "", imageUrl: "" };
 const isWatched = (category) => KITCHEN_WATCH_CATEGORIES.includes(category);
+
+export const KITCHEN_WATCH_CATEGORIES = ["Produce", "Deli & Prepared Foods", "Dairy & Eggs", "Meat & Seafood", "Bakery"];
 
 
 function expiryGroup(item) {
@@ -228,14 +165,20 @@ export default function KitchenWatch() {
               <article key={item.id} className={`kw-card ${isExpired ? "kw-card--expired" : ""} ${isSoon ? "kw-card--soon" : ""}`}>
                 <div className="kw-card-body">
                   <div className="kw-card-left">
-                    <div className="kw-card-cat" style={{ background: catColors.bg }}>
-                      <span className="kw-card-cat-icon" style={{ background: catColors.icon }}><CatIcon size={14} color="#fff" /></span>
+                    <div className="kw-card-cat" style={{ background: "transparent", padding: "4px 0" }}>
+                      <CatIcon size={14} style={{ color: "var(--color-ink-soft)" }} />
                       <span className="kw-card-cat-label">{item.category}</span>
                     </div>
                     <h4 className="kw-card-name">{item.name}</h4>
                     {expiryText && (
                       <p className={`kw-card-expiry ${isExpired ? "kw-card-expiry--expired" : ""} ${isSoon ? "kw-card-expiry--soon" : ""}`}>
                         {expiryText}
+                      </p>
+                    )}
+                    {item.expiresOn && (
+                      <p className="kw-card-date">
+                        <CalendarClock size={12} />
+                        {expiryDateDisplay(item.expiresOn)}
                       </p>
                     )}
                     <p className="kw-card-location">
@@ -249,7 +192,6 @@ export default function KitchenWatch() {
                     </div>
                   </div>
                   <div className="kw-card-right">
-                    <ShelfLifeRing item={item} />
                     <button type="button" className="kw-delete-btn" onClick={() => setConfirmDelete(item)} aria-label={`Remove ${item.name}`}><Trash2 size={18}/></button>
                   </div>
                 </div>

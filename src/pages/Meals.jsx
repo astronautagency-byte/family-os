@@ -191,6 +191,7 @@ export default function Meals() {
   const { items: inventoryItems, ingredientNames: inventoryIngredientNames, removeItem: removeInventoryItem } = useKitchenInventory(household?.id, user?.id);
   const [horizon, setHorizon] = useState(7);
   const [clearing, setClearing] = useState(false);
+  const [viewMode, setViewMode] = useState("list");
   const [editing, setEditing] = useState(null); // { date, slot, mealId }
   const [previewMeal, setPreviewMeal] = useState(null);
   const [draft, setDraft] = useState({ title: "", notes: "", cookIds: [] });
@@ -686,6 +687,144 @@ export default function Meals() {
     });
     setPlanningRecipe(null);
   };
+
+  // View definitions (defined before return so they can use kitchenIngredients)
+  const gridView = (
+    <div className="px-5">
+      <MealGridView
+        weekDays={weekDays}
+        mealFor={mealFor}
+        memberById={memberById}
+        SLOT_ORDER={SLOT_ORDER}
+        SLOT_META={SLOT_META}
+        rouletteForSlot={rouletteForSlot}
+        setMealForSlot={setMealForSlot}
+        openEditor={openEditor}
+        openCookRecipe={openCookRecipe}
+        saveRecipeToLibrary={saveRecipeToLibrary}
+        removeMeal={removeMeal}
+      />
+    </div>
+  );
+
+  // Use a single object to track all inline inputs instead of individual useState calls
+  const [inlineInputs, setInlineInputs] = useState({});
+  const handleInlineAdd = (date, slot, e) => {
+    if (e.key === "Enter" && inlineInputs[`${date}-${slot}`]?.trim()) {
+      const title = inlineInputs[`${date}-${slot}`].trim();
+      setInlineInputs((prev) => ({ ...prev, [`${date}-${slot}`]: "" }));
+      setMealForSlot(date, slot, { title: "", notes: "", cookIds: [], source: "manual" });
+    }
+  };
+  const setInlineInput = (date, slot, val) => setInlineInputs((prev) => ({ ...prev, [`${date}-${slot}`]: val }));
+
+  const listView = (
+    <div className="px-5 space-y-4 mt-2">
+      {weekDays.map((date) => {
+        const isToday = date === todayISO();
+        return (
+          <Card key={date} className="meal-day-card p-4 bg-meals-soft border-meals">
+            <div className="flex items-center justify-between mb-3">
+              <p className="font-[var(--font-display)] font-semibold text-[15px] text-[var(--color-ink)]">
+                {formatDayLabel(date)}
+              </p>
+              {isToday && (
+                <span className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-accent)] bg-[var(--color-accent-soft)] px-2 py-0.5 rounded-full">
+                  Today
+                </span>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              {MEAL_SLOTS.map((slot) => {
+                const meal = mealFor(date, slot);
+                const Icon = SLOT_META[slot].icon;
+                const cooks = (meal?.cookIds ?? []).map((id) => memberById[id]).filter(Boolean);
+                const adder = meal?.createdBy ? memberById[meal.createdBy] : null;
+                const inputKey = `${date}-${slot}`;
+                const inlineInput = inlineInputs[inputKey] || "";
+                const slotColor = slot === "breakfast" ? "#22A06B" : slot === "lunch" ? "#E85D3A" : "#D94F4F";
+                return (
+                  <article key={slot} className={`meal-slot-card ${slot === "dinner" ? "is-dinner" : ""}`} style={{ borderLeftColor: slotColor }}>
+                    <div className="meal-slot-card-body">
+                      <div className="meal-slot-card-left">
+                        <div className="meal-slot-header">
+                          <span className="meal-slot-label" style={{ color: slotColor }}>
+                            {SLOT_META[slot].label}
+                          </span>
+                          {cooks.length > 0 && (
+                            <AvatarStack members={cooks} size="xs" className="meal-slot-avatars" />
+                          )}
+                        </div>
+                        {meal?.title ? (
+                          <p className="meal-slot-title">{meal.title}</p>
+                        ) : (
+                          <div className="meal-slot-input-wrapper">
+                            <Icon size={16} color={slotColor} className="shrink-0" />
+                            <input
+                              type="text"
+                              value={inlineInput}
+                              onChange={(e) => setInlineInput(inputKey, e.target.value)}
+                              onKeyDown={(e) => handleInlineAdd(date, slot, e)}
+                              placeholder="What's cooking good looking?"
+                              className="meal-slot-input"
+                            />
+                          </div>
+                        )}
+                        <div className="meal-slot-footer">
+                          <div className="meal-slot-actions-left">
+                            {meal?.title ? (
+                              <>
+                                {meal.source === "spoonacular" && (
+                                  <button className="meal-cook-mode-btn" onClick={() => openCookRecipe(meal)}>
+                                    <ChefHat size={13} /> Cook mode
+                                  </button>
+                                )}
+                                <button className="meal-save-recipe-btn" onClick={() => saveRecipeToLibrary(meal)}>
+                                  <Bookmark size={13} /> Save
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                className="meal-suggest-btn"
+                                onClick={() => rouletteForSlot(date, slot, true)}
+                                disabled={!kitchenIngredients.length}
+                                aria-label={`Suggest a ${SLOT_META[slot].label.toLowerCase()} meal`}
+                              >
+                                <Dices size={13} /> Suggest a meal
+                              </button>
+                            )}
+                          </div>
+                          <div className="meal-slot-actions-right">
+                            {meal?.title ? (
+                              <>
+                                <button className="meal-tool-btn" onClick={() => openEditor(date, slot)} aria-label="Edit meal">
+                                  <Pencil size={14} />
+                                </button>
+                                <button className="meal-tool-btn meal-tool-delete" onClick={() => removeMeal(meal.id)} aria-label="Delete meal">
+                                  <Trash2 size={14} />
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                className="meal-saved-btn"
+                                onClick={() => { openEditor(date, slot); setShowSavedRecipes(true); }}
+                                aria-label={`Choose a saved recipe for ${SLOT_META[slot].label.toLowerCase()}`}
+                              >
+                                <Bookmark size={14} /> Saved
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+    );
 
   return (
     <PullToRefresh onRefresh={refreshData}><div className="pb-24 reference-meals">
