@@ -4,14 +4,26 @@ import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
 import useKitchenInventory from "../hooks/useKitchenInventory";
 import { daysUntilExpiry, toLocalDay } from "../lib/inventoryExpiry";
+import { categorizeGroceryItem } from "../lib/groceryCategories";
+import { isIngredientOnList } from "../lib/mealIngredientCache";
+import PullToRefresh from "../components/PullToRefresh";
+import PageHeader from "../components/PageHeader";
+import { Modal, TextField, DateField, PrimaryButton } from "../components/ui";
+
+export const KITCHEN_WATCH_CATEGORIES = ["Produce", "Deli & Prepared Foods", "Dairy & Eggs", "Meat & Seafood", "Bakery"];
 
 const CATEGORY_ICONS = { Produce: Carrot, "Deli & Prepared Foods": Sandwich, "Dairy & Eggs": Milk, "Meat & Seafood": Drumstick, Bakery: Croissant };
 const LOCATION_ICONS = { fridge: Refrigerator, freezer: Snowflake, pantry: Package };
 const LOCATION_LABELS = { fridge: "Fridge", freezer: "Freezer", pantry: "Pantry" };
+const CATEGORY_COLORS = {
+  Produce: { bg: "#E8F5E9", icon: "#2E7D32" },
+  "Deli & Prepared Foods": { bg: "#FFF3E0", icon: "#E65100" },
+  "Dairy & Eggs": { bg: "#F3E5F5", icon: "#7B1FA2" },
+  "Meat & Seafood": { bg: "#FFEBEE", icon: "#C62828" },
+  Bakery: { bg: "#FFF8E1", icon: "#F57F17" }
+};
 const emptyDraft = { name: "", quantity: 1, unit: "", location: "fridge", expiresOn: "", sourceGroceryId: null, category: KITCHEN_WATCH_CATEGORIES[0], brand: "", barcode: "", imageUrl: "" };
 const isWatched = (category) => KITCHEN_WATCH_CATEGORIES.includes(category);
-
-export const KITCHEN_WATCH_CATEGORIES = ["Produce", "Deli & Prepared Foods", "Dairy & Eggs", "Meat & Seafood", "Bakery"];
 
 
 function expiryGroup(item) {

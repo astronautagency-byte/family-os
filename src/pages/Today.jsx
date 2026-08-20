@@ -74,70 +74,6 @@ function DashboardMoveHandle({ id, label, order, onMove }) {
   </div>;
 }
 
-function DashboardResizeHandle({ cardId, onResize }) {
-  const [isResizing, setIsResizing] = useState(false);
-  const startX = useRef(0);
-  const startWidth = useRef(0);
-  const cardRef = useRef(null);
-
-  const handleMouseDown = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsResizing(true);
-    startX.current = e.clientX;
-    const card = document.querySelector(`[data-dashboard-card="${cardId}"]`);
-    if (card) {
-      cardRef.current = card;
-      const style = window.getComputedStyle(card);
-      const gridColumn = style.gridColumn || "span 4";
-      const match = gridColumn.match(/span\s+(\d+)/);
-      startWidth.current = match ? parseInt(match[1]) : 4;
-    }
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-  };
-
-  const handleMouseMove = (e) => {
-    if (!isResizing || !cardRef.current) return;
-    const deltaX = e.clientX - startX.current;
-    const gridGap = 14; // matches CSS gap
-    const cardRect = cardRef.current.getBoundingClientRect();
-    const containerRect = cardRef.current.parentElement?.getBoundingClientRect();
-    if (!containerRect) return;
-    const columnWidth = (containerRect.width - gridGap * 11) / 12; // 12 columns, 11 gaps
-    const deltaColumns = Math.round((deltaX + gridGap / 2) / (columnWidth + gridGap));
-    const newSpan = Math.max(1, Math.min(12, startWidth.current + deltaColumns));
-    cardRef.current.style.gridColumn = `span ${newSpan}`;
-  };
-
-  const handleMouseUp = () => {
-    if (!isResizing) return;
-    setIsResizing(false);
-    document.removeEventListener("mousemove", handleMouseMove);
-    document.removeEventListener("mouseup", handleMouseUp);
-    if (cardRef.current) {
-      const match = cardRef.current.style.gridColumn?.match(/span\s+(\d+)/);
-      const newSpan = match ? parseInt(match[1]) : 4;
-      onResize(cardId, newSpan);
-    }
-  };
-
-  return (
-    <div
-      className={`today-card-resize-handle ${isResizing ? "resizing" : ""}`}
-      onMouseDown={handleMouseDown}
-      aria-label="Resize card"
-      title="Drag to resize"
-    >
-      <div className="resize-handle-inner" aria-hidden="true">
-        <div className="resize-dot" />
-        <div className="resize-dot" />
-        <div className="resize-dot" />
-      </div>
-    </div>
-  );
-}
-
 // Open-Meteo WMO weather codes → our kind vocabulary (used only in the keyless fallback).
 const wmoToKind = (code) => {
   const c = Number(code);
@@ -251,9 +187,10 @@ function BroadcastBanner({ item, sender, reactions, currentUserId, onReact, onCl
 export default function Today({ goTo }) {
   const { members, memberById, events, googleEvents, feedEvents, meals, tasks, taskLists = [], groceries, messages, addGrocery, toggleTask, tabletMode, broadcasts, broadcastMessage, clearBroadcast, reactionsByMessage, reactToBroadcast, currentUserId, refreshData, syncGoogleCalendarNow, googleConnected, notificationPermission, requestNotifications } = useFamily();
   const { profile, user, household, householdProfileExtra } = useAuth();
-  const { items: inventoryItems } = useKitchenInventory(household?.id, user?.id);
+  const { items: inventoryItems, removeItem: removeInventoryItem } = useKitchenInventory(household?.id, user?.id);
   const expiryAlerts = useMemo(() => expiringInventory(inventoryItems), [inventoryItems]);
   const [replacementIds, setReplacementIds] = useState(() => new Set());
+  const [remindedIds, setRemindedIds] = useState(() => new Set());
   const [weather, setWeather] = useState(null);
   const [weatherError, setWeatherError] = useState("");
   const [broadcastText, setBroadcastText] = useState("");
@@ -284,10 +221,6 @@ export default function Today({ goTo }) {
     if (typeof window !== "undefined") localStorage.setItem("famos:today-card-sizes:v1", JSON.stringify(cardSizes));
   }, [cardSizes]);
 
-  const handleCardResize = (cardId, span) => {
-    setCardSizes((prev) => ({ ...prev, [cardId]: span }));
-  };
-
   const dashboardPosition = (id) => { 
     if (id === "broadcast") {
       return { 
@@ -299,7 +232,6 @@ export default function Today({ goTo }) {
     return { 
       order: dashboardOrder.indexOf(id) + 1, 
       display: hiddenDashboardCards.includes(id) ? "none" : undefined,
-      gridColumn: cardSizes[id] ? `span ${cardSizes[id]}` : undefined,
     };
   };
   const toggleDashboardCard = (id) => setHiddenDashboardCards((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
@@ -365,6 +297,29 @@ export default function Today({ goTo }) {
     if (replacementIds.has(item.id) || groceries.some((grocery) => !grocery?.checked && String(grocery?.name || "").toLowerCase() === String(item?.name || "").toLowerCase())) return;
     await addGrocery({ name: item.name, quantity: 1, unit: item.unit || "" });
     setReplacementIds((current) => new Set(current).add(item.id));
+  };
+
+  // Per-item "Remind me" — asks for notification permission on first use,
+  // then fires an immediate reminder for this exact item and flashes inline
+  // confirmation on the card.
+  const remindForItem = async (item) => {
+    if (notificationPermission !== "granted") {
+      const result = await requestNotifications();
+      if (result !== "granted") return;
+    }
+    const title = `Use your ${item.name}`;
+    const body = item.expiry?.label ? `${item.expiry.label} · ${item.location || "kitchen"}` : `It's time to use or replace your ${item.name}.`;
+    try {
+      const registration = await navigator.serviceWorker?.ready;
+      if (registration) await registration.showNotification(title, { body, tag: `kitchen-item-${item.id}`, icon: "/brand/famos-icon.png", data: { url: "/#today" } });
+      else if (typeof Notification !== "undefined") new Notification(title, { body, icon: "/brand/famos-icon.png" });
+    } catch { /* inline confirmation below still acknowledges the tap */ }
+    setRemindedIds((current) => new Set(current).add(item.id));
+    window.setTimeout(() => setRemindedIds((current) => {
+      const next = new Set(current);
+      next.delete(item.id);
+      return next;
+    }), 2000);
   };
 
   // Cycle through friendly placeholders while the composer is "true empty"
@@ -656,9 +611,8 @@ export default function Today({ goTo }) {
             </div>
           )}
         </section>
-        <Card className={`weather-now-card p-4 ${editingDashboard ? "is-customizing" : ""} bg-calendar-soft border-calendar`} style={dashboardPosition("weather")} {...dashboardDragProps("weather")}>
+        <Card className={`weather-now-card p-4 ${editingDashboard ? "is-customizing" : ""}`} style={dashboardPosition("weather")} {...dashboardDragProps("weather")}>
           {moveHandle("weather")}
-          <DashboardResizeHandle cardId="weather" onResize={handleCardResize} />
           {weather?.alerts?.length > 0 && (
             <div className="weather-alerts">
               {weather.alerts.map((alert, index) => (
@@ -693,33 +647,93 @@ export default function Today({ goTo }) {
         </Card>
         <section className={`today-bento-kitchen ${editingDashboard ? "is-customizing" : ""}`} aria-labelledby="kitchen-watch-title" style={dashboardPosition("kitchen")} {...dashboardDragProps("kitchen")}>
           {moveHandle("kitchen")}
-          <DashboardResizeHandle cardId="kitchen" onResize={handleCardResize} />
-          <Card className="today-kitchen-watch p-4 bg-shopping-soft border-shopping">
-            <div className="flex items-start justify-between gap-3 mb-3">
-              <div className="flex items-start gap-3">
-                <span className="w-10 h-10 rounded-xl bg-[var(--color-shopping-soft)] text-[var(--color-shopping-strong)] flex items-center justify-center shrink-0"><Refrigerator size={19} /></span>
-                <div><p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Kitchen watch</p><h2 id="kitchen-watch-title" className="ui-section-title">Use it or replace it</h2><p className="text-[12px] text-[var(--color-ink-soft)] mt-1">A gentle nudge before good groceries stage a disappearing act.</p></div>
-              </div>
-              {notificationPermission !== "granted" && <button type="button" onClick={requestNotifications} className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-2.5 py-2 text-[11px] font-semibold text-[var(--color-accent-strong)]"><Bell size={13} /> Remind me</button>}
+          <Card className="p-0 overflow-hidden border-0 shadow-sm">
+            {/* Kitchen Watch header */}
+            <div className="px-4 pt-4 pb-2">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#D94F4F] mb-1">Track what's expiring</p>
+              <h2 id="kitchen-watch-title" className="text-[22px] font-bold text-[var(--color-ink)] leading-tight">Kitchen Watch</h2>
+              <p className="text-[12px] text-[var(--color-ink-soft)] mt-1">A few taps now can prevent a kitchen-table summit later.</p>
             </div>
-            {expiryAlerts.length > 0 ? <div className="grid gap-2">
-              {expiryAlerts.slice(0, 4).map((item) => {
-                const alreadyListed = replacementIds.has(item.id) || groceries.some((grocery) => !grocery?.checked && String(grocery?.name || "").toLowerCase() === String(item?.name || "").toLowerCase());
-                return <article key={item.id} className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
-                  <div className="min-w-0 flex-1"><strong className="block truncate text-[13px] text-[var(--color-ink)]">{item.name}</strong><span className={`text-[11px] font-semibold ${item.expiry.state === "expired" ? "text-[var(--color-warn)]" : "text-[var(--color-shopping-strong)]"}`}>{item.expiry.label} · {item.location}</span></div>
-                  <button type="button" disabled={alreadyListed} onClick={() => replaceInventoryItem(item)} className="shrink-0 rounded-lg bg-[var(--color-accent-soft)] px-2.5 py-2 text-[11px] font-semibold text-[var(--color-accent-strong)] disabled:opacity-60">{alreadyListed ? "On list" : "Replace"}</button>
-                </article>;
-              })}
-            </div> : inventoryItems.length > 0 ? <div className="today-inventory-preview">
-              {inventoryItems.slice(0, 4).map((item) => <article key={item.id}><span><Refrigerator size={14}/></span><div><strong>{item.name}</strong><small>{item.location || "kitchen"}{item.expiresOn ? ` · use by ${new Date(`${item.expiresOn}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" })}` : ""}</small></div></article>)}
-            </div> : <button type="button" className="today-kitchen-empty" onClick={() => goTo("groceries")}><Refrigerator size={18}/><span><strong>Your kitchen tracker is ready</strong><small>Check off shopping items, then move them into the fridge, freezer, or pantry.</small></span><ChevronRight size={15}/></button>}
-            <button type="button" onClick={() => goTo("groceries")} className="mt-3 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--color-accent-strong)]">Open kitchen inventory <ChevronRight size={13} /></button>
+            {/* Expiring soon banner */}
+            {expiryAlerts.length > 0 && (
+              <div className="mx-4 mt-2 mb-3 flex items-center gap-2 rounded-xl px-3.5 py-2.5" style={{ background: 'linear-gradient(135deg, rgba(254,226,226,0.7) 0%, rgba(254,205,211,0.5) 100%)', border: '1px solid rgba(252,165,165,0.3)' }}>
+                <Bell size={16} className="text-[#D94F4F] shrink-0" />
+                <span className="text-[13px] font-semibold text-[#D94F4F]">
+                  {expiryAlerts.length} Item{expiryAlerts.length === 1 ? '' : 's'} expiring soon
+                </span>
+              </div>
+            )}
+            {/* Expiry items */}
+            {expiryAlerts.length > 0 ? (
+              <div className="px-4 pb-4 space-y-3">
+                {expiryAlerts.slice(0, 4).map((item) => {
+                  const alreadyListed = replacementIds.has(item.id) || groceries.some((grocery) => !grocery?.checked && String(grocery?.name || "").toLowerCase() === String(item?.name || "").toLowerCase());
+                  const isExpired = item.expiry.state === 'expired';
+                  const daysLeft = item.expiry.daysLeft;
+                  const categoryLabel = item.category || 'Uncategorised';
+                  return (
+                    <div key={item.id} className="kw-card">
+                      <div className="kw-card-top">
+                        <span className="kw-card-category">
+                          <Refrigerator size={12} /> {categoryLabel}
+                        </span>
+                        <span className="kw-card-date">
+                          {new Date(`${item.expiresOn || item.expiresOn}T12:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                        </span>
+                      </div>
+                      <h3 className="kw-card-name">{item.name}</h3>
+                      <div className="kw-card-bottom">
+                        <div className="kw-card-actions">
+                          <button
+                            type="button"
+                            disabled={alreadyListed}
+                            onClick={() => replaceInventoryItem(item)}
+                            className={isExpired ? 'kw-card-action kw-card-action-replace' : 'kw-card-action kw-card-action-date'}
+                          >
+                            {alreadyListed ? 'On list' : isExpired ? 'Replace item' : 'Change date'}
+                          </button>
+                          <button type="button" onClick={() => removeInventoryItem(item.id)} className="kw-card-delete" aria-label="Delete item">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                        <div className="kw-card-status">
+                          <span className={isExpired ? 'kw-status-text kw-status-expired' : 'kw-status-text kw-status-ok'}>
+                            {isExpired ? 'Expired' : item.expiry.label}
+                          </span>
+                          <span className="kw-card-location">{item.location || 'Kitchen'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : inventoryItems.length > 0 ? (
+              <div className="px-4 pb-4">
+                <div className="text-center py-6 text-[var(--color-ink-soft)] text-[13px]">
+                  <Refrigerator size={24} className="mx-auto mb-2 opacity-50" />
+                  <p>All items are fresh!</p>
+                </div>
+              </div>
+            ) : (
+              <button type="button" className="today-kitchen-empty" onClick={() => goTo("groceries")}>
+                <Refrigerator size={18}/><span><strong>Your kitchen tracker is ready</strong><small>Check off shopping items, then move them into the fridge, freezer, or pantry.</small></span><ChevronRight size={15}/>
+              </button>
+            )}
+            {notificationPermission !== "granted" && expiryAlerts.length > 0 && (
+              <div className="px-4 pb-4">
+                <button type="button" onClick={requestNotifications} className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-[var(--color-border)] py-2.5 text-[12px] font-semibold text-[var(--color-ink-soft)]">
+                  <Bell size={14} /> Remind me about expiring items
+                </button>
+              </div>
+            )}
+            <button type="button" onClick={() => goTo("groceries")} className="w-full px-4 py-3 text-left text-[12px] font-semibold text-[var(--color-accent-strong)] border-t border-[var(--color-border)]">
+              Open kitchen inventory →
+            </button>
           </Card>
         </section>
         <section className={`today-bento-schedule ${editingDashboard ? "is-customizing" : ""}`} style={dashboardPosition("schedule")} {...dashboardDragProps("schedule")}>
           {moveHandle("schedule")}
-          <DashboardResizeHandle cardId="schedule" onResize={handleCardResize} />
-          <Card className="today-flow-card p-4 bg-tasks-soft border-tasks">
+          <Card className="today-flow-card p-4">
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Today’s schedule</p>
@@ -769,9 +783,8 @@ export default function Today({ goTo }) {
         </section>
 
         <section className="m3-grid lg:grid-cols-2 today-bento-meal-grid">
-          <Card className={`today-meals-card p-4 ${editingDashboard ? "is-customizing" : ""} bg-meals-soft border-meals`} style={dashboardPosition("meals")} {...dashboardDragProps("meals")}>
+          <Card className={`today-meals-card p-4 ${editingDashboard ? "is-customizing" : ""}`} style={dashboardPosition("meals")} {...dashboardDragProps("meals")}>
             {moveHandle("meals")}
-              <DashboardResizeHandle cardId="meals" onResize={handleCardResize} />
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Meals</p>
@@ -827,9 +840,8 @@ export default function Today({ goTo }) {
             </div>
           </Card>
 
-          <Card className={`today-groceries-card p-4 ${editingDashboard ? "is-customizing" : ""} bg-shopping-soft border-shopping`} style={dashboardPosition("groceries")} {...dashboardDragProps("groceries")}>
+          <Card className={`today-groceries-card p-4 ${editingDashboard ? "is-customizing" : ""}`} style={dashboardPosition("groceries")} {...dashboardDragProps("groceries")}>
             {moveHandle("groceries")}
-              <DashboardResizeHandle cardId="groceries" onResize={handleCardResize} />
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Shopping</p>
@@ -863,8 +875,7 @@ export default function Today({ goTo }) {
 
         <section className={`today-bento-tasks ${editingDashboard ? "is-customizing" : ""}`} style={dashboardPosition("tasks")} {...dashboardDragProps("tasks")}>
           {moveHandle("tasks")}
-          <DashboardResizeHandle cardId="tasks" onResize={handleCardResize} />
-          <Card className="today-tasks-card p-4 bg-family-soft border-family">
+          <Card className="today-tasks-card p-4 bg-family-soft">
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Tasks</p>
@@ -905,8 +916,7 @@ export default function Today({ goTo }) {
         </section>
         <section className={`today-bento-messages ${editingDashboard ? "is-customizing" : ""}`} aria-labelledby="latest-family-messages" style={dashboardPosition("messages")} {...dashboardDragProps("messages")}>
           {moveHandle("messages")}
-          <DashboardResizeHandle cardId="messages" onResize={handleCardResize} />
-          <Card className="today-messages-card p-4 bg-chat-soft border-chat">
+          <Card className="today-messages-card p-4">
             <div className="flex items-center justify-between gap-3 mb-3">
               <div><p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Family chat</p><h2 id="latest-family-messages" className="ui-section-title">Latest messages</h2></div>
               <button onClick={() => goTo("chat")} className="text-[13px] font-semibold text-[var(--color-accent)] flex items-center gap-0.5">Open chat <ChevronRight size={14}/></button>

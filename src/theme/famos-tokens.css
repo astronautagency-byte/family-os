@@ -72,16 +72,19 @@
   --text-display: 32px;
   --text-display-lg: 40px;
 
-  /* ── Radius scale (matching Tailwind defaults) ────────────────── */
+  /* ── Radius scale ───────────────────────────────────────────── */
   --radius-xs: 2px;
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
   --radius-xl: 8px;
-  --radius-2xl: 12px;
-  --radius-3xl: 16px;
-  --radius-section: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 20px;
+  --radius-section: 20px;
   --radius-pill: 9999px;
+  --radius-tag: 20px;  /* labels, tabs, tokens */
+  --radius-control: 6px;  /* form controls, buttons */
+  --radius-card: 20px;  /* boxes and containers */
 
   /* ── Elevation / shadows (3 levels max) ───────────────────────── */
   --shadow-xs: 0 1px 2px rgba(17, 24, 39, 0.04);

@@ -18,7 +18,6 @@ import { buildShareUrl, nativeShareWithFallback } from "../lib/share";
 import { eventCacheKey, readEventCache, writeEventCache, clearEventCache } from "../lib/eventSearchCache";
 import NativeAdBanner from "../components/NativeAdBanner";
 import { AD_PLACEMENTS } from "../lib/adNetwork";
-import { SmartSuggestionsPanel } from "../components/SmartSuggestions";
 
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 
@@ -271,6 +270,9 @@ export default function CalendarPage() {
   const [editingEvent, setEditingEvent] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  // Events that overlap the current draft in time AND owner — surfaced as a
+  // warning before save so nobody gets silently double-booked.
+  const [conflicts, setConflicts] = useState(null);
   const [clearing, setClearing] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -462,6 +464,7 @@ export default function CalendarPage() {
       ...(prefill || {}),
     });
     setSaveError("");
+    setConflicts(null);
     setAdding(true);
   };
 
@@ -472,6 +475,7 @@ export default function CalendarPage() {
     setEditingEvent(event.seriesId ? { ...event, id: event.seriesId } : event);
     setSelectedEvent(null);
     setSaveError("");
+    setConflicts(null);
     setAdding(true);
   };
 
@@ -663,10 +667,40 @@ export default function CalendarPage() {
     setSaveError(""); setDiscovering(false); setAdding(true);
   };
 
-  const save = async () => {
+  // Conflict detection — flag other family events that overlap the candidate
+  // in time AND share at least one assigned member, so nobody gets
+  // double-booked. Google-destination events skip the check: the draft's
+  // owners don't map to FamOS household members the same way.
+  const findConflicts = (candidate, excludeId) => {
+    const memberIds = Array.isArray(candidate.memberIds) ? candidate.memberIds : [];
+    if (!memberIds.length) return [];
+    const start = new Date(candidate.start).getTime();
+    const end = new Date(candidate.end).getTime();
+    if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return [];
+    return events.filter((event) => {
+      if (excludeId && (event.id === excludeId || event.seriesId === excludeId)) return false;
+      const eventStart = new Date(event.start).getTime();
+      const eventEnd = new Date(event.end || event.start).getTime();
+      if (Number.isNaN(eventStart) || Number.isNaN(eventEnd)) return false;
+      const sharesOwner = (Array.isArray(event.memberIds) ? event.memberIds : []).some((id) => memberIds.includes(id));
+      return sharesOwner && start < eventEnd && eventStart < end;
+    });
+  };
+
+  const save = async (force = false) => {
     if (!draft.title.trim()) return;
     setSaving(true); setSaveError("");
     const payload = { title: draft.title.trim(), start: new Date(`${draft.date}T${draft.start}:00`).toISOString(), end: new Date(`${draft.date}T${draft.end}:00`).toISOString(), location: draft.location, memberIds: draft.memberIds, eventType: draft.eventType, recurrence: draft.recurrence || "none", recurrenceUntil: draft.recurrence === "none" ? "" : draft.recurrenceUntil };
+    // Surface overlaps before writing. `force` (Save anyway) skips the gate.
+    if (!force && !draft.destination.startsWith("google:")) {
+      const found = findConflicts(payload, editingEvent?.id);
+      if (found.length) {
+        setConflicts(found);
+        setSaving(false);
+        return;
+      }
+    }
+    setConflicts(null);
     try {
       if (editingEvent?.source === "google") await updateGoogleCalendarEvent({ ...editingEvent, ...payload, calendarId: editingEvent.calendarId });
       else if (editingEvent) await updateEvent(editingEvent.id, payload);
@@ -845,7 +879,6 @@ export default function CalendarPage() {
 
         <NativeAdBanner placement={AD_PLACEMENTS.CALENDAR} />
 
-        <SmartSuggestionsPanel maxItems={2} className="calendar-smart-suggestions" currentPage="calendar" />
 
         <div className="px-5">
           <div className="apple-calendar-controls">
@@ -1001,7 +1034,29 @@ export default function CalendarPage() {
           </SelectField>
           {calendarFeeds.length > 0 && <p className="calendar-readonly-note">Imported calendars are available in the filters above, but remain read-only.</p>}
           {saveError && <p className="calendar-save-error">{saveError}</p>}
-          <PrimaryButton onClick={save} disabled={saving}>{saving ? "Saving…" : editingEvent ? "Save changes" : "Add it"}</PrimaryButton>
+          {conflicts?.length > 0 ? (
+            <div className="calendar-conflict-warning" role="alert">
+              <strong>This clashes with an existing event</strong>
+              <ul>
+                {conflicts.map((event) => {
+                  const owners = (event.memberIds || []).map((id) => memberById[id]?.name).filter(Boolean);
+                  return (
+                    <li key={event.id}>
+                      <span>{event.title || "Untitled event"}</span>
+                      <small>{formatTime(event.start)}{event.end ? ` – ${formatTime(event.end)}` : ""}{owners.length ? ` · ${owners.join(", ")}` : ""}</small>
+                    </li>
+                  );
+                })}
+              </ul>
+              <p>Someone assigned to this event is already booked during that time. You can still save it if the overlap is intentional.</p>
+              <div className="calendar-conflict-actions">
+                <SecondaryButton onClick={() => setConflicts(null)}>Go back</SecondaryButton>
+                <PrimaryButton onClick={() => save(true)} disabled={saving}>{saving ? "Saving…" : "Save anyway"}</PrimaryButton>
+              </div>
+            </div>
+          ) : (
+            <PrimaryButton onClick={save} disabled={saving}>{saving ? "Saving…" : editingEvent ? "Save changes" : "Add it"}</PrimaryButton>
+          )}
         </Modal>
 
         <Modal open={calendarManagerOpen} onClose={() => setCalendarManagerOpen(false)} title="Calendar management">

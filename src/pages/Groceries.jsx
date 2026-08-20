@@ -10,7 +10,6 @@ import ConfirmAction from "../components/ConfirmAction";
 import CelebrationConfetti from "../components/CelebrationConfetti";
 import NativeAdBanner from "../components/NativeAdBanner";
 import { AD_PLACEMENTS } from "../lib/adNetwork";
-import { SmartSuggestionsPanel } from "../components/SmartSuggestions";
 import { FocusShoppingItem } from "../components/FocusShoppingItem";
 import { canonicalIngredientName, isIngredientOnList, loadIngredientCache, saveIngredientCache } from "../lib/mealIngredientCache";
 import { formatDayLabel, todayISO } from "../lib/dates";
@@ -254,6 +253,10 @@ export default function Groceries() {
   const [draft, setDraft] = useState(emptyDraft);
   const [staples, setStaples] = useState(loadStaples);
   const pendingStaplesRef = useRef(new Set());
+  // Latest groceries, kept in a ref so staple-add dedupe never reads a stale
+  // closure after an optimistic add re-renders the page.
+  const groceriesRef = useRef(groceries);
+  useEffect(() => { groceriesRef.current = groceries; }, [groceries]);
   const [dragging, setDragging] = useState(false);
   const [masterEditing, setMasterEditing] = useState(null);
   const [masterDraft, setMasterDraft] = useState(emptyDraft);
@@ -651,14 +654,18 @@ export default function Groceries() {
     if (!nameKey || pendingStaplesRef.current.has(pendingKey)) return;
     pendingStaplesRef.current.add(pendingKey);
     try {
-      const existing = groceries.find((item) => item.name.trim().toLowerCase() === nameKey && (activeGroceryListId === "all" || item.listId === activeGroceryListId));
+      const currentGroceries = groceriesRef.current || groceries;
+      const existing = currentGroceries.find((item) => item.name.trim().toLowerCase() === nameKey && (listKey === "all" || item.listId === listKey));
       if (existing) {
         if (existing.checked) await updateGrocery(existing.id, { checked: false });
         return;
       }
       await addGrocery({ ...staple, assigneeIds: [...new Set(staple.assigneeIds || [])], addedBy: null });
     } finally {
-      pendingStaplesRef.current.delete(pendingKey);
+      // Keep the guard for a beat after the write settles so a trailing click
+      // from the same gesture (touch drag-release, fast double-tap) can't slip
+      // past with a stale closure and add a duplicate row.
+      window.setTimeout(() => pendingStaplesRef.current.delete(pendingKey), 500);
     }
   };
 
@@ -1040,7 +1047,6 @@ export default function Groceries() {
 
       <NativeAdBanner placement={AD_PLACEMENTS.SHOPPING} />
 
-      <SmartSuggestionsPanel maxItems={2} className="groceries-smart-suggestions" currentPage="groceries" />
 
       <div className="shopping-list-switcher" role="tablist" aria-label="Shopping lists">
         <button type="button" role="tab" aria-selected={activeGroceryListId === "all"} className={activeGroceryListId === "all" ? "selected" : ""} onClick={() => setActiveGroceryListId("all")}><ShoppingBasket size={15}/><span>All shopping</span><em>{groceries.filter((item) => !item.checked).length}</em></button>

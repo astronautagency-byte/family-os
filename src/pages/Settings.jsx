@@ -10,6 +10,18 @@ import PageHeader from "../components/PageHeader";
 import PullToRefresh from "../components/PullToRefresh";
 import { passwordError } from "../utils/passwordStrength";
 import { FAMILY_COLORS } from "../data/mockData";
+
+// Settings is split into tabs so the page doesn't read like an essay. Each
+// entry is [tab id, label]; the section markup below carries matching
+// data-tab attributes and CSS hides everything but the active tab.
+const SETTINGS_TABS = [
+  ["appearance", "Appearance"],
+  ["family", "Family"],
+  ["billing", "Plan & billing"],
+  ["account", "Account"],
+  ["integrations", "Integrations"],
+  ["support", "Support"],
+];
 import { PRICING_PLAN, formatMoney } from "../data/pricingPlan";
 import { PREMIUM_FEATURES, PLAN_FEATURES, FEATURE_COMPARISON } from "../data/billingCatalog";
 import { supabase } from "../lib/supabase";
@@ -404,6 +416,7 @@ function TaskImportCard() {
 export default function Settings({ colorScheme = "famos", onColorSchemeChange = () => {} }) {
   const { members, addMember, updateMember, removeMember, resetToDemoData, notificationPermission, requestNotifications, sendTestNotification, refreshData } = useFamily();
   const { configured, user, household, householdProfileExtra, memberProfile, updateHouseholdSettings, updateHouseholdProfile, invitePartner, updatePassword, signOut, deleteAccount } = useAuth();
+  const [settingsTab, setSettingsTab] = useState("appearance");
   const [editingMember, setEditingMember] = useState(null); // member object or "new"
   const [name, setName] = useState("");
   const [role, setRole] = useState("Kid");
@@ -813,8 +826,23 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
     <PullToRefresh onRefresh={refreshData}><div className="pb-24 reference-settings famos-noscroll">
       <PageHeader eyebrow="Household" title="Settings" illustration="settings" subtitle="Tweak the home base without making it a whole thing." />
 
-      <div className="px-5 space-y-6 mt-2">
-        <section>
+      <nav className="settings-tab-bar" aria-label="Settings sections">
+        {SETTINGS_TABS.map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={settingsTab === id}
+            className={settingsTab === id ? "selected" : ""}
+            onClick={() => setSettingsTab(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+
+      <div className="px-5 space-y-6 mt-2" data-settings-tab={settingsTab}>
+        <section data-tab="appearance">
           <div className="flex items-end justify-between mb-3"><h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)]">🎨 Appearance</h2></div>
           <Card className="settings-color-scheme-card">
             <div className="settings-color-scheme-head"><span><Palette size={18}/></span><div><strong>App colour</strong><small>Pick a palette that feels like home. Every option is tuned for light and dark mode.</small></div></div>
@@ -825,7 +853,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
           </Card>
         </section>
 
-        <section>
+        <section data-tab="appearance">
           <div className="flex items-end justify-between mb-3">
             <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)]">🏠 Home space</h2>
           </div>
@@ -850,7 +878,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
           </Card>
         </section>
 
-        <section>
+        <section data-tab="family">
           <div className="flex items-end justify-between mb-3">
             <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)]">👨‍👩‍👧‍👦 Family members</h2>
             <button onClick={openNew} className={`flex items-center gap-1 text-[13px] font-medium text-[var(--color-accent)] ${configured ? "hidden" : ""}`}>
@@ -957,7 +985,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
           )}
         </section>
 
-        <section>
+        <section data-tab="billing">
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">💳 Plan & billing</h2>
           <Card className="p-4">
             {/* Current plan header */}
@@ -1136,14 +1164,14 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
           </Card>
         </section>
 
-        <section>
+        <section data-tab="integrations">
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">🔗 Integrations</h2>
           <GoogleCalendarCard />
           <CalendarFeedsCard />
           <TaskImportCard />
         </section>
 
-        <section>
+        <section data-tab="family">
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">🔔 Notifications</h2>
           <Card className="p-4">
             <div className="flex items-start gap-3 mb-4"><div className="w-10 h-10 rounded-xl bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0"><Bell size={18} color="var(--color-accent)" /></div><div><p className="font-medium text-[14.5px]">Household notifications</p><p className="text-[12.5px] text-[var(--color-ink-soft)] mt-0.5">Get notified about assigned tasks and meals, chat messages, shopping list updates, and family calendar updates on every enabled device.</p></div></div>
@@ -1156,7 +1184,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
           </Card>
         </section>
 
-        <section>
+        <section data-tab="family">
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">🔒 Data</h2>
           <Card className="p-4">
             <div className="flex items-start gap-3 mb-3">
@@ -1174,7 +1202,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
           </Card>
         </section>
 
-        <section>
+        <section data-tab="family">
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">🛡️ Privacy</h2>
           <Card className="p-4">
             <div className="flex items-start gap-3 mb-3">
@@ -1186,7 +1214,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
           </Card>
         </section>
 
-        {configured && <section>
+        {configured && <section data-tab="account">
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">🔐 Account password</h2>
           <Card className="p-4">
             <TextField type={showNewPassword ? "text" : "password"} label="New password" placeholder="8+ characters" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} minLength={8} autoComplete="new-password" />
@@ -1197,7 +1225,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
           </Card>
         </section>}
 
-        {configured && <section>
+        {configured && <section data-tab="account">
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-warn)] mb-3">⚠️ Danger zone</h2>
           <Card className="p-4 border-[var(--color-warn)]/30">
             <div className="flex items-start gap-3 mb-4">
@@ -1208,7 +1236,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
           </Card>
         </section>}
 
-        <section>
+        <section data-tab="support">
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">💬 Support</h2>
           <Card className="p-4">
             <div className="space-y-2">
@@ -1268,7 +1296,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
           </Card>
         </section>
 
-        <section>
+        <section data-tab="support">
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">ℹ️ About</h2>
           <Card className="p-4 flex items-start gap-3">
             <img src="/brand/famos-icon.png" alt="FamOS" className="w-10 h-10 rounded-xl object-cover notion-shadow shrink-0" />
