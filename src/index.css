@@ -4957,18 +4957,20 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 /* FamOS semantic colour layer. Preline owns shape and state anatomy; these
    restrained tints make household domains glanceable without recolouring
    controls arbitrarily. */
-.app-shell .reference-dashboard .today-metric-accent,.app-shell .reference-dashboard .today-flow-card{background:color-mix(in srgb,var(--pastel-lilac) 38%,var(--color-surface))!important;border-color:color-mix(in srgb,var(--color-fam-plum) 22%,var(--color-border))!important}
-.app-shell .reference-dashboard .today-metric-rose,.app-shell .reference-dashboard .today-tasks-card{background:color-mix(in srgb,var(--pastel-pink) 34%,var(--color-surface))!important;border-color:color-mix(in srgb,var(--color-fam-rose) 20%,var(--color-border))!important}
-.app-shell .reference-dashboard .today-metric-warn,.app-shell .reference-dashboard .today-command-card,.app-shell .reference-dashboard .today-pulse-card{background:color-mix(in srgb,var(--pastel-yellow) 36%,var(--color-surface))!important;border-color:color-mix(in srgb,var(--color-fam-marigold) 24%,var(--color-border))!important}
-.app-shell .reference-dashboard .today-metric-good,.app-shell .reference-dashboard .today-groceries-card{background:color-mix(in srgb,var(--pastel-mint) 36%,var(--color-surface))!important;border-color:color-mix(in srgb,var(--color-good) 20%,var(--color-border))!important}
-.app-shell .reference-dashboard .today-meals-card{background:color-mix(in srgb,var(--pastel-peach) 34%,var(--color-surface))!important;border-color:color-mix(in srgb,var(--color-fam-coral) 18%,var(--color-border))!important}
-.app-shell .reference-dashboard .today-load-card{background:color-mix(in srgb,var(--pastel-blue) 36%,var(--color-surface))!important;border-color:color-mix(in srgb,var(--color-fam-sky) 20%,var(--color-border))!important}
-.app-shell .task-board-group.violet{background:color-mix(in srgb,var(--pastel-lilac) 36%,var(--color-surface));border-color:color-mix(in srgb,var(--color-accent) 22%,var(--color-border))}
-.app-shell .task-board-group.green{background:color-mix(in srgb,var(--pastel-mint) 38%,var(--color-surface));border-color:color-mix(in srgb,var(--color-good) 20%,var(--color-border))}
-.app-shell .task-board-group.slate{background:color-mix(in srgb,var(--pastel-blue) 34%,var(--color-surface));border-color:color-mix(in srgb,var(--color-fam-sky) 20%,var(--color-border))}
-.app-shell .task-board-group.rose{background:color-mix(in srgb,var(--pastel-pink) 36%,var(--color-surface));border-color:color-mix(in srgb,var(--color-fam-rose) 20%,var(--color-border))}
-.app-shell .task-board-group.amber{background:color-mix(in srgb,var(--pastel-yellow) 38%,var(--color-surface));border-color:color-mix(in srgb,var(--color-fam-marigold) 24%,var(--color-border))}
-.app-shell .task-board-group.custom{background:color-mix(in srgb,var(--custom-list-color) 10%,var(--color-surface));border-color:color-mix(in srgb,var(--custom-list-color) 28%,var(--color-border))}
+/* Card/container tints keep only their soft background — all colour-tinted
+   borders are removed so cards use the neutral var(--color-border) border. */
+.app-shell .reference-dashboard .today-metric-accent,.app-shell .reference-dashboard .today-flow-card{background:color-mix(in srgb,var(--pastel-lilac) 38%,var(--color-surface))!important}
+.app-shell .reference-dashboard .today-metric-rose,.app-shell .reference-dashboard .today-tasks-card{background:color-mix(in srgb,var(--pastel-pink) 34%,var(--color-surface))!important}
+.app-shell .reference-dashboard .today-metric-warn,.app-shell .reference-dashboard .today-command-card,.app-shell .reference-dashboard .today-pulse-card{background:color-mix(in srgb,var(--pastel-yellow) 36%,var(--color-surface))!important}
+.app-shell .reference-dashboard .today-metric-good,.app-shell .reference-dashboard .today-groceries-card{background:color-mix(in srgb,var(--pastel-mint) 36%,var(--color-surface))!important}
+.app-shell .reference-dashboard .today-meals-card{background:color-mix(in srgb,var(--pastel-peach) 34%,var(--color-surface))!important}
+.app-shell .reference-dashboard .today-load-card{background:color-mix(in srgb,var(--pastel-blue) 36%,var(--color-surface))!important}
+.app-shell .task-board-group.violet{background:color-mix(in srgb,var(--pastel-lilac) 36%,var(--color-surface))}
+.app-shell .task-board-group.green{background:color-mix(in srgb,var(--pastel-mint) 38%,var(--color-surface))}
+.app-shell .task-board-group.slate{background:color-mix(in srgb,var(--pastel-blue) 34%,var(--color-surface))}
+.app-shell .task-board-group.rose{background:color-mix(in srgb,var(--pastel-pink) 36%,var(--color-surface))}
+.app-shell .task-board-group.amber{background:color-mix(in srgb,var(--pastel-yellow) 38%,var(--color-surface))}
+.app-shell .task-board-group.custom{background:color-mix(in srgb,var(--custom-list-color) 10%,var(--color-surface))}
 .app-shell .reference-meals .meal-day-card:nth-child(3n+1){background:color-mix(in srgb,var(--pastel-yellow) 34%,var(--color-surface))!important}
 .app-shell .reference-meals .meal-day-card:nth-child(3n+2){background:color-mix(in srgb,var(--pastel-lilac) 34%,var(--color-surface))!important}
 .app-shell .reference-meals .meal-day-card:nth-child(3n){background:color-mix(in srgb,var(--pastel-mint) 34%,var(--color-surface))!important}
@@ -4979,7 +4981,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .app-shell .reference-settings section:nth-of-type(3n+2)>.kinship-card{background:color-mix(in srgb,var(--pastel-blue) 22%,var(--color-surface))!important}
 .app-shell .reference-settings section:nth-of-type(3n)>.kinship-card{background:color-mix(in srgb,var(--pastel-mint) 22%,var(--color-surface))!important}
 .app-shell .reference-chat{background:linear-gradient(180deg,color-mix(in srgb,var(--pastel-lilac) 20%,var(--color-canvas)),var(--color-canvas) 38%)}
-.app-shell .reference-chat .chat-message-bubble.theirs{background:color-mix(in srgb,var(--pastel-blue) 30%,var(--color-surface))!important;border-color:color-mix(in srgb,var(--color-fam-sky) 18%,var(--color-border))!important}
+.app-shell .reference-chat .chat-message-bubble.theirs{background:color-mix(in srgb,var(--pastel-blue) 30%,var(--color-surface))!important}
 .app-shell .reference-chat form{background:color-mix(in srgb,var(--pastel-lilac) 14%,var(--color-surface))!important}
 
 /* Richer data colour: one semantic family, expressed consistently across
