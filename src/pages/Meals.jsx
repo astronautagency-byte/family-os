@@ -807,7 +807,7 @@ export default function Meals() {
                           )}
                           <div className="meal-slot-footer">
                             <div className="meal-slot-actions-left">
-                              {meal?.title && (
+                              {meal?.title ? (
                                 <>
                                   <button className="meal-cook-mode-btn" onClick={() => openCookRecipe(meal)}>
                                     <ChefHat size={13} /> Cook mode
@@ -816,10 +816,19 @@ export default function Meals() {
                                     <Bookmark size={13} /> Save
                                   </button>
                                 </>
+                              ) : (
+                                <button
+                                  className="meal-suggest-btn"
+                                  onClick={() => rouletteForSlot(date, slot, true)}
+                                  disabled={!kitchenIngredients.length}
+                                  aria-label={`Suggest a ${SLOT_META[slot].label.toLowerCase()} meal`}
+                                >
+                                  <Dices size={13} /> Suggest a meal
+                                </button>
                               )}
                             </div>
                             <div className="meal-slot-actions-right">
-                              {meal?.title && (
+                              {meal?.title ? (
                                 <>
                                   <button className="meal-tool-btn" onClick={() => openEditor(date, slot)} aria-label="Edit meal">
                                     <Pencil size={14} />
@@ -828,15 +837,18 @@ export default function Meals() {
                                     <Trash2 size={14} />
                                   </button>
                                 </>
+                              ) : (
+                                <button
+                                  className="meal-saved-btn"
+                                  onClick={() => { openEditor(date, slot); setShowSavedRecipes(true); }}
+                                  aria-label={`Choose a saved recipe for ${SLOT_META[slot].label.toLowerCase()}`}
+                                >
+                                  <Bookmark size={14} /> Saved
+                                </button>
                               )}
                             </div>
                           </div>
                         </div>
-                        {meal?.title && (
-                          <div className="meal-slot-ring" style={{ "--ring-color": slotColor }}>
-                            <ShelfLifeRing progress={{ remainingPercent: 100 }} size={70} strokeWidth={5} />
-                          </div>
-                        )}
                       </div>
                     </article>
                   );
