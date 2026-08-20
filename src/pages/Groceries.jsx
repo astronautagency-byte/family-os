@@ -10,6 +10,7 @@ import ConfirmAction from "../components/ConfirmAction";
 import CelebrationConfetti from "../components/CelebrationConfetti";
 import NativeAdBanner from "../components/NativeAdBanner";
 import { AD_PLACEMENTS } from "../lib/adNetwork";
+import { SmartSuggestionsPanel } from "../components/SmartSuggestions";
 import { canonicalIngredientName, isIngredientOnList, loadIngredientCache, saveIngredientCache } from "../lib/mealIngredientCache";
 import { formatDayLabel, todayISO } from "../lib/dates";
 import { GROCERY_CATEGORIES } from "../data/mockData";
@@ -1037,6 +1038,8 @@ export default function Groceries() {
       />
 
       <NativeAdBanner placement={AD_PLACEMENTS.SHOPPING} />
+
+      <SmartSuggestionsPanel maxItems={2} className="groceries-smart-suggestions" />
 
       <div className="shopping-list-switcher" role="tablist" aria-label="Shopping lists">
         <button type="button" role="tab" aria-selected={activeGroceryListId === "all"} className={activeGroceryListId === "all" ? "selected" : ""} onClick={() => setActiveGroceryListId("all")}><ShoppingBasket size={15}/><span>All shopping</span><em>{groceries.filter((item) => !item.checked).length}</em></button>
