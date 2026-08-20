@@ -4774,7 +4774,7 @@ html {
   .app-shell .kw-page .kw-group-items{grid-template-columns:1fr 1fr!important}
 }
 @media(max-width:767px){
-  .app-shell .page-title,body .app-content .page-title{font-size:20px!important;line-height:28px!important;letter-spacing:-.02em!important}
+  .app-shell .page-title,body .app-content .page-title{font-size:24px!important;line-height:1.1!important;letter-spacing:-.03em!important}
   .app-shell .page-header-aside .page-spot-frame{display:none}
   .app-shell .page-header-aside{min-width:0!important;max-width:none!important}
   .app-shell .primary-nav{border-radius:0}
@@ -5023,7 +5023,7 @@ html {
 .app-shell .fam-ai-composer-inner{border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,.05)}
 .theme-dark .app-shell .kinship-card,.theme-dark .app-shell .kinship-card.m3-card{box-shadow:none!important}
 .theme-dark .app-shell .m3-button,.theme-dark .app-shell .form-control,.theme-dark .app-shell :where(select,textarea){box-shadow:none}
-@media(max-width:639px){.app-shell .modal-card.m3-dialog{border-radius:12px 12px 0 0!important}.app-shell .page-title{font-size:22px;line-height:30px}}
+@media(max-width:639px){.app-shell .modal-card.m3-dialog{border-radius:12px 12px 0 0!important}.app-shell .page-title{font-size:24px;line-height:30px}}
 
 /* Marketing navigation follows the same control geometry as the public site. */
 .marketing-nav.is-scrolled{background:rgba(255,255,255,.88);border-color:var(--landing-border);box-shadow:var(--landing-shadow-xs)}
@@ -5749,7 +5749,7 @@ body .app-content .page-title{
 .app-shell .page-header-aside .page-spot-frame{display:grid!important}
 @media(max-width:767px){
   .app-shell .page-title,
-  body .app-content .page-title{font-size:19px!important;line-height:1.18!important}
+  body .app-content .page-title{font-size:24px!important;line-height:1.1!important;letter-spacing:-.03em!important}
   .app-shell .page-header-aside{min-width:76px!important;max-width:92px!important}
   .app-shell .page-header-aside .page-spot-frame,
   .app-shell .page-header-aside .page-spot{width:76px!important;height:64px!important}
@@ -5757,7 +5757,7 @@ body .app-content .page-title{
 }
 @media(max-width:380px){
   .app-shell .page-title,
-  body .app-content .page-title{font-size:17px!important}
+  body .app-content .page-title{font-size:24px!important}
   .app-shell .page-header-aside{min-width:68px!important;max-width:76px!important}
   .app-shell .page-header-aside .page-spot-frame,
   .app-shell .page-header-aside .page-spot{width:68px!important;height:58px!important}
