@@ -6189,93 +6189,106 @@ reference-tasks,
   margin-bottom: var(--space-5);
 }
 
-/* Meal Planner v2 — Clean slot layout with accent borders */
-.meal-slot-row {
-  padding: 12px 0;
-  border-bottom: 1px solid var(--color-border);
+/* Meal Planner v3 — Kitchen Watch style cards */
+.meal-slot-card {
+  position: relative;
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-accent);
+  border-radius: var(--radius-section);
+  background: var(--color-surface);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  overflow: hidden;
 }
-.meal-slot-row:last-child {
-  border-bottom: none;
+.meal-slot-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
-.meal-slot-filled {
+.meal-slot-card.is-dinner {
+  border-left-color: #D94F4F;
+}
+.meal-slot-card-body {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+}
+.meal-slot-card-left {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
 }
-.meal-slot-filled-header {
+.meal-slot-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 12px;
 }
-.meal-slot-filled-title {
-  margin: 0;
-  color: var(--color-ink);
-  font-size: 15px;
-  font-weight: 650;
-  line-height: 1.3;
+.meal-slot-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
 }
-.meal-slot-filled-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--color-ink-faint);
-  font-size: 12px;
-}
-.meal-slot-filled-meta svg {
+.meal-slot-avatars {
   flex: 0 0 auto;
 }
-.meal-slot-filled-actions {
+.meal-slot-title {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+.meal-slot-input-wrapper {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 4px;
+  width: 100%;
 }
-.meal-slot-empty {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.meal-slot-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-ink);
+  font-size: 14px;
+  outline: none;
 }
-.meal-slot-empty-header {
+.meal-slot-input::placeholder {
+  color: var(--color-ink-faint);
+}
+.meal-slot-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 12px;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
 }
-.meal-slot-empty-input {
+.meal-slot-actions-left {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
-.meal-saved-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  color: var(--color-ink-soft);
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.meal-saved-badge:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+.meal-slot-actions-right {
+  display: flex;
+  gap: 6px;
+  flex: 0 0 auto;
 }
 .meal-cook-mode-btn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 7px 14px;
+  padding: 6px 12px;
   border: 1px solid var(--color-accent);
   border-radius: var(--radius-pill);
   background: var(--color-accent);
   color: var(--color-on-accent);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -6288,12 +6301,12 @@ reference-tasks,
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 7px 14px;
+  padding: 6px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
   background: var(--color-surface);
   color: var(--color-ink-soft);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -6301,11 +6314,6 @@ reference-tasks,
 .meal-save-recipe-btn:hover {
   border-color: var(--color-accent);
   color: var(--color-accent);
-}
-.meal-slot-tools {
-  display: flex;
-  gap: 6px;
-  margin-left: auto;
 }
 .meal-tool-btn {
   display: grid;
@@ -6327,6 +6335,18 @@ reference-tasks,
   border-color: var(--color-warn);
   color: var(--color-warn);
   background: color-mix(in srgb, var(--color-warn) 6%, var(--color-surface));
+}
+.meal-slot-ring {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 70px;
+  height: 70px;
+  pointer-events: none;
+}
+.meal-slot-ring svg {
+  width: 100%;
+  height: 100%;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════

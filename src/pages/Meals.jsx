@@ -22,6 +22,33 @@ import useKitchenInventory from "../hooks/useKitchenInventory";
 import { SHARED_RECIPE_KEY } from "../lib/sharedContent";
 import { lockBodyScroll } from "../lib/bodyScrollLock";
 
+function ShelfLifeRing({ progress, size = 90, strokeWidth = 7 }) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const remaining = Math.max(0, Math.min(100, progress?.remainingPercent ?? 0));
+  const offset = circumference * (1 - remaining / 100);
+  let color = "#E85D3A";
+  if (remaining > 50) color = "#22A06B";
+  else if (remaining > 25) color = "#F59E0B";
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)" }} aria-hidden="true">
+      <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="var(--color-border)" strokeWidth={strokeWidth} />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+        style={{ transition: "stroke-dashoffset 0.6s ease, stroke 0.3s ease" }}
+      />
+    </svg>
+  );
+}
+
 const SLOT_META = {
   breakfast: { label: "Breakfast", icon: Coffee },
   lunch: { label: "Lunch", icon: Soup },
@@ -748,104 +775,73 @@ export default function Meals() {
                   };
                   const slotColor = slot === "breakfast" ? "#22A06B" : slot === "lunch" ? "#E85D3A" : "#D94F4F";
                   return (
-                    <div className={`meal-slot-row ${slot === "dinner" ? "is-dinner" : ""}`} key={slot}>
-                      {meal?.title ? (
-                        <div className="meal-slot-card" style={{ borderLeftColor: slotColor }}>
-                          <div className="meal-slot-card-header">
-                            <div className="meal-slot-card-left">
-                              <span className="meal-slot-label" style={{ color: slotColor }}>
-                                {SLOT_META[slot].label}
-                              </span>
-                              <p className="meal-slot-value has-meal">{meal.title}</p>
+                    <article key={slot} className={`meal-slot-card ${slot === "dinner" ? "is-dinner" : ""}`} style={{ borderLeftColor: slotColor }}>
+                      <div className="meal-slot-card-body">
+                        <div className="meal-slot-card-left">
+                          <div className="meal-slot-header">
+                            <span className="meal-slot-label" style={{ color: slotColor }}>
+                              {SLOT_META[slot].label}
+                            </span>
+                            {cooks.length > 0 && (
+                              <AvatarStack members={cooks} size="xs" className="meal-slot-avatars" />
+                            )}
+                          </div>
+                          {meal?.title ? (
+                            <p className="meal-slot-title">{meal.title}</p>
+                          ) : (
+                            <div className="meal-slot-input-wrapper">
+                              <Icon size={16} color={slotColor} className="shrink-0" />
+                              <input
+                                type="text"
+                                value={inlineInput}
+                                onChange={(e) => setInlineInput(e.target.value)}
+                                onKeyDown={handleInlineAdd}
+                                placeholder="What's cooking good looking?"
+                                className="meal-slot-input"
+                                autoFocus
+                              />
                             </div>
-                            <div className="meal-slot-card-right">
-                              {cooks.length > 0 && (
-                                <AvatarStack members={cooks} size="xs" />
+                          )}
+                          <div className="meal-slot-footer">
+                            <div className="meal-slot-actions-left">
+                              {meal?.title && (
+                                <>
+                                  <button className="meal-cook-mode-btn" onClick={() => openCookRecipe(meal)}>
+                                    <ChefHat size={13} /> Cook mode
+                                  </button>
+                                  <button className="meal-save-recipe-btn" onClick={() => saveRecipeToLibrary(meal)}>
+                                    <Bookmark size={13} /> Save
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                            <div className="meal-slot-actions-right">
+                              {meal?.title && (
+                                <>
+                                  <button className="meal-tool-btn" onClick={() => openEditor(date, slot)} aria-label="Edit meal">
+                                    <Pencil size={14} />
+                                  </button>
+                                  <button className="meal-tool-btn meal-tool-delete" onClick={() => removeMeal(meal.id)} aria-label="Delete meal">
+                                    <Trash2 size={14} />
+                                  </button>
+                                </>
                               )}
                             </div>
                           </div>
-                          <div className="meal-slot-card-meta">
-                            <ChefHat size={12} />
-                            <span>What's cooking good looking?</span>
-                          </div>
-                          <div className="meal-slot-card-actions">
-                            <button className="meal-cook-mode-btn" onClick={() => openCookRecipe(meal)}>
-                              <ChefHat size={14} /> Cook mode
-                            </button>
-                            <button className="meal-save-recipe-btn" onClick={() => saveRecipeToLibrary(meal)}>
-                              <Bookmark size={14} /> Save recipe
-                            </button>
-                            <div className="meal-slot-tools">
-                              <button className="meal-tool-btn" onClick={() => openEditor(date, slot)} aria-label="Edit meal">
-                                <Pencil size={15} />
-                              </button>
-                              <button className="meal-tool-btn meal-tool-delete" onClick={() => removeMeal(meal.id)} aria-label="Delete meal">
-                                <Trash2 size={15} />
-                              </button>
-                            </div>
-                          </div>
                         </div>
-                      ) : (
-                        <div className="meal-slot-button flex flex-col items-start gap-1.5">
-                          <p className="meal-slot-label text-[12px] font-semibold uppercase tracking-wide" style={{ color: slotColor }}>
-                            {SLOT_META[slot].label}
-                          </p>
-                          <div className="flex items-center gap-3 w-full">
-                            <Icon size={16} color={slotColor} className="shrink-0" />
-                            <input
-                              type="text"
-                              value={inlineInput}
-                              onChange={(e) => setInlineInput(e.target.value)}
-                              onKeyDown={handleInlineAdd}
-                              placeholder="What's cooking good looking?"
-                              className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[14px] text-[var(--color-ink)] placeholder:text-[var(--color-ink-faint)]"
-                              autoFocus
-                            />
+                        {meal?.title && (
+                          <div className="meal-slot-ring" style={{ "--ring-color": slotColor }}>
+                            <ShelfLifeRing progress={{ remainingPercent: 100 }} size={70} strokeWidth={5} />
                           </div>
-                        </div>
-                      )}
-                      <div className="meal-slot-actions">
-                        {(() => {
-                          const badge = meal?.id && mealMissingCount[meal.id];
-                          if (!badge) return null;
-                          const isSpoonacular = meal.source === 'spoonacular';
-                          if (!isSpoonacular) return null;
-                          const allCovered = badge.missing === 0;
-                          const justAdded = badgeAddedRef.current.has(meal.id);
-                          return (
-                            <button
-                              className={`meal-grocery-action ${justAdded ? "added" : allCovered ? "covered" : "needs"}`}
-                              onClick={() => addMissingGroceriesForMeal(meal, badge)}
-                              disabled={allCovered || justAdded}
-                              aria-label={justAdded ? "Ingredients added" : allCovered ? "Groceries ready" : `Add ${badge.missing} missing ingredients to shopping`}
-                            >
-                              <ShoppingCart size={15} />
-                              <span>{justAdded ? "Added" : allCovered ? "Groceries ready" : `${badge.missing} missing`}</span>
-                            </button>
-                          );
-                        })()}
-                        {/* Cook button only in preview modal, not in slot actions */}
-                        {false && meal?.title && (
-                          <button className="meal-start-cooking" onClick={() => openCookRecipe(meal)} aria-label={`Start cooking ${meal.title}`}>
-                            <ChefHat size={15} /><span>Cook</span>
-                          </button>
                         )}
-                        {false && (
-                          <button className="meal-slot-tool meal-surprise-action" onClick={() => rouletteForSlot(date, slot)} aria-label={`Find ${SLOT_META[slot].label.toLowerCase()} meal ideas`} title="Find meal ideas">
-                            <Sparkles size={15} /><span>Find Meal Ideas</span>
-                          </button>
-                        )}
-                        <button className="meal-slot-tool" onClick={() => { openEditor(date, slot); setShowSavedRecipes(true); }} aria-label={`Choose a saved recipe for ${SLOT_META[slot].label.toLowerCase()}`} title="Saved recipes">
-                          <Bookmark size={15} /><span>Saved</span>
-                        </button>
                       </div>
-                    </div>
+                    </article>
                   );
-                })}
-</div>
+})}
+      </div>
     </Card>
-          );
-        })}
+  );
+})}
       </div>
 
       {/* Meal Preview Modal — read-only preview for manual meals */}
