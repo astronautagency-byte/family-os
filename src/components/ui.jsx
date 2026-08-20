@@ -148,8 +148,32 @@ export function Tag({ children, color, tone = "neutral" }) {
   );
 }
 
-export function Badge({ children, tone = "neutral", icon: Icon, className = "" }) {
-  return <span className={`ui-badge ui-badge-${tone} ${className}`}>{Icon && <Icon size={12} aria-hidden="true" />}{children}</span>;
+export function Badge({ children, tone = "neutral", variant = "soft", icon: Icon, size = "default", className = "" }) {
+  const sizeClass = size === "sm" ? "ui-badge-sm" : size === "lg" ? "ui-badge-lg" : "";
+  return <span className={`ui-badge ui-badge-${tone} ui-badge-${variant} ${sizeClass} ${className}`}>{Icon && <Icon size={12} aria-hidden="true" />}{children}</span>;
+}
+
+export function StatusBadge({ status, label, className = "" }) {
+  const statusStyles = {
+    active: "ui-badge-good",
+    inactive: "ui-badge-neutral",
+    pending: "ui-badge-meals",
+    error: "ui-badge-warn",
+    success: "ui-badge-good",
+    warning: "ui-badge-meals",
+    danger: "ui-badge-warn",
+  };
+  return (
+    <span className={`ui-badge ui-badge-soft ${statusStyles[status] || "ui-badge-neutral"} ${className}`}>
+      <span className="ui-badge-dot" />
+      {label}
+    </span>
+  );
+}
+
+export function NumberedBadge({ count, max = 99, className = "" }) {
+  const display = count > max ? `${max}+` : String(count);
+  return <span className={`ui-badge ui-badge-numbered ${className}`}>{display}</span>;
 }
 
 export function Switch({ checked, onChange, label, description, disabled = false, className = "" }) {
@@ -399,10 +423,11 @@ export function DateField({ label, value, onChange, min, max, disabled = false, 
   );
 }
 
-export function PrimaryButton({ children, className = "", ...props }) {
+export function PrimaryButton({ children, className = "", size = "default", ...props }) {
+  const sizeClass = size === "sm" ? "m3-button-sm" : size === "lg" ? "m3-button-lg" : "";
   return (
     <button
-      className={`m3-button m3-button-filled w-full ${className}`}
+      className={`m3-button m3-button-filled ${sizeClass} w-full ${className}`}
       {...props}
     >
       {children}
@@ -410,10 +435,58 @@ export function PrimaryButton({ children, className = "", ...props }) {
   );
 }
 
-export function SecondaryButton({ children, className = "", ...props }) {
+export function SecondaryButton({ children, className = "", size = "default", ...props }) {
+  const sizeClass = size === "sm" ? "m3-button-sm" : size === "lg" ? "m3-button-lg" : "";
   return (
     <button
-      className={`m3-button m3-button-outlined w-full ${className}`}
+      className={`m3-button m3-button-outlined ${sizeClass} w-full ${className}`}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function SoftButton({ children, className = "", size = "default", color = "accent", ...props }) {
+  const sizeClass = size === "sm" ? "m3-button-sm" : size === "lg" ? "m3-button-lg" : "";
+  return (
+    <button
+      className={`m3-button m3-button-soft m3-button-soft-${color} ${sizeClass} ${className}`}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function GhostButton({ children, className = "", size = "default", ...props }) {
+  const sizeClass = size === "sm" ? "m3-button-sm" : size === "lg" ? "m3-button-lg" : "";
+  return (
+    <button
+      className={`m3-button m3-button-ghost ${sizeClass} ${className}`}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function LinkButton({ children, className = "", ...props }) {
+  return (
+    <button
+      className={`m3-button m3-button-link ${className}`}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function WhiteButton({ children, className = "", size = "default", ...props }) {
+  const sizeClass = size === "sm" ? "m3-button-sm" : size === "lg" ? "m3-button-lg" : "";
+  return (
+    <button
+      className={`m3-button m3-button-white ${sizeClass} ${className}`}
       {...props}
     >
       {children}

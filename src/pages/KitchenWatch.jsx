@@ -5,14 +5,22 @@ import { useFamily } from "../context/FamilyContext";
 import useKitchenInventory from "../hooks/useKitchenInventory";
 import { daysUntilExpiry, inventoryExpiryProgress, toLocalDay } from "../lib/inventoryExpiry";
 
+const CATEGORY_COLORS = {
+  "Produce": { bg: "color-mix(in srgb, var(--color-shopping) 12%, var(--color-surface))", icon: "var(--color-shopping-strong)" },
+  "Dairy & Eggs": { bg: "color-mix(in srgb, var(--color-meals) 12%, var(--color-surface))", icon: "var(--color-meals-strong)" },
+  "Meat & Seafood": { bg: "color-mix(in srgb, var(--color-warn) 12%, var(--color-surface))", icon: "var(--color-warn)" },
+  "Bakery": { bg: "color-mix(in srgb, #E07C24 12%, var(--color-surface))", icon: "#E07C24" },
+  "Deli & Prepared Foods": { bg: "color-mix(in srgb, var(--color-chat) 12%, var(--color-surface))", icon: "var(--color-chat-strong)" },
+};
+
 function shelfLifeColor(daysRemaining) {
   if (daysRemaining <= 0) return "var(--color-warn)";
   if (daysRemaining <= 2) return "#D97706";
   if (daysRemaining <= 5) return "#E07C24";
-  return "var(--color-good)";
+  return "var(--color-shopping)";
 }
 
-function ShelfLifeRing({ item, size = 48, strokeWidth = 5 }) {
+function ShelfLifeRing({ item, size = 100, strokeWidth = 8 }) {
   if (!item.expiresOn) return null;
   const days = daysUntilExpiry(item.expiresOn);
   if (days === null) return null;
@@ -20,63 +28,45 @@ function ShelfLifeRing({ item, size = 48, strokeWidth = 5 }) {
   if (!progress) return null;
   const color = shelfLifeColor(days);
   const percent = Math.max(0, Math.min(100, progress.percent));
-  const radius = (size - 5) / 2;
+  const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - percent / 100);
-  
-  const label = days <= 0 ? "Expired" : days === 1 ? "1 day left" : `${days} days left`;
-  
-  const gradientId = `shelf-life-gradient-${item.id}`;
-  
+
   return (
-    <div className="kw-shelf-ring">
-      <svg className="kw-shelf-svg" width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        <defs>
-          <linearGradient id={`shelf-life-gradient-${item.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={color} />
-            <stop offset="100%" stopColor={color} stopOpacity="0.4" />
-          </linearGradient>
-        </defs>
-        {/* Background track */}
+    <div className="kw-shelf-ring-new">
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
         <circle
           cx={size / 2}
           cy={size / 2}
-          r={(size - 5) / 2}
+          r={radius}
           fill="none"
           stroke="var(--color-surface-sunken)"
-          strokeWidth={5}
+          strokeWidth={strokeWidth}
           strokeLinecap="round"
         />
-        {/* Progress ring */}
         <circle
           cx={size / 2}
           cy={size / 2}
-          r={(size - 5) / 2}
+          r={radius}
           fill="none"
-          stroke={`url(#shelf-life-gradient-${item.id})`}
-          strokeWidth={5}
+          stroke={color}
+          strokeWidth={strokeWidth}
           strokeLinecap="round"
-          strokeDasharray={2 * Math.PI * (size - 5) / 2}
-          strokeDashoffset={2 * Math.PI * (size - 5) / 2 * (1 - progress.percent / 100)}
-          style={{
-            transition: "stroke-dashoffset 0.6s ease-out, stroke 0.3s ease",
-            filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.1))"
-          }}
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          style={{ transition: "stroke-dashoffset 0.6s ease-out, stroke 0.3s ease" }}
         />
       </svg>
-      <div className="kw-ring-label">
-        <div className="kw-ring-days">{days <= 0 ? "Expired" : days === 1 ? "1 day left" : `${days} days left`}</div>
-        <div className="kw-ring-expires">
-          Expires {days <= 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`}
-        </div>
+      <div className="kw-ring-center">
+        <span className="kw-ring-percent">{Math.round(percent)}%</span>
+        <span className="kw-ring-sublabel">Shelf life</span>
       </div>
     </div>
   );
 }
 
-// Keep backward compatibility
 function ShelfLifeBar({ item }) {
-  return <ShelfLifeRing item={item} size={56} strokeWidth={6} />;
+  return <ShelfLifeRing item={item} size={100} strokeWidth={8} />;
 }
 import { categorizeGroceryItem } from "../lib/groceryCategories";
 import { isIngredientOnList } from "../lib/mealIngredientCache";
@@ -214,39 +204,42 @@ export default function KitchenWatch() {
         <div className="kw-group-items">
           {items.map((item) => {
             const days = daysUntilExpiry(item.expiresOn);
-            const LocIcon = LOCATION_ICONS[item.location] || Package;
+            const CatIcon = CATEGORY_ICONS[item.category] || Package;
+            const catColors = CATEGORY_COLORS[item.category] || { bg: "var(--color-surface-sunken)", icon: "var(--color-ink-soft)" };
             const onList = isIngredientOnList(item.name, groceries);
-            const label = expiryLabel(item);
             const isExpired = groupKey === "expired";
             const isSoon = groupKey === "soon";
-            return <article key={item.id} className={`kw-item ${isExpired ? "kw-item--expired" : ""} ${isSoon ? "kw-item--soon" : ""}`}>
-              <div className="kw-item-left">
-                {item.imageUrl ? <img src={item.imageUrl} alt="" className="kw-item-img"/> : <span className="kw-item-icon" style={{ color: meta.color }}><LocIcon size={18}/></span>}
-                <div className="kw-item-info">
-                  <strong>{item.name}</strong>
-                  {item.brand && <small>{item.brand}</small>}
-                  <span className="kw-item-meta">
-                    <LocIcon size={11}/> {LOCATION_LABELS[item.location] || item.location}
-                    {item.quantity > 1 && <span className="kw-item-qty">x{item.quantity}{item.unit ? ` ${item.unit}` : ""}</span>}
-                  </span>
-                </div>
-              </div>
-              <div className="kw-item-right">
-                {label && <span className={`kw-expiry-label ${isExpired ? "kw-expiry-label--expired" : ""} ${isSoon ? "kw-expiry-label--soon" : ""}`}>{label}</span>}
-                {item.expiresOn && <span className="kw-expiry-date">{expiryDateDisplay(item.expiresOn)}</span>}
-                <ShelfLifeBar item={item} />
-                <div className="kw-item-actions">
-                  <DateField compact label="" value={item.expiresOn} onChange={(expiresOn) => updateItem(item.id, { expiresOn })}/>
-                  <div className="kw-qty-controls">
-                    <button type="button" onClick={() => updateItem(item.id, { quantity: Math.max(1, Number(item.quantity || 1) - 1) })} disabled={Number(item.quantity) <= 1}><Minus size={12}/></button>
-                    <strong>{item.quantity}{item.unit ? ` ${item.unit}` : ""}</strong>
-                    <button type="button" onClick={() => updateItem(item.id, { quantity: Number(item.quantity || 1) + 1 })}><Plus size={12}/></button>
+            const expiryText = days !== null ? (days <= 0 ? "Expired" : days === 0 ? "Expires today" : days === 1 ? "Expires tomorrow" : `Expires in ${days} days`) : null;
+            return (
+              <article key={item.id} className={`kw-card ${isExpired ? "kw-card--expired" : ""} ${isSoon ? "kw-card--soon" : ""}`}>
+                <div className="kw-card-top">
+                  <div className="kw-card-cat" style={{ background: catColors.bg }}>
+                    <span className="kw-card-cat-icon" style={{ background: catColors.icon }}><CatIcon size={14} color="#fff" /></span>
+                    <span className="kw-card-cat-label">{item.category}</span>
                   </div>
-                  {isExpired && <button type="button" className="kw-replace-btn" disabled={onList} onClick={() => replaceItem(item)}><ChefHat size={13}/> {onList ? "On list" : "Replace"}</button>}
-                  <button type="button" className="kw-delete-btn" onClick={() => setConfirmDelete(item)} aria-label={`Remove ${item.name}`}><Trash2 size={13}/></button>
+                  <h4 className="kw-card-name">{item.name}</h4>
+                  {expiryText && (
+                    <p className={`kw-card-expiry ${isExpired ? "kw-card-expiry--expired" : ""} ${isSoon ? "kw-card-expiry--soon" : ""}`}>
+                      {expiryText}
+                    </p>
+                  )}
+                  <p className="kw-card-location">
+                    {LOCATION_LABELS[item.location] || item.location}
+                    {item.quantity > 1 && ` · x${item.quantity}${item.unit ? ` ${item.unit}` : ""}`}
+                  </p>
                 </div>
-              </div>
-            </article>;
+                <div className="kw-card-bottom">
+                  <div className="kw-card-actions-left">
+                    <DateField compact label="" value={item.expiresOn} onChange={(expiresOn) => updateItem(item.id, { expiresOn })} />
+                    {isExpired && <button type="button" className="kw-replace-btn" disabled={onList} onClick={() => replaceItem(item)}><ChefHat size={13}/> {onList ? "On list" : "Replace"}</button>}
+                  </div>
+                  <div className="kw-card-right">
+                    <ShelfLifeBar item={item} />
+                    <button type="button" className="kw-delete-btn" onClick={() => setConfirmDelete(item)} aria-label={`Remove ${item.name}`}><Trash2 size={16}/></button>
+                  </div>
+                </div>
+              </article>
+            );
           })}
         </div>
       </section>;
