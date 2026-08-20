@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
   }
 
   const stripe = new Stripe(stripeKey, { apiVersion: "2024-06-20" });
-  const frontendUrl = Deno.env.get("FRONTEND_URL") || "https://fam-os.app";
+  const frontendUrl = Deno.env.get("FRONTEND_URL") || "https://home.fam-os.app";
 
   const session = await stripe.billingPortal.sessions.create({
     customer: subRes.data.stripe_customer_id as string,

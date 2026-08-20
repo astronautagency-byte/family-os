@@ -964,7 +964,7 @@ export default function Groceries() {
     // sheet isn't available.
     const link = (typeof window !== "undefined" && window.location)
       ? `${window.location.origin}/?list=${encodeURIComponent(household?.id || "active")}`
-      : "https://fam-os.app/?list=active";
+      : "https://home.fam-os.app/?list=active";
     const fullText = `${deliveryShareText}\n\nOpen in FamOS: ${link}`;
     if (navigator?.share) {
       try {

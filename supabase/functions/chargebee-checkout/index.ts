@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
     if (!features.length) return reply({ error: "Choose a plan to upgrade to." }, 400);
 
     const planFeature = features[0];
-    const frontend = Deno.env.get("FRONTEND_URL") || "https://fam-os.app";
+    const frontend = Deno.env.get("FRONTEND_URL") || "https://home.fam-os.app";
     const { data: current } = await admin.from("account_subscriptions").select("chargebee_subscription_id").eq("household_id", membership.household_id).maybeSingle();
     const form = new URLSearchParams();
     form.set("layout", "full_page");

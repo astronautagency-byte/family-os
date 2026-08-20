@@ -5,13 +5,13 @@
 // rich preview via Messages / WhatsApp / Mail / Notes. Falls back to
 // clipboard copy so the URL still reaches the recipient.
 //
-// The recipient lands on `https://fam-os.app/?<type>=<id>` which App.jsx
+// The recipient lands on `https://home.fam-os.app/?<type>=<id>` which App.jsx
 // parses into a deep link — so tap-to-share turns into tap-to-open in
 // FamOS without forcing the recipient to paste a list manually.
 
 export function buildShareUrl(type, id) {
   if (!id) return "";
-  const origin = typeof window !== "undefined" && window.location ? window.location.origin : "https://fam-os.app";
+  const origin = typeof window !== "undefined" && window.location ? window.location.origin : "https://home.fam-os.app";
   return `${origin}/?${type}=${encodeURIComponent(id)}`;
 }
 

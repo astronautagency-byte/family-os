@@ -72,7 +72,7 @@ CREATE TABLE ad_impressions (
 **Goal:** Partners can log in, create campaigns, upload creatives, view analytics.
 
 ### 2.1 Partner Auth
-- Separate auth flow: `partners.fam-os.app` subdomain or `/partner/login`
+- Separate auth flow: `partners.home.fam-os.app` subdomain or `/partner/login`
 - Email + password auth (Supabase auth with `partner` role)
 - Partner invitation flow (admin creates partner account, sends invite email)
 
@@ -201,4 +201,4 @@ Users can choose from 3 sources:
 - [ ] CPM rate for partners (recommend: $5-10 CPM for family audience)
 - [ ] Partner pricing model (pay-per-impression vs flat monthly)
 - [ ] Whether to use a third-party ad server or build custom
-- [ ] Subdomain for partner portal (partners.fam-os.app vs /partner route)
+- [ ] Subdomain for partner portal (partners.home.fam-os.app vs /partner route)

@@ -15,7 +15,7 @@ Deno.serve(async (request) => {
     if (!operator?.is_active) return reply({ error: "Admin access required." }, 403);
     const { customerId } = await request.json();
     if (!customerId) return reply({ error: "Chargebee customer is required." }, 400);
-    const form = new URLSearchParams({ "customer[id]": String(customerId), redirect_url: `${Deno.env.get("FRONTEND_URL") || "https://fam-os.app"}/admin` });
+    const form = new URLSearchParams({ "customer[id]": String(customerId), redirect_url: `${Deno.env.get("FRONTEND_URL") || "https://home.fam-os.app"}/admin` });
     const result = await chargebeeRequest("/portal_sessions", form);
     await admin.from("admin_audit_log").insert({ admin_user_id: auth.user.id, admin_email: operator.email, action: "open_chargebee_customer_portal", target_type: "chargebee_customer", target_id: customerId, details: {} });
     return reply({ url: result?.portal_session?.access_url });

@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
         : await admin.from("account_subscriptions").insert({ household_id: membership.household_id, provider: "chargebee", plan_key: "free", status: "paused", amount_cents: 0, currency: "CAD", billing_interval: "month", ...billingRecord });
       if (saveError) throw new Error("Billing profile could not be linked. Please try again.");
     }
-    const form = new URLSearchParams({ "customer[id]": customerId, redirect_url: `${Deno.env.get("FRONTEND_URL") || "https://fam-os.app"}/#settings` });
+    const form = new URLSearchParams({ "customer[id]": customerId, redirect_url: `${Deno.env.get("FRONTEND_URL") || "https://home.fam-os.app"}/#settings` });
     const result = await chargebeeRequest("/portal_sessions", form);
     return reply({ url: result?.portal_session?.access_url });
   } catch (error) { return reply({ error: error instanceof Error ? error.message : "Could not open billing." }, 500); }

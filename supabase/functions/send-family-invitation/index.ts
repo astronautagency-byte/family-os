@@ -93,7 +93,7 @@ function invitationEmail({
 }) {
   const safeHome = escapeHtml(householdName);
   const safeInviter = escapeHtml(inviterName);
-  const logoUrl = "https://fam-os.app/brand/famos-icon-transparent.png";
+  const logoUrl = "https://home.fam-os.app/brand/famos-icon-transparent.png";
   const preheader = `${safeInviter} invited you to join ${safeHome} on FamOS.`;
   const text = `${inviterName} invited you to join ${householdName} on FamOS.\n\nShare calendars, tasks, meals, grocery lists and family chat in one private home.\n\nJoin your home: ${actionLink}\n\nThis secure invitation expires in 7 days. If you were not expecting it, you can ignore this email.\n\nFamOS — Families Run Better on FamOS`;
 
@@ -139,7 +139,7 @@ function invitationEmail({
           <tr>
             <td style="padding:20px 32px;border-top:1px solid #eee9fa;text-align:center;font-size:12px;line-height:1.5;color:#918ca4">
               This invitation was sent because a FamOS member entered this email address. Only accept if you recognize the inviter. FamOS will never ask for your password by email.<br>
-              <a href="https://fam-os.app/privacy" style="color:#6457d9">Privacy</a> \u00b7 <a href="https://fam-os.app/terms" style="color:#6457d9">Terms</a> \u00b7 <a href="mailto:support@fam-os.app" style="color:#6457d9">Support</a><br>
+              <a href="https://home.fam-os.app/privacy" style="color:#6457d9">Privacy</a> \u00b7 <a href="https://home.fam-os.app/terms" style="color:#6457d9">Terms</a> \u00b7 <a href="mailto:support@fam-os.app" style="color:#6457d9">Support</a><br>
               \u00a9 2026 FamOS. All rights reserved.
             </td>
           </tr>
@@ -259,7 +259,7 @@ Deno.serve(async (request) => {
 
     stage = "checking the invited account";
     const existingAuthUser = await findAuthUserByEmail(admin, normalizedEmail);
-    const appOrigin = new URL(redirectTo || "https://fam-os.app").origin;
+    const appOrigin = new URL(redirectTo || "https://home.fam-os.app").origin;
     const callbackUrl = existingAuthUser ? `${appOrigin}/signin` : `${appOrigin}/signin?invite=1`;
     const householdName = household?.name || "your family home";
     const inviterName = inviterProfile?.display_name || user.user_metadata?.display_name || user.email?.split("@")[0] || "A family member";

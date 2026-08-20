@@ -40,7 +40,7 @@ export default defineConfig({
       version: new Date().toISOString().slice(0, 10).replace(/-/g, ''),
       includeAssets: ['icons/icon-192.png', 'icons/icon-512.png'],
       manifest: {
-        id: 'https://fam-os.app/',
+        id: 'https://home.fam-os.app/',
         name: 'FamOS - Families Run Better on FamOS',
         short_name: 'FamOS',
         description: 'Families run better on FamOS—the smart home hub for organizing your family’s days, tasks, meals, groceries, calendars, and more.',

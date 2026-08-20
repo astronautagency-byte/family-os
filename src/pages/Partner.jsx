@@ -814,7 +814,7 @@ export default function Partner() {
           ) : partner?.status === "rejected" ? (
             <>
               <h1>Application not approved</h1>
-              <p>Your application for <strong>{partner.company_name}</strong> was not approved at this time. Contact partners@fam-os.app for details.</p>
+              <p>Your application for <strong>{partner.company_name}</strong> was not approved at this time. Contact partners@home.fam-os.app for details.</p>
             </>
           ) : (
             <>

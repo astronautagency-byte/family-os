@@ -29,7 +29,7 @@ npm run preview   # serve the production build locally to test
 
 The production build (in `dist/`) includes the web app manifest and service worker needed for "Add to Home Screen" support.
 
-Production domain: `https://fam-os.app/`.
+Production domain: `https://home.fam-os.app/`.
 
 ## Installing on an iPhone (PWA)
 
@@ -91,13 +91,13 @@ Companion changes (apply in this order if you are reproducing from scratch):
 
 1. Create a Supabase project and run the SQL files in `supabase/migrations/` in filename order (or use `supabase db push`).
 2. Copy `.env.example` to `.env.local` and fill in the project URL and publishable key.
-3. In Supabase Auth URL Configuration, set the Site URL to `https://fam-os.app/` and add redirect URLs for both production and local development:
-   - `https://fam-os.app/**`
+3. In Supabase Auth URL Configuration, set the Site URL to `https://home.fam-os.app/` and add redirect URLs for both production and local development:
+   - `https://home.fam-os.app/**`
    - `http://localhost:5173/**`
    - `http://127.0.0.1:5173/**`
 4. Add the branded invitation email secrets. `FAMOS_FROM_EMAIL` must use a domain verified in Resend:
    ```bash
-   supabase secrets set RESEND_API_KEY=re_... FAMOS_FROM_EMAIL="FamOS <invites@fam-os.app>"
+   supabase secrets set RESEND_API_KEY=re_... FAMOS_FROM_EMAIL="FamOS <invites@home.fam-os.app>"
    ```
 
    To send optional transactional SMS invitations through Amazon SNS, add an IAM access key with `sns:Publish` permission:
@@ -132,7 +132,7 @@ Companion changes (apply in this order if you are reproducing from scratch):
    supabase functions deploy prepare-invited-account
    ```
    Supabase automatically provides `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`. All email delivery goes through Resend (no AWS SES dependency). `send-password-email` handles password resets and invitation OTP codes; `send-family-invitation` handles the full HTML invitation email for new members; `test-delivery` lets you verify every channel from Settings → Integrations.
-6. Configure Supabase Auth URL settings and make sure `https://fam-os.app/`, `http://localhost:5173`, and `http://127.0.0.1:5173` are allowed redirect URLs.
+6. Configure Supabase Auth URL settings and make sure `https://home.fam-os.app/`, `http://localhost:5173`, and `http://127.0.0.1:5173` are allowed redirect URLs.
 7. Start the app and sign in. New owners name their family, then can invite members immediately or skip and add them later from Settings. New invitees create a password from the secure link; existing users sign in and confirm the waiting household.
 
 For inline invited-member password setup, paste `supabase/templates/magic_link.html` into **Authentication → Email Templates → Magic Link**. The `{{ .Token }}` variable is required: FamOS asks the member for this one-time code and never requires them to click an email link.
@@ -153,7 +153,7 @@ When Google is enabled as a Supabase Auth provider and the app uses **Continue w
 2. Under **APIs & Services → Library**, search for **Google Calendar API** and enable it.
 3. Under **APIs & Services → Credentials**, click **Create Credentials → OAuth client ID**.
    - Application type: **Web application**
-   - Authorized JavaScript origins: add `https://fam-os.app`, `http://localhost:5173`, and `http://127.0.0.1:5173`.
+   - Authorized JavaScript origins: add `https://home.fam-os.app`, `http://localhost:5173`, and `http://127.0.0.1:5173`.
    - If using Supabase Google Auth, also make sure the Supabase Google callback URL is listed under authorized redirect URIs.
 4. Copy the generated **Client ID** (it ends in `.apps.googleusercontent.com`).
 5. In Family OS, go to **Settings → Integrations → Google Calendar**, paste the Client ID, and tap **Connect Google Calendar**. Google will show its normal consent screen — approve read-only calendar access.
@@ -170,9 +170,9 @@ If Google Calendar auth is limited to selected accounts, the Google Cloud projec
 1. In Google Cloud Console, open **Google Auth Platform → Audience**.
 2. Set the user type/audience to **External** so anyone with a Google Account can authorize the app.
 3. Publish the app from **Testing** to **Production** when it is ready.
-4. In **Branding**, make sure the home page, privacy policy, terms page, and authorized domain use `https://fam-os.app/`.
+4. In **Branding**, make sure the home page, privacy policy, terms page, and authorized domain use `https://home.fam-os.app/`.
 5. In **Data Access**, request only the minimum Google Calendar scopes needed by the app. Calendar scopes may require Google verification before the app is broadly available.
-6. In **Clients**, keep `https://fam-os.app` listed as an authorized JavaScript origin and keep the Supabase callback URL listed as an authorized redirect URI if Supabase Google Auth is enabled.
+6. In **Clients**, keep `https://home.fam-os.app` listed as an authorized JavaScript origin and keep the Supabase callback URL listed as an authorized redirect URI if Supabase Google Auth is enabled.
 
 ## API-key-backed Supabase Edge Functions
 

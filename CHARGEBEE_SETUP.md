@@ -27,7 +27,7 @@ CHARGEBEE_ITEM_FREE_BASE=famos-free-cad-monthly
 CHARGEBEE_ITEM_MEALS=famos-meals-cad-monthly
 CHARGEBEE_ITEM_FAMAI=famos-famai-cad-monthly
 CHARGEBEE_ITEM_FAMILY=famos-family-cad-monthly
-FRONTEND_URL=https://fam-os.app
+FRONTEND_URL=https://home.fam-os.app
 ```
 
 Deploy `chargebee-checkout`, `chargebee-portal`, and `chargebee-webhook` after applying migration `202608150006_chargebee_feature_billing.sql`.

@@ -136,7 +136,7 @@ Deno.serve(async (req) => {
     customerId = customer.id;
   }
 
-  const frontendUrl = Deno.env.get("FRONTEND_URL") || "https://fam-os.app";
+  const frontendUrl = Deno.env.get("FRONTEND_URL") || "https://home.fam-os.app";
   const returnUrl = frontendUrl + (requestedReturn || "/today?trial_started=1");
   const successUrl = returnUrl.includes("?")
     ? `${returnUrl}&session_id={CHECKOUT_SESSION_ID}`

@@ -42,7 +42,7 @@ function emailContent(actionValue: string, purpose: string) {
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border:1px solid #e3dcfa;border-radius:24px;overflow:hidden">
         <tr><td style="padding:30px 34px 18px;text-align:center">
-          <img src="https://fam-os.app/brand/famos-logo.png" width="110" alt="FamOS" style="display:block;margin:0 auto 24px">
+          <img src="https://home.fam-os.app/brand/famos-logo.png" width="110" alt="FamOS" style="display:block;margin:0 auto 24px">
           <h1 style="margin:0 0 12px;font-size:30px;line-height:1.15;color:#17152d">${title}</h1>
           <p style="margin:0;color:#625e72;font-size:16px;line-height:1.6">${intro}</p>
         </td></tr>
@@ -52,8 +52,8 @@ function emailContent(actionValue: string, purpose: string) {
         </td></tr>
         <tr><td style="background:#201d38;padding:20px 34px;color:#c8c3d8;font-size:12px;line-height:1.6;text-align:center">
           FamOS · Families run better on FamOS<br>
-          <a href="https://fam-os.app/privacy" style="color:#b9aaff">Privacy</a> &nbsp;·&nbsp;
-          <a href="https://fam-os.app/terms" style="color:#b9aaff">Terms</a>
+          <a href="https://home.fam-os.app/privacy" style="color:#b9aaff">Privacy</a> &nbsp;·&nbsp;
+          <a href="https://home.fam-os.app/terms" style="color:#b9aaff">Terms</a>
         </td></tr>
       </table>
     </td></tr>
@@ -109,7 +109,7 @@ Deno.serve(async (request) => {
     const requestedOrigin = String(origin || "");
     const safeOrigin = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(requestedOrigin)
       ? requestedOrigin
-      : "https://fam-os.app";
+      : "https://home.fam-os.app";
     const admin = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
     if (purpose === "invitation") {
       const { data: activeInvitation, error: invitationError } = await admin
