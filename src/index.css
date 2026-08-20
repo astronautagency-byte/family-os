@@ -6652,6 +6652,193 @@ input:focus, textarea:focus, select:focus {
   animation: popIn 0.35s var(--ease-spring) forwards;
 }
 
+/* Smart Suggestions Panel — Design System compliant */
+.smart-suggestions-panel {
+  margin: 16px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-section);
+  background: var(--color-surface);
+}
+.smart-suggestions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.smart-suggestions-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.smart-suggestions-title h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+.smart-suggestions-analyzing {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-ink-faint);
+}
+.smart-suggestions-analyzing .spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.smart-suggestions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.smart-suggestion-card {
+  position: relative;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-left-width: 4px;
+  border-radius: var(--radius-control);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+  background: var(--color-surface);
+  animation: fadeInUp 0.5s var(--ease-decelerate) forwards;
+  opacity: 0;
+}
+.smart-suggestion-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+.smart-suggestions-list .smart-suggestion-card:nth-child(1) { animation-delay: 0ms; }
+.smart-suggestions-list .smart-suggestion-card:nth-child(2) { animation-delay: 60ms; }
+.smart-suggestions-list .smart-suggestion-card:nth-child(3) { animation-delay: 120ms; }
+.smart-suggestions-list .smart-suggestion-card:nth-child(4) { animation-delay: 180ms; }
+.smart-suggestion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.smart-suggestion-type {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.smart-suggestion-confidence {
+  padding: 2px 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-ink-soft);
+}
+.smart-suggestion-dismiss {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-sunken);
+  color: var(--color-ink-faint);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.smart-suggestion-dismiss:hover {
+  background: var(--color-warn-soft);
+  color: var(--color-warn);
+}
+.smart-suggestion-content {
+  font-size: 13px;
+  color: var(--color-ink-soft);
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+.smart-suggestion-source {
+  margin: 0 0 6px;
+}
+.smart-suggestion-source-label {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+.smart-suggestion-preview {
+  font-weight: 500;
+  color: var(--color-ink);
+}
+.smart-suggestion-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+.smart-suggestion-accept {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Smart Suggestion Banner — inline contextual */
+.smart-suggestion-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--color-border);
+  border-left-width: 4px;
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  margin: 12px 16px;
+  animation: slideInRight 0.5s var(--ease-decelerate) forwards;
+}
+.smart-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+.smart-banner-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-control);
+  flex: 0 0 32px;
+}
+.smart-banner-text {
+  min-width: 0;
+}
+.smart-banner-label {
+  margin: 0 0 2px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-ink-soft);
+}
+.smart-banner-message {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.smart-banner-actions {
+  display: flex;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
 /* Smart suggestion card enter — staggered */
 .smart-suggestion-card {
   animation: fadeInUp 0.5s var(--ease-decelerate) forwards;
