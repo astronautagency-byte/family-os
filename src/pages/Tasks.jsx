@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { BriefcaseBusiness, Check, GraduationCap, House, Layers3, ListPlus, ListTodo, Plus, Share2, ShoppingBag, Trash2, Users } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { Alert, Avatar, AvatarStack, Badge, Checkbox, DateField, Modal, PrimaryButton, ProgressBar, TextAreaField, TextField } from "../components/ui";
@@ -9,6 +9,7 @@ import NativeAdBanner from "../components/NativeAdBanner";
 import { AD_PLACEMENTS } from "../lib/adNetwork";
 import { todayISO } from "../lib/dates";
 import { buildShareUrl, nativeShareWithFallback } from "../lib/share";
+import { fireConfetti } from "../lib/confetti";
 
 const GROUPS={home:{label:"Housework",Icon:House,tone:"violet",color:"#6b5ce7"},errand:{label:"Errands",Icon:ShoppingBag,tone:"green",color:"#3b8c75"},school:{label:"School",Icon:GraduationCap,tone:"slate",color:"#4b7ec5"},family:{label:"Family",Icon:Users,tone:"rose",color:"#d66b83"},work:{label:"Work",Icon:BriefcaseBusiness,tone:"amber",color:"#c98232"},personal:{label:"Personal",Icon:House,tone:"violet",color:"#756d8d"}};
 const LIST_COLORS=[{value:"#6b5ce7",label:"Violet"},{value:"#d66b83",label:"Rose"},{value:"#b95f3b",label:"Coral"},{value:"#c98232",label:"Amber"},{value:"#3b8c75",label:"Green"},{value:"#2f8b9d",label:"Teal"},{value:"#4b7ec5",label:"Blue"},{value:"#756d8d",label:"Slate"}];

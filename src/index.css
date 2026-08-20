@@ -4753,6 +4753,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   .app-shell .primary-nav .nav-icon{width:32px;height:32px;flex:0 0 32px;border-radius:var(--radius-control)}
   .app-shell .primary-nav .nav-label{display:block;font-size:13px;text-align:left}
   .app-shell .primary-nav .nav-item.is-active{background:var(--color-accent-soft)}
+  .kw-group-items{grid-template-columns:1fr 1fr!important}
 }
 @media(max-width:767px){
   .app-shell .page-title,body .app-content .page-title{font-size:20px!important;line-height:28px!important;letter-spacing:-.02em!important}
@@ -5629,6 +5630,11 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .kw-search-bar input{flex:1;min-width:0;border:0;background:transparent;color:var(--color-ink);font-size:13px;outline:none}
 .kw-search-bar input::placeholder{color:var(--color-ink-faint)}
 .kw-search-bar button{display:grid;place-items:center;width:24px;height:24px;border:0;border-radius:var(--radius-pill);background:var(--color-surface-sunken);color:var(--color-ink-soft);cursor:pointer}
+.kw-category-tabs{display:flex;gap:8px;margin:0 20px 14px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.kw-category-tabs::-webkit-scrollbar{display:none}
+.kw-category-tab{flex:0 0 auto;padding:6px 14px;border:1px solid var(--color-border);border-radius:var(--radius-pill);background:var(--color-surface);color:var(--color-ink-soft);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s ease;white-space:nowrap}
+.kw-category-tab:hover{border-color:var(--color-accent);color:var(--color-accent)}
+.kw-category-tab--active{background:var(--color-accent);border-color:var(--color-accent);color:var(--color-on-accent)}
 .kw-group{margin:0 20px 18px}
 .kw-group-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--color-border)}
 .kw-group-indicator{width:4px;height:18px;border-radius:2px;flex:0 0 4px}
@@ -5729,7 +5735,7 @@ body .app-content .page-title{
   .app-shell .page-header-aside{min-width:76px!important;max-width:92px!important}
   .app-shell .page-header-aside .page-spot-frame,
   .app-shell .page-header-aside .page-spot{width:76px!important;height:64px!important}
-  .chat-mobile-composer{padding-bottom:calc(14px + env(safe-area-inset-bottom) + 68px)!important}
+  .chat-mobile-composer{padding-bottom:calc(14px + env(safe-area-inset-bottom))!important}
 }
 @media(max-width:380px){
   .app-shell .page-title,
@@ -6183,61 +6189,82 @@ reference-tasks,
   margin-bottom: var(--space-5);
 }
 
-/* Meal Planner v2 — Premium card layout with slot colors */
-.meal-slot-card {
-  padding: 14px;
-  border: 1px solid var(--color-border);
-  border-left: 3px solid var(--color-accent);
-  border-radius: var(--radius-section);
-  background: var(--color-surface);
-  transition: all 0.15s ease;
+/* Meal Planner v2 — Clean slot layout with accent borders */
+.meal-slot-row {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border);
 }
-.meal-slot-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+.meal-slot-row:last-child {
+  border-bottom: none;
 }
-.meal-slot-card-header {
+.meal-slot-filled {
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 6px;
+}
+.meal-slot-filled-header {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
+  gap: 8px;
 }
-.meal-slot-card-left {
-  flex: 1;
-  min-width: 0;
-}
-.meal-slot-card-right {
-  flex: 0 0 auto;
-}
-.meal-slot-card .meal-slot-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-.meal-slot-card .meal-slot-value {
-  margin: 2px 0 0;
+.meal-slot-filled-title {
+  margin: 0;
   color: var(--color-ink);
   font-size: 15px;
   font-weight: 650;
   line-height: 1.3;
 }
-.meal-slot-card-meta {
+.meal-slot-filled-meta {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 10px;
   color: var(--color-ink-faint);
   font-size: 12px;
 }
-.meal-slot-card-meta svg {
+.meal-slot-filled-meta svg {
   flex: 0 0 auto;
 }
-.meal-slot-card-actions {
+.meal-slot-filled-actions {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  margin-top: 4px;
+}
+.meal-slot-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.meal-slot-empty-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.meal-slot-empty-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.meal-saved-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-ink-soft);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.meal-saved-badge:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 .meal-cook-mode-btn {
   display: inline-flex;
@@ -6275,7 +6302,7 @@ reference-tasks,
   border-color: var(--color-accent);
   color: var(--color-accent);
 }
-.meal-slot-card-tools {
+.meal-slot-tools {
   display: flex;
   gap: 6px;
   margin-left: auto;
@@ -6300,4 +6327,159 @@ reference-tasks,
   border-color: var(--color-warn);
   color: var(--color-warn);
   background: color-mix(in srgb, var(--color-warn) 6%, var(--color-surface));
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   MICRO-ANIMATIONS — Premium motion design
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* Page entrance animation */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(var(--color-accent-rgb, 105, 91, 217), 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(var(--color-accent-rgb, 105, 91, 217), 0); }
+}
+@keyframes bounceIn {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.05); }
+  70% { transform: scale(0.9); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  75% { transform: rotate(3deg); }
+}
+@keyframes popIn {
+  0% { transform: scale(0); opacity: 0; }
+  70% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes checkmark {
+  0% { stroke-dashoffset: 24; }
+  100% { stroke-dashoffset: 0; }
+}
+
+/* Utility animation classes */
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s ease-out forwards;
+}
+.animate-fade-in-scale {
+  animation: fadeInScale 0.3s ease-out forwards;
+}
+.animate-slide-in-right {
+  animation: slideInRight 0.35s ease-out forwards;
+}
+.animate-bounce-in {
+  animation: bounceIn 0.5s ease-out forwards;
+}
+.animate-pop-in {
+  animation: popIn 0.3s ease-out forwards;
+}
+.animate-wiggle {
+  animation: wiggle 0.5s ease-in-out;
+}
+.animate-pulse-glow {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+/* Staggered children animation */
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 50ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 100ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 150ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 200ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 250ms; }
+.stagger-children > *:nth-child(7) { animation-delay: 300ms; }
+.stagger-children > *:nth-child(8) { animation-delay: 350ms; }
+
+/* Card hover micro-interaction */
+.kw-card,
+.today-list-item,
+.event-carousel-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.15s ease;
+}
+.kw-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Button press feedback */
+.primary-button,
+.kw-add-btn,
+.meal-cook-mode-btn,
+.kw-change-date-btn {
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+}
+.primary-button:active,
+.kw-add-btn:active,
+.meal-cook-mode-btn:active,
+.kw-change-date-btn:active {
+  transform: scale(0.97);
+}
+
+/* Success checkmark animation */
+.checkmark-circle {
+  animation: popIn 0.4s ease-out forwards;
+}
+.checkmark-path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: checkmark 0.4s ease-out 0.2s forwards;
+}
+
+/* Shimmer loading effect */
+.shimmer {
+  background: linear-gradient(90deg, var(--color-surface-sunken) 25%, var(--color-surface) 50%, var(--color-surface-sunken) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Progress ring animation */
+.kw-shelf-ring svg circle:last-child {
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Notification badge bounce */
+.nav-badge,
+.kw-alert-banner {
+  animation: bounceIn 0.4s ease-out;
+}
+
+/* Floating action button */
+.reference-fab {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.reference-fab:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+.reference-fab:active {
+  transform: scale(0.95);
+}
+
+/* Tab switching animation */
+.nav-item {
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+.nav-item:active {
+  transform: scale(0.9);
+}
+.nav-item.is-active .nav-icon {
+  animation: bounceIn 0.3s ease-out;
 }

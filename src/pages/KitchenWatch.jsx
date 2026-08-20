@@ -27,7 +27,7 @@ function ShelfLifeRing({ item, size = 90, strokeWidth = 7 }) {
   const progress = inventoryExpiryProgress(item);
   if (!progress) return null;
   const color = shelfLifeColor(days);
-  const percent = Math.max(0, Math.min(100, progress.percent));
+  const percent = Math.max(0, Math.min(100, progress.remainingPercent));
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - percent / 100);
@@ -113,6 +113,7 @@ export default function KitchenWatch() {
   const { groceries, addGrocery, refreshData } = useFamily();
   const { items, addItem, updateItem, removeItem } = useKitchenInventory(household?.id, user?.id);
   const [query, setQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState("all");
   const [adding, setAdding] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -126,9 +127,15 @@ export default function KitchenWatch() {
     return item.checked && !inventoriedSourceIds.has(item.id) && isWatched(category);
   }), [groceries, inventoriedSourceIds]);
 
+  const categories = useMemo(() => {
+    const cats = new Set(watchedItems.map((i) => i.category).filter(Boolean));
+    return ["all", ...Array.from(cats).sort()];
+  }, [watchedItems]);
+
   const filteredItems = useMemo(() => watchedItems
-    .filter((item) => `${item.name} ${item.brand || ""} ${item.category}`.toLowerCase().includes(query.trim().toLowerCase())),
-    [watchedItems, query]);
+    .filter((item) => `${item.name} ${item.brand || ""} ${item.category}`.toLowerCase().includes(query.trim().toLowerCase()))
+    .filter((item) => activeCategory === "all" || item.category === activeCategory),
+    [watchedItems, query, activeCategory]);
 
   const grouped = useMemo(() => {
     const groups = { expired: [], soon: [], later: [], "no-date": [] };
@@ -184,6 +191,18 @@ export default function KitchenWatch() {
     {expiringCount > 0 && <div className="kw-alert-banner"><AlertTriangle size={16}/> <span>{expiringCount} item{expiringCount === 1 ? "" : "s"} expiring soon</span></div>}
 
     <section className="kw-search-bar"><Search size={15}/><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search your kitchen" aria-label="Search Kitchen Watch"/>{query && <button type="button" onClick={() => setQuery("")} aria-label="Clear search"><X size={13}/></button>}</section>
+
+    <div className="kw-category-tabs">
+      {categories.map((cat) => (
+        <button
+          key={cat}
+          className={`kw-category-tab ${activeCategory === cat ? "kw-category-tab--active" : ""}`}
+          onClick={() => setActiveCategory(cat)}
+        >
+          {cat === "all" ? "All" : cat}
+        </button>
+      ))}
+    </div>
 
     {GROUP_ORDER.map((groupKey) => {
       const items = grouped[groupKey];

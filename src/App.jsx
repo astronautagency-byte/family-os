@@ -12,6 +12,7 @@ import { FamilyProvider } from "./context/FamilyContext";
 import BottomNav from "./components/BottomNav";
 import AppTopBar from "./components/AppTopBar";
 import InstallPrompt from "./components/InstallPrompt";
+import Confetti from "./components/Confetti";
 import { useAuth } from "./context/AuthContext";
 import { AuthLoading, HouseholdOnboarding, ResetPassword, SignIn } from "./pages/Auth";
 import { supabase } from "./lib/supabase";
@@ -374,6 +375,7 @@ export default function App() {
           </Suspense>
         </ErrorBoundary>
         <InstallPrompt />
+        <Confetti />
       </div>
     </FamilyProvider>
   );

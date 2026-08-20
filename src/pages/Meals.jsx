@@ -775,7 +775,7 @@ export default function Meals() {
                             <button className="meal-save-recipe-btn" onClick={() => saveRecipeToLibrary(meal)}>
                               <Bookmark size={14} /> Save recipe
                             </button>
-                            <div className="meal-slot-card-tools">
+                            <div className="meal-slot-tools">
                               <button className="meal-tool-btn" onClick={() => openEditor(date, slot)} aria-label="Edit meal">
                                 <Pencil size={15} />
                               </button>
