@@ -45,7 +45,7 @@ export function isSameDayAsToday(dateStr) {
 export function greetingForNow() {
   const h = new Date().getHours();
   if (h >= 5 && h < 12) return "Good morning";
-  if (h < 17) return "Good afternoon";
+  if (h < 16) return "Good afternoon";
   return "Good evening";
 }
 
@@ -53,7 +53,7 @@ export function greetingForNow() {
 export function greetingInfo() {
   const h = new Date().getHours();
   if (h >= 5 && h < 12) return { text: "Good morning", icon: "sun" };
-  if (h < 17) return { text: "Good afternoon", icon: "sun" };
+  if (h < 16) return { text: "Good afternoon", icon: "sun" };
   return { text: "Good evening", icon: "moon" };
 }
 
