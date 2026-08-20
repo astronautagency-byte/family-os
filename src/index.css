@@ -6349,336 +6349,291 @@ reference-tasks,
   height: 100%;
 }
 
-/* ══════════════════════════════════════════════════════════════════════════════
-   MICRO-ANIMATIONS — Premium motion design
-   ══════════════════════════════════════════════════════════════════════════════ */
 
-/* Page entrance animation */
+/* ═════════════════════════════════════════════════════════════════════════════
+   MICRO-ANIMATIONS — Premium motion design (modern, smooth, natural)
+   Uses Material Design easing: cubic-bezier(0.25, 0.46, 0.45, 0.94)
+   Respects prefers-reduced-motion
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* Modern easing curves */
+:root {
+  --ease-standard: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --ease-accelerate: cubic-bezier(0.4, 0, 1, 1);
+  --ease-sharp: cubic-bezier(0.4, 0, 0.6, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Page entrance animations — smoother, more natural */
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
 }
 @keyframes fadeInScale {
-  from { opacity: 0; transform: scale(0.95); }
+  from { opacity: 0; transform: scale(0.96); }
   to { opacity: 1; transform: scale(1); }
 }
 @keyframes slideInRight {
-  from { opacity: 0; transform: translateX(20px); }
+  from { opacity: 0; transform: translateX(24px); }
   to { opacity: 1; transform: translateX(0); }
 }
-@keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(var(--color-accent-rgb, 105, 91, 217), 0.4); }
-  50% { box-shadow: 0 0 0 8px rgba(var(--color-accent-rgb, 105, 91, 217), 0); }
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-24px); }
+  to { opacity: 1; transform: translateX(0); }
 }
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Subtle pulse glow — less aggressive */
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(var(--color-accent-rgb, 105, 91, 217), 0.3); }
+  50% { box-shadow: 0 0 0 6px rgba(var(--color-accent-rgb, 105, 91, 217), 0); }
+}
+
+/* Gentle bounce — more natural, less cartoonish */
 @keyframes bounceIn {
-  0% { transform: scale(0.3); opacity: 0; }
-  50% { transform: scale(1.05); }
-  70% { transform: scale(0.9); }
+  0% { transform: scale(0.8); opacity: 0; }
+  40% { transform: scale(1.02); }
+  60% { transform: scale(0.98); }
+  80% { transform: scale(1.01); }
   100% { transform: scale(1); opacity: 1; }
 }
+
+/* Soft pop-in — natural spring feel */
+@keyframes popIn {
+  0% { transform: scale(0.85); opacity: 0; }
+  50% { transform: scale(1.03); }
+  70% { transform: scale(0.98); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Shimmer loading — smoother */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
+
+/* Subtle wiggle for attention — gentler */
 @keyframes wiggle {
   0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-3deg); }
-  75% { transform: rotate(3deg); }
+  20% { transform: rotate(-2deg); }
+  40% { transform: rotate(2deg); }
+  60% { transform: rotate(-1deg); }
+  80% { transform: rotate(1deg); }
 }
-@keyframes popIn {
-  0% { transform: scale(0); opacity: 0; }
-  70% { transform: scale(1.1); }
-  100% { transform: scale(1); opacity: 1; }
-}
+
+/* Checkmark draw — smooth */
 @keyframes checkmark {
   0% { stroke-dashoffset: 24; }
   100% { stroke-dashoffset: 0; }
 }
 
-/* Utility animation classes */
+/* Scale press — natural tactile feedback */
+@keyframes pressScale {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+
+/* Utility animation classes — modern durations and easing */
 .animate-fade-in-up {
-  animation: fadeInUp 0.4s ease-out forwards;
+  animation: fadeInUp 0.5s var(--ease-decelerate) forwards;
 }
 .animate-fade-in-scale {
-  animation: fadeInScale 0.3s ease-out forwards;
+  animation: fadeInScale 0.4s var(--ease-decelerate) forwards;
 }
 .animate-slide-in-right {
-  animation: slideInRight 0.35s ease-out forwards;
+  animation: slideInRight 0.45s var(--ease-decelerate) forwards;
+}
+.animate-slide-in-left {
+  animation: slideInLeft 0.45s var(--ease-decelerate) forwards;
+}
+.animate-fade-in {
+  animation: fadeIn 0.3s var(--ease-standard) forwards;
 }
 .animate-bounce-in {
-  animation: bounceIn 0.5s ease-out forwards;
+  animation: bounceIn 0.55s var(--ease-bounce) forwards;
 }
 .animate-pop-in {
-  animation: popIn 0.3s ease-out forwards;
+  animation: popIn 0.4s var(--ease-spring) forwards;
 }
 .animate-wiggle {
-  animation: wiggle 0.5s ease-in-out;
+  animation: wiggle 0.6s var(--ease-standard);
 }
 .animate-pulse-glow {
-  animation: pulseGlow 2s ease-in-out infinite;
+  animation: pulseGlow 2.5s var(--ease-standard) infinite;
+}
+.animate-press {
+  animation: pressScale 0.12s var(--ease-sharp);
 }
 
-/* Staggered children animation */
+/* Staggered children animation — smoother progression */
+.stagger-children > * {
+  opacity: 0;
+  animation: fadeInUp 0.5s var(--ease-decelerate) forwards;
+}
 .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
-.stagger-children > *:nth-child(2) { animation-delay: 50ms; }
-.stagger-children > *:nth-child(3) { animation-delay: 100ms; }
-.stagger-children > *:nth-child(4) { animation-delay: 150ms; }
-.stagger-children > *:nth-child(5) { animation-delay: 200ms; }
-.stagger-children > *:nth-child(6) { animation-delay: 250ms; }
-.stagger-children > *:nth-child(7) { animation-delay: 300ms; }
-.stagger-children > *:nth-child(8) { animation-delay: 350ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 40ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 80ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 120ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 160ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 200ms; }
+.stagger-children > *:nth-child(7) { animation-delay: 240ms; }
+.stagger-children > *:nth-child(8) { animation-delay: 280ms; }
+.stagger-children > *:nth-child(9) { animation-delay: 320ms; }
+.stagger-children > *:nth-child(10) { animation-delay: 360ms; }
 
-/* Card hover micro-interaction */
+/* Card hover micro-interaction — smoother, more premium */
 .kw-card,
 .today-list-item,
-.event-carousel-card {
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.15s ease;
+.event-carousel-card,
+.meal-slot-card {
+  transition: transform 0.25s var(--ease-decelerate), box-shadow 0.25s var(--ease-decelerate), border-color 0.2s var(--ease-standard);
 }
-.kw-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+.kw-card:hover,
+.today-list-item:hover,
+.event-carousel-card:hover,
+.meal-slot-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
-/* Button press feedback */
+/* Button press feedback — tactile, responsive */
 .primary-button,
 .kw-add-btn,
 .meal-cook-mode-btn,
-.kw-change-date-btn {
-  transition: transform 0.1s ease, box-shadow 0.15s ease;
+.kw-change-date-btn,
+.meal-tool-btn,
+.meal-save-recipe-btn,
+.smart-suggestion-accept,
+.smart-suggestion-dismiss,
+.calendar-sources-tab,
+.coverage-city-chip {
+  transition: transform 0.08s var(--ease-sharp), box-shadow 0.12s var(--ease-standard), background-color 0.12s var(--ease-standard), border-color 0.12s var(--ease-standard);
 }
 .primary-button:active,
 .kw-add-btn:active,
 .meal-cook-mode-btn:active,
-.kw-change-date-btn:active {
-  transform: scale(0.97);
+.kw-change-date-btn:active,
+.meal-tool-btn:active,
+.meal-save-recipe-btn:active,
+.smart-suggestion-accept:active,
+.smart-suggestion-dismiss:active {
+  transform: scale(0.96);
 }
 
-/* Success checkmark animation */
+/* Input focus — smooth border transition */
+input, textarea, select {
+  transition: border-color 0.15s var(--ease-standard), box-shadow 0.15s var(--ease-standard), background-color 0.15s var(--ease-standard);
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(var(--color-accent-rgb, 105, 91, 217), 0.15);
+}
+
+/* Modal enter/exit — natural */
+.modal-card {
+  animation: fadeInScale 0.35s var(--ease-decelerate) forwards;
+}
+.modal-overlay {
+  animation: fadeIn 0.25s var(--ease-standard) forwards;
+}
+
+/* Success checkmark animation — smooth draw */
 .checkmark-circle {
-  animation: popIn 0.4s ease-out forwards;
+  animation: popIn 0.45s var(--ease-spring) forwards;
 }
 .checkmark-path {
   stroke-dasharray: 24;
   stroke-dashoffset: 24;
-  animation: checkmark 0.4s ease-out 0.2s forwards;
+  animation: checkmark 0.5s var(--ease-decelerate) 0.15s forwards;
 }
 
-/* Shimmer loading effect */
+/* Shimmer loading effect — smoother */
 .shimmer {
   background: linear-gradient(90deg, var(--color-surface-sunken) 25%, var(--color-surface) 50%, var(--color-surface-sunken) 75%);
   background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  animation: shimmer 1.8s var(--ease-standard) infinite;
 }
 
-/* Progress ring animation */
-.kw-shelf-ring svg circle:last-child {
-  transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+/* Progress ring animation — smooth spring */
+.kw-shelf-ring svg circle:last-child,
+.meal-slot-ring svg circle:last-child {
+  transition: stroke-dashoffset 0.9s cubic-bezier(0.34, 1.56, 0.64, 1), stroke 0.3s var(--ease-standard);
 }
 
-/* Notification badge bounce */
+/* Notification badge bounce — gentle */
 .nav-badge,
 .kw-alert-banner {
-  animation: bounceIn 0.4s ease-out;
+  animation: bounceIn 0.5s var(--ease-spring) forwards;
 }
 
-/* Floating action button */
+/* Floating action button — premium feel */
 .reference-fab {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s var(--ease-standard), box-shadow 0.2s var(--ease-standard);
 }
 .reference-fab:hover {
-  transform: scale(1.08);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  transform: scale(1.06);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
 }
 .reference-fab:active {
-  transform: scale(0.95);
+  transform: scale(0.94);
 }
 
-/* Tab switching animation */
+/* Tab switching animation — smooth */
 .nav-item {
-  transition: transform 0.15s ease, color 0.15s ease;
+  transition: transform 0.12s var(--ease-sharp), color 0.12s var(--ease-standard), background-color 0.12s var(--ease-standard);
 }
 .nav-item:active {
-  transform: scale(0.9);
+  transform: scale(0.94);
 }
 .nav-item.is-active .nav-icon {
-  animation: bounceIn 0.3s ease-out;
+  animation: popIn 0.35s var(--ease-spring) forwards;
 }
 
-/* Smart Suggestions — Intelligent family engine */
-.smart-suggestions-panel {
-  margin: 16px;
-  padding: 16px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-section);
-  background: var(--color-surface);
-}
-.smart-suggestions-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-.smart-suggestions-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.smart-suggestions-title h3 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--color-ink);
-}
-.smart-suggestions-analyzing {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--color-ink-faint);
-}
-.smart-suggestions-analyzing .spinner {
-  width: 12px;
-  height: 12px;
-  border: 2px solid var(--color-border);
-  border-top-color: var(--color-accent);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-.smart-suggestions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
+/* Smart suggestion card enter — staggered */
 .smart-suggestion-card {
-  position: relative;
-  padding: 14px;
-  border: 1px solid var(--color-border);
-  border-left-width: 4px;
-  border-radius: var(--radius-control);
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
+  animation: fadeInUp 0.5s var(--ease-decelerate) forwards;
+  opacity: 0;
 }
-.smart-suggestion-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  transform: translateY(-1px);
-}
-.smart-suggestion-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-.smart-suggestion-type {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-.smart-suggestion-confidence {
-  padding: 2px 6px;
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--color-ink-soft);
-}
-.smart-suggestion-dismiss {
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border: 0;
-  border-radius: var(--radius-pill);
-  background: var(--color-surface-sunken);
-  color: var(--color-ink-faint);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.smart-suggestion-dismiss:hover {
-  background: var(--color-warn-soft);
-  color: var(--color-warn);
-}
-.smart-suggestion-content {
-  font-size: 13px;
-  color: var(--color-ink-soft);
-  line-height: 1.5;
-  margin-bottom: 10px;
-}
-.smart-suggestion-source {
-  margin: 0 0 6px;
-}
-.smart-suggestion-source-label {
-  font-weight: 600;
-  color: var(--color-ink);
-}
-.smart-suggestion-preview {
-  font-weight: 500;
-  color: var(--color-ink);
-}
-.smart-suggestion-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-.smart-suggestion-accept {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+.smart-suggestions-list .smart-suggestion-card:nth-child(1) { animation-delay: 0ms; }
+.smart-suggestions-list .smart-suggestion-card:nth-child(2) { animation-delay: 60ms; }
+.smart-suggestions-list .smart-suggestion-card:nth-child(3) { animation-delay: 120ms; }
+.smart-suggestions-list .smart-suggestion-card:nth-child(4) { animation-delay: 180ms; }
+
+/* Smart banner slide in — smooth */
+.smart-suggestion-banner {
+  animation: slideInRight 0.5s var(--ease-decelerate) forwards;
 }
 
-/* Smart Suggestion Banner — inline contextual */
-.smart-suggestion-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 16px;
-  border: 1px solid var(--color-border);
-  border-left-width: 4px;
-  border-radius: var(--radius-control);
-  background: var(--color-surface);
-  margin: 12px 16px;
+/* Toast notifications — smooth enter/exit */
+.toast-enter {
+  animation: slideInRight 0.4s var(--ease-decelerate) forwards;
 }
-.smart-banner-content {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
+.toast-exit {
+  animation: slideInLeft 0.3s var(--ease-accelerate) forwards;
 }
-.smart-banner-icon {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-control);
-  flex: 0 0 32px;
+
+/* Page transition */
+.page-transition-enter {
+  animation: fadeInUp 0.45s var(--ease-decelerate) forwards;
 }
-.smart-banner-text {
-  min-width: 0;
-}
-.smart-banner-label {
-  margin: 0 0 2px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-ink-soft);
-}
-.smart-banner-message {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.smart-banner-actions {
-  display: flex;
-  gap: 8px;
-  flex: 0 0 auto;
+.page-transition-exit {
+  animation: fadeIn 0.2s var(--ease-accelerate) forwards;
 }
