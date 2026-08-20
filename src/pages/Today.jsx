@@ -288,11 +288,20 @@ export default function Today({ goTo }) {
     setCardSizes((prev) => ({ ...prev, [cardId]: span }));
   };
 
-  const dashboardPosition = (id) => ({ 
-    order: dashboardOrder.indexOf(id) + 1, 
-    display: hiddenDashboardCards.includes(id) ? "none" : undefined,
-    gridColumn: cardSizes[id] ? `span ${cardSizes[id]}` : undefined,
-  });
+  const dashboardPosition = (id) => { 
+    if (id === "broadcast") {
+      return { 
+        order: dashboardOrder.indexOf(id) + 1, 
+        display: hiddenDashboardCards.includes(id) ? "none" : undefined,
+        gridColumn: "1 / -1",
+      };
+    }
+    return { 
+      order: dashboardOrder.indexOf(id) + 1, 
+      display: hiddenDashboardCards.includes(id) ? "none" : undefined,
+      gridColumn: cardSizes[id] ? `span ${cardSizes[id]}` : undefined,
+    };
+  };
   const toggleDashboardCard = (id) => setHiddenDashboardCards((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   const moveDashboardCard = (id, direction) => {
     setDashboardOrder((current) => {
@@ -600,7 +609,7 @@ export default function Today({ goTo }) {
         action={<button type="button" className={`today-customize-trigger ${editingDashboard ? "active" : ""}`} onClick={() => setEditingDashboard((current) => !current)} aria-expanded={editingDashboard}><LayoutGrid size={16}/>{editingDashboard ? "Done" : "Customize"}</button>}
       />
 
-      {editingDashboard && <div className="today-customize-panel mx-5"><div className="today-customize-hint"><span><GripVertical size={15}/> Choose what appears, then drag cards to rearrange them.</span><button type="button" onClick={() => { setDashboardOrder(defaultDashboardOrder); setHiddenDashboardCards([]); }}><RotateCcw size={14}/> Reset</button></div><div className="today-card-toggles">{DASHBOARD_CARDS.map((card) => { const visible = !hiddenDashboardCards.includes(card.id); return <label key={card.id}><input type="checkbox" checked={visible} onChange={() => toggleDashboardCard(card.id)}/><span aria-hidden="true"/><strong>{card.label}</strong></label>; })}</div></div>}
+      {editingDashboard && <div className="today-customize-panel mx-5"><div className="today-customize-hint"><span><GripVertical size={15}/> Choose what appears, then drag cards to rearrange them.</span><button type="button" onClick={() => { setDashboardOrder(defaultDashboardOrder); setHiddenDashboardCards([]); setCardSizes({}); }}><RotateCcw size={14}/> Reset</button></div><div className="today-card-toggles">{DASHBOARD_CARDS.map((card) => { const visible = !hiddenDashboardCards.includes(card.id); return <label key={card.id}><input type="checkbox" checked={visible} onChange={() => toggleDashboardCard(card.id)}/><span aria-hidden="true"/><strong>{card.label}</strong></label>; })}</div></div>}
 
       <NativeAdBanner placement={AD_PLACEMENTS.HOME} />
 
