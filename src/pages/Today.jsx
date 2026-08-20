@@ -74,6 +74,70 @@ function DashboardMoveHandle({ id, label, order, onMove }) {
   </div>;
 }
 
+function DashboardResizeHandle({ cardId, onResize }) {
+  const [isResizing, setIsResizing] = useState(false);
+  const startX = useRef(0);
+  const startWidth = useRef(0);
+  const cardRef = useRef(null);
+
+  const handleMouseDown = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizing(true);
+    startX.current = e.clientX;
+    const card = document.querySelector(`[data-dashboard-card="${cardId}"]`);
+    if (card) {
+      cardRef.current = card;
+      const style = window.getComputedStyle(card);
+      const gridColumn = style.gridColumn || "span 4";
+      const match = gridColumn.match(/span\s+(\d+)/);
+      startWidth.current = match ? parseInt(match[1]) : 4;
+    }
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isResizing || !cardRef.current) return;
+    const deltaX = e.clientX - startX.current;
+    const gridGap = 14; // matches CSS gap
+    const cardRect = cardRef.current.getBoundingClientRect();
+    const containerRect = cardRef.current.parentElement?.getBoundingClientRect();
+    if (!containerRect) return;
+    const columnWidth = (containerRect.width - gridGap * 11) / 12; // 12 columns, 11 gaps
+    const deltaColumns = Math.round((deltaX + gridGap / 2) / (columnWidth + gridGap));
+    const newSpan = Math.max(1, Math.min(12, startWidth.current + deltaColumns));
+    cardRef.current.style.gridColumn = `span ${newSpan}`;
+  };
+
+  const handleMouseUp = () => {
+    if (!isResizing) return;
+    setIsResizing(false);
+    document.removeEventListener("mousemove", handleMouseMove);
+    document.removeEventListener("mouseup", handleMouseUp);
+    if (cardRef.current) {
+      const match = cardRef.current.style.gridColumn?.match(/span\s+(\d+)/);
+      const newSpan = match ? parseInt(match[1]) : 4;
+      onResize(cardId, newSpan);
+    }
+  };
+
+  return (
+    <div
+      className={`today-card-resize-handle ${isResizing ? "resizing" : ""}`}
+      onMouseDown={handleMouseDown}
+      aria-label="Resize card"
+      title="Drag to resize"
+    >
+      <div className="resize-handle-inner" aria-hidden="true">
+        <div className="resize-dot" />
+        <div className="resize-dot" />
+        <div className="resize-dot" />
+      </div>
+    </div>
+  );
+}
+
 // Open-Meteo WMO weather codes → our kind vocabulary (used only in the keyless fallback).
 const wmoToKind = (code) => {
   const c = Number(code);
@@ -199,6 +263,13 @@ export default function Today({ goTo }) {
   const [editingDashboard, setEditingDashboard] = useState(false);
   const [dashboardOrder, setDashboardOrder] = useState(readDashboardOrder);
   const [hiddenDashboardCards, setHiddenDashboardCards] = useState(readHiddenDashboardCards);
+  const [cardSizes, setCardSizes] = useState(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const saved = JSON.parse(localStorage.getItem("famos:today-card-sizes:v1") || "{}");
+      return typeof saved === "object" ? saved : {};
+    } catch { return {}; }
+  });
   const composeContainerRef = useRef(null);
   const draggedDashboardCard = useRef(null);
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
@@ -209,8 +280,19 @@ export default function Today({ goTo }) {
   useEffect(() => {
     if (typeof window !== "undefined") window.localStorage.setItem(DASHBOARD_HIDDEN_KEY, JSON.stringify(hiddenDashboardCards));
   }, [hiddenDashboardCards]);
+  useEffect(() => {
+    if (typeof window !== "undefined") localStorage.setItem("famos:today-card-sizes:v1", JSON.stringify(cardSizes));
+  }, [cardSizes]);
 
-  const dashboardPosition = (id) => ({ order: dashboardOrder.indexOf(id) + 1, display: hiddenDashboardCards.includes(id) ? "none" : undefined });
+  const handleCardResize = (cardId, span) => {
+    setCardSizes((prev) => ({ ...prev, [cardId]: span }));
+  };
+
+  const dashboardPosition = (id) => ({ 
+    order: dashboardOrder.indexOf(id) + 1, 
+    display: hiddenDashboardCards.includes(id) ? "none" : undefined,
+    gridColumn: cardSizes[id] ? `span ${cardSizes[id]}` : undefined,
+  });
   const toggleDashboardCard = (id) => setHiddenDashboardCards((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   const moveDashboardCard = (id, direction) => {
     setDashboardOrder((current) => {
@@ -567,6 +649,7 @@ export default function Today({ goTo }) {
         </section>
         <Card className={`weather-now-card p-4 ${editingDashboard ? "is-customizing" : ""} bg-calendar-soft border-calendar`} style={dashboardPosition("weather")} {...dashboardDragProps("weather")}>
           {moveHandle("weather")}
+          <DashboardResizeHandle cardId="weather" onResize={handleCardResize} />
           {weather?.alerts?.length > 0 && (
             <div className="weather-alerts">
               {weather.alerts.map((alert, index) => (
@@ -601,6 +684,7 @@ export default function Today({ goTo }) {
         </Card>
         <section className={`today-bento-kitchen ${editingDashboard ? "is-customizing" : ""}`} aria-labelledby="kitchen-watch-title" style={dashboardPosition("kitchen")} {...dashboardDragProps("kitchen")}>
           {moveHandle("kitchen")}
+          <DashboardResizeHandle cardId="kitchen" onResize={handleCardResize} />
           <Card className="today-kitchen-watch p-4 bg-shopping-soft border-shopping">
             <div className="flex items-start justify-between gap-3 mb-3">
               <div className="flex items-start gap-3">
@@ -625,6 +709,7 @@ export default function Today({ goTo }) {
         </section>
         <section className={`today-bento-schedule ${editingDashboard ? "is-customizing" : ""}`} style={dashboardPosition("schedule")} {...dashboardDragProps("schedule")}>
           {moveHandle("schedule")}
+          <DashboardResizeHandle cardId="schedule" onResize={handleCardResize} />
           <Card className="today-flow-card p-4 bg-tasks-soft border-tasks">
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
@@ -677,6 +762,7 @@ export default function Today({ goTo }) {
         <section className="m3-grid lg:grid-cols-2 today-bento-meal-grid">
           <Card className={`today-meals-card p-4 ${editingDashboard ? "is-customizing" : ""} bg-meals-soft border-meals`} style={dashboardPosition("meals")} {...dashboardDragProps("meals")}>
             {moveHandle("meals")}
+              <DashboardResizeHandle cardId="meals" onResize={handleCardResize} />
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Meals</p>
@@ -734,6 +820,7 @@ export default function Today({ goTo }) {
 
           <Card className={`today-groceries-card p-4 ${editingDashboard ? "is-customizing" : ""} bg-shopping-soft border-shopping`} style={dashboardPosition("groceries")} {...dashboardDragProps("groceries")}>
             {moveHandle("groceries")}
+              <DashboardResizeHandle cardId="groceries" onResize={handleCardResize} />
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Shopping</p>
@@ -767,6 +854,7 @@ export default function Today({ goTo }) {
 
         <section className={`today-bento-tasks ${editingDashboard ? "is-customizing" : ""}`} style={dashboardPosition("tasks")} {...dashboardDragProps("tasks")}>
           {moveHandle("tasks")}
+          <DashboardResizeHandle cardId="tasks" onResize={handleCardResize} />
           <Card className="today-tasks-card p-4 bg-family-soft border-family">
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
@@ -808,6 +896,7 @@ export default function Today({ goTo }) {
         </section>
         <section className={`today-bento-messages ${editingDashboard ? "is-customizing" : ""}`} aria-labelledby="latest-family-messages" style={dashboardPosition("messages")} {...dashboardDragProps("messages")}>
           {moveHandle("messages")}
+          <DashboardResizeHandle cardId="messages" onResize={handleCardResize} />
           <Card className="today-messages-card p-4 bg-chat-soft border-chat">
             <div className="flex items-center justify-between gap-3 mb-3">
               <div><p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Family chat</p><h2 id="latest-family-messages" className="ui-section-title">Latest messages</h2></div>

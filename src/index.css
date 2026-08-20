@@ -1309,6 +1309,11 @@ html {
 .today-card-move-handle button{display:grid;place-items:center;width:28px;height:28px;border-radius:7px;color:var(--color-ink-soft)}
 .today-card-move-handle button:hover:not(:disabled){background:var(--color-accent-soft);color:var(--color-accent-strong)}
 .today-card-move-handle button:disabled{opacity:.28;cursor:not-allowed}
+.today-card-resize-handle{position:absolute;z-index:8;bottom:8px;right:8px;width:28px;height:28px;display:grid;place-items:center;border:1px solid var(--color-border-strong);border-radius:8px;background:color-mix(in srgb,var(--color-surface) 94%,transparent);box-shadow:var(--shadow-sm);color:var(--color-ink-soft);cursor:se-resize;touch-action:none;transition:background .15s ease,border-color .15s ease,transform .1s ease}
+.today-card-resize-handle:hover{background:var(--color-accent-strong);border-color:var(--color-accent-strong);color:var(--color-on-accent)}
+.today-card-resize-handle.resizing{background:var(--color-accent-strong);border-color:var(--color-accent-strong);color:var(--color-on-accent);transform:scale(1.1)}
+.resize-handle-inner{display:flex;flex-direction:column;gap:3px;padding:2px}
+.resize-dot{width:3px;height:3px;border-radius:50%;background:currentColor;opacity:.7}
 .reference-dashboard .today-bento-grid>.broadcast-home{grid-column:1/-1;margin:0}
 .reference-dashboard .today-bento-grid>.weather-now-card{grid-column:span 4;margin:0;height:100%;order:1}
 .reference-dashboard .today-bento-grid>.today-bento-kitchen{grid-column:span 5;margin:0;order:5}
