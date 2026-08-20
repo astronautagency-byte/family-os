@@ -135,7 +135,7 @@ export function SignIn({ initialCreating = false }) {
           {(localError || error) && <p className="text-[12.5px] text-[var(--color-warn)] mb-3">{localError || error}</p>}
           {notice && <p className="text-[12.5px] text-[var(--color-good)] mb-3">{notice}</p>}
           {creating && <PasswordStrengthMeter value={password} />}
-          <PrimaryButton type="submit" disabled={busy || !email.trim() || !!PasswordStrength.passwordError(password) || (creating && !displayName.trim())}>
+          <PrimaryButton type="submit" className={creating ? "btn-create" : ""} disabled={busy || !email.trim() || !!PasswordStrength.passwordError(password) || (creating && !displayName.trim())}>
             {busy ? "One sec…" : creating ? "Create account" : "Sign in"}
           </PrimaryButton>
           {!creating && openedInvitation && (
