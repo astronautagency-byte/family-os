@@ -5,6 +5,7 @@ import {
   recordUserFeedback,
   getSmartDefaults,
   loadIntelligenceState,
+  dismissSuggestion as dismissSuggestionEngine,
 } from "../lib/intelligentEngine";
 
 export function useFamilyIntelligence() {
@@ -46,6 +47,7 @@ export function useFamilyIntelligence() {
 
   const dismissSuggestion = useCallback((suggestion) => {
     recordUserFeedback(`${suggestion.type}-${suggestion.sourceEventId || suggestion.sourceTaskId || suggestion.sourceMealId}`, false);
+    dismissSuggestionEngine(suggestion);
     setSuggestions((prev) => prev.filter((s) => s !== suggestion));
   }, []);
 

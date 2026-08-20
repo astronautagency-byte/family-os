@@ -1,6 +1,20 @@
 import { canonicalIngredientName } from "./mealIngredientCache";
 
 const ENGINE_STORAGE_KEY = "famos:intelligence:v1";
+const DISMISSED_SUGGESTIONS_KEY = "famos:dismissed-suggestions:v1";
+
+function getDismissedSuggestions() {
+  try {
+    const raw = localStorage.getItem(DISMISSED_SUGGESTIONS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+function saveDismissedSuggestions(dismissed) {
+  try {
+    localStorage.setItem(DISMISSED_SUGGESTIONS_KEY, JSON.stringify(dismissed));
+  } catch { /* ignore */ }
+}
 
 export function loadIntelligenceState() {
   try {
@@ -25,11 +39,24 @@ export function saveIntelligenceState(state) {
   }
 }
 
+function filterUpcomingEvents(events) {
+  const now = new Date();
+  const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  return (events || []).filter((event) => {
+    if (!event.start) return false;
+    const eventDate = new Date(event.start.replace(" ", "T"));
+    return eventDate >= now && eventDate <= nextWeek;
+  });
+}
+
 export function analyzeCalendarForTasks(events, existingTasks) {
   const suggestions = [];
   const taskTitles = new Set(existingTasks.map((t) => t.title.toLowerCase()));
 
-  for (const event of events) {
+  // Only consider upcoming events in the next week
+  const upcomingEvents = filterUpcomingEvents(events);
+
+  for (const event of upcomingEvents) {
     if (!event.title) continue;
 
     const lowerTitle = event.title.toLowerCase();
@@ -248,6 +275,7 @@ export function analyzePatterns(events, tasks, groceries, meals) {
 export function generateSmartSuggestions(state) {
   const { events, tasks, groceries, meals, kitchenInventory } = state;
   const intelligence = loadIntelligenceState();
+  const dismissed = getDismissedSuggestions();
 
   const allSuggestions = [];
 
@@ -265,7 +293,13 @@ export function generateSmartSuggestions(state) {
 
   allSuggestions.sort((a, b) => b.confidence - a.confidence);
 
-  intelligence.suggestions = allSuggestions.slice(0, 10);
+  // Filter out dismissed suggestions
+  const filteredSuggestions = allSuggestions.filter((s) => {
+    const key = `${s.type}-${s.sourceEventId || s.sourceTaskId || s.sourceMealId}`;
+    return !dismissed[key];
+  });
+
+  intelligence.suggestions = filteredSuggestions.slice(0, 10);
   intelligence.lastAnalyzed = new Date().toISOString();
   saveIntelligenceState(intelligence);
 
@@ -273,6 +307,13 @@ export function generateSmartSuggestions(state) {
     suggestions: intelligence.suggestions,
     patterns: intelligence.patterns,
   };
+}
+
+export function dismissSuggestion(suggestion) {
+  const dismissed = getDismissedSuggestions();
+  const key = `${suggestion.type}-${suggestion.sourceEventId || suggestion.sourceTaskId || suggestion.sourceMealId}`;
+  dismissed[key] = true;
+  saveDismissedSuggestions(dismissed);
 }
 
 export function categorizeGroceryItem(name) {

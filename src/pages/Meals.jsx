@@ -773,7 +773,7 @@ export default function Meals() {
                     if (e.key === "Enter" && inlineInput.trim()) {
                       const title = inlineInput.trim();
                       setInlineInput("");
-                      setMealForSlot(date, slot, { title, notes: "", cookIds: [] });
+                      setMealForSlot(date, slot, { title, notes: "", cookIds: [], source: "manual" });
                     }
                   };
                   const slotColor = slot === "breakfast" ? "#22A06B" : slot === "lunch" ? "#E85D3A" : "#D94F4F";
@@ -809,9 +809,11 @@ export default function Meals() {
                             <div className="meal-slot-actions-left">
                               {meal?.title ? (
                                 <>
-                                  <button className="meal-cook-mode-btn" onClick={() => openCookRecipe(meal)}>
-                                    <ChefHat size={13} /> Cook mode
-                                  </button>
+                                  {meal.source === "spoonacular" && (
+                                    <button className="meal-cook-mode-btn" onClick={() => openCookRecipe(meal)}>
+                                      <ChefHat size={13} /> Cook mode
+                                    </button>
+                                  )}
                                   <button className="meal-save-recipe-btn" onClick={() => saveRecipeToLibrary(meal)}>
                                     <Bookmark size={13} /> Save
                                   </button>
@@ -1022,6 +1024,7 @@ export default function Meals() {
                         title: recipe.title,
                         notes: `Spoonacular recipe${recipe.id ? ` · ${recipe.id}` : ""}`,
                         cookIds: [],
+                        source: "spoonacular",
                       });
                       // Discovery only returns recipes already verified to have
                       // ingredients and instructions, so Cook Mode can open the
