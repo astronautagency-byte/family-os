@@ -71,9 +71,9 @@ function resizeAvatarImage(file) {
 function GoogleCalendarCard() {
   const {
     googleClientId, setGoogleClientId,
-    googleConnected, googleStatus, googleError, googleLastSynced, googleEvents, googleCalendars, selectedGoogleCalendarIds, sharedGoogleCalendarIds, calendarFeeds,
+    googleConnected, googleStatus, googleError, googleLastSynced, googleEvents, googleCalendars, googleCalendarColors, selectedGoogleCalendarIds, sharedGoogleCalendarIds, calendarFeeds,
     googleUsesAccount,
-    connectGoogleCalendar, reconnectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, toggleGoogleCalendar, toggleGoogleCalendarSharing, renameGoogleCalendar,
+    connectGoogleCalendar, reconnectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, toggleGoogleCalendar, toggleGoogleCalendarSharing, renameGoogleCalendar, setGoogleCalendarColor,
   } = useFamily();
   const [showSetup, setShowSetup] = useState(!googleClientId);
   const [renamingCalendarId, setRenamingCalendarId] = useState(null);
@@ -145,6 +145,14 @@ function GoogleCalendarCard() {
                     {shared ? <Users size={15} /> : <EyeOff size={15} />}
                     <span>{shared ? "Shared" : "Private"}</span>
                   </button>
+                  {connected && (
+                    <div className="google-calendar-colors">
+                      {["#2563EB","#7C3AED","#DB2777","#DC2626","#EA580C","#F59E0B","#16A34A","#14B8A6","#0891B2","#4F46E5","#9333EA","#334155"].map((color) => {
+                        const active = (googleCalendarColors[calendar.id] || calendar.backgroundColor || "").toLowerCase() === color.toLowerCase();
+                        return <button key={color} type="button" className={`google-calendar-color-swatch ${active ? "selected" : ""}`} style={{ backgroundColor: color }} onClick={() => setGoogleCalendarColor(calendar.id, color)} aria-label={`Set ${displayName} to ${color}`} aria-pressed={active} title={color} />;
+                      })}
+                    </div>
+                  )}
                   {renamingCalendarId === calendar.id && (
                     <form className="google-calendar-rename-form" onSubmit={async (event) => {
                       event.preventDefault();

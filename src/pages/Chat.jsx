@@ -284,14 +284,14 @@ export default function Chat() {
 
       {(sendError || dataError) && <p className="px-5 py-2 text-[12px] text-[var(--color-warn)]">{sendError || dataError}</p>}
 
-      <form onSubmit={submit} className="chat-mobile-composer px-4 py-3 bg-[var(--color-surface)] border-t border-[var(--color-border)] flex items-center gap-2">
-        <div className="shrink-0">{memberById[currentUserId] && <Avatar member={memberById[currentUserId]} />}</div>
+      <form onSubmit={submit} className="chat-mobile-composer px-3 py-2 bg-[var(--color-surface)] border-t border-[var(--color-border)] flex items-center gap-2">
+        <div className="shrink-0">{memberById[currentUserId] && <Avatar member={memberById[currentUserId]} size="sm" />}</div>
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={activeThread === "household" ? "Tell everyone…" : activeMember ? `Message ${activeMember.name}` : "Select a family member"}
           disabled={activeThread !== "household" && !activeMember}
-          className="min-w-0 flex-1 rounded-full bg-[var(--color-surface-sunken)] px-4 py-2.5 text-[14px] outline-none placeholder:text-[var(--color-ink-faint)]"
+          className="min-w-0 flex-1 rounded-full bg-[var(--color-surface-sunken)] px-3 py-2 text-[14px] outline-none placeholder:text-[var(--color-ink-faint)]"
         />
         <button
           type="submit"

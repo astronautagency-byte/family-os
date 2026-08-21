@@ -17,6 +17,22 @@ import { categorizeGroceryItem } from "../lib/groceryCategories";
 const STORAGE_KEY = "family-os:v1";
 const GOOGLE_STORAGE_KEY = "family-os:google:v1";
 const CALENDAR_FEEDS_STORAGE_KEY = "family-os:calendar-feeds:v1";
+const FAMOS_CALENDAR_STORAGE_KEY = "family-os:famos-calendar:v1";
+
+const DEFAULT_FAMOS_CALENDAR = { name: "FamOS Calendar", color: "#2563EB" };
+
+function loadFamosCalendarState() {
+  try {
+    const raw = localStorage.getItem(FAMOS_CALENDAR_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") return { ...DEFAULT_FAMOS_CALENDAR, ...parsed };
+    }
+  } catch (e) {
+    console.warn("Could not read saved FamOS calendar settings.", e);
+  }
+  return { ...DEFAULT_FAMOS_CALENDAR };
+}
 const TASK_LISTS_FALLBACK_KEY = "family-os:task-lists-fallback:v1";
 const AVATAR_OVERRIDES_KEY = "family-os:avatar-overrides:v1";
 const VAPID_PUBLIC_KEY = "BK4WksXI5RRZqDhurNH8v2VbinrSKrBLzOA6xni__siwCbKjhtJ1T0N3GOSVKKQPNAnENCacYtdlLW553fadxHQ";
@@ -160,6 +176,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
   const saved = loadState();
   const savedGoogle = loadGoogleState();
   const savedCalendarFeeds = loadCalendarFeedState();
+  const savedFamosCalendar = loadFamosCalendarState();
 
   const [members, setMembers] = useState(() => savedList(saved?.members, initialFamilyMembers));
   const [events, setEvents] = useState(() => savedList(saved?.events, initialEvents));
@@ -395,6 +412,25 @@ export function FamilyProvider({ children, tabletMode = false }) {
       // Reactions are optional — a missing table (pre-migration) must not block the rest.
       const reactionsResult = await supabase.from("message_reactions").select("*").eq("household_id", household.id);
       if (!reactionsResult.error) setMessageReactions(reactionsResult.data.map(mapReaction));
+      // FamOS calendar branding (name + color) — mirrored per household via
+      // the preferences table (provider 'famos'). A missing column or table
+      // must not block the rest of the load.
+      const famosPrefResult = await supabase.from("calendar_sharing_preferences")
+        .select("calendar_name,calendar_color")
+        .eq("household_id", household.id)
+        .eq("provider", "famos")
+        .order("updated_at", { ascending: false })
+        .limit(1);
+      if (!famosPrefResult.error && famosPrefResult.data?.length) {
+        const row = famosPrefResult.data[0];
+        if (row.calendar_name || row.calendar_color) {
+          setFamosCalendarState((current) => ({
+            ...current,
+            ...(row.calendar_name ? { name: row.calendar_name } : {}),
+            ...(row.calendar_color ? { color: row.calendar_color } : {}),
+          }));
+        }
+      }
     } catch (e) { setDataError(e.message || "Could not load household data."); }
     finally { setDataLoading(false); }
   };
@@ -1329,12 +1365,44 @@ export function FamilyProvider({ children, tabletMode = false }) {
     setFinancePeriodState("weekly");
   };
 
+  // ---- FamOS calendar (the built-in household calendar) ----
+  // Editable name + color, persisted locally and mirrored to the calendar
+  // preferences table (provider 'famos') so the same household sees the same
+  // branding across devices.
+  const [famosCalendar, setFamosCalendarState] = useState(savedFamosCalendar);
+  const setFamosCalendar = (patch) => setFamosCalendarState((current) => ({ ...current, ...patch }));
+  useEffect(() => {
+    try {
+      localStorage.setItem(FAMOS_CALENDAR_STORAGE_KEY, JSON.stringify(famosCalendar));
+    } catch (e) {
+      console.warn("Could not save FamOS calendar settings.", e);
+    }
+    if (remote) {
+      supabase.from("calendar_sharing_preferences").upsert({
+        user_id: user.id,
+        household_id: household.id,
+        provider: "famos",
+        external_calendar_id: "famos",
+        calendar_name: famosCalendar.name,
+        calendar_color: famosCalendar.color,
+        is_connected: true,
+        shared_with_household: true,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id,provider,external_calendar_id" }).then(({ error }) => {
+        if (error && !/42P01|does not exist|schema cache/i.test(error.message || "")) console.warn("Could not mirror FamOS calendar settings.", error.message);
+      });
+    }
+  }, [famosCalendar, remote, household?.id, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ---- Google Calendar (one-way import: Google -> Family OS) ----
   const [googleClientId, setGoogleClientIdState] = useState(savedGoogle?.clientId ?? "");
   const [googleConnected, setGoogleConnected] = useState(savedGoogle?.connected ?? false);
   const [googleEvents, setGoogleEvents] = useState([]);
   const [googleCalendars, setGoogleCalendars] = useState([]);
   const [googleCalendarAliases, setGoogleCalendarAliases] = useState(savedGoogle?.calendarAliases ?? {});
+  // Per-calendar color overrides (hex strings). Google supplies a default
+  // backgroundColor; the user can override it to their own color.
+  const [googleCalendarColors, setGoogleCalendarColors] = useState(savedGoogle?.calendarColors ?? {});
   const [selectedGoogleCalendarIds, setSelectedGoogleCalendarIds] = useState(savedGoogle?.selectedCalendarIds ?? []);
   const [sharedGoogleCalendarIds, setSharedGoogleCalendarIds] = useState(savedGoogle?.sharedCalendarIds ?? []);
   const [googleStatus, setGoogleStatus] = useState("idle"); // idle | connecting | syncing | error
@@ -1344,11 +1412,35 @@ export function FamilyProvider({ children, tabletMode = false }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem(GOOGLE_STORAGE_KEY, JSON.stringify({ clientId: googleClientId, connected: googleConnected, selectedCalendarIds: selectedGoogleCalendarIds, sharedCalendarIds: sharedGoogleCalendarIds, calendarAliases: googleCalendarAliases }));
+      localStorage.setItem(GOOGLE_STORAGE_KEY, JSON.stringify({ clientId: googleClientId, connected: googleConnected, selectedCalendarIds: selectedGoogleCalendarIds, sharedCalendarIds: sharedGoogleCalendarIds, calendarAliases: googleCalendarAliases, calendarColors: googleCalendarColors }));
     } catch (e) {
       console.warn("Could not save Google Calendar settings.", e);
     }
-  }, [googleClientId, googleConnected, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleCalendarAliases]);
+  }, [googleClientId, googleConnected, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleCalendarAliases, googleCalendarColors]);
+
+  const setGoogleCalendarColor = (calendarId, color) => {
+    setGoogleCalendarColors((current) => ({ ...current, [calendarId]: color }));
+    if (remote) {
+      const calendar = googleCalendars.find((item) => item.id === calendarId);
+      // Preserve any custom alias the user already set — never clobber it
+      // with the raw Google summary just because the color changed.
+      const alias = googleCalendarAliases[calendarId] || calendar?.summary || "Google Calendar";
+      supabase.from("calendar_sharing_preferences").upsert({
+        user_id: user.id,
+        household_id: household.id,
+        provider: "google",
+        external_calendar_id: calendarId,
+        calendar_name: alias,
+        calendar_color: color,
+        is_connected: selectedGoogleCalendarIds.includes(calendarId),
+        shared_with_household: sharedGoogleCalendarIds.includes(calendarId),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id,provider,external_calendar_id" }).then(({ error }) => {
+        if (error && !/42P01|does not exist|schema cache/i.test(error.message || "")) console.warn("Could not save calendar color.", error.message);
+      });
+    }
+  };
+
 
   const setGoogleClientId = (id) => setGoogleClientIdState(id);
   const syncSharedGoogleEvents = async (items, sharedIds, availableCalendars = googleCalendars) => {
@@ -1390,13 +1482,15 @@ export function FamilyProvider({ children, tabletMode = false }) {
       let sharedIds = sharedGoogleCalendarIds;
       let connectedIds = selectedIdsOverride ?? selectedGoogleCalendarIds;
       if (remote) {
-        const { data: preferences } = await supabase.from("calendar_sharing_preferences").select("external_calendar_id,calendar_name,is_connected,shared_with_household").eq("user_id", user.id).eq("provider", "google");
+        const { data: preferences } = await supabase.from("calendar_sharing_preferences").select("external_calendar_id,calendar_name,is_connected,shared_with_household,calendar_color").eq("user_id", user.id).eq("provider", "google");
         if (preferences?.length) {
           sharedIds = preferences.filter((preference) => preference.shared_with_household).map((preference) => preference.external_calendar_id);
           connectedIds = preferences.filter((preference) => preference.is_connected).map((preference) => preference.external_calendar_id);
           const aliases = Object.fromEntries(preferences.filter((preference) => preference.calendar_name).map((preference) => [preference.external_calendar_id, preference.calendar_name]));
+          const colors = Object.fromEntries(preferences.filter((preference) => preference.calendar_color).map((preference) => [preference.external_calendar_id, preference.calendar_color]));
           setGoogleCalendarAliases(aliases);
-          calendars = fetchedCalendars.map((calendar) => ({ ...calendar, displayName: aliases[calendar.id] || calendar.summary }));
+          setGoogleCalendarColors(colors);
+          calendars = fetchedCalendars.map((calendar) => ({ ...calendar, displayName: aliases[calendar.id] || calendar.summary, backgroundColor: colors[calendar.id] || calendar.backgroundColor }));
           setSharedGoogleCalendarIds(sharedIds);
           setSelectedGoogleCalendarIds(connectedIds);
         }
@@ -1923,11 +2017,13 @@ export function FamilyProvider({ children, tabletMode = false }) {
     resetToDemoData,
     dataLoading, dataError, refreshData: loadRemoteData,
     notificationPermission, requestNotifications, sendTestNotification,
+    // FamOS calendar branding
+    famosCalendar, setFamosCalendar,
     // Google Calendar
     googleClientId, setGoogleClientId,
-    googleConnected, googleEvents: tabletMode ? [] : googleEvents, googleCalendars: tabletMode ? [] : googleCalendars, googleCalendarAliases, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleStatus, googleError, googleLastSynced,
+    googleConnected, googleEvents: tabletMode ? [] : googleEvents, googleCalendars: tabletMode ? [] : googleCalendars, googleCalendarAliases, googleCalendarColors, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleStatus, googleError, googleLastSynced,
     googleUsesAccount: configured,
-    connectGoogleCalendar, reconnectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, addGoogleCalendarEvent, updateGoogleCalendarEvent, deleteGoogleCalendarEvent, toggleGoogleCalendar, toggleGoogleCalendarSharing, renameGoogleCalendar,
+    connectGoogleCalendar, reconnectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, addGoogleCalendarEvent, updateGoogleCalendarEvent, deleteGoogleCalendarEvent, toggleGoogleCalendar, toggleGoogleCalendarSharing, renameGoogleCalendar, setGoogleCalendarColor,
     // Other calendar providers via published iCal feeds
     calendarFeeds: tabletMode ? [] : calendarFeeds, feedEvents: tabletMode ? [] : feedEvents, calendarFeedStatus, calendarFeedError,
     addCalendarFeed, importCalendarFile, syncCalendarFeed, removeCalendarFeed, toggleCalendarFeedSharing,

@@ -50,6 +50,20 @@ const eventType = (event) => {
 };
 const sourceId = (event) => event.source === "google" ? `google:${event.calendarId||"primary"}` : event.sourceFeedId ? `feed:${event.sourceFeedId}` : "family";
 
+// Resolve the color an event should render with: Google events take their
+// calendar's (possibly user-overridden) color, imported feeds stay teal, and
+// FamOS events take the editable FamOS calendar color. Falls back to the
+// event-type color when the calendar isn't resolvable.
+const calendarColorFor = (event, googleCalendars = [], googleCalendarColors = {}, famosColor = "var(--color-family)") => {
+  if (event.source === "google") {
+    const calendar = googleCalendars.find((item) => item.id === event.calendarId);
+    const override = googleCalendarColors[event.calendarId];
+    return override || calendar?.backgroundColor || EVENT_TYPES[eventType(event)]?.color || "var(--color-calendar)";
+  }
+  if (event.sourceFeedId) return "var(--color-meals)";
+  return famosColor || EVENT_TYPES[eventType(event)]?.color || "var(--color-family)";
+};
+
 // ISO 8601 week number for a given date.
 const isoWeek = (d) => {
   const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -77,6 +91,37 @@ function WeatherGlyph({ kind, isDay = true, size = 14 }) {
   return <Icon size={size} />;
 }
 
+// Editable calendar colors — iOS-style preset palette plus a custom picker.
+// Used for both the FamOS calendar and Google calendar color overrides.
+const CALENDAR_COLOR_PRESETS = [
+  "#2563EB", "#7C3AED", "#DB2777", "#DC2626", "#EA580C", "#F59E0B",
+  "#16A34A", "#14B8A6", "#0891B2", "#4F46E5", "#9333EA", "#334155",
+];
+
+function CalendarColorPicker({ value, onChange, ariaLabel = "Calendar color" }) {
+  const current = value || "#2563EB";
+  return (
+    <div className="calendar-color-picker" role="group" aria-label={ariaLabel}>
+      {CALENDAR_COLOR_PRESETS.map((color) => (
+        <button
+          key={color}
+          type="button"
+          className={`calendar-color-swatch ${current.toLowerCase() === color.toLowerCase() ? "selected" : ""}`}
+          style={{ backgroundColor: color }}
+          onClick={() => onChange(color)}
+          aria-label={`Use ${color}`}
+          aria-pressed={current.toLowerCase() === color.toLowerCase()}
+          title={color}
+        />
+      ))}
+      <label className="calendar-color-custom" title="Pick a custom color">
+        <span className="calendar-color-swatch calendar-color-custom-swatch" style={{ backgroundColor: current, backgroundImage: "conic-gradient(#ccc 0 25%, transparent 0 50%, #ccc 0 75%, transparent 0)" }} />
+        <input type="color" value={current} onChange={(event) => onChange(event.target.value)} aria-label="Pick a custom calendar color" />
+      </label>
+    </div>
+  );
+}
+
 const CALENDAR_START_HOUR = 6;
 const CALENDAR_END_HOUR = 22;
 const minutesFromStart = (dateValue) => {
@@ -84,7 +129,8 @@ const minutesFromStart = (dateValue) => {
   return (date.getHours() - CALENDAR_START_HOUR) * 60 + date.getMinutes();
 };
 
-function CalendarTimeGrid({ dates, events, selectedDate, onSelectDate, onSelectEvent }) {
+function CalendarTimeGrid({ dates, events, selectedDate, onSelectDate, onSelectEvent, googleCalendars, googleCalendarColors, famosColor }) {
+  const colorFor = (event) => calendarColorFor(event, googleCalendars, googleCalendarColors, famosColor);
   const hours = Array.from({ length: CALENDAR_END_HOUR - CALENDAR_START_HOUR + 1 }, (_, index) => CALENDAR_START_HOUR + index);
   const now = new Date();
   const today = iso(now);
@@ -108,10 +154,9 @@ function CalendarTimeGrid({ dates, events, selectedDate, onSelectDate, onSelectE
         <div className="apple-all-day-row">
           <span>all-day</span>
           <div>
-            {allDayEvents.map((event) => {
-              const type = EVENT_TYPES[eventType(event)];
-              return <button type="button" key={event.id} style={{ "--event-color": type.color }} onClick={() => onSelectEvent(event)}><strong>{event.title}</strong></button>;
-            })}
+            {allDayEvents.map((event) => (
+              <button type="button" key={event.id} style={{ "--event-color": colorFor(event) }} onClick={() => onSelectEvent(event)}><strong>{event.title}</strong></button>
+            ))}
           </div>
         </div>
       )}
@@ -128,8 +173,7 @@ function CalendarTimeGrid({ dates, events, selectedDate, onSelectDate, onSelectE
                   const start = Math.max(0, minutesFromStart(event.start));
                   const rawDuration = event.end ? (new Date(event.end) - new Date(event.start)) / 60000 : 60;
                   const height = Math.max(34, Math.min(180, rawDuration || 60));
-                  const type = EVENT_TYPES[eventType(event)];
-                  return <button type="button" className="apple-time-event" key={event.id} style={{ top: `${start}px`, height: `${height}px`, "--event-color": type.color }} onClick={() => onSelectEvent(event)}><strong>{event.title}</strong><span>{formatTime(event.start)}{event.end ? `–${formatTime(event.end)}` : ""}</span>{event.location && <small>{event.location}</small>}</button>;
+                  return <button type="button" className="apple-time-event" key={event.id} style={{ top: `${start}px`, height: `${height}px`, "--event-color": colorFor(event) }} onClick={() => onSelectEvent(event)}><strong>{event.title}</strong><span>{formatTime(event.start)}{event.end ? `–${formatTime(event.end)}` : ""}</span>{event.location && <small>{event.location}</small>}</button>;
                 })}
               </div>;
             })}
@@ -257,7 +301,7 @@ function LocationAutocompleteField({ value, onChange }) {
 }
 
 export default function CalendarPage() {
-  const { members, memberById, events, googleEvents, feedEvents, calendarFeeds, googleConnected, googleCalendars, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleStatus, googleError, googleLastSynced, addEvent, updateEvent, addGoogleCalendarEvent, updateGoogleCalendarEvent, deleteGoogleCalendarEvent, removeEvent, clearEvents, refreshData, syncGoogleCalendarNow, connectGoogleCalendar, reconnectGoogleCalendar, disconnectGoogleCalendar, toggleGoogleCalendar, toggleGoogleCalendarSharing } = useFamily();
+  const { members, memberById, events, googleEvents, feedEvents, calendarFeeds, googleConnected, googleCalendars, googleCalendarAliases, googleCalendarColors, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleStatus, googleError, googleLastSynced, addEvent, updateEvent, addGoogleCalendarEvent, updateGoogleCalendarEvent, deleteGoogleCalendarEvent, removeEvent, clearEvents, refreshData, syncGoogleCalendarNow, connectGoogleCalendar, reconnectGoogleCalendar, disconnectGoogleCalendar, toggleGoogleCalendar, toggleGoogleCalendarSharing, renameGoogleCalendar, setGoogleCalendarColor, famosCalendar, setFamosCalendar } = useFamily();
   const { householdProfileExtra } = useAuth();
   const todayStr = todayISO();
   const [selectedDate, setSelectedDate] = useState(todayStr);
@@ -308,6 +352,9 @@ export default function CalendarPage() {
   const [discoverCities, setDiscoverCities] = useState([]);
   const [cityDraft, setCityDraft] = useState("");
   const [calendarManagerOpen, setCalendarManagerOpen] = useState(false);
+  // Inline name-editing state inside the calendar manager.
+  const [editingCalendarName, setEditingCalendarName] = useState(null); // "famos" | google calendar id | feed id
+  const [calendarNameDraft, setCalendarNameDraft] = useState("");
   const [draft, setDraft] = useState({ title: "", date: selectedDate, start: "18:00", end: "19:00", location: "", memberIds: [], eventType: "family", destination: "family", recurrence: "none", recurrenceUntil: "" });
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickText, setQuickText] = useState("");
@@ -400,10 +447,10 @@ export default function CalendarPage() {
   [expandedEvents, sourceFilter]);
 
   const sources = useMemo(() => [
-    { id: "all", label: "All calendars", color: "var(--color-calendar)" }, { id: "family", label: "Family", color: "var(--color-family)" },
-    ...(googleConnected ? googleCalendars.filter(calendar => selectedGoogleCalendarIds.includes(calendar.id)).map(calendar => ({ id: `google:${calendar.id}`, label: calendar.displayName || calendar.summary, color: calendar.backgroundColor })) : []),
+    { id: "all", label: "All calendars", color: "var(--color-calendar)" }, { id: "family", label: famosCalendar?.name || "FamOS Calendar", color: famosCalendar?.color || "var(--color-family)" },
+    ...(googleConnected ? googleCalendars.filter(calendar => selectedGoogleCalendarIds.includes(calendar.id)).map(calendar => ({ id: `google:${calendar.id}`, label: calendar.displayName || calendar.summary, color: googleCalendarColors[calendar.id] || calendar.backgroundColor })) : []),
     ...calendarFeeds.map((feed) => ({ id: `feed:${feed.id}`, label: feed.source === "file" ? feed.name : `${feed.name} · iCal`, color: "var(--color-meals)" })),
-  ], [calendarFeeds, googleConnected, googleCalendars, selectedGoogleCalendarIds]);
+  ], [calendarFeeds, googleConnected, googleCalendars, googleCalendarColors, selectedGoogleCalendarIds, famosCalendar]);
 
   const cells = useMemo(() => {
     const first = new Date(month.getFullYear(), month.getMonth(), 1);
@@ -931,7 +978,7 @@ export default function CalendarPage() {
                         {cellEvents.length > 0 && (
                           <span className="calendar-month-dots">
                             {cellEvents.slice(0, 3).map(event => (
-                              <i key={event.id} style={{ backgroundColor: EVENT_TYPES[eventType(event)].color }} />
+                              <i key={event.id} style={{ backgroundColor: calendarColorFor(event, googleCalendars, googleCalendarColors, famosCalendar?.color) }} />
                             ))}
                           </span>
                         )}
@@ -942,7 +989,7 @@ export default function CalendarPage() {
               </div>
             </div>}
 
-          {viewMode !== "month" && <CalendarTimeGrid data-pull-ignore dates={timeGridDates} events={visibleEvents} selectedDate={selectedDate} onSelectDate={setSelectedDate} onSelectEvent={setSelectedEvent} />}
+          {viewMode !== "month" && <CalendarTimeGrid data-pull-ignore dates={timeGridDates} events={visibleEvents} selectedDate={selectedDate} onSelectDate={setSelectedDate} onSelectEvent={setSelectedEvent} googleCalendars={googleCalendars} googleCalendarColors={googleCalendarColors} famosColor={famosCalendar?.color || "var(--color-family)"} />}
 
           {/* ── Agenda below the grid — iOS-style list with section header + inline weather ── */}
           {viewMode === "month" && <div className="calendar-agenda-section" ref={agendaRef} data-pull-ignore>
@@ -964,6 +1011,7 @@ export default function CalendarPage() {
               <div className="calendar-agenda">
                 {dayEvents.map((ev) => {
                   const type = EVENT_TYPES[eventType(ev)];
+                  const eventColor = calendarColorFor(ev, googleCalendars, googleCalendarColors, famosCalendar?.color);
                   const deletable = canDeleteEvent(ev);
                   return (
                     <div
@@ -976,11 +1024,11 @@ export default function CalendarPage() {
                         {ev.end && <span className="calendar-event-end">{formatTime(ev.end)}</span>}
                         {ev.end && <span className="calendar-event-duration">{formatDuration(ev.start, ev.end)}</span>}
                       </div>
-                      <span className="calendar-event-line" style={{ backgroundColor: type.color }} aria-hidden="true" />
+                      <span className="calendar-event-line" style={{ backgroundColor: eventColor }} aria-hidden="true" />
                       <div className="calendar-event-body">
                         <strong>{ev.title}</strong>
                         <div className="calendar-event-meta">
-                          <span className="calendar-event-type" style={{ color: type.color }}>{type.label}</span>
+                          <span className="calendar-event-type" style={{ color: eventColor }}>{type.label}</span>
                           {ev.location && (
                             <span className="calendar-event-location">
                               <MapPin size={11} />
@@ -1029,7 +1077,7 @@ export default function CalendarPage() {
             {draft.recurrence !== "none" && <DateField label="Repeat until (optional)" value={draft.recurrenceUntil} onChange={recurrenceUntil => setDraft({ ...draft, recurrenceUntil })} min={draft.date} />}
           </>}
           <SelectField label="Add to" className="calendar-select-label" value={draft.destination} disabled={Boolean(editingEvent)} onChange={e => setDraft({ ...draft, destination: e.target.value })}>
-              <option value="family">FamOS calendar</option>
+              <option value="family">{famosCalendar?.name || "FamOS Calendar"}</option>
               {googleConnected && googleCalendars.filter(calendar => selectedGoogleCalendarIds.includes(calendar.id) && ["owner", "writer"].includes(calendar.accessRole)).map(calendar => (
                 <option key={calendar.id} value={`google:${calendar.id}`}>{calendar.displayName || calendar.summary} · Google</option>
               ))}
@@ -1063,6 +1111,39 @@ export default function CalendarPage() {
 
         <Modal open={calendarManagerOpen} onClose={() => setCalendarManagerOpen(false)} title="Calendar management">
           <div className="calendar-manager">
+            {/* FamOS calendar — always present, editable name + color */}
+            <div className="calendar-manager-famos">
+              <div className="calendar-manager-list-heading">
+                <strong>FamOS calendar</strong>
+                <span>Your household calendar</span>
+              </div>
+              <div className="calendar-manager-item is-connected">
+                <i style={{ backgroundColor: famosCalendar?.color || "var(--color-family)" }} />
+                <div className="calendar-manager-item-info">
+                  {editingCalendarName === "famos" ? (
+                    <form className="calendar-manager-rename-form" onSubmit={(event) => {
+                      event.preventDefault();
+                      setFamosCalendar({ name: String(calendarNameDraft || "").trim().slice(0, 60) || "FamOS Calendar" });
+                      setEditingCalendarName(null);
+                    }}>
+                      <input autoFocus maxLength={60} value={calendarNameDraft} onChange={(event) => setCalendarNameDraft(event.target.value)} aria-label="FamOS calendar name" />
+                      <button type="submit">Save</button>
+                      <button type="button" onClick={() => setEditingCalendarName(null)}>Cancel</button>
+                    </form>
+                  ) : (
+                    <>
+                      <b>{famosCalendar?.name || "FamOS Calendar"}</b>
+                      <small>Shared with your household</small>
+                    </>
+                  )}
+                </div>
+                <div className="calendar-manager-item-actions">
+                  <button className="calendar-manager-rename" onClick={() => { setEditingCalendarName("famos"); setCalendarNameDraft(famosCalendar?.name || "FamOS Calendar"); }} aria-label="Rename FamOS calendar"><Pencil size={14} /><span>Name</span></button>
+                </div>
+              </div>
+              <CalendarColorPicker value={famosCalendar?.color} onChange={(color) => setFamosCalendar({ color })} ariaLabel="FamOS calendar color" />
+            </div>
+
             {!googleConnected ? (
               <div className="calendar-manager-empty">
                 <span><CalendarDays size={32} /></span>
@@ -1096,20 +1177,39 @@ export default function CalendarPage() {
                   <strong>Your Google calendars</strong>
                   <span>{selectedGoogleCalendarIds.length} of {googleCalendars.length} connected</span>
                 </div>
-                <p className="calendar-manager-help">Toggle each calendar to show its events in FamOS. For calendars you own or co-own, you can also write events back to them.</p>
+                <p className="calendar-manager-help">Toggle each calendar to show its events in FamOS. Rename them, recolor them, and choose whether they stay private to you or appear for the whole household. For calendars you own or co-own, you can also write events back to them.</p>
                 <ul className="calendar-manager-list">
                   {googleCalendars.map((calendar) => {
                     const connected = selectedGoogleCalendarIds.includes(calendar.id);
                     const shared = sharedGoogleCalendarIds.includes(calendar.id);
+                    const displayName = calendar.displayName || calendar.summary;
+                    const calendarColor = googleCalendarColors[calendar.id] || calendar.backgroundColor;
                     return (
                       <li key={calendar.id} className={`calendar-manager-item ${connected ? "is-connected" : ""}`}>
-                        <i style={{ backgroundColor: calendar.backgroundColor }} />
+                        <i style={{ backgroundColor: calendarColor }} />
                         <div className="calendar-manager-item-info">
-                          <b>{calendar.displayName || calendar.summary}</b>
-                          <small>{calendar.primary ? "Primary" : calendar.accessRole === "reader" ? "Read only" : "Can add events"}</small>
+                          {editingCalendarName === calendar.id ? (
+                            <form className="calendar-manager-rename-form" onSubmit={async (event) => {
+                              event.preventDefault();
+                              try {
+                                await renameGoogleCalendar(calendar.id, calendarNameDraft);
+                                setEditingCalendarName(null);
+                              } catch { /* keep the form open; rename helper already no-ops on failure */ }
+                            }}>
+                              <input autoFocus maxLength={80} value={calendarNameDraft} onChange={(event) => setCalendarNameDraft(event.target.value)} aria-label={`Rename ${displayName}`} />
+                              <button type="submit">Save</button>
+                              <button type="button" onClick={() => setEditingCalendarName(null)}>Cancel</button>
+                            </form>
+                          ) : (
+                            <>
+                              <b>{displayName}</b>
+                              <small>{calendar.primary ? "Primary" : calendar.accessRole === "reader" ? "Read only" : "Can add events"}</small>
+                            </>
+                          )}
                         </div>
                         <div className="calendar-manager-item-actions">
-                          <button className={`calendar-manager-toggle ${connected ? "on" : ""}`} onClick={() => toggleGoogleCalendar(calendar.id)} disabled={googleStatus === "syncing" || googleStatus === "connecting"} aria-pressed={connected} aria-label={`${connected ? "Disconnect" : "Connect"} ${calendar.displayName || calendar.summary}`}>
+                          <button className="calendar-manager-rename" onClick={() => { setEditingCalendarName(calendar.id); setCalendarNameDraft(displayName); }} disabled={googleStatus === "syncing" || googleStatus === "connecting"} aria-label={`Rename ${displayName}`}><Pencil size={14} /><span>Name</span></button>
+                          <button className={`calendar-manager-toggle ${connected ? "on" : ""}`} onClick={() => toggleGoogleCalendar(calendar.id)} disabled={googleStatus === "syncing" || googleStatus === "connecting"} aria-pressed={connected} aria-label={`${connected ? "Disconnect" : "Connect"} ${displayName}`}>
                             <span className="calendar-manager-toggle-track"><span className="calendar-manager-toggle-thumb" /></span>
                             {connected ? "Connected" : "Connect"}
                           </button>
@@ -1118,6 +1218,11 @@ export default function CalendarPage() {
                             <span>{shared ? "Shared" : "Private"}</span>
                           </button>
                         </div>
+                        {connected && (
+                          <div className="calendar-manager-item-colors">
+                            <CalendarColorPicker value={calendarColor} onChange={(color) => setGoogleCalendarColor(calendar.id, color)} ariaLabel={`Color for ${displayName}`} />
+                          </div>
+                        )}
                       </li>
                     );
                   })}
@@ -1453,11 +1558,11 @@ export default function CalendarPage() {
           {selectedEvent && (
             <div className="event-detail-card">
               <p className="event-detail-time">{formatTime(selectedEvent.start)}{selectedEvent.end ? ` – ${formatTime(selectedEvent.end)}` : ""}</p>
-              <p className="event-detail-type"><i style={{ backgroundColor: EVENT_TYPES[eventType(selectedEvent)].color }} />{EVENT_TYPES[eventType(selectedEvent)].label}</p>
+              <p className="event-detail-type"><i style={{ backgroundColor: calendarColorFor(selectedEvent, googleCalendars, googleCalendarColors, famosCalendar?.color) }} />{EVENT_TYPES[eventType(selectedEvent)].label}</p>
               {selectedEvent.location ? (
                 <a className="event-map-link" href={mapsUrl(selectedEvent.location)} target="_blank" rel="noreferrer"><MapPin size={16} /> Open navigation to {selectedEvent.location}</a>
               ) : <p className="event-muted">No location added.</p>}
-              <p className="event-muted">Source: {sourceId(selectedEvent) === "family" ? "FamOS calendar" : selectedEvent.source === "google" ? "Google Calendar" : "Imported calendar"}</p>
+              <p className="event-muted">Source: {sourceId(selectedEvent) === "family" ? (famosCalendar?.name || "FamOS Calendar") : selectedEvent.source === "google" ? (googleCalendarAliases?.[selectedEvent.calendarId] || "Google Calendar") : "Imported calendar"}</p>
               <div className="reset-confirm-actions">
                 <button className="event-share-button" onClick={() => {
                   if (!selectedEvent?.id) return;
@@ -1480,7 +1585,7 @@ export default function CalendarPage() {
         </Modal>
 
         <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Delete event?">
-          <p className="reset-confirm-copy">{deleteTarget?.source === "google" ? `This removes "${deleteTarget?.title}" from both Google Calendar and FamOS.` : `This removes "${deleteTarget?.title}" from the FamOS calendar.`}</p>
+          <p className="reset-confirm-copy">{deleteTarget?.source === "google" ? `This removes "${deleteTarget?.title}" from both Google Calendar and FamOS.` : `This removes "${deleteTarget?.title}" from the ${famosCalendar?.name || "FamOS Calendar"}.`}</p>
           <div className="reset-confirm-actions">
             <button onClick={() => setDeleteTarget(null)}>Cancel</button>
             <PrimaryButton onClick={confirmDelete}>Delete event</PrimaryButton>

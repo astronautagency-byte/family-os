@@ -27,7 +27,7 @@ test("shopping lists scope new items and destructive actions", () => {
 test("mobile chat composer clears the bottom navigation", () => {
   const chat = readFileSync(new URL("../src/pages/Chat.jsx", import.meta.url), "utf8");
   assert.match(chat, /chat-mobile-composer/);
-  assert.match(css, /chat-mobile-composer\{padding-bottom:calc\(14px \+ env\(safe-area-inset-bottom\) \+ 68px\)/);
+  assert.match(css, /chat-mobile-composer\{padding-bottom:calc\(10px \+ env\(safe-area-inset-bottom\)\)/);
 });
 
 test("settings restores the Astronaut Digital credit", () => {
