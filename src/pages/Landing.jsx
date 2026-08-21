@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, useAnimate, useInView, useScroll, useSpring, useTransform, useReducedMotion, MotionConfig, stagger } from "framer-motion";
-import { ArrowRight, Baby, BellRing, Bot, CalendarDays, Check, CheckSquare, ChefHat, FileInput, GraduationCap, Heart, LoaderCircle, LockKeyhole, MessageCircle, Minus, Palette, Plus, Refrigerator, ShieldCheck, ShoppingCart, Sparkles, Utensils, Users } from "lucide-react";
+import { ArrowRight, Baby, BellRing, Bot, CalendarDays, Check, CheckSquare, ChefHat, FileInput, GraduationCap, Heart, LoaderCircle, LockKeyhole, MessageCircle, Palette, Refrigerator, ShieldCheck, ShoppingCart, Sparkles, Users } from "lucide-react";
 import "../landing.css";
 import "../landing-theme.css";
 import "../feature.css";
@@ -104,55 +104,37 @@ const comparisonRows = [
   { label: "Plan that grows", famos: "Pricing scales with household members", display: "Hardware plus optional subscription", organizer: "Free and premium bundles" },
   { label: "Choose your extras", famos: "Add Fam AI when your family needs it", display: "Features depend on device and plan", organizer: "Premium features depend on plan" },
   { label: "Family coordination", famos: "Calendar, meals, groceries, tasks, chat, rewards, and AI", display: "Strong shared calendar and home display", organizer: "Core organizer features vary by app" },
-  { label: "Try before committing", famos: `${PRICING_PLAN.trial.days}-day free trial`, display: "Offers and trials vary", organizer: "Free tiers or trials vary" },
+  { label: "Try before committing", famos: `${PRICING_PLAN.trial.days}-day free trial on Pro`, display: "Offers and trials vary", organizer: "Free tiers or trials vary" },
 ];
-
-const pricingIcons = { meals: Utensils, fam_ai: Bot, family: Users };
-const pricingAddOns = PRICING_PLAN.addOns.map((plan) => ({ id: plan.id, label: plan.name, copy: plan.tagline, price: plan.price.monthly, icon: pricingIcons[plan.id] || Sparkles }));
 
 function PricingSection({ signedIn }) {
   const [billing, setBilling] = useState("monthly");
-  const [members, setMembers] = useState(PRICING_PLAN.basePlan.membersIncluded);
-  const [addOns, setAddOns] = useState(Object.fromEntries(pricingAddOns.map(({ id }) => [id, false])));
+  const [selectedPlan, setSelectedPlan] = useState("pro");
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
-  const extraMembers = Math.max(0, members - PRICING_PLAN.basePlan.membersIncluded);
-  const monthlyBase = PRICING_PLAN.basePlan.price.monthly;
-  const annualBase = PRICING_PLAN.basePlan.price.yearly;
-  const annualDiscount = 1;
-  const memberCost = extraMembers * PRICING_PLAN.basePlan.additionalMemberPrice.monthly;
-  const addOnCost = pricingAddOns.reduce((sum, item) => sum + (addOns[item.id] ? item.price : 0), 0);
-  const monthlySubtotal = monthlyBase + memberCost + addOnCost;
-  const annualMemberCost = memberCost * 12 * annualDiscount;
-  const annualAddOnCost = addOnCost * 12;
-  const annualTotal = annualBase + annualMemberCost + annualAddOnCost;
-  const displayedTotal = billing === "annual" ? annualTotal : monthlySubtotal;
-  const savings = monthlySubtotal * 12 - annualTotal;
-  const annualizeMonthly = (value) => value * 12;
-  const pulseKey = `${billing}-${displayedTotal}`;
 
-  // Start the trial: anonymous users go through signup first (Stripe needs an
-  // email/name for the Customer), then bounce back to /pricing and land on this
-  // handler. Signed-in users get a Stripe Checkout URL and are redirected.
+  const plan = PRICING_PLAN.paidPlans.find((p) => p.id === selectedPlan) || PRICING_PLAN.paidPlans[1];
+  const monthlyPrice = plan.price.monthly;
+  const yearlyPrice = plan.price.yearly;
+  const displayPrice = billing === "annual" ? yearlyPrice : monthlyPrice;
+  const displayPer = billing === "annual" ? "/yr" : "/mo";
+  const yearlySavings = monthlyPrice * 12 - yearlyPrice;
+  const trialDays = PRICING_PLAN.trial.days;
+  const coreFeatures = PRICING_PLAN.plans[0].featureList;
+  const pulseKey = `${billing}-${selectedPlan}`;
+
   const startCheckout = async () => {
     setCheckoutError("");
     if (!signedIn) {
-      // Queue the chosen billing freq + addons via the signup return path so
-      // it's restored after sign-up. signup reads ?returnPath=<url>.
       const params = new URLSearchParams({ returnPath: "/pricing" });
       window.history.pushState(null, "", `/sign-up?${params.toString()}`);
       window.dispatchEvent(new Event("popstate"));
       return;
     }
     setCheckoutBusy(true);
-    const addons = pricingAddOns.filter(({ id }) => addOns[id]).map(({ id }) => id);
-    if (!addons.length) {
-      window.location.assign(signedIn ? "/" : "/sign-up");
-      return;
-    }
     try {
       const { data, error } = await supabase.functions.invoke("chargebee-checkout", {
-        body: { features: addons },
+        body: { feature: selectedPlan, billing },
       });
       if (error) throw error;
       const url = data?.url;
@@ -165,62 +147,62 @@ function PricingSection({ signedIn }) {
   };
 
   return <section className="landing-pricing" id="pricing">
-    <SectionHead eyebrow="Simple pricing" note="Calendar, Tasks, Shopping Lists, Chat and Kitchen Watch are free for the whole household. Add only the extras your family wants for $4.99 CAD per month each.">Start free.<br/>Add what helps.</SectionHead>
+    <SectionHead eyebrow="Simple pricing" note="Calendar, Tasks, Shopping, Chat and Kitchen Watch are free forever. Upgrade to Plus or Pro for sync, recipes, meal planning, and more.">Start free.<br/>Add what helps.</SectionHead>
     <motion.div className="pricing-shell" {...revealBlock}>
       <div className="pricing-main">
         <div className="pricing-toggle" role="tablist" aria-label="Billing frequency">
           <button className={billing === "monthly" ? "active" : ""} onClick={() => setBilling("monthly")} role="tab" aria-selected={billing === "monthly"}>Monthly</button>
-          <button className={billing === "annual" ? "active" : ""} onClick={() => setBilling("annual")} role="tab" aria-selected={billing === "annual"}>Yearly <span>{formatMoney(annualTotal)}/yr</span></button>
+          <button className={billing === "annual" ? "active" : ""} onClick={() => setBilling("annual")} role="tab" aria-selected={billing === "annual"}>Yearly <span>Save ${yearlySavings.toFixed(0)}</span></button>
         </div>
+
+        <div className="pricing-plan-cards">
+          {PRICING_PLAN.paidPlans.map((p) => {
+            const active = selectedPlan === p.id;
+            const price = billing === "annual" ? p.price.yearly : p.price.monthly;
+            const per = billing === "annual" ? "/yr" : "/mo";
+            return <button
+              key={p.id}
+              className={`pricing-plan-card${active ? " selected" : ""}${p.isPopular ? " popular" : ""}`}
+              onClick={() => setSelectedPlan(p.id)}
+              aria-pressed={active}
+            >
+              {p.isPopular && <span className="pricing-plan-badge">Most popular</span>}
+              <div className="pricing-plan-head">
+                <strong>{p.name}</strong>
+                <span className="pricing-plan-price"><em>{formatMoney(price)}</em>{per}</span>
+              </div>
+              <p className="pricing-plan-tagline">{p.tagline}</p>
+              <ul className="pricing-plan-features">
+                {p.featureList.map((feature) => <li key={feature}><Check size={14}/> {feature}</li>)}
+              </ul>
+            </button>;
+          })}
+        </div>
+
         <article className="pricing-card">
           <div className="pricing-card-head">
             <span><Users/></span>
-            <div><p>Your plan</p><motion.h3 key={pulseKey} initial={{ scale: 0.94, opacity: 0.72 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.38, ease: BACK }}><span>{formatMoney(displayedTotal)}</span><small>{billing === "annual" ? "per year" : "per month"}</small></motion.h3></div>
+            <div><p>Your plan</p><motion.h3 key={pulseKey} initial={{ scale: 0.94, opacity: 0.72 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.38, ease: BACK }}><span>{formatMoney(displayPrice)}</span><small>{displayPer}</small></motion.h3></div>
           </div>
-          <p className="pricing-note">No card is required for the free essentials. Paid features are billed monthly through Chargebee and can be changed or cancelled independently.</p>
-          <div className="family-size-control">
-            <div><strong>People in your home</strong><small>Your selected tools are shared with the whole household.</small></div>
-            <div>
-              <button aria-label="Remove family member" onClick={() => setMembers((value) => Math.max(PRICING_PLAN.basePlan.membersIncluded, value - 1))}><Minus/></button>
-              <b>{members}</b>
-              <button aria-label="Add family member" onClick={() => setMembers((value) => Math.min(20, value + 1))}><Plus/></button>
-            </div>
-          </div>
+          <p className="pricing-note">No card is required for Core. Paid plans include a {trialDays}-day free trial — cancel anytime during the trial and you won't be charged.</p>
           <ul className="pricing-includes">
-            <li><Check/> Shared calendar with Google sync</li>
-            <li><Check/> Grocery lists & favourites</li>
-            <li><Check/> Tasks and custom task lists</li>
-            <li><Check/> Family chat & broadcasts</li>
-            <li><Check/> Kitchen Watch & expiry reminders</li>
+            {coreFeatures.map((feature) => <li key={feature}><Check/> {feature}</li>)}
           </ul>
         </article>
-        <div className="pricing-addons">
-          <p>Add-ons</p>
-          {pricingAddOns.map(({ id, label, copy, price, icon: Icon }) => {
-          const active = addOns[id];
-          return <button className={active ? "selected" : ""} onClick={() => setAddOns((current) => ({ ...current, [id]: !current[id] }))} key={id} aria-pressed={active}>
-            {active && <span className="addon-selected-badge" aria-hidden="true"><Check size={14}/></span>}
-            <span><Icon/></span>
-            <strong>{label}<small>{copy}</small></strong>
-            <em>{billing === "annual" ? `${formatMoney(annualizeMonthly(price))}/yr` : `${formatMoney(price)}/mo`}</em>
-          </button>;
-        })}
-        </div>
       </div>
       <aside className="pricing-side">
         <div className="pricing-summary">
-          <div><span>Core plan</span><b>{billing === "annual" ? `${formatMoney(annualBase)}/yr` : formatMoney(monthlyBase)}</b></div>
-          {extraMembers > 0 && <div><span>{extraMembers} extra member{extraMembers === 1 ? "" : "s"}</span><b>{billing === "annual" ? `${formatMoney(annualMemberCost)}/yr` : formatMoney(memberCost)}</b></div>}
-          {pricingAddOns.filter(({ id }) => addOns[id]).map(({ id, label, price }) => <div key={id}><span>{label}</span><b>{formatMoney(price)}/mo</b></div>)}
-          {billing === "annual" && <div className="annual-savings"><span>Yearly savings</span><b>{formatMoney(savings)}</b></div>}
-          <div className="pricing-total"><span>Total after trial</span><motion.b key={pulseKey} initial={{ y: 7, opacity: 0.55 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.34, ease: EASE }}>{formatMoney(displayedTotal)}<small>{billing === "annual" ? "/yr" : "/mo"}</small></motion.b></div>
+          <div><span>Core plan</span><b>Free</b></div>
+          <div><span>{plan.name}</span><b>{formatMoney(displayPrice)}{displayPer}</b></div>
+          {billing === "annual" && yearlySavings > 0 && <div className="annual-savings"><span>Yearly savings</span><b>${yearlySavings.toFixed(2)}</b></div>}
+          <div className="pricing-total"><span>After {trialDays}-day trial</span><motion.b key={pulseKey} initial={{ y: 7, opacity: 0.55 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.34, ease: EASE }}>{formatMoney(displayPrice)}<small>{displayPer}</small></motion.b></div>
           <button onClick={startCheckout} disabled={checkoutBusy}>
             {checkoutBusy ? <LoaderCircle className="animate-spin" size={16} /> : null}
-            {checkoutBusy ? "Opening checkout…" : addOnCost ? "Continue to secure checkout" : "Start free"}
+            {checkoutBusy ? "Opening checkout…" : `Start ${trialDays}-day free trial`}
             {!checkoutBusy && <ArrowRight/>}
           </button>
           {checkoutError && <small className="pricing-checkout-error">{checkoutError}</small>}
-          <small><ShieldCheck/> Secure Chargebee checkout. Calendar, Tasks, Shopping, Chat and Kitchen Watch stay free.</small>
+          <small><ShieldCheck/> Secure Chargebee checkout. Card required for trial. Cancel anytime.</small>
         </div>
       </aside>
     </motion.div>

@@ -23,7 +23,7 @@ test("owners and invited members both receive the scheme picker", () => {
 });
 
 test("appearance is a focused optional step instead of crowding identity or calendar setup", () => {
-  assert.match(auth, /\["Household", "Address", "Priorities", "Food", "Shopping", "Calendar", "Your look", "Notifications"\]/);
+  assert.match(auth, /\["Household", "Address", "Priorities", "Food", "Shopping", "Calendar", "Your look", "Notifications", "Start trial"\]/);
   assert.match(auth, /\["About you", "Food", "Calendar", "Your look"\]/);
   assert.match(auth, /props\.step === 6 && <><OnboardingColourScheme/);
   assert.match(auth, /step === 3 && <><OnboardingColourScheme/);

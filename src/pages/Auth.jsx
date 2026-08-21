@@ -363,6 +363,9 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
   const [memberStep, setMemberStep] = useState(0);
   const [notificationsSkipped, setNotificationsSkipped] = useState(false);
   const [draftLoaded, setDraftLoaded] = useState(false);
+  const [promoCode, setPromoCode] = useState("");
+  const [promoBusy, setPromoBusy] = useState(false);
+  const [promoResult, setPromoResult] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -435,7 +438,7 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
     if (invitation && !household) return "Come on in";
     if (!household) return "What should we call home?";
     if (memberProfileStep) return ["Tell us about you", "Food preferences", "Add your calendar", "Make it yours"][memberStep];
-    if (ownerProfileStep) return ["Who’s at home?", "Where is home? (optional)", "What matters most?", "Make meals easier", "Bring your grocery list", "Connect your calendar", "Make it yours", "Never miss an update"][ownerStep];
+    if (ownerProfileStep) return ["Who’s at home?", "Where is home? (optional)", "What matters most?", "Make meals easier", "Bring your grocery list", "Connect your calendar", "Make it yours", "Never miss an update", "Start your trial"][ownerStep];
     return "Invite your people";
   }, [household, invitation, memberProfileStep, memberStep, ownerProfileStep, ownerStep]);
 
@@ -457,6 +460,7 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
       "Connect your calendar now or come back to it anytime.",
       "Choose your personal app colours and profile picture. Other household members can choose their own.",
       "Get notified about tasks, meals, messages, and calendar updates from your household.",
+      "Start your 30-day free trial of FamOS Pro. All features unlocked — cancel anytime.",
     ][ownerStep];
     return `Invite people to ${household.name} now, or skip and add them later from Settings.`;
   }, [household, invitation, memberProfileStep, memberStep, ownerProfileStep, ownerStep]);
@@ -575,6 +579,12 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
             busy={busy}
             run={run}
             onSave={saveOwnerProfile}
+            promoCode={promoCode}
+            setPromoCode={setPromoCode}
+            promoBusy={promoBusy}
+            setPromoBusy={setPromoBusy}
+            promoResult={promoResult}
+            setPromoResult={setPromoResult}
             onSkipSetup={() => { setNotificationsSkipped(true); run(async () => { markOnboardingComplete(); }); }}
             step={ownerStep}
             setStep={setOwnerStep}
@@ -671,7 +681,7 @@ function OwnerProfileStep(props) {
     ["Vegetarian", Leaf], ["Vegan", Salad], ["Gluten-free", WheatOff], ["Dairy-free", ChefHat],
     ["Nut-free", HeartHandshake], ["Shellfish-free", ShieldCheck], ["Low sugar", Sparkles],
   ];
-  const steps = ["Household", "Address", "Priorities", "Food", "Shopping", "Calendar", "Your look", "Notifications"];
+  const steps = ["Household", "Address", "Priorities", "Food", "Shopping", "Calendar", "Your look", "Notifications", "Start trial"];
   const next = () => {
     if (props.step === 0 && props.adultCount + props.childCount !== props.familySize) return;
     props.setStep((step) => Math.min(step + 1, steps.length - 1));
@@ -757,6 +767,53 @@ function OwnerProfileStep(props) {
         {props.step === 6 && <><OnboardingColourScheme value={props.colorScheme} onChange={props.onColorSchemeChange} /><AvatarPicker avatarUrl={props.avatarUrl} setAvatarUrl={props.setAvatarUrl} status={props.avatarStatus} setStatus={props.setAvatarStatus} /></>}
 
         {props.step === 7 && <NotificationStep user={props.session?.user} busy={props.busy} run={props.run} />}
+
+        {props.step === 8 && <div className="onboarding-trial-step">
+          <div className="onboarding-trial-card">
+            <h3>Start your 30-day free trial</h3>
+            <p>Try FamOS Pro free for 30 days. All features unlocked — calendar sync, recipes, Cook Mode, meal planning, Fam AI, and more. Cancel anytime during the trial.</p>
+            <div className="onboarding-trial-features">
+              <span>Google & Outlook two-way sync</span>
+              <span>Recipe discovery, meal planning, and Cook Mode</span>
+              <span>250–300 FamAI queries per month</span>
+              <span>Up to 5 connected calendars</span>
+              <span>Priority support</span>
+            </div>
+            <div className="onboarding-promo-field">
+              <label>Promo code (optional)</label>
+              <div className="onboarding-promo-row">
+                <input
+                  value={props.promoCode}
+                  onChange={(e) => props.setPromoCode(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ""))}
+                  placeholder="Enter code"
+                  disabled={props.promoBusy}
+                  maxLength={32}
+                />
+                {props.promoCode.trim().length >= 3 && (
+                  <button
+                    type="button"
+                    className="onboarding-promo-apply"
+                    disabled={props.promoBusy}
+                    onClick={async () => {
+                      props.setPromoBusy(true);
+                      props.setPromoResult("");
+                      try {
+                        const { data, error } = await supabase.rpc("apply_my_promo_code", { promo_code: props.promoCode.trim() });
+                        if (error) throw error;
+                        props.setPromoResult("Promo code applied! All features unlocked.");
+                      } catch (e) {
+                        props.setPromoResult(e.message || "Invalid promo code.");
+                      } finally {
+                        props.setPromoBusy(false);
+                      }
+                    }}
+                  >{props.promoBusy ? "Applying…" : "Apply"}</button>
+                )}
+              </div>
+              {props.promoResult && <p className={`onboarding-promo-result ${props.promoResult.includes("applied") ? "success" : "error"}`}>{props.promoResult}</p>}
+            </div>
+          </div>
+        </div>}
       </div>
       <OnboardingActions
         step={props.step}

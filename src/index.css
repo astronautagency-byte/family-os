@@ -3671,6 +3671,24 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .onboarding-retry-button:hover{background:var(--color-accent-soft)}
 .onboarding-retry-button:disabled{opacity:.4;cursor:default}
 .onboarding-retry-button:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
+.onboarding-trial-step{display:grid;gap:16px}
+.onboarding-trial-card{padding:20px;border:1px solid var(--color-border);border-radius:var(--radius-card);background:var(--color-surface)}
+.onboarding-trial-card h3{font-size:18px;font-weight:700;margin-bottom:8px}
+.onboarding-trial-card>p{color:var(--color-ink-soft);font-size:13px;line-height:1.5;margin-bottom:16px}
+.onboarding-trial-features{display:grid;gap:8px;margin-bottom:20px}
+.onboarding-trial-features span{display:flex;align-items:center;gap:8px;color:var(--color-ink-soft);font-size:12.5px}
+.onboarding-trial-features span::before{content:"✓";font-weight:700;color:var(--color-success);font-size:13px}
+.onboarding-promo-field{display:grid;gap:6px}
+.onboarding-promo-field label{font-size:12px;font-weight:600;color:var(--color-ink-soft)}
+.onboarding-promo-row{display:flex;gap:8px}
+.onboarding-promo-row input{flex:1;padding:10px 12px;border:1px solid var(--color-border);border-radius:var(--radius-control);background:var(--color-surface);font-size:13px;letter-spacing:.04em;text-transform:uppercase}
+.onboarding-promo-row input:focus{outline:2px solid var(--color-accent);outline-offset:2px;border-color:var(--color-accent)}
+.onboarding-promo-apply{padding:10px 16px;border:1px solid var(--color-accent);border-radius:var(--radius-control);background:var(--color-accent);color:#fff;font-size:12px;font-weight:700;cursor:pointer;transition:background .2s}
+.onboarding-promo-apply:hover{background:color-mix(in srgb,var(--color-accent) 85%,#000)}
+.onboarding-promo-apply:disabled{opacity:.5;cursor:progress}
+.onboarding-promo-result{font-size:12px;margin-top:4px}
+.onboarding-promo-result.success{color:var(--color-success)}
+.onboarding-promo-result.error{color:var(--color-danger)}
 .settings-household-card{display:flex;align-items:flex-start;gap:14px;padding:16px!important}
 
 /* Privacy → Cached searches row: a quiet pill showing what's in localStorage */
