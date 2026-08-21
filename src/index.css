@@ -2615,6 +2615,122 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   opacity:.4;
 }
 
+/* Fam AI — deterministic action layer UI (preview card, undo chip, clarify hint) */
+.fam-ai-preview-card{
+  margin-top:8px;
+  padding:12px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-tag);
+  background:var(--color-surface-raised);
+}
+.fam-ai-preview-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin-bottom:10px;
+}
+.fam-ai-preview-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  font-size:11px;
+  font-weight:700;
+  color:var(--color-accent);
+}
+.fam-ai-preview-head em{
+  font-style:normal;
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+  color:var(--color-ink-faint);
+}
+.fam-ai-preview-actions{
+  display:flex;
+  gap:8px;
+}
+.fam-ai-preview-approve{
+  flex:1;
+  padding:9px 12px;
+  border:0;
+  border-radius:6px;
+  background:var(--color-accent);
+  color:#fff;
+  font-size:12px;
+  font-weight:700;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+}
+.fam-ai-preview-approve:disabled{opacity:.45}
+.fam-ai-preview-cancel{
+  padding:9px 14px;
+  border:1px solid var(--color-border);
+  border-radius:6px;
+  background:var(--color-surface);
+  color:var(--color-ink-soft);
+  font-size:12px;
+  font-weight:600;
+}
+.fam-ai-undo-chip{
+  margin-top:8px;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 8px 6px 10px;
+  border-radius:var(--radius-tag);
+  background:color-mix(in srgb,var(--color-good) 10%,var(--color-surface));
+  border:1px solid color-mix(in srgb,var(--color-good) 30%,var(--color-border));
+  font-size:11.5px;
+  font-weight:600;
+  color:var(--color-good);
+}
+.fam-ai-undo-chip button{
+  padding:5px 10px;
+  border:0;
+  border-radius:6px;
+  background:var(--color-good);
+  color:#fff;
+  font-size:11px;
+  font-weight:700;
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+}
+.fam-ai-undo-chip.undone{
+  color:var(--color-ink-faint);
+  background:var(--color-surface-raised);
+  border-color:var(--color-border);
+}
+.fam-ai-clarify-hint{
+  margin:8px 0 0;
+  font-size:11px;
+  color:var(--color-ink-faint);
+}
+.fam-ai-action-chips{
+  max-width:580px;
+  margin:10px auto 0;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.fam-ai-action-chips button{
+  padding:8px 14px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-tag);
+  background:var(--color-surface);
+  color:var(--color-ink-soft);
+  font-size:12px;
+  font-weight:600;
+}
+.fam-ai-action-chips button:hover{
+  border-color:var(--color-accent);
+  color:var(--color-accent);
+  background:var(--color-surface-raised);
+}
+
 /* Error */
 .fam-ai-error{
   flex:0 0 auto;

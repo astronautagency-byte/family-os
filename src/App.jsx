@@ -390,7 +390,7 @@ export default function App() {
             from inside the sheet simply clears the openFamAI flag. */}
         <ErrorBoundary resetKey={`famai-${famAiOpen}`} fallback={() => null}>
           <Suspense fallback={null}>
-            <FamAI open={famAiOpen} onClose={() => setFamAiOpen(false)} />
+            <FamAI open={famAiOpen} onClose={() => setFamAiOpen(false)} screen={tab} />
           </Suspense>
         </ErrorBoundary>
         <InstallPrompt />

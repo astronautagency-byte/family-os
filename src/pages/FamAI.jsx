@@ -8,6 +8,7 @@ import {
   ChevronDown,
   MessageSquare,
   Plus,
+  RotateCcw,
   Search,
   Send,
   ShieldCheck,
@@ -20,9 +21,11 @@ import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
 import { Avatar } from "../components/ui";
 import { isCookableTonight } from "../lib/cookableTonight";
-import { addDays, formatDayLabel, todayISO } from "../lib/dates";
-import { invokeEdgeFunction, supabase } from "../lib/supabase";
+import { todayISO } from "../lib/dates";
+import { supabase } from "../lib/supabase";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
+import { handleAskFam, getSuggestedPrompts, getSuggestedActions, riskLabel } from "../lib/famai";
+import { undoAction, executeAction } from "../lib/famai/actions";
 
 const actionMeta = {
   add_task: { label: "Create task", Icon: CheckSquare },
@@ -31,397 +34,14 @@ const actionMeta = {
   plan_meal: { label: "Plan meal", Icon: ChefHat },
 };
 
-const actionSummary = (action) => action.args.title || action.args.name || "New item";
-const prompts = [
-  {
-    label: "Tasks",
-    tone: "tasks",
-    Icon: CheckSquare,
-    text: "Assign this week's chores",
-    prompt:
-      "Use the current FamOS household context and prepare a balanced chore plan for this week. Create 3 to 5 task actions, spread them across available family members, due over the next 7 days, with task_type set to home or errand. If there are no obvious chores already listed, use practical defaults like tidy bedrooms, take out trash, fold laundry, clear dishes, water plants, or feed pets. Make reasonable choices for review instead of asking follow-up questions unless there are no family members.",
-  },
-  {
-    label: "Meals",
-    tone: "meals",
-    Icon: ChefHat,
-    text: "Plan easy dinners",
-    prompt:
-      "Use the current FamOS meal and grocery context to plan five easy family dinners over the next 7 days. Create plan_meal actions for dinner slots with short helpful notes. Prefer low-prep, family-friendly meals and avoid duplicating meals already planned. If there are no constraints, choose balanced defaults and prepare them for review.",
-  },
-  {
-    label: "Calendar",
-    tone: "calendar",
-    Icon: CalendarDays,
-    text: "Find our busiest day",
-    prompt:
-      "Use the current FamOS calendar, task, and meal context to identify the busiest day in the next 7 days. Count events, due tasks, and planned meals. Give a concise answer with the busiest day, why it is busy, and one practical suggestion to make the day easier. Do not ask follow-up questions unless there is no schedule data at all.",
-  },
-  {
-    label: "Groceries",
-    tone: "groceries",
-    Icon: ShoppingCart,
-    text: "Build a shopping list",
-    prompt:
-      "Use the current FamOS meal plan and grocery context to prepare a useful shopping list. Add only missing grocery items as add_grocery actions and avoid duplicates already on the unchecked list. If no meals are planned, create a sensible starter list for five easy family dinners, grouped by common grocery categories. Prepare the items for review instead of asking follow-up questions.",
-  },
-];
+const actionSummary = (action) => action.args?.title || action.args?.name || "New item";
 
-function makeMemberNameMap(members = []) {
-  return members.reduce((map, member) => {
-    map[member.id] = member.name;
-    return map;
-  }, {});
-}
+const INITIAL_FAM_AI_MESSAGE = {
+  role: "assistant",
+  content: "Hi, I’m Fam AI. Ask me to add to a list, check the schedule, or get the family ready — I’ll handle the household side and show you exactly what I do before it happens.",
+};
 
-function analyzeBusiestDay({ events = [], tasks = [], meals = [], members = [] }) {
-  const today = todayISO();
-  const memberNames = makeMemberNameMap(members);
-  const days = Array.from({ length: 7 }, (_, index) => {
-    const date = addDays(today, index);
-    const dayEvents = events
-      .filter((event) => event.start?.slice(0, 10) === date)
-      .map((event) => ({
-        type: "event",
-        title: event.title,
-        detail: event.start ? new Date(event.start).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "",
-      }));
-    const dayTasks = tasks
-      .filter((task) => !task.done && task.due === date)
-      .map((task) => ({
-        type: "task",
-        title: task.title,
-        detail: task.assigneeId ? memberNames[task.assigneeId] : "",
-      }));
-    const dayMeals = meals
-      .filter((meal) => meal.date === date && meal.title)
-      .map((meal) => ({
-        type: "meal",
-        title: `${meal.slot}: ${meal.title}`,
-        detail: "",
-      }));
-    const items = [...dayEvents, ...dayTasks, ...dayMeals];
-    return {
-      date,
-      label: formatDayLabel(date),
-      events: dayEvents,
-      tasks: dayTasks,
-      meals: dayMeals,
-      items,
-      score: dayEvents.length * 2 + dayTasks.length * 1.5 + dayMeals.length,
-    };
-  });
-
-  const busiest = [...days].sort((a, b) => b.score - a.score || b.items.length - a.items.length)[0];
-  if (!busiest || busiest.items.length === 0) {
-    return "I checked the next 7 days and don’t see any events, due tasks, or planned meals yet. Add a few calendar items or tasks and I can spot the busiest day for you.";
-  }
-
-  const topItems = busiest.items.slice(0, 5).map((item) => `• ${item.title}${item.detail ? ` — ${item.detail}` : ""}`).join("\n");
-  const counts = [
-    `${busiest.events.length} event${busiest.events.length === 1 ? "" : "s"}`,
-    `${busiest.tasks.length} open task${busiest.tasks.length === 1 ? "" : "s"}`,
-    `${busiest.meals.length} planned meal${busiest.meals.length === 1 ? "" : "s"}`,
-  ].join(", ");
-
-  const suggestion = busiest.tasks.length > 1
-    ? "I’d move or delegate one task if possible so the day has more breathing room."
-    : busiest.events.length > 1
-      ? "I’d add a buffer between events or prep anything needed the night before."
-      : "It looks manageable — a quick reminder the night before should be enough.";
-
-  return `${busiest.label} looks like your busiest day in the next week: ${counts}.\n\n${topItems}\n\n${suggestion}`;
-}
-
-function wantsBusiestDayAnswer(text) {
-  return /\b(busiest|busy|most packed|most scheduled|heaviest)\b/i.test(text) && /\b(day|schedule|week|upcoming|calendar)\b/i.test(text);
-}
-
-function wantsGroceryList(text) {
-  return /\b(grocery|groceries|shopping list|ingredients|instacart|doordash)\b/i.test(text);
-}
-
-function wantsMealIdeas(text) {
-  return /\b(meal|meals|dinner|recipe|recipes|cook|cooking|menu)\b/i.test(text);
-}
-
-function wantsStoreItemsFromTasks(text) {
-  return /\b(store items?|shopping|grocer(?:y|ies)|supplies|buy|pick up)\b/i.test(text)
-    && /\b(task|tasks|chores?|to[-\s]?do|calendar|event|events)\b/i.test(text);
-}
-
-function wantsTasksFromCalendar(text) {
-  return /\b(task|tasks|prep|prepare|remind|reminder|chores?|to[-\s]?do)\b/i.test(text)
-    && /\b(calendar|event|events|schedule|weekend|this week|upcoming)\b/i.test(text);
-}
-
-const compactName = (value = "") => value.toLowerCase();
-
-// Detects when any modal or full-screen sheet is open elsewhere in the app.
-// Used to hide the Fam AI FAB so it doesn't compete with cook/recipe/event
-// modals. Returns true if any element inside `.primary-nav` isn't enough on
-// its own — we look at the live DOM for a few well-known overlay classes.
-const FAM_AI_HIDE_WHEN_ANY = [
-  "cook-focus-screen",
-  "recipe-modal",
-  "recipe-cook-modal",
-  "modal-card",
-  "event-detail-modal",
-  "invite-modal",
-  "support-modal",
-  "fam-ai-sheet-backdrop",
-];
-
-function isOverlayOpen() {
-  if (typeof document === "undefined") return false;
-  for (const cls of FAM_AI_HIDE_WHEN_ANY) {
-    if (document.querySelector(`.${cls}`)) return true;
-  }
-  return false;
-}
-
-function uniqueActions(actions = []) {
-  const seen = new Set();
-  return actions.filter((action) => {
-    const key = `${action.type}:${compactName(action.args?.title || action.args?.name || "")}:${action.args?.date || action.args?.due_date || ""}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
-function taskStoreSuggestions(tasks = [], existingGroceries = []) {
-  const existing = new Set(existingGroceries.filter((item) => !item.checked).map((item) => compactName(item.name)));
-  const items = [];
-  const add = (name, category = "Other", unit = "") => {
-    const key = compactName(name);
-    if (!key || existing.has(key)) return;
-    existing.add(key);
-    items.push({ id: `task-store-${items.length}`, type: "add_grocery", args: { name, category, quantity: 1, unit } });
-  };
-
-  for (const task of tasks.filter((item) => !item.done).slice(0, 12)) {
-    const title = compactName(task.title);
-    if (/laundry|wash|fold clothes|towels/.test(title)) { add("Laundry detergent", "Household & Cleaning"); add("Dryer sheets", "Household & Cleaning"); }
-    if (/dish|dishes|dishwasher/.test(title)) { add("Dishwasher pods", "Household & Cleaning"); add("Dish soap", "Household & Cleaning"); }
-    if (/trash|garbage|recycling/.test(title)) add("Trash bags", "Household & Cleaning");
-    if (/clean|tidy|vacuum|bathroom|kitchen/.test(title)) { add("All-purpose cleaner", "Household & Cleaning"); add("Paper towels", "Paper & Disposable"); }
-    if (/plant|garden|water/.test(title)) add("Plant food", "Household & Cleaning");
-    if (/dog|cat|pet/.test(title)) add(/cat/.test(title) ? "Cat treats" : "Dog treats", "Pet Supplies");
-    if (/school|field trip|lunch|homework/.test(title)) { add("Lunch snacks", "Snacks & Candy"); add("Juice boxes", "Beverages"); }
-    if (/soccer|practice|game|sports|gym/.test(title)) { add("Sports drinks", "Beverages"); add("Granola bars", "Snacks & Candy"); }
-    if (/birthday|party|gift/.test(title)) { add("Birthday card", "Other"); add("Gift wrap", "Paper & Disposable"); }
-    if (/dentist|doctor|pharmacy|medicine/.test(title)) add("Toothpaste", "Health & Personal Care");
-  }
-  return items.slice(0, 10);
-}
-
-function calendarTaskSuggestions(events = [], tasks = [], members = []) {
-  const today = todayISO();
-  const existing = new Set(tasks.filter((task) => !task.done).map((task) => compactName(task.title)));
-  const actions = [];
-  const add = (event, title, offsetDays = -1) => {
-    const key = compactName(title);
-    if (!key || existing.has(key)) return;
-    existing.add(key);
-    const eventDate = event.start?.slice(0, 10) || today;
-    const due = addDays(eventDate, offsetDays);
-    actions.push({
-      id: `event-task-${actions.length}`,
-      type: "add_task",
-      args: {
-        title,
-        due_date: due < today ? today : due,
-        assignee_name: members[0]?.name || "",
-        task_type: "family",
-      },
-    });
-  };
-
-  events
-    .filter((event) => event.start?.slice(0, 10) >= today)
-    .sort((a, b) => a.start.localeCompare(b.start))
-    .slice(0, 12)
-    .forEach((event) => {
-      const title = compactName(event.title);
-      if (/soccer|practice|game|sports/.test(title)) add(event, `Pack bag for ${event.title}`);
-      if (/birthday|party/.test(title)) add(event, `Buy gift for ${event.title}`);
-      if (/dentist|doctor|appointment|medical/.test(title)) add(event, `Confirm ${event.title}`);
-      if (/school|teacher|conference|field trip/.test(title)) add(event, `Prepare for ${event.title}`);
-      if (/dinner|lunch|brunch|meal/.test(title)) add(event, `Plan food for ${event.title}`);
-      if (event.location && !/home/i.test(event.location)) add(event, `Check travel time to ${event.location}`, 0);
-    });
-
-  return uniqueActions(actions).slice(0, 8);
-}
-
-// Pulls every unchecked grocery name and asks Spoonacular (via the
-// `recipe-search` edge function) for recipes that match them. Returns
-// already-shaped `plan_meal` actions the Fam AI review panel can show.
-// **Only suggests meals for open dinner slots** (slots without a planned meal).
-async function mealActionsFromGroceries(groceryList = [], existingMeals = []) {
-  const ingredients = groceryList
-    .filter((item) => !item.checked && item.name)
-    .map((item) => item.name)
-    .filter(Boolean)
-    .slice(0, 8)
-    .join(", ");
-  if (!ingredients.trim()) return [];
-  try {
-    const data = await invokeEdgeFunction("recipe-search", { ingredients, mealType: "dinner" });
-    const recipes = Array.isArray(data?.recipes) ? data.recipes : [];
-
-    // Find the next 7 days' open dinner slots (no existing meal with a title)
-    const today = todayISO();
-    const openSlots = [];
-    for (let i = 0; i < 7; i++) {
-      const date = addDays(today, i);
-      const hasDinner = existingMeals.some(
-        (meal) => meal.date === date && meal.slot === "dinner" && meal.title
-      );
-      if (!hasDinner) {
-        openSlots.push({ date, slot: "dinner" });
-      }
-    }
-
-    // Assign recipes only to open slots (up to the number available)
-    return recipes.slice(0, openSlots.length).map((recipe, index) => ({
-      id: `meal-${index}-${recipe.title}`,
-      type: "plan_meal",
-      args: {
-        date: openSlots[index].date,
-        slot: "dinner",
-        title: recipe.title,
-        notes: `Suggested from groceries · ${recipe.cuisine || "Family favourite"}`,
-        cook_names: [],
-        // Soft-tier fields — let the renderer decide cookability from
-        // ingredients + checked groceries without a second fetch.
-        ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : [],
-        readyInMinutes: recipe.readyInMinutes || 35,
-      },
-    }));
-  } catch {
-    return [];
-  }
-}
-
-// Suggests common grocery items that are likely needed based on planned meals,
-// **filtered to only items not already on the grocery list**.
-// Uses category-based heuristics rather than calling Spoonacular per meal.
-function groceryActionsFromMeals(plannedMeals = [], existingGroceries = []) {
-  const today = todayISO();
-  const existingNames = new Set(
-    existingGroceries
-      .filter((item) => item.name)
-      .map((item) => item.name.toLowerCase().trim())
-  );
-  const alreadyHas = (name) => existingNames.has(name.toLowerCase().trim());
-
-  const items = [];
-  const add = (name, category = "Other") => {
-    if (alreadyHas(name)) return;
-    items.push({
-      id: `meal-grocery-${items.length}`,
-      type: "add_grocery",
-      args: { name, category, quantity: 1, unit: "" },
-    });
-  };
-
-  // Only look at planned meals in the next 7 days
-  const upcomingMeals = plannedMeals
-    .filter((meal) => meal.date >= today && meal.title)
-    .slice(0, 20);
-
-  for (const meal of upcomingMeals) {
-    const title = meal.title.toLowerCase();
-    if (/chicken|turkey|fajitas|stir.?fry/.test(title)) {
-      if (!alreadyHas("chicken breast")) add("Chicken breast", "Meat & Seafood");
-      if (!alreadyHas("bell peppers")) add("Bell peppers", "Produce");
-      if (!alreadyHas("onions")) add("Onions", "Produce");
-      if (/fajitas|taco|burrito|enchilada/.test(title)) {
-        if (!alreadyHas("tortillas")) add("Tortillas", "Pantry");
-        if (!alreadyHas("sour cream")) add("Sour cream", "Dairy & Eggs");
-      }
-    }
-    if (/salmon|fish|seafood/.test(title)) {
-      if (!alreadyHas("lemon")) add("Lemon", "Produce");
-      if (!alreadyHas("rice")) add("Rice", "Pasta, Rice & Grains");
-    }
-    if (/chili|soup|stew/.test(title)) {
-      if (!alreadyHas("canned tomatoes")) add("Canned tomatoes", "Canned & Jarred");
-      if (!alreadyHas("kidney beans")) add("Kidney beans", "Canned & Jarred");
-    }
-    if (/pasta|spaghetti|bolognese|lasagna/.test(title)) {
-      if (!alreadyHas("pasta")) add("Pasta", "Pasta, Rice & Grains");
-      if (!alreadyHas("pasta sauce")) add("Pasta sauce", "Condiments & Sauces");
-    }
-    if (/pizza|flatbread/.test(title)) {
-      if (!alreadyHas("pizza dough")) add("Pizza dough", "Pantry");
-      if (!alreadyHas("mozzarella")) add("Mozzarella", "Dairy & Eggs");
-    }
-    if (/rice|bowl|grain/.test(title)) {
-      if (!alreadyHas("rice")) add("Rice", "Pasta, Rice & Grains");
-      if (!alreadyHas("soy sauce")) add("Soy sauce", "Condiments & Sauces");
-    }
-    if (/taco|burrito|quesadilla|enchilada/.test(title)) {
-      if (!alreadyHas("shredded cheese")) add("Shredded cheese", "Dairy & Eggs");
-      if (!alreadyHas("salsa")) add("Salsa", "Condiments & Sauces");
-    }
-    if (/sandwich|wrap|burger/.test(title)) {
-      if (!alreadyHas("bread")) add("Bread", "Bakery");
-      if (!alreadyHas("lettuce")) add("Lettuce", "Produce");
-    }
-    if (/roast|bake|grill/.test(title)) {
-      if (!alreadyHas("potatoes")) add("Potatoes", "Produce");
-      if (!alreadyHas("garlic")) add("Garlic", "Produce");
-    }
-    if (/curry|indian|thai|asian/.test(title)) {
-      if (!alreadyHas("coconut milk")) add("Coconut milk", "Canned & Jarred");
-      if (!alreadyHas("curry paste")) add("Curry paste", "International Foods");
-    }
-    if (/salad|green|veggie|vegetable/.test(title)) {
-      if (!alreadyHas("olive oil")) add("Olive oil", "Condiments & Sauces");
-      if (!alreadyHas("salad dressing")) add("Salad dressing", "Condiments & Sauces");
-    }
-  }
-
-  return items.slice(0, 10);
-}
-
-// Returns recipe *titles* suggested by Spoonacular based on the current
-// unchecked grocery list. Used to enrich the prompt context sent to the
-// fam-ai edge function so it can speak to the current kitchen.
-async function spoonacularMealTitlesFromGroceries(groceryList = []) {
-  const ingredients = groceryList
-    .filter((item) => !item.checked && item.name)
-    .map((item) => item.name)
-    .filter(Boolean)
-    .slice(0, 8)
-    .join(", ");
-  if (!ingredients.trim()) return [];
-  try {
-    const data = await invokeEdgeFunction("recipe-search", { ingredients, mealType: "dinner" });
-    return Array.isArray(data?.recipes) ? data.recipes : [];
-  } catch {
-    return [];
-  }
-}
-
-async function getFunctionError(invokeError) {
-  try {
-    const response = invokeError?.context;
-    if (response?.clone) {
-      const payload = await response.clone().json();
-      if (payload?.error) return payload.error;
-    }
-  } catch {
-    // Supabase does not always expose a JSON response for network failures.
-  }
-
-  return "Fam AI is not connected yet. The FamOS admin needs to finish the server setup.";
-}
-
-export default function FamAI({ open: propOpen, onClose }) {
+export default function FamAI({ open: propOpen, onClose, screen = "" }) {
   const { configured } = useAuth();
   const {
     members,
@@ -431,19 +51,17 @@ export default function FamAI({ open: propOpen, onClose }) {
     googleEvents,
     feedEvents,
     meals,
-    expenses,
-    weeklyBudget,
-    monthlyBudget,
-    financePeriod,
     addTask,
     addGrocery,
     addEvent,
+    updateEvent,
+    removeEvent,
+    toggleTask,
+    toggleGrocery,
+    removeGrocery,
     setMealForSlot,
+    currentUserId,
   } = useFamily();
-const INITIAL_FAM_AI_MESSAGE = {
-  role: "assistant",
-  content: "Hi, I’m Fam AI—part planner, part household detective. Tell me what needs untangling and I’ll suggest the next step for your review.",
-};
 
   const [messages, setMessages] = useState([INITIAL_FAM_AI_MESSAGE]);
   const [busy, setBusy] = useState(false);
@@ -451,38 +69,20 @@ const INITIAL_FAM_AI_MESSAGE = {
   const [pending, setPending] = useState([]);
   const [error, setError] = useState("");
   const chatRef = useRef(null);
-  // FAB ↔ sheet state. When `open === false` we render only the floating
-  // button. A launch hint (small badge dot) haunts the FAB on first open
-  // to teach the family that the assistant is one tap away.
-  // The sheet can be driven by the parent (top-bar Sparkles button) via the
-  // `open` / `onClose` props, or fall back to the legacy uncontrolled mode
-  // when mounted as a routed tab. When controlled, internal clicks just
-  // bubble the close event to the parent.
+  // When the router asks a clarification question, the next user message is
+  // merged back into the original request (e.g. "add soccer game at 10" +
+  // "saturday" → "add soccer game at 10 saturday") so the router can finish.
+  const pendingClarifyRef = useRef(null);
   const [internalOpen, setInternalOpen] = useState(false);
   const controlled = propOpen !== undefined;
   const open = controlled ? propOpen : internalOpen;
   const setOpen = (next) => {
-    // When the parent drives the sheet (AppTopBar's Sparkles button), we only
-    // forward *close* intents — re-opens from internal legacy code paths
-    // (e.g. the launch-hint dot) are a no-op because the parent already owns
-    // the open flag. Internal-only mounts keep the original behaviour.
     if (controlled) {
       if (!next) onClose?.();
       return;
     }
     setInternalOpen(next);
   };
-  const [overlayActive, setOverlayActive] = useState(false);
-  // Keep the help dot visible until the user has dismissed the FAB at least
-  // once this session. Stored so the badge never comes back on its own.
-  const FAB_HINT_KEY = "famos:fam-ai-fab-hint-shown:v1";
-  const [hintShown, setHintShown] = useState(() => {
-    if (typeof window === "undefined") return true;
-    try { return window.localStorage.getItem(FAB_HINT_KEY) === "1"; }
-    catch { return true; }
-  });
-
-  // Auto-scroll chat to bottom when new messages arrive
   useEffect(() => {
     if (chatRef.current) {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
@@ -496,280 +96,138 @@ const INITIAL_FAM_AI_MESSAGE = {
     members[0]?.id ||
     null;
 
-  const buildDaisyChainFollowUp = async (approvedActions) => {
-    const allEvents = [...(events || []), ...(googleEvents || []), ...(feedEvents || [])];
-    const addedGroceries = approvedActions
-      .filter((action) => action.type === "add_grocery")
-      .map((action) => ({
-        ...(action.args || {}),
-        checked: false,
-      }));
-    const addedMeals = approvedActions
-      .filter((action) => action.type === "plan_meal")
-      .map((action) => ({
-        date: action.args?.date,
-        slot: action.args?.slot || "dinner",
-        title: action.args?.title,
-        notes: action.args?.notes || "",
-      }))
-      .filter((meal) => meal.date && meal.title);
-    const addedTasks = approvedActions
-      .filter((action) => action.type === "add_task")
-      .map((action) => ({
-        title: action.args?.title,
-        due: action.args?.due_date,
-        done: false,
-        taskType: action.args?.task_type || "home",
-      }))
-      .filter((task) => task.title);
-    const addedEvents = approvedActions
-      .filter((action) => action.type === "add_event")
-      .map((action) => ({
-        title: action.args?.title,
-        start: action.args?.start,
-        end: action.args?.end,
-        location: action.args?.location || "",
-      }))
-      .filter((event) => event.title && event.start);
-
-    if (addedGroceries.length) {
-      const projectedMeals = [...meals, ...addedMeals];
-      const nextMeals = await mealActionsFromGroceries([...groceries, ...addedGroceries], projectedMeals);
-      if (nextMeals.length) {
-        return {
-          message: "Since we touched the grocery list, I also found dinners you can make from those items. Want me to add these to the meal planner?",
-          actions: nextMeals,
-        };
-      }
-    }
-
-    if (addedMeals.length) {
-      const projectedMeals = [...meals, ...addedMeals];
-      const nextGroceries = groceryActionsFromMeals(projectedMeals, [...groceries, ...addedGroceries]);
-      if (nextGroceries.length) {
-        return {
-          message: "I can also build the missing grocery list for those planned meals. Review the items below.",
-          actions: nextGroceries,
-        };
-      }
-    }
-
-    if (addedTasks.length) {
-      const nextGroceries = taskStoreSuggestions([...tasks, ...addedTasks], groceries);
-      if (nextGroceries.length) {
-        return {
-          message: "A few store items may help with those tasks. Review the suggestions below.",
-          actions: nextGroceries,
-        };
-      }
-    }
-
-    if (addedEvents.length) {
-      const nextTasks = calendarTaskSuggestions([...allEvents, ...addedEvents], tasks, members);
-      if (nextTasks.length) {
-        return {
-          message: "I also spotted prep tasks from the calendar. Want me to add them?",
-          actions: nextTasks,
-        };
-      }
-    }
-
-    return null;
+  // The api object the deterministic action layer executes through — the
+  // only writes Fam AI ever performs are these scoped context functions.
+  const api = {
+    members,
+    groceries,
+    tasks,
+    events,
+    addGrocery,
+    removeGrocery,
+    toggleGrocery,
+    addTask,
+    toggleTask,
+    addEvent,
+    updateEvent,
+    removeEvent,
+    currentUserId,
   };
+
+  const stateSnapshot = () => ({
+    members,
+    groceries,
+    tasks,
+    events,
+    meals,
+    today: todayISO(),
+  });
+
+  // Rich message render helpers — each message can carry structured payloads
+  // (preview / clarify / execute / refused) on top of the plain text.
+  const appendAssistant = (payload) => setMessages((current) => [...current, payload]);
 
   const sendText = async (text, displayText = text) => {
     if (!text || busy) return;
-
     setInput("");
-    const nextUserMessage = { role: "user", content: displayText, aiContent: text };
-    const nextMessages = [...messages, nextUserMessage];
-    setMessages((current) => [...current, nextUserMessage]);
+    // Merge clarification answers into the original request.
+    const clarify = pendingClarifyRef.current;
+    const effectiveText = clarify ? `${clarify.originalText} ${text}` : text;
+    const effectiveDisplay = clarify ? text : displayText;
+    pendingClarifyRef.current = null;
+    setMessages((current) => [...current, { role: "user", content: effectiveDisplay, aiContent: effectiveText }]);
     setBusy(true);
     setError("");
 
     try {
-      const allEvents = [...(events || []), ...(googleEvents || []), ...(feedEvents || [])];
-      const projectedGroceries = [
-        ...groceries,
-        ...pending
-          .filter((action) => action.type === "add_grocery")
-          .map((action) => ({ ...(action.args || {}), checked: false })),
-      ];
-      const projectedMeals = [
-        ...meals,
-        ...pending
-          .filter((action) => action.type === "plan_meal")
-          .map((action) => ({
-            date: action.args?.date,
-            slot: action.args?.slot || "dinner",
-            title: action.args?.title,
-            notes: action.args?.notes || "",
-          }))
-          .filter((meal) => meal.date && meal.title),
-      ];
-      const projectedTasks = [
-        ...tasks,
-        ...pending
-          .filter((action) => action.type === "add_task")
-          .map((action) => ({
-            title: action.args?.title,
-            due: action.args?.due_date,
-            done: false,
-            taskType: action.args?.task_type || "home",
-          }))
-          .filter((task) => task.title),
-      ];
-      const projectedEvents = [
-        ...allEvents,
-        ...pending
-          .filter((action) => action.type === "add_event")
-          .map((action) => ({
-            title: action.args?.title,
-            start: action.args?.start,
-            end: action.args?.end,
-            location: action.args?.location || "",
-          }))
-          .filter((event) => event.title && event.start),
-      ];
-
-      if (wantsStoreItemsFromTasks(text)) {
-        const storeActions = taskStoreSuggestions(projectedTasks, projectedGroceries);
-        setMessages((current) => [...current, {
-          role: "assistant",
-          content: storeActions.length
-            ? "I found store items that support your open task list. Review these before I add them to groceries."
-            : "I checked the current task list and don’t see any obvious store items to add yet.",
-        }]);
-        setPending(storeActions);
-        return;
-      }
-
-      if (wantsTasksFromCalendar(text)) {
-        const taskActions = calendarTaskSuggestions(projectedEvents, projectedTasks, members);
-        setMessages((current) => [...current, {
-          role: "assistant",
-          content: taskActions.length
-            ? "I found prep tasks from your upcoming calendar events. Review these before I add them."
-            : "I checked your upcoming calendar and don’t see any obvious prep tasks to create yet.",
-        }]);
-        setPending(taskActions);
-        return;
-      }
-
-      if (wantsBusiestDayAnswer(text)) {
-        const answer = analyzeBusiestDay({ events: projectedEvents, tasks: projectedTasks, meals: projectedMeals, members });
-        setMessages((current) => [...current, { role: "assistant", content: answer }]);
-        setPending([]);
-        return;
-      }
-
-      if (wantsGroceryList(text) && projectedMeals.some((meal) => meal.title)) {
-        const missingActions = groceryActionsFromMeals(projectedMeals, projectedGroceries);
-        const mealIdeas = (await spoonacularMealTitlesFromGroceries(projectedGroceries)).slice(0, 3).map((recipe) => recipe.title);
-        setMessages((current) => [...current, {
-          role: "assistant",
-          content: missingActions.length
-            ? `I built a grocery list from your planned meals. I also checked what is already on your grocery list${mealIdeas.length ? ` and found meal ideas you could make from it: ${mealIdeas.join(", ")}.` : "."}\n\nReview the grocery items below before I add them.`
-            : `Your planned meals already look covered by the current grocery list.${mealIdeas.length ? ` Based on what you have listed, you could also make: ${mealIdeas.join(", ")}.` : ""}`,
-        }]);
-        setPending(missingActions);
-        return;
-      }
-
-      if (wantsMealIdeas(text) && projectedGroceries.some((item) => !item.checked)) {
-        const mealActions = await mealActionsFromGroceries(projectedGroceries, projectedMeals);
-        if (mealActions.length) {
-          setMessages((current) => [...current, {
-            role: "assistant",
-            content: `Based on your current grocery list, I found meal ideas that use what you already have: ${mealActions.map((action) => action.args.title).join(", ")}.\n\nReview the meal-plan actions below and I can add them to the next open dinner slots.`,
-          }]);
-          setPending(mealActions);
-          return;
-        }
-      }
-
-      if (!configured || !supabase) {
-        throw new Error("Fam AI needs the FamOS cloud connection before it can respond.");
-      }
-
-      const { data, error: invokeError } = await supabase.functions.invoke("fam-ai", {
-        body: {
-          messages: nextMessages.map(
-            ({ role, content, aiContent }) => ({ role, content: aiContent || content }),
-          ),
-          context: {
-            today: todayISO(),
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            family: members.map((member) => member.name),
-            members: members.map((member) => ({ id: member.id, name: member.name, role: member.role })),
-            tasks: projectedTasks.map((task) => ({
-              title: task.title,
-              due: task.due,
-              done: task.done,
-              assignee: task.assigneeId ? members.find((member) => member.id === task.assigneeId)?.name : null,
-              taskType: task.taskType,
-            })),
-            openTasks: projectedTasks.filter((task) => !task.done).map((task) => ({
-              title: task.title,
-              due: task.due,
-              assignee: task.assigneeId ? members.find((member) => member.id === task.assigneeId)?.name : null,
-              taskType: task.taskType,
-            })),
-            groceries: projectedGroceries
-              .filter((item) => !item.checked)
-              .map((item) => ({ name: item.name, category: item.category, quantity: item.quantity, unit: item.unit })),
-            upcomingEvents: projectedEvents
-              .filter((item) => item.start && item.start >= new Date(`${todayISO()}T00:00:00`).toISOString())
-              .sort((a, b) => a.start.localeCompare(b.start))
-              .slice(0, 50)
-              .map((item) => ({ title: item.title, start: item.start, end: item.end, location: item.location, source: item.source })),
-            plannedMeals: projectedMeals
-              .filter((item) => item.date >= todayISO())
-              .slice(0, 42)
-              .map((item) => ({ date: item.date, slot: item.slot, title: item.title, notes: item.notes })),
-            mealGroceryBridge: {
-              pendingActions: pending.map((action) => ({ type: action.type, args: action.args })),
-              // Static recipeBox used to fill these in. With Spoonacular
-              // sourcing, missing groceries are only inferred inside Cook Mode
-              // (where we have the live ingredients); here we surface a clean
-              // empty list plus the API-Ninjas meal titles.
-              missingGroceriesForMeals: [],
-              mealIdeasFromGroceries: (await spoonacularMealTitlesFromGroceries(projectedGroceries)).slice(0, 8).map((recipe) => ({
-                title: recipe.title,
-                cuisine: recipe.cuisine || "Family favourite",
-                ingredients: recipe.ingredients,
-              })),
-            },
-            finance: {
-              financePeriod,
-              weeklyBudget,
-              monthlyBudget,
-              recentExpenses: expenses
-                .slice(0, 12)
-                .map((item) => ({
-                  description: item.description,
-                  amount: item.amount,
-                  category: item.category,
-                  spentOn: item.spentOn,
-                })),
-            },
-          },
-        },
+      const result = await handleAskFam(text, {
+        state: stateSnapshot(),
+        api,
       });
 
-      if (invokeError) throw new Error(await getFunctionError(invokeError));
-      if (data?.error) throw new Error(data.error);
-
-      setMessages((current) => [
-        ...current,
-        { role: "assistant", content: data?.message || "I’m ready to help." },
-      ]);
-      setPending(data?.actions || []);
+      switch (result.kind) {
+        case "answer":
+          appendAssistant({ role: "assistant", content: result.text });
+          break;
+        case "refused":
+          appendAssistant({ role: "assistant", content: result.text, refused: result.level });
+          break;
+        case "execute":
+          appendAssistant({
+            role: "assistant",
+            content: result.message,
+            executed: true,
+            undo: result.undo || [],
+            canUndo: !!result.canUndo,
+            action: result.action,
+          });
+          break;
+        case "clarify":
+          pendingClarifyRef.current = { originalText: text, intent: result.intent, entities: result.entities };
+          appendAssistant({
+            role: "assistant",
+            content: result.question,
+            clarify: true,
+            intent: result.intent,
+            entities: result.entities,
+            confidence: result.confidence,
+          });
+          break;
+        case "preview":
+          appendAssistant({
+            role: "assistant",
+            content: result.message,
+            preview: result.action,
+            confidence: result.confidence,
+            risk: result.risk,
+          });
+          break;
+        case "needsAi":
+          await askTheCloud(text);
+          break;
+        default:
+          await askTheCloud(text);
+      }
     } catch (requestError) {
       setError(requestError.message || "Fam AI could not respond.");
     } finally {
       setBusy(false);
     }
+  };
+
+  // LLM fallback — only reached when the deterministic router can't resolve.
+  // Sends the COMPACT household context (never full history).
+  const askTheCloud = async (text) => {
+    if (!configured || !supabase) {
+      appendAssistant({ role: "assistant", content: "Fam AI needs the FamOS cloud connection before it can respond to that. The household assistant can still handle list, schedule, task and grocery requests offline." });
+      return;
+    }
+    const allEvents = [...(events || []), ...(googleEvents || []), ...(feedEvents || [])];
+    const { data, error: invokeError } = await supabase.functions.invoke("fam-ai", {
+      body: {
+        messages: [...messages.map((m) => ({ role: m.role, content: m.aiContent || m.content })), { role: "user", content: text }],
+        context: {
+          today: todayISO(),
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          screen,
+          family: members.map((member) => member.name),
+          members: members.map((member) => ({ id: member.id, name: member.name, role: member.role })),
+          tasks: tasks.filter((task) => !task.done).slice(0, 40).map((task) => ({ title: task.title, due: task.due, assignee: task.assigneeId ? members.find((m) => m.id === task.assigneeId)?.name : null, taskType: task.taskType })),
+          groceries: groceries.filter((item) => !item.checked).slice(0, 60).map((item) => ({ name: item.name, category: item.category, quantity: item.quantity, unit: item.unit })),
+          upcomingEvents: allEvents
+            .filter((item) => item.start && item.start >= new Date(`${todayISO()}T00:00:00`).toISOString())
+            .sort((a, b) => a.start.localeCompare(b.start))
+            .slice(0, 50)
+            .map((item) => ({ title: item.title, start: item.start, end: item.end, location: item.location, source: item.source })),
+          plannedMeals: meals.filter((item) => item.date >= todayISO()).slice(0, 42).map((item) => ({ date: item.date, slot: item.slot, title: item.title, notes: item.notes })),
+          pendingActions: pending.map((action) => ({ type: action.type, args: action.args })),
+        },
+      },
+    });
+    if (invokeError) throw new Error(await getFunctionError(invokeError));
+    if (data?.error) throw new Error(data.error);
+    appendAssistant({ role: "assistant", content: data?.message || "I’m ready to help." });
+    setPending(Array.isArray(data?.actions) ? data.actions : []);
   };
 
   const send = async (event) => {
@@ -783,6 +241,46 @@ const INITIAL_FAM_AI_MESSAGE = {
     await sendText(input.trim());
   };
 
+  // Approve a previewed action.
+  const approvePreview = async (messageIndex) => {
+    const message = messages[messageIndex];
+    if (!message?.preview) return;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await executePreview(message.preview, api);
+      if (result.ok) {
+        setMessages((current) => current.map((m, i) => i === messageIndex ? { ...m, preview: null, executed: true, undo: result.undo || [], canUndo: !!result.canUndo, content: result.message } : m));
+      } else {
+        setError(result.message);
+      }
+    } catch (actionError) {
+      setError(actionError.message || "That action could not be completed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const executePreview = (preview, executeApi) => executeAction(preview.intent, preview.entities, executeApi);
+
+  const undoMessage = async (messageIndex) => {
+    const message = messages[messageIndex];
+    if (!message?.undo?.length) return;
+    setBusy(true);
+    setError("");
+    try {
+      for (const actionId of message.undo) {
+        await undoAction(actionId, api);
+      }
+      setMessages((current) => current.map((m, i) => i === messageIndex ? { ...m, undone: true, canUndo: false, undo: [] } : m));
+    } catch (actionError) {
+      setError(actionError.message || "Could not undo that action.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // LLM-generated action execution (the review panel path).
   const execute = async () => {
     setBusy(true);
     setError("");
@@ -824,16 +322,11 @@ const INITIAL_FAM_AI_MESSAGE = {
           });
         }
       }
-
-      const followUp = await buildDaisyChainFollowUp(approvedActions);
-      setMessages((current) => [
-        ...current,
-        {
-          role: "assistant",
-          content: `Done — I added ${approvedActions.length} approved action${approvedActions.length === 1 ? "" : "s"} to FamOS.${followUp ? `\n\n${followUp.message}` : ""}`,
-        },
-      ]);
-      setPending(followUp?.actions || []);
+      appendAssistant({
+        role: "assistant",
+        content: `Done — I added ${approvedActions.length} approved action${approvedActions.length === 1 ? "" : "s"} to FamOS.`,
+      });
+      setPending([]);
     } catch (actionError) {
       setError(actionError.message || "An action could not be completed.");
     } finally {
@@ -841,15 +334,6 @@ const INITIAL_FAM_AI_MESSAGE = {
     }
   };
 
-  // Soft-tier fanout for plan_meal actions in the review panel —
-  // meal proposals whose ingredients are all in the user's checked
-  // groceries (pantry-ready) belong in a quiet collapsible section so
-  // the primary review list stays scannable. Non-meal actions
-  // (grocery / task / event) have no ingredient signal and stay in
-  // the primary list regardless of pantry state. `groceries` comes
-  // from the useFamily() destructure further up; no second hook call
-  // (Rules of Hooks). The soft-tier render is gated behind the shared
-  // `cookable-soft-tier` flag so admin can dim all three surfaces in unison.
   const [cookableEnabled] = useFeatureFlag("cookable-soft-tier");
   const cookablePlanMealActions = pending.filter((action) =>
     action.type === "plan_meal"
@@ -861,29 +345,14 @@ const INITIAL_FAM_AI_MESSAGE = {
   const welcomeState = messages.length === 1 && !busy && pending.length === 0;
   const recentPrompts = messages.filter((message) => message.role === "user").slice(-6).reverse();
 
+  const suggestedPrompts = getSuggestedPrompts(stateSnapshot(), screen);
+  const suggestedActions = getSuggestedActions(stateSnapshot());
+
   const startNewChat = () => {
     setMessages([INITIAL_FAM_AI_MESSAGE]);
     setPending([]);
     setError("");
     setInput("");
-  };
-
-  // Hide the FAB whenever another full-screen modal is up so it doesn't
-  // crop over a recipe / event / invite sheet. The mesh is cheap (a few
-  // querySelectors on tab change) and matches the closing pattern used by
-  // the broadcast banner.
-  useEffect(() => {
-    if (typeof document === "undefined") return undefined;
-    const check = () => setOverlayActive(isOverlayOpen());
-    check();
-    const observer = new MutationObserver(check);
-    observer.observe(document.body, { childList: true, subtree: false, attributes: true, attributeFilter: ["class"] });
-    return () => observer.disconnect();
-  }, []);
-
-  const dismissHint = () => {
-    setHintShown(true);
-    try { window.localStorage.setItem(FAB_HINT_KEY, "1"); } catch { /* storage full */ }
   };
 
   const sheet = (
@@ -910,7 +379,6 @@ const INITIAL_FAM_AI_MESSAGE = {
           <div className="fam-ai-sidebar-privacy"><ShieldCheck size={14} /><span>Private to your household</span></div>
         </aside>
         <main className={`fam-ai-workspace ${welcomeState ? "is-welcome" : ""}`}>
-        {/* Minimal header */}
         <div className="fam-ai-header">
           <div className="fam-ai-header-inner">
             <div className="fam-ai-brand">
@@ -918,27 +386,57 @@ const INITIAL_FAM_AI_MESSAGE = {
               <div className="fam-ai-brand-copy"><strong>Fam AI</strong><span><i /> Household assistant</span></div>
               <em>Beta</em>
             </div>
-            <p className="fam-ai-header-tagline">Private help with meals, groceries, tasks, and schedules.</p>
+            <p className="fam-ai-header-tagline">Ask naturally. Fam AI proposes changes for your review — nothing changes without you.</p>
           </div>
         </div>
 
-      {welcomeState && <div className="fam-ai-welcome"><span><Sparkles size={20} /></span><h2>What are we untangling?</h2><p>Meals, errands, schedules, or the mystery of who was meant to buy milk.</p></div>}
+      {welcomeState && <div className="fam-ai-welcome"><span><Sparkles size={20} /></span><h2>What can I take off your plate?</h2><p>Add groceries, check the day, plan dinners, or find the driver. I resolve what I can instantly and only reach for the cloud when needed.</p></div>}
 
-      {/* Chat area — scrollable */}
       <div className="fam-ai-chat" ref={chatRef}>
         {!welcomeState && messages.map((message, index) => (
           <div key={index} className={`fam-ai-msg ${message.role}`}>
             <div className="fam-ai-msg-row">
               {message.role === "assistant" ? (
-                <span className="fam-ai-msg-avatar">
-                  <Bot size={15} />
-                </span>
+                <span className="fam-ai-msg-avatar"><Bot size={15} /></span>
               ) : (
                 <Avatar member={members[0]} size="sm" className="fam-ai-msg-avatar user" />
               )}
               <div className="fam-ai-msg-body">
                 <div className="fam-ai-msg-meta"><strong>{message.role === "assistant" ? "Fam AI" : (members[0]?.name || "You")}</strong><span>{message.role === "assistant" ? "Household assistant" : "You"}</span></div>
                 <p className={message.role === "assistant" ? "fam-ai-msg-bubble" : "fam-ai-msg-bubble user"}>{message.content}</p>
+
+                {message.preview && (
+                  <div className="fam-ai-preview-card">
+                    <div className="fam-ai-preview-head">
+                      <span className="fam-ai-preview-badge"><Sparkles size={12} /> Ready to run</span>
+                      {message.risk !== undefined && <em>{riskLabel(message.risk)}</em>}
+                    </div>
+                    <div className="fam-ai-preview-actions">
+                      <button className="fam-ai-preview-approve" onClick={() => approvePreview(index)} disabled={busy} type="button">
+                        <Check size={14} /> Confirm
+                      </button>
+                      <button className="fam-ai-preview-cancel" onClick={() => setMessages((current) => current.map((m, i) => i === index ? { ...m, preview: null } : m))} type="button">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {message.executed && message.canUndo && !message.undone && (
+                  <div className="fam-ai-undo-chip">
+                    <span><Check size={12} /> Done</span>
+                    <button onClick={() => undoMessage(index)} disabled={busy} type="button">
+                      <RotateCcw size={12} /> Undo
+                    </button>
+                  </div>
+                )}
+                {message.executed && message.undone && (
+                  <div className="fam-ai-undo-chip undone"><span><RotateCcw size={12} /> Undone</span></div>
+                )}
+
+                {message.clarify && (
+                  <p className="fam-ai-clarify-hint">Just reply with the missing detail — e.g. “Saturday” or “6pm”.</p>
+                )}
               </div>
             </div>
           </div>
@@ -949,47 +447,46 @@ const INITIAL_FAM_AI_MESSAGE = {
             <div className="fam-ai-msg-row">
               <span className="fam-ai-msg-avatar"><Bot size={15} /></span>
               <div className="fam-ai-msg-body">
-                <div className="fam-ai-thinking">
-                  <i /><i /><i />
-                </div>
+                <div className="fam-ai-thinking"><i /><i /><i /></div>
               </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Prompt suggestion cards — shown when chat is short */}
-      {messages.length <= 2 && !busy && (
+      {welcomeState && !busy && (
         <div className="fam-ai-suggestions">
-          <p className="fam-ai-suggestions-label">Try asking about</p>
+          <p className="fam-ai-suggestions-label">Try asking</p>
           <div className="fam-ai-suggestion-grid">
-            {prompts.map((prompt) => {
-              const Icon = prompt.Icon;
-              return (
-                <button
-                  className={`fam-ai-suggestion ${prompt.tone}`}
-                  key={prompt.text}
-                  onClick={() => sendText(prompt.prompt, prompt.text)}
-                  disabled={busy}
-                  type="button"
-                >
-                  <span className="fam-ai-suggestion-icon"><Icon size={16} /></span>
-                  <span className="fam-ai-suggestion-text">{prompt.text}</span>
-                </button>
-              );
-            })}
+            {suggestedPrompts.map((prompt) => (
+              <button
+                className={`fam-ai-suggestion ${prompt.tone || "calendar"}`}
+                key={prompt.text}
+                onClick={() => sendText(prompt.text)}
+                disabled={busy}
+                type="button"
+              >
+                <span className="fam-ai-suggestion-icon"><Sparkles size={16} /></span>
+                <span className="fam-ai-suggestion-text">{prompt.text}</span>
+              </button>
+            ))}
           </div>
+          {suggestedActions.length > 0 && (
+            <div className="fam-ai-action-chips">
+              {suggestedActions.map((action) => (
+                <button key={action.id} onClick={() => sendText(action.prompt)} disabled={busy} type="button">
+                  {action.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Review actions panel */}
       {pending.length > 0 && (
         <div className="fam-ai-review">
           <div className="fam-ai-review-head">
-            <span className="fam-ai-review-head-label">
-              <Sparkles size={14} />
-              <strong>Review actions</strong>
-            </span>
+            <span className="fam-ai-review-head-label"><Sparkles size={14} /><strong>Review actions</strong></span>
             <button className="fam-ai-review-close" onClick={() => setPending([])} aria-label="Dismiss"><X size={14} /></button>
           </div>
           <p className="fam-ai-review-note">Nothing changes until you approve.</p>
@@ -1014,9 +511,7 @@ const INITIAL_FAM_AI_MESSAGE = {
                 <summary>
                   <ChevronDown aria-hidden="true" size={14} />
                   <div>
-                    <strong>
-                      <ShoppingBasket aria-hidden="true" size={13} /> {cookablePlanMealActions.length} you can cook tonight
-                    </strong>
+                    <strong><ShoppingBasket aria-hidden="true" size={13} /> {cookablePlanMealActions.length} you can cook tonight</strong>
                     <small>tap to peek — every ingredient is already in your pantry</small>
                   </div>
                 </summary>
@@ -1027,9 +522,7 @@ const INITIAL_FAM_AI_MESSAGE = {
                       <li className="fam-ai-review-item" key={action.id}>
                         <span className="fam-ai-review-item-icon"><Icon size={14} /></span>
                         <div className="fam-ai-review-item-text">
-                          <strong>
-                            Plan meal <Check aria-hidden="true" size={11} />
-                          </strong>
+                          <strong>Plan meal <Check aria-hidden="true" size={11} /></strong>
                           <small>{actionSummary(action)}</small>
                         </div>
                       </li>
@@ -1041,23 +534,20 @@ const INITIAL_FAM_AI_MESSAGE = {
           </>
           <div className="fam-ai-review-actions">
             <button className="fam-ai-review-cancel" onClick={() => setPending([])}>Cancel</button>
-            <button className="fam-ai-review-approve" onClick={execute} disabled={busy}>
-              Approve & run
-            </button>
+            <button className="fam-ai-review-approve" onClick={execute} disabled={busy}>Approve & run</button>
           </div>
         </div>
       )}
 
       {error && <p className="fam-ai-error">{error}</p>}
 
-      {/* Composer — fixed at bottom */}
       <form className="fam-ai-composer" onSubmit={send}>
         <div className="fam-ai-composer-inner">
           <textarea
             value={input}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={handleComposerKeyDown}
-            placeholder="Ask Fam AI…"
+            placeholder="Ask Fam anything about your family’s day…"
             rows="1"
           />
           <span className="fam-ai-composer-context"><ShieldCheck size={12} /> Household context</span>
@@ -1065,7 +555,7 @@ const INITIAL_FAM_AI_MESSAGE = {
             <Send size={17} />
           </button>
         </div>
-        <div className="fam-ai-composer-foot"><span><Sparkles size={11}/> Ask naturally</span><p>Fam AI proposes changes for your review.</p><kbd>↵ Send · ⇧↵ New line</kbd></div>
+        <div className="fam-ai-composer-foot"><span><Sparkles size={11}/> Ask naturally</span><p>Deterministic first — only complex requests reach the cloud.</p><kbd>↵ Send · ⇧↵ New line</kbd></div>
       </form>
       </main>
       </div>
@@ -1074,10 +564,6 @@ const INITIAL_FAM_AI_MESSAGE = {
 
   return (
     <>
-      {/* Sheet overlay (backdrop + scrolling sheet body). The floating action
-          button now lives in AppTopBar.jsx — keeping it out of this component
-          lets the Sparkles button sit beside the notification icon on every
-          page, instead of overlapping the + buttons on iOS Safari. */}
       {open && (
         <>
           <button
@@ -1091,4 +577,17 @@ const INITIAL_FAM_AI_MESSAGE = {
       )}
     </>
   );
+}
+
+async function getFunctionError(invokeError) {
+  try {
+    const response = invokeError?.context;
+    if (response?.clone) {
+      const payload = await response.clone().json();
+      if (payload?.error) return payload.error;
+    }
+  } catch {
+    // Supabase does not always expose a JSON response for network failures.
+  }
+  return "Fam AI is not connected yet. The FamOS admin needs to finish the server setup.";
 }
