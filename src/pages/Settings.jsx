@@ -895,7 +895,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
                   key={m.id}
                   className="flex items-center gap-3 px-3 py-2.5 border-b border-[var(--color-border)] last:border-0"
                 >
-                  <button disabled={configured && m.id !== user?.id} onClick={() => openEdit(m)} className="flex items-center gap-3 flex-1 min-w-0 text-left disabled:cursor-default">
+                  <button disabled={configured && m.id !== user?.id && !isMasterOwner} onClick={() => openEdit(m)} className="flex items-center gap-3 flex-1 min-w-0 text-left disabled:cursor-default">
                     <Avatar member={m} size="lg" />
                     <div className="min-w-0">
                       <p className="font-medium text-[14.5px] text-[var(--color-ink)] truncate">{m.name}</p>
