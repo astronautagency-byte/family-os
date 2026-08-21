@@ -1159,7 +1159,7 @@ export default function Groceries() {
             <button onClick={() => openMasterItem()} className="flex items-center gap-1 text-[11.5px] font-semibold text-[var(--color-accent)]"><Plus size={13} /> New staple</button>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            {(showAllStaples ? staples : staples.slice(0, 6)).map((staple) => <div key={staple.id} draggable onDragStart={(event) => { event.dataTransfer.setData("application/json", JSON.stringify(staple)); setDragging(true); }} onDragEnd={() => setDragging(false)} className="group relative min-w-0 flex items-center rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] notion-shadow overflow-hidden cursor-grab active:cursor-grabbing">
+            {(showAllStaples ? staples : staples.slice(0, 6)).map((staple) => <div key={staple.id} draggable onDragStart={(event) => { event.dataTransfer.setData("application/json", JSON.stringify(staple)); setDragging(true); }} onDragEnd={() => setDragging(false)} className="group relative min-w-0 flex items-center rounded-2xl bg-[var(--color-surface)] notion-shadow overflow-hidden cursor-grab active:cursor-grabbing">
               <button onClick={() => addStapleToList(staple)} className="flex flex-1 min-w-0 items-center gap-2.5 p-2.5 text-left active:bg-[var(--color-accent-soft)] transition-colors" aria-label={`Add ${staple.name} to grocery list`}>
                 <GroceryIcon category={staple.category} size={15} />
                 <span className="min-w-0 flex-1"><span className="block text-[13.5px] font-medium truncate">{staple.name}</span><span className="block text-[10.5px] text-[var(--color-ink-faint)] truncate">{staple.quantity}{staple.unit ? ` ${staple.unit}` : ""}</span></span>

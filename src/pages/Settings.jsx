@@ -1135,7 +1135,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
 
             {/* Usage status */}
             {usageStatus && (
-              <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3 mt-3" aria-label="Monthly premium usage">
+              <div className="rounded-xl bg-[var(--color-surface)] p-3 mt-3" aria-label="Monthly premium usage">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <strong className="text-[var(--color-ink)]">Monthly usage</strong>
                   <span className="text-[11px] text-[var(--color-ink-faint)]">Resets {formatNextCharge(usageStatus.nextReset)}</span>
