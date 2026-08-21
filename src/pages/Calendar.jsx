@@ -473,6 +473,22 @@ export default function CalendarPage() {
   const dayNum = selected.getDate();
   const monthDayLabel = selected.toLocaleDateString("en-CA", { month: "short", day: "numeric" });
   const selectedLabel = selected.toLocaleDateString("en-CA", { month: "short", day: "numeric", weekday: "short" }).toUpperCase();
+  // Move the calendar view by one period — a month in month view, a week in
+  // week view, a day in day view. Month changes update the grid; week/day
+  // changes shift the selected date (the time grid derives from selectedDate),
+  // and the month always follows so the header label stays in sync.
+  const shiftCalendar = (delta) => {
+    if (viewMode === "month") {
+      setMonth(new Date(month.getFullYear(), month.getMonth() + delta, 1));
+      return;
+    }
+    const next = new Date(selected);
+    next.setDate(next.getDate() + (viewMode === "week" ? delta * 7 : delta));
+    const key = iso(next);
+    setSelectedDate(key);
+    setMonth(new Date(next.getFullYear(), next.getMonth(), 1));
+  };
+
   const canDeleteEvent = (event) => {
     if (sourceId(event) === "family") return true;
     // Google Calendar events are deletable when the user can write to
@@ -891,7 +907,11 @@ export default function CalendarPage() {
         <div className="calendar-hero apple-calendar-toolbar">
           <div className="calendar-hero-date">
             <button type="button" className="apple-calendar-today" onClick={() => { setSelectedDate(todayStr); const now = new Date(); setMonth(new Date(now.getFullYear(), now.getMonth(), 1)); }}>Today</button>
-            <span className="calendar-hero-dayname">{viewMode === "day" ? monthDayLabel : monthLabel}</span>
+            <div className="apple-month-nav">
+              <button type="button" className="apple-month-nav-btn" onClick={() => shiftCalendar(-1)} aria-label={viewMode === "month" ? "Previous month" : viewMode === "week" ? "Previous week" : "Previous day"}><ChevronLeft size={18} /></button>
+              <span className="calendar-hero-dayname">{viewMode === "day" ? monthDayLabel : monthLabel}</span>
+              <button type="button" className="apple-month-nav-btn" onClick={() => shiftCalendar(1)} aria-label={viewMode === "month" ? "Next month" : viewMode === "week" ? "Next week" : "Next day"}><ChevronRight size={18} /></button>
+            </div>
             <span className="calendar-hero-month">{dayName} · {dayEventCount} event{dayEventCount === 1 ? "" : "s"}</span>
           </div>
           <div className="calendar-hero-actions">
@@ -931,7 +951,7 @@ export default function CalendarPage() {
 
         <div className="px-5">
           <div className="apple-calendar-controls">
-            <div className="apple-calendar-navigation"><button type="button" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} aria-label="Previous month"><ChevronLeft size={18}/></button><button type="button" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} aria-label="Next month"><ChevronRight size={18}/></button></div>
+            <div className="apple-calendar-navigation"><button type="button" onClick={() => shiftCalendar(-1)} aria-label="Previous"><ChevronLeft size={18}/></button><button type="button" onClick={() => shiftCalendar(1)} aria-label="Next"><ChevronRight size={18}/></button></div>
             <SegmentedControl options={[{value:"month",label:"Month"},{value:"week",label:"Week"},{value:"day",label:"Day"}]} value={viewMode} onChange={setViewMode} label="Calendar view" />
           </div>
           {sources.length > 1 && (
@@ -951,9 +971,9 @@ export default function CalendarPage() {
            {/* ── Month grid ── */}
            {viewMode === "month" && <div className="calendar-month apple-calendar-month" data-pull-ignore>
               <div className="calendar-month-header">
-                <button onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}><ChevronLeft size={16} /></button>
+                <button type="button" onClick={() => shiftCalendar(-1)} aria-label="Previous month"><ChevronLeft size={16} /></button>
                 <strong>{monthLabel}</strong>
-                <button onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}><ChevronRight size={16} /></button>
+                <button type="button" onClick={() => shiftCalendar(1)} aria-label="Next month"><ChevronRight size={16} /></button>
               </div>
               <div className="calendar-month-weekdays">
                 {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => <span key={i}>{d}</span>)}

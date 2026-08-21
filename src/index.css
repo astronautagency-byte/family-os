@@ -5319,9 +5319,17 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .apple-calendar-toolbar .calendar-hero-month{grid-column:2;font-size:11px;color:var(--color-ink-faint)}
 .apple-calendar-today{grid-row:1/3;min-height:34px;padding:0 11px;border:1px solid var(--color-border-strong);border-radius:8px;background:var(--color-surface);color:var(--color-accent-strong);font-size:12px;font-weight:600;box-shadow:0 1px 2px rgba(16,24,40,.04)}
 .apple-calendar-controls{display:grid;grid-template-columns:auto minmax(220px,340px);align-items:center;justify-content:space-between;gap:12px;padding:12px 0 8px}
-.apple-calendar-navigation{display:flex;gap:4px}
+/* Month navigation now lives in the sticky hero toolbar (apple-month-nav);
+   the controls-row duplicate is retired. */
+.apple-calendar-navigation{display:none}
 .apple-calendar-navigation button{display:grid;place-items:center;width:36px;height:36px;border-radius:8px;color:var(--color-accent-strong)}
 .apple-calendar-navigation button:hover{background:var(--color-accent-soft)}
+/* iOS-style month/day navigation beside the calendar title in the sticky hero */
+.apple-month-nav{display:flex;align-items:center;gap:2px;min-width:0}
+.apple-month-nav .calendar-hero-dayname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px}
+.apple-month-nav-btn{display:grid;place-items:center;width:30px;height:30px;flex:0 0 auto;border-radius:50%;color:var(--color-accent-strong);background:transparent;transition:background var(--motion-fast) ease,color var(--motion-fast) ease}
+.apple-month-nav-btn:hover{background:var(--color-accent-soft)}
+.apple-month-nav-btn:active{transform:scale(.94)}
 .apple-date-strip{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));padding:4px 0 10px;border-bottom:1px solid var(--color-border)}
 .apple-date-strip button{display:grid;place-items:center;gap:2px;min-height:58px;border-radius:8px;color:var(--color-ink-soft)}
 .apple-date-strip small{font-size:10px;font-weight:600;text-transform:uppercase}.apple-date-strip strong{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;font-size:14px;font-weight:500}.apple-date-strip i{height:5px;color:var(--color-accent);font-size:13px;font-style:normal;line-height:4px}
@@ -5365,7 +5373,9 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   .apple-calendar-toolbar .calendar-hero-dayname{font-size:18px}.apple-calendar-toolbar .calendar-hero-month{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .apple-calendar-today{border:0;border-radius:999px;background:var(--color-surface-sunken);box-shadow:none}
   .calendar-hero-action{border:0;background:var(--color-surface-sunken)}.calendar-hero-action-primary{background:var(--color-accent)}
-  .apple-calendar-controls{grid-template-columns:1fr;padding:5px 0 3px}.apple-calendar-navigation{display:none}.apple-calendar-controls .ui-segmented{width:100%;max-width:none}.apple-calendar-controls .ui-segmented button{min-height:32px;padding:5px 8px}
+  .apple-calendar-controls{grid-template-columns:1fr;padding:5px 0 3px}.apple-calendar-controls .ui-segmented{width:100%;max-width:none}.apple-calendar-controls .ui-segmented button{min-height:32px;padding:5px 8px}
+  .apple-month-nav .calendar-hero-dayname{font-size:18px}
+  .apple-month-nav-btn{width:34px;height:34px}
   .calendar-sources-primary{padding:4px 0 7px}.calendar-sources-heading{display:none}.calendar-sources-tab{min-height:30px;padding:5px 10px}
   .apple-date-strip{margin-inline:-20px;padding:2px 20px 8px}.apple-date-strip button{min-height:50px}.apple-date-strip strong{width:30px;height:30px;font-size:16px}.apple-date-strip small{font-size:9px}
   .apple-timegrid-shell{margin:0 -20px;border:0;border-top:1px solid var(--color-border);border-radius:0;box-shadow:none}.apple-timegrid-scroll{max-height:calc(100dvh - 280px);scrollbar-width:none}
