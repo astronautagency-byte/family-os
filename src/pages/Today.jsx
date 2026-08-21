@@ -862,7 +862,7 @@ export default function Today({ goTo }) {
                 </div>
                 <div className="grid sm:grid-cols-2 gap-2">
                   {activeGroceries.slice(0, 6).map((item) => (
-                    <div key={item.id} className="today-list-item rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5">
+                    <div key={item.id} className="today-list-item rounded-2xl bg-[var(--color-surface)] px-3 py-2.5">
                       <p className="text-[13px] font-semibold text-[var(--color-ink)] truncate">{item.name}</p>
                       <p className="text-[11.5px] text-[var(--color-ink-soft)]">{item.category || "Other"}{item.quantity ? ` · ${item.quantity}${item.unit ? ` ${item.unit}` : ""}` : ""}</p>
                     </div>
@@ -896,15 +896,13 @@ export default function Today({ goTo }) {
               <ul className="grid md:grid-cols-2 gap-2">
                 {homeTasks.map((t) => {
                   const assignee = memberById[t.assigneeId];
-                  const taskAdder = t.createdBy ? memberById[t.createdBy] : null;
                   const taskList = taskLists.find((list) => list.id === t.listId);
                   return (
-                    <li key={t.id} className="today-list-item flex items-center gap-3 px-3 py-2.5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)]">
+                    <li key={t.id} className="today-list-item flex items-center gap-3 px-3 py-2.5 rounded-2xl bg-[var(--color-surface)]">
                       <Checkbox checked={t.done} onChange={() => toggleTask(t.id)} color={assignee?.color} />
                       <div className="flex-1 min-w-0">
                         <span className={`block text-[14px] ${t.done ? "line-through text-[var(--color-ink-faint)]" : "text-[var(--color-ink)]"} truncate`}>{t.title}</span>
                         <small className="today-task-meta">{[taskList?.name, t.due === today ? "Today" : t.due ? new Date(`${t.due}T12:00`).toLocaleDateString("en-CA", { month: "short", day: "numeric" }) : "No due date"].filter(Boolean).join(" · ")}</small>
-                        {taskAdder && <Avatar member={taskAdder} size="xs" className="ml-1 mt-0.5" aria-label={`Added by ${taskAdder.name}`} />}
                       </div>
                       {assignee && <Avatar member={assignee} size="sm" />}
                     </li>

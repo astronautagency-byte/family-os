@@ -6371,6 +6371,28 @@ reference-tasks,
               transform var(--motion-fast) var(--ease-out);
 }
 
+/* Today dashboard — cards and item rows are borderless (matches the meal planner look) */
+.reference-dashboard .weather-now-card,
+.reference-dashboard .today-bento-kitchen > .kinship-card,
+.reference-dashboard .today-bento-schedule > .kinship-card,
+.reference-dashboard .today-bento-messages > .kinship-card,
+.reference-dashboard .today-meals-card,
+.reference-dashboard .today-groceries-card,
+.reference-dashboard .today-tasks-card,
+.reference-dashboard .today-daily-meal,
+.reference-dashboard .today-event-card,
+.reference-dashboard .weather-now-card:hover,
+.reference-dashboard .today-bento-kitchen > .kinship-card:hover,
+.reference-dashboard .today-bento-schedule > .kinship-card:hover,
+.reference-dashboard .today-bento-messages > .kinship-card:hover,
+.reference-dashboard .today-meals-card:hover,
+.reference-dashboard .today-groceries-card:hover,
+.reference-dashboard .today-tasks-card:hover,
+.reference-dashboard .today-daily-meal:hover,
+.reference-dashboard .today-event-card:hover {
+  border-color: transparent !important;
+}
+
 /* Consistent page header spacing */
 .reference-tasks .page-header,
 .reference-dashboard .page-header,
