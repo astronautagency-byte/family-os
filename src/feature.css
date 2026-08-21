@@ -272,9 +272,9 @@
   position:absolute!important;z-index:60;
   top:calc(100% + 14px);left:50%;
   transform:translateX(-50%) translateY(-6px);
-  width:min(640px,calc(100vw - 40px));
-  padding:14px;
-  border:1px solid rgba(121,82,232,.16);border-radius:22px;
+  width:min(920px,calc(100vw - 48px));
+  padding:22px 22px 18px;
+  border:1px solid rgba(121,82,232,.16);border-radius:20px;
   background:#fff;box-shadow:0 24px 58px rgba(42,34,65,.18);
   pointer-events:none;
   visibility:hidden;
@@ -299,41 +299,50 @@
   border-radius:3px
 }
 
-.features-dropdown-overview{
-  display:grid;grid-template-columns:42px 1fr 16px;align-items:center;gap:12px;
-  padding:11px 14px;border-radius:14px;
-  background:linear-gradient(135deg,#faf8ff 0%,#fff7e6 100%);
-  border:1px solid rgba(121,82,232,.16);
-  text-decoration:none;color:#17171f;font-weight:750;
-  transition:border-color .2s ease,transform .2s ease,box-shadow .2s ease
+/* Hero header: eyebrow + title + subtitle on the left, CTA buttons on the
+ * right — the HubSpot-style "Everything FamOS does" product tour card. */
+.features-dropdown-hero{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:28px;
+  padding:4px 6px 18px
 }
-.features-dropdown-overview:hover{
-  transform:translateY(-1px);border-color:rgba(121,82,232,.36);
-  box-shadow:0 10px 22px rgba(42,34,65,.08)
+.features-dropdown-hero-eyebrow{
+  margin:0 0 6px;color:var(--landing-color-primary,#7952e8);
+  font-size:11px;font-weight:850;letter-spacing:.12em;text-transform:uppercase
 }
-.features-dropdown-overview-icon{
-  width:42px;height:42px;display:grid;place-items:center;
-  border-radius:11px;background:#fff;color:var(--landing-color-primary,#7952e8);
-  border:1px solid rgba(23,23,47,.06)
+.features-dropdown-hero-title{
+  margin:0 0 6px;color:#17171f;font:760 23px/1.1 var(--font-display);letter-spacing:-.02em
 }
-.features-dropdown-overview-copy strong{display:block;font-size:13.5px;margin-bottom:3px;color:#17171f}
-.features-dropdown-overview-copy small{display:block;font-size:11px;color:#716953;font-weight:600}
-.features-dropdown-arrow{color:#a99bff;transition:transform .2s ease,color .2s ease}
-.features-dropdown-overview:hover .features-dropdown-arrow{transform:translateX(3px);color:var(--landing-color-primary,#7952e8)}
+.features-dropdown-hero-sub{
+  display:block;max-width:460px;color:#716953;font-size:12.5px;line-height:1.5
+}
+.features-dropdown-hero-actions{display:flex;gap:10px;flex:none}
+.features-dropdown-hero-cta{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  min-height:40px;padding:0 16px;border-radius:6px;
+  border:1px solid var(--landing-border,#e4e0ec);background:#fff;
+  color:var(--landing-color-surface-dark,#17171f);
+  font:750 12.5px/1 var(--font-sans);text-decoration:none;
+  transition:border-color .18s ease,background .18s ease,color .18s ease,transform .18s ease
+}
+.features-dropdown-hero-cta:hover{transform:translateY(-1px)}
+.features-dropdown-hero-cta.primary{
+  background:var(--landing-color-primary,#7952e8);border-color:var(--landing-color-primary,#7952e8);color:#fff
+}
+.features-dropdown-hero-cta.primary:hover{background:var(--landing-color-primary-dark,#5741c9);border-color:var(--landing-color-primary-dark,#5741c9)}
+.features-dropdown-hero-cta svg{width:15px;height:15px}
 
-.features-dropdown-divider{height:1px;background:rgba(23,23,47,.08);margin:11px 4px}
+.features-dropdown-divider{height:1px;background:rgba(23,23,47,.08);margin:2px 6px 12px}
 
 .features-dropdown-grid{
-  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px;
-  grid-auto-flow:row dense;
+  display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px
 }
 .features-dropdown-item{
-  display:grid;grid-template-columns:34px 1fr 13px;align-items:center;gap:10px;
-  padding:9px 11px;border-radius:11px;
-  text-decoration:none;color:#17171f;font-weight:700;
-  transition:background .15s ease,transform .15s ease
+  display:flex;flex-direction:column;gap:10px;
+  padding:14px;border-radius:14px;
+  text-decoration:none;color:#17171f;
+  transition:background .15s ease,box-shadow .15s ease
 }
-.features-dropdown-item:hover{background:var(--color-surface,#f3f1f8);transform:translateX(2px)}
+.features-dropdown-item:hover{background:var(--color-surface,#f3f1f8)}
 .features-dropdown-item.is-current{
   background:color-mix(in srgb,var(--landing-color-primary,#7952e8) 12%,transparent);
   color:var(--landing-color-primary,#7952e8)
@@ -343,12 +352,12 @@
   outline-offset:2px
 }
 .features-dropdown-item-icon{
-  width:34px;height:34px;display:grid;place-items:center;border-radius:9px;
+  width:38px;height:38px;display:grid;place-items:center;border-radius:10px;
   background:#fff;color:var(--landing-color-primary,#7952e8);
   border:1px solid rgba(23,23,47,.08);
   transition:transform .2s ease,background .2s ease
 }
-.features-dropdown-item:hover .features-dropdown-item-icon{transform:translateX(-2px)}
+.features-dropdown-item:hover .features-dropdown-item-icon{transform:translateY(-2px)}
 .features-dropdown-item[data-tone="lilac"] .features-dropdown-item-icon{background:#faf6ff;border-color:#d9cff7;color:#7952e8}
 .features-dropdown-item[data-tone="pink"] .features-dropdown-item-icon{background:#fff1f6;border-color:#f5d3df;color:#a44e68}
 .features-dropdown-item[data-tone="yellow"] .features-dropdown-item-icon{background:#fff9dd;border-color:#ecdc92;color:#87650c}
@@ -356,15 +365,26 @@
 .features-dropdown-item[data-tone="blue"] .features-dropdown-item-icon{background:#eef6ff;border-color:#c7ddf2;color:#366d9f}
 .features-dropdown-item[data-tone="peach"] .features-dropdown-item-icon{background:#fff1e6;border-color:#f0d2b3;color:#a05e1f}
 
-.features-dropdown-item-copy strong{display:block;font-size:13px;font-weight:750}
+.features-dropdown-item-copy strong{display:block;font-size:13.5px;font-weight:750;color:#17171f}
 .features-dropdown-item-copy small{
-  display:block;font-size:9.5px;color:#716953;font-weight:750;
-  letter-spacing:.06em;text-transform:uppercase;margin-top:2px
+  display:block;margin-top:3px;color:#716953;font-size:11.5px;font-weight:600;line-height:1.4
 }
-.features-dropdown-item-arrow{color:#cfc8d6;transition:transform .15s ease,color .15s ease}
-.features-dropdown-item:hover .features-dropdown-item-arrow{color:var(--landing-color-primary,#7952e8);transform:translateX(2px)}
+.features-dropdown-item-link{
+  display:inline-flex;align-items:center;gap:4px;margin-top:auto;
+  color:var(--landing-color-primary,#7952e8);font-size:11.5px;font-weight:800
+}
+.features-dropdown-item-link svg{
+  width:13px;height:13px;transition:transform .15s ease
+}
+.features-dropdown-item:hover .features-dropdown-item-link svg{transform:translateX(3px)}
 
-/* Mobile: pin the panel to the trigger's left edge so it never spills. */
+/* Tablet: 2 columns + stacked hero. Mobile: pin the panel to the trigger's
+ * left edge so it never spills, and collapse to a single column. */
+@media (max-width:1080px){
+  .features-dropdown-panel{width:min(720px,calc(100vw - 48px))}
+  .features-dropdown-hero{flex-direction:column;align-items:flex-start;gap:14px}
+  .features-dropdown-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
 @media (max-width:760px){
   .features-dropdown-panel{
     left:-8px;right:auto;width:min(360px,calc(100vw - 32px));
@@ -373,6 +393,8 @@
   .features-dropdown.is-open .features-dropdown-panel{transform:translateY(0)}
   .features-dropdown-panel:before{left:32px;transform:rotate(45deg)}
   .features-dropdown-grid{grid-template-columns:1fr}
+  .features-dropdown-hero-actions{width:100%}
+  .features-dropdown-hero-cta{flex:1}
 }
 
 /* Reduced-motion: no fade/transform transitions on the dropdown.
@@ -383,12 +405,12 @@
 @media (prefers-reduced-motion: reduce){
   .features-dropdown-panel,
   .features-dropdown-chev,
-  .features-dropdown-arrow,
-  .features-dropdown-overview,
+  .features-dropdown-hero-cta,
   .features-dropdown-item,
-  .features-dropdown-item-arrow,
+  .features-dropdown-item-link svg,
   .features-dropdown-item-icon{transition:none!important}
   .features-dropdown.is-open .features-dropdown-panel{animation:none}
+  .features-dropdown-hero-cta:hover{transform:none}
 }
 
 /* ── Spotlight (per-feature pro tips) ──────────────────────────────────

@@ -1,20 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  ArrowUp,
   Bot,
   CalendarDays,
   Check,
   CheckSquare,
   ChefHat,
   ChevronDown,
-  MessageSquare,
-  Plus,
   RotateCcw,
-  Search,
-  Send,
   ShieldCheck,
   ShoppingBasket,
   ShoppingCart,
   Sparkles,
+  Wrench,
   X,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -343,17 +341,9 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
   const cookablePlanMealIds = new Set(cookablePlanMealActions.map((action) => action.id));
   const primaryPending = pending.filter((action) => !cookablePlanMealIds.has(action.id));
   const welcomeState = messages.length === 1 && !busy && pending.length === 0;
-  const recentPrompts = messages.filter((message) => message.role === "user").slice(-6).reverse();
 
   const suggestedPrompts = getSuggestedPrompts(stateSnapshot(), screen);
   const suggestedActions = getSuggestedActions(stateSnapshot());
-
-  const startNewChat = () => {
-    setMessages([INITIAL_FAM_AI_MESSAGE]);
-    setPending([]);
-    setError("");
-    setInput("");
-  };
 
   const sheet = (
     <div className="fam-ai-sheet" role="dialog" aria-modal="true" aria-label="Fam AI assistant">
@@ -366,18 +356,6 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
         <X size={18} />
       </button>
       <div className="fam-ai-page famos-noscroll">
-        <aside className="fam-ai-sidebar" aria-label="Fam AI conversations">
-          <div className="fam-ai-sidebar-brand"><span><Sparkles size={15} /></span><strong>Fam AI</strong></div>
-          <button className="fam-ai-new-chat" type="button" onClick={startNewChat}><Plus size={15} /> New chat</button>
-          <label className="fam-ai-history-search"><Search size={14} /><input type="search" placeholder="Search chats" aria-label="Search Fam AI chats" /></label>
-          <nav className="fam-ai-history">
-            <p>Recent</p>
-            {recentPrompts.length ? recentPrompts.map((message, index) => (
-              <button key={`${message.content}-${index}`} type="button"><MessageSquare size={13} /><span>{message.content}</span></button>
-            )) : <span className="fam-ai-history-empty">Your recent questions will appear here.</span>}
-          </nav>
-          <div className="fam-ai-sidebar-privacy"><ShieldCheck size={14} /><span>Private to your household</span></div>
-        </aside>
         <main className={`fam-ai-workspace ${welcomeState ? "is-welcome" : ""}`}>
         <div className="fam-ai-header">
           <div className="fam-ai-header-inner">
@@ -390,7 +368,7 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
           </div>
         </div>
 
-      {welcomeState && <div className="fam-ai-welcome"><span><Sparkles size={20} /></span><h2>What can I take off your plate?</h2><p>Add groceries, check the day, plan dinners, or find the driver. I resolve what I can instantly and only reach for the cloud when needed.</p></div>}
+      {welcomeState && <div className="fam-ai-welcome"><h2>What can I help with?</h2><p>Ask Fam anything about your family’s day — lists, schedule, meals and more. I resolve what I can instantly and only reach for the cloud when needed.</p></div>}
 
       <div className="fam-ai-chat" ref={chatRef}>
         {!welcomeState && messages.map((message, index) => (
@@ -547,15 +525,20 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
             value={input}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={handleComposerKeyDown}
-            placeholder="Ask Fam anything about your family’s day…"
+            placeholder="Ask everything…"
             rows="1"
           />
-          <span className="fam-ai-composer-context"><ShieldCheck size={12} /> Household context</span>
-          <button className="fam-ai-composer-send" disabled={!input.trim() || busy} aria-label="Send message">
-            <Send size={17} />
-          </button>
+          <div className="fam-ai-composer-tools">
+            <span className="fam-ai-composer-tool"><Wrench size={12} /> Tools <ChevronDown size={11} /></span>
+            <span className="fam-ai-composer-tool fam-ai-composer-model"><Sparkles size={12} /> Fam AI <ChevronDown size={11} /></span>
+            <span className="fam-ai-composer-context"><ShieldCheck size={12} /> Private to your household</span>
+            <span className="fam-ai-composer-spacer" />
+            <button className="fam-ai-composer-send" disabled={!input.trim() || busy} aria-label="Send message">
+              <ArrowUp size={17} />
+            </button>
+          </div>
         </div>
-        <div className="fam-ai-composer-foot"><span><Sparkles size={11}/> Ask naturally</span><p>Deterministic first — only complex requests reach the cloud.</p><kbd>↵ Send · ⇧↵ New line</kbd></div>
+        {!welcomeState && <div className="fam-ai-composer-foot"><span><Sparkles size={11}/> Ask naturally</span><p>Deterministic first — only complex requests reach the cloud.</p><kbd>↵ Send · ⇧↵ New line</kbd></div>}
       </form>
       </main>
       </div>

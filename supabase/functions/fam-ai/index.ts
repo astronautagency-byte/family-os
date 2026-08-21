@@ -74,10 +74,15 @@ Rules:
 
 Household context (compact): ${JSON.stringify(context)}`;
 
-  const providers=[...(xaiKey?[{name:"primary",url:"https://api.x.ai/v1/chat/completions",key:xaiKey,model:Deno.env.get("XAI_MODEL")||"grok-4.5"}]:[]),...(groqKey?[{name:"fallback",url:"https://api.groq.com/openai/v1/chat/completions",key:groqKey,model:"llama-3.1-8b-instant"}]:[])];
+  // NOTE: `response_format: {type:"json_object"}` is deliberately NOT sent
+  // alongside `tools` — OpenAI-compatible providers (xAI and Groq) reject
+  // that combination with a 400. The system prompt already demands JSON and
+  // the client validates it, so we rely on that instead.
+  const groqModel=Deno.env.get("GROQ_MODEL")||"openai/gpt-oss-20b";
+  const providers=[...(xaiKey?[{name:"primary",url:"https://api.x.ai/v1/chat/completions",key:xaiKey,model:Deno.env.get("XAI_MODEL")||"grok-4.5"}]:[]),...(groqKey?[{name:"fallback",url:"https://api.groq.com/openai/v1/chat/completions",key:groqKey,model:groqModel}]:[])];
   let response:Response|null=null; let lastDetail="";
   for(const provider of providers){
-   response=await fetch(provider.url,{method:"POST",headers:{Authorization:`Bearer ${provider.key}`,"Content-Type":"application/json"},body:JSON.stringify({model:provider.model,messages:[{role:"system",content:system},...messages.slice(-MAX_CONTEXT_MESSAGES)],tools,tool_choice:"auto",parallel_tool_calls:true,temperature:.3,response_format:{type:"json_object"}})});
+   response=await fetch(provider.url,{method:"POST",headers:{Authorization:`Bearer ${provider.key}`,"Content-Type":"application/json"},body:JSON.stringify({model:provider.model,messages:[{role:"system",content:system},...messages.slice(-MAX_CONTEXT_MESSAGES)],tools,tool_choice:"auto",parallel_tool_calls:true,temperature:.3})});
    if(response.ok)break;
    lastDetail=(await response.text()).slice(0,180);
    console.error(`Fam AI ${provider.name} provider error`,response.status,lastDetail);

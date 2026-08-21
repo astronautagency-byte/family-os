@@ -36,17 +36,21 @@
   --landing-color-sage-solid: #397B66;    /* 3 sites; deeper sage green accent */
 
   /* ── Marketing component system (Untitled anatomy, FamOS colour) ── */
-  --landing-control-radius: 8px;
-  --landing-card-radius: 12px;
+  /* Radii resolve from the app token scale so the public site and the
+     signed-in app share one visual language: buttons 6px (--radius-control),
+     labels/tabs/tokens 20px (--radius-tag), boxes/containers 20px
+     (--radius-card). */
+  --landing-control-radius: var(--radius-control);
+  --landing-card-radius: var(--radius-card);
   --landing-control-height: 44px;
   --landing-border: #E4E0EC;
   --landing-shadow-xs: 0 1px 2px rgba(28, 24, 48, .06);
   --landing-shadow-sm: 0 2px 8px rgba(42, 34, 65, .08);
 
   /* ── Radii (landing-specific) ────────────────────────────────── */
-  --landing-radius-stage: 28px;          /* .stage-panel, .landing-ai-art */
-  --landing-radius-preview: 26px;       /* .auth-preview, product preview card */
-  --landing-radius-hero: 38px;           /* .landing-final card, .landing-hero-media */
+  --landing-radius-stage: var(--radius-card);   /* .stage-panel, .landing-ai-art */
+  --landing-radius-preview: var(--radius-card); /* .auth-preview, product preview card */
+  --landing-radius-hero: var(--radius-card);    /* .landing-final card, .landing-hero-media */
 
   /* ── Section padding (landing-specific) ──────────────────────── */
   --landing-section-pad-y: 110px;        /* hero / intro / features / steps / privacy / final */

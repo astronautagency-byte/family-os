@@ -19,9 +19,9 @@ test("website describes the newest working household workflows", () => {
   const websiteCopy = `${featureData}\n${landing}`;
   for (const phrase of [
     "Kitchen inventory",
-    "Use-soon reminders",
-    "Photos and product scans",
-    "Review-first task imports",
+    "Use-it-soon reminders",
+    "Photos and quick scans",
+    "Imports you approve",
     "Personal colour schemes",
     "Spoonacular recipes",
     "Private/shared calendars",

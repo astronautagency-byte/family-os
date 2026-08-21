@@ -599,11 +599,11 @@
   }
   .purpose-grid { gap: 10px; }
   .purpose-grid article,
-  .capability-grid article { padding: 20px; border-radius: 22px; }
+  .capability-grid article { padding: 20px; border-radius: var(--radius-card); }
 
   .landing-feature-grid,
   .capability-grid { gap: 12px; }
-  .landing-feature { min-height: 300px; padding: 20px; border-radius: 24px; }
+  .landing-feature { min-height: 300px; padding: 20px; border-radius: var(--radius-card); }
   .landing-feature-top { height: 174px; }
   .landing-feature h3,
   .capability-grid h3,
@@ -626,7 +626,7 @@
   }
   .landing-community .community-facts { gap: 10px !important; }
   .landing-community .community-facts article { padding: 16px !important; }
-  .landing-final { margin: 48px 12px; padding: 26px 20px; border-radius: 28px; }
+  .landing-final { margin: 48px 12px; padding: 26px 20px; border-radius: var(--radius-card); }
 }
 
 @media (max-width: 380px) {
@@ -768,7 +768,7 @@
 .landing-page :where(button):disabled{cursor:not-allowed;opacity:.5;box-shadow:none}
 
 /* Segmented controls and tabs use one selected-state grammar. */
-.stage-tabs,.product-tabs,.pricing-toggle{gap:4px;padding:4px;border:1px solid var(--landing-border);border-radius:10px;background:#F7F5FA;box-shadow:var(--landing-shadow-xs)}
+.stage-tabs,.product-tabs,.pricing-toggle{gap:4px;padding:4px;border:1px solid var(--landing-border);border-radius:var(--radius-tag);background:#F7F5FA;box-shadow:var(--landing-shadow-xs)}
 .stage-tabs,.product-tabs{width:max-content;max-width:calc(100% - 36px)}
 .stage-tabs button,.product-tabs button,.pricing-toggle button{min-height:36px;padding:7px 12px;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--landing-color-text-muted);font-size:12.5px;font-weight:650;box-shadow:none}
 .stage-tabs button.active,.product-tabs button.active,.pricing-toggle button.active{transform:none;border-color:var(--landing-border);background:#fff;color:var(--landing-color-primary-dark);box-shadow:var(--landing-shadow-xs)}
@@ -784,7 +784,7 @@
 .purpose-grid article:nth-child(3),.comparison-highlights article:nth-child(3){background:#FFF9DD}
 
 /* Badges, check chips and icon tiles retain the multi-colour family cues. */
-.stage-chips b,.landing-kicker,.addon-selected-badge{border:1px solid color-mix(in srgb,currentColor 16%,transparent);border-radius:var(--radius-pill);font-weight:650}
+.stage-chips b,.landing-kicker,.addon-selected-badge{border:1px solid color-mix(in srgb,currentColor 16%,transparent);border-radius:var(--radius-tag);font-weight:650}
 .purpose-grid article>svg,.capability-grid article>svg,.comparison-highlights article>svg{padding:10px;width:42px;height:42px;border-radius:var(--landing-control-radius);background:#fff;border:1px solid var(--landing-border);box-shadow:var(--landing-shadow-xs)}
 .purpose-grid article:nth-child(1)>svg,.comparison-highlights article:nth-child(1)>svg{color:var(--landing-color-primary)}
 .purpose-grid article:nth-child(2)>svg,.comparison-highlights article:nth-child(2)>svg{color:var(--landing-color-sage-solid)}
@@ -853,10 +853,11 @@
   box-shadow:var(--landing-shadow-sm);
 }
 
-/* Tabs remain compact selectors, matching task/calendar filter controls. */
+/* Tabs remain compact selectors, matching task/calendar filter controls.
+ * Tabs are 20px tokens (--radius-tag) while true buttons stay 6px. */
 .landing-page :is(.stage-tabs,.product-tabs,.pricing-toggle) button{
   min-height:40px;
-  border-radius:var(--radius-control);
+  border-radius:var(--radius-tag);
   border-color:var(--color-border);
   background:var(--color-surface);
   color:var(--color-ink-soft);
@@ -894,6 +895,13 @@
 
 @media(max-width:600px){
   .landing-page :is(.purpose-grid article,.landing-feature,.capability-grid article,.comparison-highlights article,.pricing-card,.pricing-summary){border-radius:var(--radius-card)!important}
+}
+
+/* Labels and tokens (family pills, stage chips) are 20px like app tokens. */
+.landing-page .landing-family-pills span,
+.landing-page .stage-chips b,
+.landing-page .landing-kicker{
+  border-radius:var(--radius-tag)!important;
 }
 
 /* Marketing website QC: keep the shared component anatomy intact even when

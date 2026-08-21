@@ -54,10 +54,11 @@ test("src/theme/landing-tokens.css declares every landing-* brand + structural t
     ["--landing-color-gray",          "#D7D2E2"],
     ["--landing-color-gray-muted",    "#6D6874"],
     ["--landing-color-sage-solid",    "#397B66"],
-    // Radii
-    ["--landing-radius-stage", "28px"],
-    ["--landing-radius-preview", "26px"],
-    ["--landing-radius-hero", "38px"],
+    // Radii — resolved from the shared app scale (20px card radius) so the
+    // public site and the signed-in app share one visual language.
+    ["--landing-radius-stage", "var(--radius-card)"],
+    ["--landing-radius-preview", "var(--radius-card)"],
+    ["--landing-radius-hero", "var(--radius-card)"],
     // Section padding
     ["--landing-section-pad-y", "110px"],
     ["--landing-section-pad-x", "28px"],

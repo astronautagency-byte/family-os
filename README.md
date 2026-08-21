@@ -246,8 +246,12 @@ Fam AI uses a Supabase Edge Function so the xAI API key never ships to the brows
 ```bash
 supabase secrets set XAI_API_KEY=your_xai_api_key
 supabase secrets set XAI_MODEL=grok-4.5
+supabase secrets set GROQ_API_KEY=your_groq_api_key
+supabase secrets set GROQ_MODEL=openai/gpt-oss-20b
 supabase functions deploy fam-ai
 ```
+
+Groq is the automatic fallback provider if xAI is unavailable; the fallback model defaults to `openai/gpt-oss-20b` (the retired `llama-3.1-8b-instant` is no longer valid on Groq).
 
 Grok proposes typed FamilyOS actions for tasks, groceries, events, and meals. The browser displays those actions for confirmation and executes them through the existing authenticated FamilyOS data layer only after approval.
 

@@ -129,18 +129,138 @@ const minutesFromStart = (dateValue) => {
   return (date.getHours() - CALENDAR_START_HOUR) * 60 + date.getMinutes();
 };
 
-function CalendarTimeGrid({ dates, events, selectedDate, onSelectDate, onSelectEvent, googleCalendars, googleCalendarColors, famosColor }) {
+function CalendarTimeGrid({ dates, events, selectedDate, onSelectDate, onSelectEvent, googleCalendars, googleCalendarColors, famosColor, canEditEvent, onEventChange }) {
   const colorFor = (event) => calendarColorFor(event, googleCalendars, googleCalendarColors, famosColor);
   const hours = Array.from({ length: CALENDAR_END_HOUR - CALENDAR_START_HOUR + 1 }, (_, index) => CALENDAR_START_HOUR + index);
   const now = new Date();
   const today = iso(now);
   const showNow = dates.some((date) => iso(date) === today) && now.getHours() >= CALENDAR_START_HOUR && now.getHours() <= CALENDAR_END_HOUR;
+  const gridMinutes = (CALENDAR_END_HOUR - CALENDAR_START_HOUR) * 60;
   const isAllDay = (event) => {
     const start = new Date(event.start);
     const end = event.end ? new Date(event.end) : null;
     return event.allDay === true || (start.getHours() === 0 && start.getMinutes() === 0 && (!end || end - start >= 23 * 60 * 60 * 1000));
   };
   const allDayEvents = events.filter((event) => dates.some((date) => event.start.slice(0, 10) === iso(date)) && isAllDay(event));
+
+  // ── Drag to move / resize ────────────────────────────────────────
+  // 1px of vertical movement = 1 minute (hour lines sit at hour*60px).
+  // Horizontal movement in week view shifts the event across days by
+  // whole column widths. On pointerup we commit the new start/end via
+  // `onEventChange` — the page routes to updateEvent (FamOS) or
+  // updateGoogleCalendarEvent (Google, two-way sync).
+  const dragRef = useRef(null);
+  const didDragRef = useRef(false);
+
+  const beginDrag = (event, mode, ev) => {
+    if (!canEditEvent || !canEditEvent(event)) return;
+    if (event.isRecurringOccurrence || event.seriesId) return;
+    const el = ev.currentTarget.closest("button.apple-time-event, button.apple-all-day-event") || ev.currentTarget;
+    el.setPointerCapture?.(ev.pointerId);
+    const columnEl = el.closest(".apple-time-column");
+    // All-day events sit in a horizontal flex row (one row across all days),
+    // so derive the per-day width from the row's scroll width; timed events
+    // use their own column's width.
+    const rowEl = el.closest(".apple-all-day-row > div");
+    const dayWidth = columnEl
+      ? columnEl.getBoundingClientRect().width
+      : rowEl && dates.length > 0
+        ? Math.max(1, rowEl.scrollWidth / dates.length)
+        : 0;
+    const startDate = new Date(event.start);
+    dragRef.current = {
+      event,
+      mode,
+      allDay: isAllDay(event),
+      pointerId: ev.pointerId,
+      startClientY: ev.clientY,
+      startClientX: ev.clientX,
+      origTop: minutesFromStart(event.start),
+      origStartHours: startDate.getHours(),
+      origStartMinutes: startDate.getMinutes(),
+      origHeight: Math.max(15, (new Date(event.end || event.start).getTime() - startDate.getTime()) / 60000),
+      origStartMs: startDate.getTime(),
+      origEndMs: new Date(event.end || event.start).getTime(),
+      dayIndex: dates.findIndex((d) => iso(d) === event.start.slice(0, 10)),
+      columnWidth: dayWidth,
+      live: null,
+    };
+    ev.preventDefault();
+  };
+
+  const onDragMove = (ev) => {
+    const d = dragRef.current;
+    if (!d || ev.pointerId !== d.pointerId) return;
+    const dx = ev.clientX - d.startClientX;
+    const dy = ev.clientY - d.startClientY;
+    if (!d.moved && Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+    d.moved = true;
+    const el = ev.currentTarget.closest("button.apple-time-event, button.apple-all-day-event") || ev.currentTarget;
+    if (d.mode === "move") {
+      let dayDelta = 0;
+      if (dates.length > 1 && d.columnWidth > 0) {
+        const raw = Math.round(dx / d.columnWidth);
+        dayDelta = Math.max(-d.dayIndex, Math.min(dates.length - 1 - d.dayIndex, raw));
+      }
+      if (d.allDay) {
+        // All-day events live in the horizontal row: only the day shifts.
+        d.live = { newTop: d.origTop, dayDelta };
+        el.style.transform = `translateX(${dayDelta * d.columnWidth}px)`;
+        el.style.zIndex = "20";
+        return;
+      }
+      const duration = Math.max(15, (d.origEndMs - d.origStartMs) / 60000);
+      const newTop = Math.max(0, Math.min(gridMinutes - duration, d.origTop + dy));
+      d.live = { newTop, dayDelta };
+      el.style.transform = `translate(${dayDelta * d.columnWidth}px, ${newTop - d.origTop}px)`;
+      el.style.zIndex = "20";
+    } else {
+      const newDuration = Math.max(15, Math.min(gridMinutes - d.origTop, d.origHeight + dy));
+      d.live = { newDuration };
+      el.style.height = `${newDuration}px`;
+    }
+  };
+
+  const endDrag = (ev) => {
+    const d = dragRef.current;
+    if (!d) return;
+    dragRef.current = null;
+    const el = ev.currentTarget.closest("button.apple-time-event, button.apple-all-day-event") || ev.currentTarget;
+    el.style.transform = "";
+    el.style.height = "";
+    el.style.zIndex = "";
+    if (!d.moved) return;
+    didDragRef.current = true;
+    if (!onEventChange) return;
+    if (d.mode === "move" && d.live) {
+      const targetDate = dates[d.dayIndex + d.live.dayDelta] || dates[d.dayIndex];
+      if (d.allDay) {
+        // Preserve the all-day time window (00:00 → +1d) on the new day.
+        const durationMs = Math.max(60 * 60000, d.origEndMs - d.origStartMs);
+        const newStart = new Date(targetDate);
+        newStart.setHours(d.origStartHours, d.origStartMinutes, 0, 0);
+        const newEnd = new Date(newStart.getTime() + durationMs);
+        onEventChange(d.event, { start: newStart.toISOString(), end: newEnd.toISOString() });
+        return;
+      }
+      const durationMs = Math.max(15 * 60000, d.origEndMs - d.origStartMs);
+      const newStart = new Date(targetDate);
+      newStart.setHours(CALENDAR_START_HOUR + Math.floor(d.live.newTop / 60), d.live.newTop % 60, 0, 0);
+      const newEnd = new Date(newStart.getTime() + durationMs);
+      onEventChange(d.event, { start: newStart.toISOString(), end: newEnd.toISOString() });
+    } else if (d.mode === "resize" && d.live) {
+      const newEnd = new Date(d.origStartMs + d.live.newDuration * 60000);
+      onEventChange(d.event, { end: newEnd.toISOString() });
+    }
+  };
+
+  const onTimeEventPointerDown = (event, ev) => beginDrag(event, "move", ev);
+  const onResizePointerDown = (event, ev) => { ev.stopPropagation(); beginDrag(event, "resize", ev); };
+  const onClickGuard = (event, ev) => {
+    if (didDragRef.current) { didDragRef.current = false; ev.preventDefault(); ev.stopPropagation(); return; }
+    onSelectEvent(event);
+  };
+
   return (
     <div className="apple-timegrid-shell">
       <div className="apple-timegrid-head" style={{ "--calendar-days": dates.length }}>
@@ -154,9 +274,20 @@ function CalendarTimeGrid({ dates, events, selectedDate, onSelectDate, onSelectE
         <div className="apple-all-day-row">
           <span>all-day</span>
           <div>
-            {allDayEvents.map((event) => (
-              <button type="button" key={event.id} style={{ "--event-color": colorFor(event) }} onClick={() => onSelectEvent(event)}><strong>{event.title}</strong></button>
-            ))}
+            {allDayEvents.map((event) => {
+              const editable = canEditEvent && canEditEvent(event) && !event.isRecurringOccurrence && !event.seriesId;
+              return <button
+                type="button"
+                key={event.id}
+                className={`apple-all-day-event${editable ? " is-editable" : ""}`}
+                style={{ "--event-color": colorFor(event) }}
+                onPointerDown={(ev) => onTimeEventPointerDown(event, ev)}
+                onPointerMove={onDragMove}
+                onPointerUp={endDrag}
+                onPointerCancel={endDrag}
+                onClick={(ev) => onClickGuard(event, ev)}
+              ><strong>{event.title}</strong></button>;
+            })}
           </div>
         </div>
       )}
@@ -173,7 +304,23 @@ function CalendarTimeGrid({ dates, events, selectedDate, onSelectDate, onSelectE
                   const start = Math.max(0, minutesFromStart(event.start));
                   const rawDuration = event.end ? (new Date(event.end) - new Date(event.start)) / 60000 : 60;
                   const height = Math.max(34, Math.min(180, rawDuration || 60));
-                  return <button type="button" className="apple-time-event" key={event.id} style={{ top: `${start}px`, height: `${height}px`, "--event-color": colorFor(event) }} onClick={() => onSelectEvent(event)}><strong>{event.title}</strong><span>{formatTime(event.start)}{event.end ? `–${formatTime(event.end)}` : ""}</span>{event.location && <small>{event.location}</small>}</button>;
+                  const editable = canEditEvent && canEditEvent(event) && !event.isRecurringOccurrence && !event.seriesId;
+                  return <button
+                    type="button"
+                    className={`apple-time-event${editable ? " is-editable" : ""}`}
+                    key={event.id}
+                    style={{ top: `${start}px`, height: `${height}px`, "--event-color": colorFor(event) }}
+                    onPointerDown={(ev) => onTimeEventPointerDown(event, ev)}
+                    onPointerMove={onDragMove}
+                    onPointerUp={endDrag}
+                    onPointerCancel={endDrag}
+                    onClick={(ev) => onClickGuard(event, ev)}
+                  >
+                    <strong>{event.title}</strong>
+                    <span>{formatTime(event.start)}{event.end ? `–${formatTime(event.end)}` : ""}</span>
+                    {event.location && <small>{event.location}</small>}
+                    {editable && <i className="apple-time-event-resize" aria-hidden="true" onPointerDown={(ev) => onResizePointerDown(event, ev)} />}
+                  </button>;
                 })}
               </div>;
             })}
@@ -498,6 +645,25 @@ export default function CalendarPage() {
       return calendar && ["owner", "writer"].includes(calendar.accessRole);
     }
     return false;
+  };
+  // Drag-to-move / resize uses the same write permission as delete.
+  const canEditEvent = canDeleteEvent;
+  // Surface drag failures without losing the page (Google API errors, etc.).
+  const [dragError, setDragError] = useState("");
+  const handleEventChange = async (event, patch) => {
+    try {
+      if (event.source === "google" && event.googleEventId) {
+        // Two-way sync: write the new times straight back to Google Calendar.
+        await updateGoogleCalendarEvent({ ...event, ...patch, calendarId: event.calendarId });
+      } else {
+        await updateEvent(event.id, patch);
+      }
+      setDragError("");
+    } catch (error) {
+      setDragError(error?.message || "Could not update this event. Please try again.");
+      // Re-pull so the optimistic local state snaps back to the source of truth.
+      refreshData();
+    }
   };
   const mapsUrl = (location) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
 
@@ -948,6 +1114,13 @@ export default function CalendarPage() {
 
         <NativeAdBanner placement={AD_PLACEMENTS.CALENDAR} />
 
+        {dragError && (
+          <div className="calendar-drag-error" role="alert">
+            <TriangleAlert size={14} />
+            <span>{dragError}</span>
+            <button type="button" onClick={() => setDragError("")} aria-label="Dismiss"><X size={14} /></button>
+          </div>
+        )}
 
         <div className="px-5">
           <div className="apple-calendar-controls">
@@ -1009,7 +1182,7 @@ export default function CalendarPage() {
               </div>
             </div>}
 
-          {viewMode !== "month" && <CalendarTimeGrid data-pull-ignore dates={timeGridDates} events={visibleEvents} selectedDate={selectedDate} onSelectDate={setSelectedDate} onSelectEvent={setSelectedEvent} googleCalendars={googleCalendars} googleCalendarColors={googleCalendarColors} famosColor={famosCalendar?.color || "var(--color-family)"} />}
+          {viewMode !== "month" && <CalendarTimeGrid data-pull-ignore dates={timeGridDates} events={visibleEvents} selectedDate={selectedDate} onSelectDate={setSelectedDate} onSelectEvent={setSelectedEvent} googleCalendars={googleCalendars} googleCalendarColors={googleCalendarColors} famosColor={famosCalendar?.color || "var(--color-family)"} canEditEvent={canEditEvent} onEventChange={handleEventChange} />}
 
           {/* ── Agenda below the grid — iOS-style list with section header + inline weather ── */}
           {viewMode === "month" && <div className="calendar-agenda-section" ref={agendaRef} data-pull-ignore>

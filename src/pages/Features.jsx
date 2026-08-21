@@ -93,7 +93,7 @@ const FeatureBullets = ({ feature }) => (
     <div className="features-bullets-head">
       <p>WHY YOU'LL USE IT DAILY</p>
       <h2>Designed for how real families run.</h2>
-      <p className="lede">Every detail in {feature.name} was cut to fit actual Monday-to-Sunday use. Not a feature-checklist screenshot.</p>
+      <p className="lede">Every detail built for real Monday-to-Sunday family life — not a feature checklist.</p>
     </div>
     <div className="features-bullets-grid">
       {feature.bullets.map((bullet) => {

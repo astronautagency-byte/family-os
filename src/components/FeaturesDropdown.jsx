@@ -1,6 +1,19 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, Sparkles } from "lucide-react";
-import { FEATURES, MARKETING_FEATURES } from "../data/featureData";
+import { ArrowRight, ChevronDown, ChevronRight } from "lucide-react";
+import { MARKETING_FEATURES } from "../data/featureData";
+
+// One-line value propositions for the mega-menu grid, matching the human,
+// solution-first copy used across the landing page.
+const MENU_TAGLINES = {
+  today: "The whole household's day on one screen",
+  meals: "Plan meals, cook hands-free",
+  calendar: "Every calendar, one calm view",
+  "fam-ai": "Your household's quiet assistant",
+  tasks: "Chores with a clear owner",
+  chat: "Family chat that lives with the plan",
+  shopping: "One list, every hand",
+  family: "A private home that feels like yours",
+};
 
 /* Reusable nav dropdown that lists every FamOS feature module. Used by
  * both Landing's top nav ("All modules" link replacement) and the
@@ -174,21 +187,31 @@ const FeaturesDropdown = ({ active = false, label = "Features", currentId = null
         role="menu"
         aria-label="FamOS feature modules"
       >
-        <a
-          href="/features"
-          className="features-dropdown-overview"
-          role="menuitem"
-          onClick={() => { setOpen(false); onItemClick?.(); }}
-        >
-          <span className="features-dropdown-overview-icon" aria-hidden="true">
-            <Sparkles size={17} />
-          </span>
-          <span className="features-dropdown-overview-copy">
-            <strong>Browse all features</strong>
-            <small>See the complete FamOS module tour</small>
-          </span>
-          <ChevronRight size={14} className="features-dropdown-arrow" aria-hidden="true" />
-        </a>
+        <div className="features-dropdown-hero">
+          <div className="features-dropdown-hero-copy">
+            <p className="features-dropdown-hero-eyebrow">Explore FamOS</p>
+            <h4 className="features-dropdown-hero-title">Everything FamOS does</h4>
+            <span className="features-dropdown-hero-sub">One private home for the everyday stuff — schedules, meals, lists, and the little reminders that keep a household running.</span>
+          </div>
+          <div className="features-dropdown-hero-actions">
+            <a
+              href="/features"
+              className="features-dropdown-hero-cta primary"
+              role="menuitem"
+              onClick={() => { setOpen(false); onItemClick?.(); }}
+            >
+              Browse all features <ArrowRight size={15} aria-hidden="true" />
+            </a>
+            <a
+              href="/landing#pricing"
+              className="features-dropdown-hero-cta"
+              role="menuitem"
+              onClick={() => { setOpen(false); onItemClick?.(); }}
+            >
+              See pricing
+            </a>
+          </div>
+        </div>
         <div className="features-dropdown-divider" aria-hidden="true" />
         <div className="features-dropdown-grid" role="none">
           {MARKETING_FEATURES.map((feature) => {
@@ -205,13 +228,13 @@ const FeaturesDropdown = ({ active = false, label = "Features", currentId = null
                 onClick={() => { setOpen(false); onItemClick?.(); }}
               >
                 <span className="features-dropdown-item-icon" aria-hidden="true">
-                  <Icon size={16} />
+                  <Icon size={18} />
                 </span>
                 <span className="features-dropdown-item-copy">
                   <strong>{feature.name}</strong>
-                  {feature.pill && feature.pill !== feature.name ? <small>{feature.pill}</small> : null}
+                  <small>{MENU_TAGLINES[feature.id] || feature.pill}</small>
                 </span>
-                <ChevronRight size={12} className="features-dropdown-item-arrow" aria-hidden="true" />
+                <span className="features-dropdown-item-link">Learn more <ChevronRight size={13} aria-hidden="true" /></span>
               </a>
             );
           })}
