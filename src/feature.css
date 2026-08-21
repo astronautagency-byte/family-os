@@ -462,7 +462,39 @@
 .feature-hero-phone-css{width:100%;aspect-ratio:9/16;max-height:480px;border-radius:28px;background:#fff;border:1px solid rgba(23,23,31,.08);box-shadow:0 18px 42px rgba(23,23,31,.1);overflow:hidden;display:flex;flex-direction:column}
 .feature-hero-phone-header{height:28px;display:flex;align-items:center;justify-content:center;background:#f9fafb}
 .feature-hero-phone-notch{width:80px;height:6px;border-radius:3px;background:rgba(23,23,31,.08)}
-.feature-hero-phone-content{flex:1;padding:20px 16px;display:flex;flex-direction:column}
+.feature-hero-phone-content{flex:1;padding:20px 16px;display:flex;flex-direction:column;gap:8px;font-family:var(--font-sans);font-size:12px;color:#374151}
+.phs-kicker{font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#9ca3af;margin-bottom:2px}
+.phs-hero-text{font-size:18px;font-weight:700;color:#111827;margin-bottom:8px;line-height:1.2}
+.phs-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:#f9fafb;margin-bottom:4px}
+.phs-row strong{font-size:12px;color:#111827}
+.phs-row-accent{background:#f5f3ff;border:1px solid #e0d4fc}
+.phs-dot{width:8px;height:8px;border-radius:50%;flex:none}
+.phs-badge{margin-left:auto;font-size:9px;font-weight:700;padding:3px 7px;border-radius:99px;background:#e0e7ff;color:#4338ca}
+.phs-divider{height:1px;background:#e5e7eb;margin:8px 0}
+.phs-section-title{font-size:11px;font-weight:700;color:#6b7280;margin-bottom:6px}
+.phs-chip-row{display:flex;gap:6px;flex-wrap:wrap}
+.phs-chip{font-size:10px;font-weight:600;padding:5px 10px;border-radius:99px;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb}
+.phs-chip-warn{background:#fef3c7;border-color:#fde68a;color:#92400e}
+.phs-chip-active{background:#7c3aed;border-color:#7c3aed;color:#fff}
+.phs-sub{display:block;font-size:10px;color:#9ca3af;font-weight:400}
+.phs-day-strip{display:flex;gap:4px;margin:6px 0}
+.phs-day-strip span{flex:1;text-align:center;font-size:10px;font-weight:600;color:#9ca3af;padding:6px 0;border-radius:8px}
+.phs-day-active{background:#7c3aed;color:#fff!important}
+.phs-meal-card{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:#f9fafb;margin-bottom:6px}
+.phs-meal-emoji{font-size:24px}
+.phs-meal-card strong{font-size:12px;color:#111827}
+.phs-cta-pill{margin-top:8px;padding:8px 16px;border-radius:99px;background:#7c3aed;color:#fff;font-size:11px;font-weight:700;text-align:center}
+.phs-list-item{display:flex;align-items:center;gap:8px;padding:8px 10px;font-size:12px;color:#374151}
+.phs-check{width:16px;height:16px;border-radius:4px;border:1.5px solid #d1d5db;flex:none}
+.phs-tag{margin-left:auto;font-size:9px;font-weight:600;padding:2px 7px;border-radius:99px;background:#f3f4f6;color:#6b7280}
+.phs-task-item{display:flex;align-items:center;gap:8px;padding:8px 10px;font-size:12px;color:#374151}
+.phs-task-check{width:16px;height:16px;border-radius:50%;border:1.5px solid #d1d5db;flex:none}
+.phs-avatar-sm{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:9px;font-weight:700;color:#fff;flex:none}
+.phs-streak{font-size:11px;color:#374151;padding:8px 10px;background:#fef3c7;border-radius:10px;text-align:center}
+.phs-chat-msg{padding:10px 12px;border-radius:12px;font-size:11px;line-height:1.4;margin-bottom:6px}
+.phs-chat-user{background:#7c3aed;color:#fff;align-self:flex-end;margin-left:20%;border-radius:12px 12px 4px 12px}
+.phs-chat-ai{background:#f3f4f6;color:#374151;display:flex;align-items:flex-start;gap:6px;border-radius:12px 12px 12px 4px}
+.phs-chat-avatar{font-size:14px;flex:none}
 
 /* The feature-* artwork contains a wide photographic backdrop to the
  * right of the device. Crop that portion away and use the phone itself

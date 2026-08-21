@@ -11,6 +11,103 @@ import "../feature.css";
 // the home page and every /features/* page — one canonical nav so the
 // public marketing surface reads as one product.
 
+/* ── CSS Phone Screen Mockups ─────────────────────────────────────────── */
+
+const PhoneScreen = ({ featureId }) => {
+  const screens = {
+    today: (
+      <>
+        <div className="phs-kicker">EVENING · 7:42 PM</div>
+        <div className="phs-hero-text">Good evening, Alex</div>
+        <div className="phs-row phs-row-accent"><span className="phs-dot" style={{ background: '#7c3aed' }} /><div><strong>6:30</strong> Pasta night</div><span className="phs-badge">35 min</span></div>
+        <div className="phs-row"><span className="phs-dot" style={{ background: '#059669' }} /><div><strong>4:30</strong> Soccer pickup</div><span className="phs-badge">Up next</span></div>
+        <div className="phs-row"><span className="phs-dot" style={{ background: '#dc2626' }} /><div><strong>7:00</strong> Family dinner</div><span className="phs-badge">Home</span></div>
+        <div className="phs-divider" />
+        <div className="phs-section-title">Kitchen Watch</div>
+        <div className="phs-chip-row"><span className="phs-chip phs-chip-warn">Blueberries</span><span className="phs-chip phs-chip-warn">Milk</span><span className="phs-chip">Eggs</span></div>
+      </>
+    ),
+    calendar: (
+      <>
+        <div className="phs-kicker">MAY · WEEK 21</div>
+        <div className="phs-hero-text">This week</div>
+        <div className="phs-day-strip"><span>S</span><span>M</span><span>T</span><span className="phs-day-active">W</span><span>T</span><span>F</span><span>S</span></div>
+        <div className="phs-divider" />
+        <div className="phs-row"><span className="phs-dot" style={{ background: '#3b82f6' }} /><div><strong>Soccer practice</strong><span className="phs-sub">5:30 PM · Riverside</span></div></div>
+        <div className="phs-row"><span className="phs-dot" style={{ background: '#8b5cf6' }} /><div><strong>Piano lesson</strong><span className="phs-sub">4:00 PM · Studio</span></div></div>
+        <div className="phs-row"><span className="phs-dot" style={{ background: '#f97316' }} /><div><strong>Family dinner</strong><span className="phs-sub">7:00 PM · Home</span></div></div>
+      </>
+    ),
+    meals: (
+      <>
+        <div className="phs-kicker">DINNER PLAN</div>
+        <div className="phs-hero-text">Monday</div>
+        <div className="phs-meal-card"><span className="phs-meal-emoji">🍝</span><div><strong>Sheet-pan fajitas</strong><span className="phs-sub">35 min · 8 ingredients</span></div></div>
+        <div className="phs-meal-card"><span className="phs-meal-emoji">🌮</span><div><strong>Taco bowls</strong><span className="phs-sub">25 min · 6 ingredients</span></div></div>
+        <div className="phs-meal-card"><span className="phs-meal-emoji">🐟</span><div><strong>Baked salmon</strong><span className="phs-sub">30 min · 7 ingredients</span></div></div>
+        <div className="phs-cta-pill">Cook Mode →</div>
+      </>
+    ),
+    shopping: (
+      <>
+        <div className="phs-kicker">11 ITEMS · 3 CATEGORIES</div>
+        <div className="phs-hero-text">Shopping list</div>
+        <div className="phs-list-item"><span className="phs-check" />Avocados<span className="phs-tag">Produce</span></div>
+        <div className="phs-list-item"><span className="phs-check" />Shredded cheddar<span className="phs-tag">Dairy</span></div>
+        <div className="phs-list-item"><span className="phs-check" />Tortillas<span className="phs-tag">Pantry</span></div>
+        <div className="phs-list-item"><span className="phs-check" />Tomatoes<span className="phs-tag">Produce</span></div>
+        <div className="phs-divider" />
+        <div className="phs-section-title">Kitchen Inventory</div>
+        <div className="phs-chip-row"><span className="phs-chip">Fridge</span><span className="phs-chip">Freezer</span><span className="phs-chip">Pantry</span></div>
+      </>
+    ),
+    tasks: (
+      <>
+        <div className="phs-kicker">4 OPEN · 1 DONE</div>
+        <div className="phs-hero-text">Today's tasks</div>
+        <div className="phs-task-item"><span className="phs-task-check" />Feed the dog<span className="phs-avatar-sm" style={{ background: '#059669' }}>L</span></div>
+        <div className="phs-task-item"><span className="phs-task-check" />Pack soccer bag<span className="phs-avatar-sm" style={{ background: '#3b82f6' }}>M</span></div>
+        <div className="phs-task-item"><span className="phs-task-check" />Pay tuition<span className="phs-avatar-sm" style={{ background: '#f97316' }}>A</span></div>
+        <div className="phs-divider" />
+        <div className="phs-streak"><span>🔥</span> 6-day streak · Lou</div>
+      </>
+    ),
+    chat: (
+      <>
+        <div className="phs-chat-msg phs-chat-user">Running 10 min late</div>
+        <div className="phs-chat-msg phs-chat-ai"><span className="phs-chat-avatar">🤖</span>Got it! Updated the family board.</div>
+        <div className="phs-chat-msg phs-chat-user">Can you grab milk?</div>
+        <div className="phs-chat-msg phs-chat-ai"><span className="phs-chat-avatar">🤖</span>Added to the grocery list ✓</div>
+        <div className="phs-divider" />
+        <div className="phs-section-title">Smart shortcuts</div>
+        <div className="phs-chip-row"><span className="phs-chip">Add to list</span><span className="phs-chip">Create task</span></div>
+      </>
+    ),
+    'fam-ai': (
+      <>
+        <div className="phs-kicker">FAM AI</div>
+        <div className="phs-hero-text">What can I help with?</div>
+        <div className="phs-chat-msg phs-chat-user">What's for dinner tonight?</div>
+        <div className="phs-chat-msg phs-chat-ai"><span className="phs-chat-avatar">✨</span>I found 3 dinner ideas using what you have. Here's one: Sheet-pan fajitas — 35 min, 8 ingredients.</div>
+        <div className="phs-cta-pill">Review recipes →</div>
+      </>
+    ),
+    family: (
+      <>
+        <div className="phs-kicker">HOUSEHOLD</div>
+        <div className="phs-hero-text">Settings</div>
+        <div className="phs-member-row"><span className="phs-avatar-sm" style={{ background: '#7c3aed' }}>A</span><div><strong>Alex</strong><span className="phs-sub">Owner</span></div></div>
+        <div className="phs-member-row"><span className="phs-avatar-sm" style={{ background: '#ec4899' }}>M</span><div><strong>Mia</strong><span className="phs-sub">Co-owner</span></div></div>
+        <div className="phs-member-row"><span className="phs-avatar-sm" style={{ background: '#059669' }}>L</span><div><strong>Lou</strong><span className="phs-sub">Member</span></div></div>
+        <div className="phs-divider" />
+        <div className="phs-section-title">Appearance</div>
+        <div className="phs-chip-row"><span className="phs-chip phs-chip-active">Plum</span><span className="phs-chip">Sage</span><span className="phs-chip">Ocean</span></div>
+      </>
+    ),
+  };
+  return screens[featureId] || screens.today;
+};
+
 /* ── Feature hero (left copy + right mock-panel) ─────────────────────── */
 
 /* Feature hero — Comer AI layout: pastel gradient stage, headline + lede
@@ -68,15 +165,7 @@ const FeatureHeroStage = ({ feature, hero }) => {
               <span className="feature-hero-phone-notch" />
             </div>
             <div className="feature-hero-phone-content">
-              <div className="feature-hero-phone-bar" style={{ width: '60%', height: 8, borderRadius: 4, background: 'var(--color-accent-soft, #ede9fe)' }} />
-              <div className="feature-hero-phone-bar" style={{ width: '80%', height: 6, borderRadius: 3, background: 'var(--color-border, #e5e7eb)' }} />
-              <div className="feature-hero-phone-bar" style={{ width: '45%', height: 6, borderRadius: 3, background: 'var(--color-border, #e5e7eb)' }} />
-              <div style={{ height: 12 }} />
-              <div className="feature-hero-phone-bar" style={{ width: '100%', height: 40, borderRadius: 8, background: 'var(--color-accent-soft, #ede9fe)' }} />
-              <div style={{ height: 8 }} />
-              <div className="feature-hero-phone-bar" style={{ width: '100%', height: 40, borderRadius: 8, background: 'var(--color-accent-soft, #f0fdf4)' }} />
-              <div style={{ height: 8 }} />
-              <div className="feature-hero-phone-bar" style={{ width: '100%', height: 40, borderRadius: 8, background: 'var(--color-accent-soft, #fef3c7)' }} />
+              <PhoneScreen featureId={feature.id} />
             </div>
           </div>
         )}
