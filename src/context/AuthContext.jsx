@@ -439,6 +439,10 @@ export function AuthProvider({ children }) {
       invokeEdgeFunction("google-calendar-token", { action: "store", refresh_token: refreshToken, scope: "" })
         .then(() => {
           try { localStorage.removeItem(GOOGLE_REFRESH_TOKEN_KEY); } catch { /* best-effort */ }
+          // Tell FamilyContext the durable backend row now exists so it can
+          // flip googleConnected to true and start syncing without forcing
+          // the user to tap Connect again (recovery after a failed store).
+          try { window.dispatchEvent(new Event("famos:google-token-stored")); } catch { /* best-effort */ }
         })
         .catch(() => {
           if (attempt < 3) {

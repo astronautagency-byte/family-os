@@ -1552,7 +1552,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
   useEffect(() => {
     if (!remote || !user?.id) return undefined;
     let cancelled = false;
-    (async () => {
+    const probeConnection = async () => {
       try {
         const status = await invokeEdgeFunction("google-calendar-token", { action: "status" });
         if (cancelled || !status?.connected) return;
@@ -1560,8 +1560,15 @@ export function FamilyProvider({ children, tabletMode = false }) {
       } catch {
         /* keep default state — the user can connect manually from Settings */
       }
-    })();
-    return () => { cancelled = true; };
+    };
+    probeConnection();
+    // A refresh token captured on a previous visit (when the backend store
+    // failed) may be re-uploaded by AuthContext's healing pass after this
+    // probe runs. Re-probe when that store confirms so googleConnected flips
+    // to true and the background sync starts without a manual reconnect.
+    const onTokenStored = () => probeConnection();
+    window.addEventListener("famos:google-token-stored", onTokenStored);
+    return () => { cancelled = true; window.removeEventListener("famos:google-token-stored", onTokenStored); };
   }, [remote, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Re-sync through the durable refresh-token service whenever the app returns,
