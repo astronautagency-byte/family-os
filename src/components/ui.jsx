@@ -207,11 +207,11 @@ export function MenuDropdown({ value, options = [], onChange, renderValue, rende
 
 export function Card({ children, className = "", as: As = "div", variant = "default", ...props }) {
   const variants = {
-    default: "bg-[var(--color-surface)] border border-[var(--color-border)]",
-    elevated: "bg-[var(--color-surface)] border border-[var(--color-border)] shadow-sm",
-    floating: "bg-[var(--color-surface)] border border-[var(--color-border)] shadow-lg",
-    sunken: "bg-[var(--color-surface-sunken)] border border-[var(--color-border)]",
-    interactive: "bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-border-strong)] hover:shadow-sm active:scale-[0.995] transition-all duration-150 ease-out",
+    default: "bg-white border border-[var(--color-border)]",
+    elevated: "bg-white border border-[var(--color-border)] shadow-sm",
+    floating: "bg-white border border-[var(--color-border)] shadow-lg",
+    sunken: "bg-white border border-[var(--color-border)]",
+    interactive: "bg-white border border-[var(--color-border)] hover:border-[var(--color-border-strong)] hover:shadow-sm active:scale-[0.995] transition-all duration-150 ease-out",
   };
   return (
     <As
