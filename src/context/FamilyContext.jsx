@@ -771,8 +771,22 @@ export function FamilyProvider({ children, tabletMode = false }) {
     // insert promise resolves on slower mobile connections.
     const tempId = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : makeId("gro");
     const assigneeIds = uniqueIds(item.assigneeIds);
-    // Optimistic: show the item instantly.
-    setGroceries((prev) => [...prev, { id: tempId, checked: false, quantity: 1, unit: "", ...item, assigneeIds, name: capitalized, category }]);
+    // Optimistic: show the item instantly. `...item` must come BEFORE the
+    // generated fields so a source object carrying its own id (quick-add
+    // staples use "bread"/"bananas" ids) can never overwrite tempId — if it
+    // did, the reconcile below would never find tempId to replace and the
+    // realtime echo would append the server row alongside the orphaned
+    // optimistic one, leaving duplicate rows in the list.
+    setGroceries((prev) => [...prev, {
+      ...item,
+      id: tempId,
+      checked: false,
+      quantity: Number(item.quantity) || 1,
+      unit: item.unit || "",
+      assigneeIds,
+      name: capitalized,
+      category,
+    }]);
     if (remote) {
       const row = {
         id: tempId,
