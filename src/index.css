@@ -1148,7 +1148,10 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 }
 .meal-card-icon-btn:hover{background:var(--color-accent-soft);color:var(--color-accent);border-color:var(--color-accent)}
 .meal-card-slot-buttons{
-  display:flex;align-items:center;gap:8px;
+  display:flex;align-items:center;flex-wrap:wrap;gap:8px;
+}
+.meal-card-slot-actions-right{
+  margin-left:auto;
 }
 .meal-card-btn{
   display:inline-flex;align-items:center;justify-content:center;gap:5px;

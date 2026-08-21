@@ -717,7 +717,7 @@ export default function Meals() {
                 return uniqueCooks.length > 0 ? (
                   <div className="meal-card-avatars">
                     {uniqueCooks.slice(0, 3).map((m) => (
-                      <span key={m.id} className="meal-card-avatar" style={{ background: m.color || 'var(--color-accent)' }}>{m.name?.[0] || '?'}</span>
+                      <Avatar key={m.id} member={m} size="sm" className="meal-card-avatar" />
                     ))}
                   </div>
                 ) : null;
@@ -743,22 +743,13 @@ export default function Meals() {
                           </div>
                         )}
                       </div>
-                      <div className="meal-card-slot-actions">
-                        {meal?.title ? (
-                          <>
-                            <button className="meal-card-icon-btn" onClick={() => openEditor(date, slot)} aria-label="Edit meal">
-                              <Pencil size={15} />
-                            </button>
-                            <button className="meal-card-icon-btn" onClick={() => removeMeal(meal.id)} aria-label="Delete meal">
-                              <Trash2 size={15} />
-                            </button>
-                          </>
-                        ) : (
+                      {!meal?.title && (
+                        <div className="meal-card-slot-actions">
                           <button className="meal-card-add-slot-btn" onClick={() => openEditor(date, slot)}>
                             <Plus size={14} /> Add meal
                           </button>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                     {meal?.title && (
                       <div className="meal-card-slot-buttons">
@@ -770,6 +761,14 @@ export default function Meals() {
                         <button className="meal-card-btn meal-card-btn-outline" onClick={() => saveRecipeToLibrary(meal)}>
                           <Bookmark size={14} /> Save recipe
                         </button>
+                        <div className="meal-card-slot-actions meal-card-slot-actions-right">
+                          <button className="meal-card-icon-btn" onClick={() => openEditor(date, slot)} aria-label="Edit meal">
+                            <Pencil size={15} />
+                          </button>
+                          <button className="meal-card-icon-btn" onClick={() => removeMeal(meal.id)} aria-label="Delete meal">
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>

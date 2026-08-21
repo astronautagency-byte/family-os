@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
+import { Avatar } from "../components/ui";
 import { isCookableTonight } from "../lib/cookableTonight";
 import { addDays, formatDayLabel, todayISO } from "../lib/dates";
 import { invokeEdgeFunction, supabase } from "../lib/supabase";
@@ -933,9 +934,7 @@ const INITIAL_FAM_AI_MESSAGE = {
                   <Bot size={15} />
                 </span>
               ) : (
-                <span className="fam-ai-msg-avatar user">
-                  {members[0]?.name?.charAt(0) || "Y"}
-                </span>
+                <Avatar member={members[0]} size="sm" className="fam-ai-msg-avatar user" />
               )}
               <div className="fam-ai-msg-body">
                 <div className="fam-ai-msg-meta"><strong>{message.role === "assistant" ? "Fam AI" : (members[0]?.name || "You")}</strong><span>{message.role === "assistant" ? "Household assistant" : "You"}</span></div>
