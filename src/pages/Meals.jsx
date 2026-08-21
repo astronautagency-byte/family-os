@@ -55,6 +55,59 @@ const SLOT_META = {
   dinner: { label: "Dinner", icon: ChefHat },
 };
 
+// Hover tooltip for the meal card's corner avatar stack. Shows each cook's
+// photo + name and which slots (Breakfast/Lunch/Dinner) they cooked. Portaled
+// to <body> because the card clips overflow.
+function MealCooksTooltip({ cooks }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState(null);
+  const anchorRef = useRef(null);
+  const show = () => {
+    const rect = anchorRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const width = 210;
+    setPos({
+      left: Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8)),
+      top: rect.bottom + 8,
+    });
+    setOpen(true);
+  };
+  const hide = () => setOpen(false);
+  return (
+    <>
+      <div
+        ref={anchorRef}
+        className="meal-card-avatars meal-card-header-avatars"
+        onMouseEnter={show}
+        onMouseLeave={hide}
+        onFocus={show}
+        onBlur={hide}
+        tabIndex={0}
+        role="button"
+        aria-label="Who's cooking each meal"
+      >
+        {cooks.slice(0, 3).map((c) => (
+          <Avatar key={c.id} member={c.member} size="sm" className="meal-card-avatar" />
+        ))}
+      </div>
+      {open && pos && createPortal(
+        <div className="meal-card-tooltip" style={{ left: pos.left, top: pos.top }} role="tooltip">
+          {cooks.map((c) => (
+            <div key={c.id} className="meal-card-tooltip-row">
+              <Avatar member={c.member} size="xs" />
+              <span>
+                <strong>{c.member.name}</strong>
+                <small>{c.slots.join(" · ")}</small>
+              </span>
+            </div>
+          ))}
+        </div>,
+        document.body,
+      )}
+    </>
+  );
+}
+
 const SLOT_ORDER = ["breakfast", "lunch", "dinner"];
 
 const SAVED_RECIPES_KEY = "famos:saved-recipes:v1";
@@ -712,15 +765,15 @@ export default function Meals() {
             <div className="meal-card-header">
               <p className="meal-card-date">{formatDayLabel(date)}</p>
               {(() => {
-                const allCooks = dayMeals.flatMap(({ meal }) => (meal?.cookIds ?? []).map((id) => memberById[id]).filter(Boolean));
-                const uniqueCooks = [...new Map(allCooks.map((m) => [m.id, m])).values()];
-                return uniqueCooks.length > 0 ? (
-                  <div className="meal-card-avatars">
-                    {uniqueCooks.slice(0, 3).map((m) => (
-                      <Avatar key={m.id} member={m} size="sm" className="meal-card-avatar" />
-                    ))}
-                  </div>
-                ) : null;
+                const cookEntries = dayMeals.flatMap(({ slot, meal }) =>
+                  (meal?.cookIds ?? []).map((id) => ({ id, slot, member: memberById[id] })).filter((entry) => entry.member)
+                );
+                const uniqueCooks = [...new Map(cookEntries.map((c) => [c.id, c])).values()]
+                  .map((c) => ({
+                    ...c,
+                    slots: SLOT_ORDER.filter((slot) => cookEntries.some((e) => e.id === c.id && e.slot === slot)).map((slot) => SLOT_META[slot].label),
+                  }));
+                return uniqueCooks.length > 0 ? <MealCooksTooltip cooks={uniqueCooks} /> : null;
               })()}
             </div>
             <div className="meal-card-slots">
