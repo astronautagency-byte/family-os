@@ -380,7 +380,7 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
                 <Avatar member={members[0]} size="sm" className="fam-ai-msg-avatar user" />
               )}
               <div className="fam-ai-msg-body">
-                <div className="fam-ai-msg-meta"><strong>{message.role === "assistant" ? "Fam AI" : (members[0]?.name || "You")}</strong><span>{message.role === "assistant" ? "Household assistant" : "You"}</span></div>
+                {message.role === "assistant" && <div className="fam-ai-msg-meta"><strong>Fam AI</strong><span>Household assistant</span></div>}
                 <p className={message.role === "assistant" ? "fam-ai-msg-bubble" : "fam-ai-msg-bubble user"}>{message.content}</p>
 
                 {message.preview && (
