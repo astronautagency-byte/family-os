@@ -743,7 +743,21 @@ export default function Meals() {
                           </div>
                         )}
                       </div>
-                      {!meal?.title && (
+                      {meal?.title ? (
+                        <div className="meal-card-slot-actions">
+                          {(() => {
+                            const cooks = (meal.cookIds ?? []).map((id) => memberById[id]).filter(Boolean);
+                            const uniqueCooks = [...new Map(cooks.map((c) => [c.id, c])).values()];
+                            return uniqueCooks.length > 0 ? (
+                              <div className="meal-card-avatars meal-card-slot-avatars" title={uniqueCooks.map((c) => c.name).join(", ")}>
+                                {uniqueCooks.slice(0, 3).map((c) => (
+                                  <Avatar key={c.id} member={c} size="sm" className="meal-card-avatar" />
+                                ))}
+                              </div>
+                            ) : null;
+                          })()}
+                        </div>
+                      ) : (
                         <div className="meal-card-slot-actions">
                           <button className="meal-card-add-slot-btn" onClick={() => openEditor(date, slot)}>
                             <Plus size={14} /> Add meal
