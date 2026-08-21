@@ -725,7 +725,7 @@ export default function Meals() {
     <div className="px-5 space-y-4 mt-2">
       {weekDays.map((date) => {
         const isToday = date === todayISO();
-        const dayMeals = MEAL_SLOTS.map((slot) => ({ slot, meal: mealFor(date, slot) })).filter(({ meal }) => meal?.title);
+        const dayMeals = MEAL_SLOTS.map((slot) => ({ slot, meal: mealFor(date, slot) }));
         return (
           <div key={date} className="meal-card-new">
             <div className="meal-card-header">
@@ -742,37 +742,44 @@ export default function Meals() {
                 ) : null;
               })()}
             </div>
-            {dayMeals.length === 0 ? (
-              <div className="meal-card-empty">
-                <p className="meal-card-empty-text">No meals planned</p>
-                <button className="meal-card-add-btn" onClick={() => openEditor(date, 'dinner')}>
-                  <Plus size={14} /> Add a meal
-                </button>
-              </div>
-            ) : (
-              <div className="meal-card-slots">
-                {dayMeals.map(({ slot, meal }) => {
-                  const Icon = SLOT_META[slot].icon;
-                  const slotColor = slot === 'breakfast' ? 'var(--color-good)' : slot === 'lunch' ? '#E85D3A' : '#D94F4F';
-                  return (
-                    <div key={slot} className="meal-card-slot">
-                      <div className="meal-card-slot-top">
-                        <div className="meal-card-slot-info">
-                          <p className="meal-card-slot-name" style={{ color: slotColor }}>{SLOT_META[slot].label}</p>
+            <div className="meal-card-slots">
+              {dayMeals.map(({ slot, meal }) => {
+                const Icon = SLOT_META[slot].icon;
+                const slotColor = slot === 'breakfast' ? 'var(--color-good)' : slot === 'lunch' ? '#E85D3A' : '#D94F4F';
+                return (
+                  <div key={slot} className={`meal-card-slot ${meal?.title ? '' : 'meal-card-slot--empty'}`}>
+                    <div className="meal-card-slot-top">
+                      <div className="meal-card-slot-info">
+                        <p className="meal-card-slot-name" style={{ color: slotColor }}>{SLOT_META[slot].label}</p>
+                        {meal?.title ? (
                           <div className="meal-card-slot-dish">
                             <Icon size={14} color="var(--color-ink-soft)" className="shrink-0" />
                             <span>{meal.title}</span>
                           </div>
-                        </div>
-                        <div className="meal-card-slot-actions">
-                          <button className="meal-card-icon-btn" onClick={() => openEditor(date, slot)} aria-label="Edit meal">
-                            <Pencil size={15} />
-                          </button>
-                          <button className="meal-card-icon-btn" onClick={() => removeMeal(meal.id)} aria-label="Delete meal">
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
+                        ) : (
+                          <div className="meal-card-slot-dish meal-card-slot-empty-text">
+                            <span>Nothing planned yet</span>
+                          </div>
+                        )}
                       </div>
+                      <div className="meal-card-slot-actions">
+                        {meal?.title ? (
+                          <>
+                            <button className="meal-card-icon-btn" onClick={() => openEditor(date, slot)} aria-label="Edit meal">
+                              <Pencil size={15} />
+                            </button>
+                            <button className="meal-card-icon-btn" onClick={() => removeMeal(meal.id)} aria-label="Delete meal">
+                              <Trash2 size={15} />
+                            </button>
+                          </>
+                        ) : (
+                          <button className="meal-card-add-slot-btn" onClick={() => openEditor(date, slot)}>
+                            <Plus size={14} /> Add meal
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {meal?.title && (
                       <div className="meal-card-slot-buttons">
                         {meal.source === 'spoonacular' && (
                           <button className="meal-card-btn meal-card-btn-dark" onClick={() => openCookRecipe(meal)}>
@@ -783,11 +790,11 @@ export default function Meals() {
                           <Bookmark size={14} /> Save recipe
                         </button>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         );
       })}

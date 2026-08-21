@@ -1,6 +1,10 @@
+// Monthly item prices are the default; yearly prices pre-pay the full year
+// (each carries its own billing period inside Chargebee).
 export const FEATURE_ENV: Record<string, string> = {
   plus: "CHARGEBEE_ITEM_PLUS",
   pro: "CHARGEBEE_ITEM_PRO",
+  plus_yearly: "CHARGEBEE_ITEM_PLUS_YEARLY",
+  pro_yearly: "CHARGEBEE_ITEM_PRO_YEARLY",
 };
 
 export const chargebeeConfig = () => {
@@ -32,5 +36,10 @@ export const featureItemPrice = (feature: string) => {
   return value;
 };
 
-export const featureFromItemPrice = (itemPriceId: string) =>
-  Object.entries(FEATURE_ENV).find(([, env]) => Deno.env.get(env) === itemPriceId)?.[0] || null;
+export const featureFromItemPrice = (itemPriceId: string) => {
+  const match = Object.entries(FEATURE_ENV).find(([, env]) => Deno.env.get(env) === itemPriceId)?.[0];
+  if (!match) return null;
+  // Normalize a yearly price id back to the base feature so the webhook
+  // records "plus"/"pro" regardless of billing cadence.
+  return match.endsWith("_yearly") ? match.slice(0, -"_yearly".length) : match;
+};

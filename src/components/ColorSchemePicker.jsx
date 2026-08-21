@@ -29,7 +29,6 @@ export function ColorSchemePicker({ value, onChange, label = "App colour schemes
       >
         <ChevronDown size={16} className={`color-scheme-chevron ${open ? "open" : ""}`} />
         <div className="color-scheme-value">
-          <span className="color-scheme-emoji">{selected.emoji}</span>
           <div className="color-scheme-info">
             <strong className="color-scheme-label">{selected.label}</strong>
             <small className="color-scheme-note">{selected.note}</small>
@@ -56,7 +55,6 @@ export function ColorSchemePicker({ value, onChange, label = "App colour schemes
                 setOpen(false);
               }}
             >
-              <span className="color-scheme-emoji">{scheme.emoji}</span>
               <div className="color-scheme-info">
                 <strong className="color-scheme-label">{scheme.label}</strong>
                 <small className="color-scheme-note">{scheme.note}</small>

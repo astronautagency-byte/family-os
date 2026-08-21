@@ -713,6 +713,9 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
   const [usageStatus, setUsageStatus] = useState(null);
   const [billingBusy, setBillingBusy] = useState(false);
   const [billingError, setBillingError] = useState("");
+  // Billing cadence offered on checkout — monthly is default; yearly pre-pays
+  // the full year (a separate Chargebee item price carries the yearly period).
+  const [billingInterval, setBillingInterval] = useState("monthly");
 
   const planFeature = (() => {
     if (!subscription?.chargebee_items?.length) return null;
@@ -764,11 +767,11 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
     }
   };
 
-  const addPaidFeature = async (feature) => {
+  const addPaidFeature = async (feature, billing = "monthly") => {
     setBillingError("");
     setBillingBusy(true);
     try {
-      const { data, error } = await supabase.functions.invoke("chargebee-checkout", { body: { feature } });
+      const { data, error } = await supabase.functions.invoke("chargebee-checkout", { body: { feature, billing } });
       if (error) {
         let message = data?.error || error.message;
         try { if (error.context instanceof Response) message = (await error.context.clone().json())?.error || message; } catch { /* keep client message */ }
@@ -1009,6 +1012,15 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
               )}
             </div>
 
+            {/* Billing cadence — monthly checkout by default; yearly pre-pays the full year */}
+            <div className="flex items-center gap-2 mb-4" role="group" aria-label="Billing cadence">
+              <span className="text-[12.5px] font-medium text-[var(--color-ink-soft)]">Pay</span>
+              <div className="billing-cadence-toggle">
+                <button type="button" className={billingInterval === "monthly" ? "selected" : ""} onClick={() => setBillingInterval("monthly")}>Monthly</button>
+                <button type="button" className={billingInterval === "yearly" ? "selected" : ""} onClick={() => setBillingInterval("yearly")}>Yearly · save 17%</button>
+              </div>
+            </div>
+
             {/* Plan cards with pricing */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
               {/* Free plan */}
@@ -1022,12 +1034,12 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
               {/* Plus plan */}
               <div className={`rounded-xl border ${planFeature?.id === 'plus' ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)]' : 'border-[var(--color-border)] bg-[var(--color-surface)]'} p-3`}>
                 <p className="font-semibold text-[14px] text-[var(--color-ink)]">FamOS Plus</p>
-                <p className="font-[var(--font-display)] text-[24px] font-bold text-[var(--color-accent)] mt-1">$14.99<span className="text-[12px] font-normal text-[var(--color-ink-faint)]">/mo</span></p>
-                <p className="text-[11px] text-[var(--color-ink-faint)]">$149/year (save 17%)</p>
+                <p className="font-[var(--font-display)] text-[24px] font-bold text-[var(--color-accent)] mt-1">${billingInterval === "yearly" ? "149" : "14.99"}<span className="text-[12px] font-normal text-[var(--color-ink-faint)]">/{billingInterval === "yearly" ? "yr" : "mo"}</span></p>
+                <p className="text-[11px] text-[var(--color-ink-faint)]">{billingInterval === "yearly" ? "$14.99/mo equivalent" : "$149/year (save 17%)"}</p>
                 <p className="text-[12px] text-[var(--color-ink-soft)] mt-2">Calendar sync, recipes, meal planning</p>
                 {(!planFeature || planFeature.id !== 'plus') && (
-                  <button type="button" className="mt-3 w-full rounded-lg bg-[var(--color-accent)] text-white text-[13px] font-semibold py-2 px-3 hover:opacity-90 transition-opacity" onClick={() => addPaidFeature('plus')} disabled={billingBusy || !isMasterOwner}>
-                    {billingBusy ? "Processing…" : "Upgrade to Plus"}
+                  <button type="button" className="mt-3 w-full rounded-lg bg-[var(--color-accent)] text-white text-[13px] font-semibold py-2 px-3 hover:opacity-90 transition-opacity" onClick={() => addPaidFeature('plus', billingInterval)} disabled={billingBusy || !isMasterOwner}>
+                    {billingBusy ? "Processing…" : `Upgrade to Plus (${billingInterval === "yearly" ? "yearly" : "monthly"})`}
                   </button>
                 )}
                 {planFeature?.id === 'plus' && (
@@ -1038,12 +1050,12 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
               {/* Pro plan */}
               <div className={`rounded-xl border ${planFeature?.id === 'pro' ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)]' : 'border-[var(--color-border)] bg-[var(--color-surface)]'} p-3`}>
                 <p className="font-semibold text-[14px] text-[var(--color-ink)]">FamOS Pro</p>
-                <p className="font-[var(--font-display)] text-[24px] font-bold text-[var(--color-accent)] mt-1">$19.99<span className="text-[12px] font-normal text-[var(--color-ink-faint)]">/mo</span></p>
-                <p className="text-[11px] text-[var(--color-ink-faint)]">$199/year (save 17%)</p>
+                <p className="font-[var(--font-display)] text-[24px] font-bold text-[var(--color-accent)] mt-1">${billingInterval === "yearly" ? "199" : "19.99"}<span className="text-[12px] font-normal text-[var(--color-ink-faint)]">/{billingInterval === "yearly" ? "yr" : "mo"}</span></p>
+                <p className="text-[11px] text-[var(--color-ink-faint)]">{billingInterval === "yearly" ? "$19.99/mo equivalent" : "$199/year (save 17%)"}</p>
                 <p className="text-[12px] text-[var(--color-ink-soft)] mt-2">Higher limits, priority support</p>
                 {(!planFeature || planFeature.id !== 'pro') && (
-                  <button type="button" className="mt-3 w-full rounded-lg bg-[var(--color-accent)] text-white text-[13px] font-semibold py-2 px-3 hover:opacity-90 transition-opacity" onClick={() => addPaidFeature('pro')} disabled={billingBusy || !isMasterOwner}>
-                    {billingBusy ? "Processing…" : "Upgrade to Pro"}
+                  <button type="button" className="mt-3 w-full rounded-lg bg-[var(--color-accent)] text-white text-[13px] font-semibold py-2 px-3 hover:opacity-90 transition-opacity" onClick={() => addPaidFeature('pro', billingInterval)} disabled={billingBusy || !isMasterOwner}>
+                    {billingBusy ? "Processing…" : `Upgrade to Pro (${billingInterval === "yearly" ? "yearly" : "monthly"})`}
                   </button>
                 )}
                 {planFeature?.id === 'pro' && (

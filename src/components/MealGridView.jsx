@@ -42,7 +42,14 @@ export function MealGridView({
         {weekDays.map((date) => {
           const isToday = date === todayISO();
           return (
-            <div key={date} className={`meal-grid-day-header ${isToday ? "is-today" : ""}`}>
+            <button
+              key={date}
+              type="button"
+              className={`meal-grid-day-header ${isToday ? "is-today" : ""}`}
+              onClick={() => openEditor(date, "dinner")}
+              aria-label={`Plan meals for ${formatDayLabel(date)}`}
+              title={`Plan meals for ${formatDayLabel(date)}`}
+            >
               <p className="font-[var(--font-display)] font-semibold text-[14px] text-[var(--color-ink)]">
                 {formatDayLabel(date)}
               </p>
@@ -51,7 +58,7 @@ export function MealGridView({
                   Today
                 </span>
               )}
-            </div>
+            </button>
           );
         })}
       </div>

@@ -23,6 +23,10 @@ Deno.serve(async (req) => {
     if (!features.length) return reply({ error: "Choose a plan to upgrade to." }, 400);
 
     const planFeature = features[0];
+    // Billing cadence: "yearly" pre-pays the full year via the yearly item
+    // price (its Chargebee billing period is 1 year); anything else is monthly.
+    const billing = input.billing === "yearly" ? "yearly" : "monthly";
+    const itemPriceId = featureItemPrice(billing === "yearly" ? `${planFeature}_yearly` : planFeature);
     const frontend = Deno.env.get("FRONTEND_URL") || "https://home.fam-os.app";
     const { data: current } = await admin.from("account_subscriptions").select("chargebee_subscription_id").eq("household_id", membership.household_id).maybeSingle();
     const form = new URLSearchParams();
@@ -32,14 +36,14 @@ Deno.serve(async (req) => {
 
     if (current?.chargebee_subscription_id) {
       form.set("subscription[id]", current.chargebee_subscription_id);
-      form.set("subscription_items[item_price_id][0]", featureItemPrice(planFeature));
+      form.set("subscription_items[item_price_id][0]", itemPriceId);
       form.set("subscription_items[quantity][0]", "1");
       form.set("replace_items_list", "true");
       const result = await chargebeeRequest("/hosted_pages/checkout_existing_for_items", form);
       return reply({ url: result?.hosted_page?.url });
     }
 
-    form.set("subscription_items[item_price_id][0]", featureItemPrice(planFeature));
+    form.set("subscription_items[item_price_id][0]", itemPriceId);
     form.set("subscription_items[quantity][0]", "1");
     form.set("customer[id]", membership.household_id);
     form.set("customer[email]", auth.user.email || "");

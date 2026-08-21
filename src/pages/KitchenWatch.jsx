@@ -68,6 +68,9 @@ export default function KitchenWatch() {
   const [error, setError] = useState("");
   const [draft, setDraft] = useState(emptyDraft);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  // Non-null when the modal is editing an existing item (e.g. "Change date")
+  // rather than adding a brand-new one — so save updates instead of duplicating.
+  const [editingItemId, setEditingItemId] = useState(null);
 
   const watchedItems = useMemo(() => items.filter((item) => isWatched(item.category)), [items]);
   const inventoriedSourceIds = useMemo(() => new Set(items.map((item) => item.sourceGroceryId).filter(Boolean)), [items]);
@@ -104,9 +107,10 @@ export default function KitchenWatch() {
 
   const expiringCount = grouped.expired.length + grouped.soon.length;
 
-  const openDraft = (item = null, nextLocation = "fridge") => {
+  const openDraft = (item = null, nextLocation = "fridge", isEdit = false) => {
     const category = item ? categorizeGroceryItem(item.name, item.category) : KITCHEN_WATCH_CATEGORIES[0];
-    setDraft(item ? { ...emptyDraft, name: item.name, quantity: item.quantity || 1, unit: item.unit || "", location: nextLocation, sourceGroceryId: item.id, category: isWatched(category) ? category : KITCHEN_WATCH_CATEGORIES[0], brand: item.brand || "", barcode: item.barcode || "", imageUrl: item.imageUrl || "" } : { ...emptyDraft });
+    setDraft(item ? { ...emptyDraft, name: item.name, quantity: item.quantity || 1, unit: item.unit || "", location: nextLocation, expiresOn: isEdit ? item.expiresOn || "" : "", sourceGroceryId: isEdit ? null : item.id, category: isWatched(category) ? category : KITCHEN_WATCH_CATEGORIES[0], brand: item.brand || "", barcode: item.barcode || "", imageUrl: item.imageUrl || "" } : { ...emptyDraft });
+    setEditingItemId(isEdit ? item.id : null);
     setError("");
     setAdding(true);
   };
@@ -115,10 +119,16 @@ export default function KitchenWatch() {
     if (!draft.name.trim() || !draft.expiresOn || saving) return;
     setSaving(true); setError("");
     try {
-      await addItem({ ...draft, name: draft.name.trim() });
-      setDraft(emptyDraft); setAdding(false);
+      if (editingItemId) {
+        // Change-date flow: update the existing item's expiry (and location)
+        // instead of adding a new row or bumping the quantity.
+        await updateItem(editingItemId, { expiresOn: draft.expiresOn, location: draft.location });
+      } else {
+        await addItem({ ...draft, name: draft.name.trim() });
+      }
+      setDraft(emptyDraft); setEditingItemId(null); setAdding(false);
     } catch (saveError) {
-      setError(saveError?.message || "This item could not be added.");
+      setError(saveError?.message || "This item could not be saved.");
     } finally { setSaving(false); }
   };
 
@@ -198,7 +208,7 @@ export default function KitchenWatch() {
                       {item.quantity > 1 && ` · x${item.quantity}${item.unit ? ` ${item.unit}` : ""}`}
                     </p>
                     <div className="kw-card-actions">
-                      <button type="button" className="kw-change-date-btn" onClick={() => openDraft(item, item.location)}>
+                      <button type="button" className="kw-change-date-btn" onClick={() => openDraft(item, item.location, true)}>
                         <CalendarClock size={14}/> Change date
                       </button>
                     </div>
@@ -218,15 +228,15 @@ export default function KitchenWatch() {
 
     {watchedItems.length > 0 && filteredItems.length === 0 && query && <div className="kw-empty"><Search size={24}/><p>No items match "{query}"</p></div>}
 
-    <Modal open={adding} onClose={() => { if (!saving) { setAdding(false); setError(""); } }} title="Add fresh food">
-      <p className="kw-modal-intro">Track produce, dairy, meat, bakery, and deli items that can spoil.</p>
+    <Modal open={adding} onClose={() => { if (!saving) { setAdding(false); setError(""); setEditingItemId(null); } }} title={editingItemId ? "Change date" : "Add fresh food"}>
+      <p className="kw-modal-intro">{editingItemId ? "Update when this item needs to be used by." : "Track produce, dairy, meat, bakery, and deli items that can spoil."}</p>
       <TextField label="Item" placeholder="e.g. Milk, chicken, strawberries" value={draft.name} onChange={(e) => setDraft((c) => ({ ...c, name: e.target.value }))}/>
       <div className="kw-modal-grid"><label className="kw-select-field"><span>Category</span><select value={draft.category} onChange={(e) => setDraft((c) => ({ ...c, category: e.target.value }))}>{KITCHEN_WATCH_CATEGORIES.map((cat) => <option key={cat}>{cat}</option>)}</select></label><TextField label="Brand (optional)" placeholder="e.g. Compliments" value={draft.brand} onChange={(e) => setDraft((c) => ({ ...c, brand: e.target.value }))}/></div>
       <div className="kw-modal-grid"><TextField label="Quantity" inputMode="decimal" value={draft.quantity} onChange={(e) => setDraft((c) => ({ ...c, quantity: Math.max(Number(e.target.value) || 1, 1) }))}/><TextField label="Unit (optional)" placeholder="bag, carton, lb" value={draft.unit} onChange={(e) => setDraft((c) => ({ ...c, unit: e.target.value }))}/></div>
       <label className="kw-location-select"><span>Store in</span><div>{[["fridge","Fridge",Refrigerator],["freezer","Freezer",Snowflake],["pantry","Pantry",Package]].map(([id,label,Icon]) => <button type="button" key={id} className={draft.location === id ? "selected" : ""} onClick={() => setDraft((c) => ({ ...c, location: id }))}><Icon size={15}/>{label}</button>)}</div></label>
       <DateField label="Use by or best before" value={draft.expiresOn} onChange={(expiresOn) => setDraft((c) => ({ ...c, expiresOn }))}/>
       {error && <p className="kw-error" role="alert">{error}</p>}
-      <PrimaryButton onClick={saveItem} disabled={saving || !draft.name.trim() || !draft.expiresOn}>{saving ? "Adding…" : "Start watching"}</PrimaryButton>
+      <PrimaryButton onClick={saveItem} disabled={saving || !draft.name.trim() || !draft.expiresOn}>{saving ? "Saving…" : editingItemId ? "Save date" : "Start watching"}</PrimaryButton>
     </Modal>
 
     <Modal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} title={`Remove ${confirmDelete?.name || ""}?`}>
