@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { AlertTriangle, ChefHat, Croissant, Drumstick, Milk, Minus, Package, Plus, Refrigerator, Search, Snowflake, X, Carrot, Sandwich, Trash2, Clock, Leaf, CalendarClock } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
+import { Avatar } from "../components/ui";
 import useKitchenInventory from "../hooks/useKitchenInventory";
 import { daysUntilExpiry, toLocalDay } from "../lib/inventoryExpiry";
 import { categorizeGroceryItem } from "../lib/groceryCategories";
@@ -59,7 +60,7 @@ const GROUP_META = {
 
 export default function KitchenWatch() {
   const { household, user } = useAuth();
-  const { groceries, addGrocery, refreshData } = useFamily();
+  const { groceries, addGrocery, refreshData, memberById } = useFamily();
   const { items, addItem, updateItem, removeItem } = useKitchenInventory(household?.id, user?.id);
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
@@ -191,7 +192,13 @@ export default function KitchenWatch() {
                       <CatIcon size={14} style={{ color: "var(--color-ink-soft)" }} />
                       <span className="kw-card-cat-label">{item.category}</span>
                     </div>
-                    <h4 className="kw-card-name">{item.name}</h4>
+                    <div className="kw-card-name-row">
+                      <h4 className="kw-card-name">{item.name}</h4>
+                      {(() => {
+                        const adder = memberById[item.addedBy];
+                        return adder ? <Avatar member={adder} size="xs" title={`Added by ${adder.name}`} /> : null;
+                      })()}
+                    </div>
                     {expiryText && (
                       <p className={`kw-card-expiry ${isExpired ? "kw-card-expiry--expired" : ""} ${isSoon ? "kw-card-expiry--soon" : ""}`}>
                         {expiryText}

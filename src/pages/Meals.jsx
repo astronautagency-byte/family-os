@@ -692,7 +692,7 @@ export default function Meals() {
 
   const saveRecipeToLibrary = (recipeToSave = cookRecipe) => {
     if (!recipeToSave?.title) return;
-    const saved = normaliseSavedRecipe(recipeToSave);
+    const saved = normaliseSavedRecipe({ ...recipeToSave, savedById: user?.id || null });
     setSavedRecipes((current) => [saved, ...current.filter((recipe) => recipeKey(recipe) !== saved.id)]);
   };
 
@@ -878,6 +878,10 @@ export default function Meals() {
                   <button className="saved-recipe-main" onClick={() => openSavedRecipe(savedRecipe)}>
                     <span className="saved-recipe-media">
                       {savedRecipe.thumbnail ? <img src={savedRecipe.thumbnail} alt="" loading="lazy" /> : <ImageIcon size={22} aria-hidden="true" />}
+                      {(() => {
+                        const saver = memberById[savedRecipe.savedById];
+                        return saver ? <Avatar member={saver} size="xs" className="saved-recipe-saver" title={`Saved by ${saver.name}`} /> : null;
+                      })()}
                     </span>
                     <span className="saved-recipe-copy">
                       <span>{savedRecipe.title}</span>
