@@ -6569,267 +6569,13 @@ reference-tasks,
   color: var(--color-accent);
 }
 
-/* Meal Planner Grid View — Calendar-style grid */
-.meal-grid-view {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  overflow-x: auto;
-  scrollbar-width: thin;
-  -webkit-overflow-scrolling: touch;
-}
-
-.meal-grid-header {
-  display: grid;
-  grid-template-columns: 80px repeat(7, 1fr);
-  gap: 8px;
-  padding: 0 4px;
-  min-width: 840px;
-}
-
-.meal-grid-corner {
-  padding: 8px 4px;
-}
-
-.meal-grid-time-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-ink-faint);
-}
-
-.meal-grid-day-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 4px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-control);
-  cursor: pointer;
-  font: inherit;
-  transition: border-color 0.15s ease, background 0.15s ease;
-}
-
-.meal-grid-day-header:hover {
-  border-color: var(--color-accent);
-}
-
-.meal-grid-day-header.is-today {
-  border-color: var(--color-accent);
-  background: var(--color-accent-soft);
-}
-
-.meal-grid-day-header p {
-  margin: 0;
-  text-align: center;
-}
-
-.meal-grid-body {
-  display: grid;
-  grid-template-columns: 80px repeat(7, 1fr);
-  gap: 8px;
-  min-width: 840px;
-}
-
-.meal-grid-corner {
-  position: sticky;
-  left: 0;
-  z-index: 2;
-  background: var(--color-canvas);
-}
-
-.meal-grid-slot-label {
-  position: sticky;
-  left: 0;
-  z-index: 2;
-}
-
-.meal-grid-row {
-  display: contents;
-}
-
-.meal-grid-slot-label {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 4px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-control);
-  border-left-width: 3px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  writing-mode: vertical-lr;
-  text-orientation: mixed;
-  height: 100%;
-  min-height: 120px;
-}
-
-.meal-grid-cell {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-control);
-  min-height: 100px;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-
-.meal-grid-cell:hover {
-  border-color: var(--color-accent);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.meal-grid-cell-filled {
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.meal-grid-cell-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.meal-grid-cell-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-ink);
-  line-height: 1.3;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.meal-grid-cell-avatars {
-  flex: 0 0 auto;
-}
-
-.meal-grid-cell-actions {
-  display: flex;
-  gap: 4px;
-  margin-top: auto;
-  padding-top: 8px;
-  border-top: 1px solid var(--color-border);
-}
-
-.meal-grid-action-btn {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  color: var(--color-ink-faint);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  flex: 0 0 28px;
-}
-
-.meal-grid-action-btn:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-  background: var(--color-accent-soft);
-}
-
-.meal-grid-action-btn.meal-cook-mode-btn:hover {
-  border-color: var(--color-accent);
-  color: var(--color-on-accent);
-  background: var(--color-accent);
-}
-
-.meal-grid-action-btn.meal-delete-btn:hover {
-  border-color: var(--color-warn);
-  color: var(--color-warn);
-  background: color-mix(in srgb, var(--color-warn) 6%, var(--color-surface));
-}
-
-.meal-grid-cell-empty {
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.meal-grid-cell-input-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-.meal-grid-cell-input {
-  flex: 1;
-  border: 0;
-  background: transparent;
-  color: var(--color-ink);
-  font-size: 12px;
-  outline: none;
-}
-
-.meal-grid-cell-input::placeholder {
-  color: var(--color-ink-faint);
-}
-
-.meal-grid-cell-actions {
-  display: flex;
-  gap: 4px;
-  margin-top: auto;
-  padding-top: 8px;
-  border-top: 1px solid var(--color-border);
-}
-
 .meal-plan-toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 2px;
-}
-
-.meal-view-toggle {
-  display: flex;
-  gap: 8px;
-  padding: 8px 0;
-  margin-left: auto;
-}
-
-.meal-view-toggle button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-tag);
-  background: var(--color-surface);
-  color: var(--color-ink-soft);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.meal-view-toggle button:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-}
-
-.meal-view-toggle button.selected {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-  color: var(--color-on-accent);
 }
 
 .meal-range-toggle button {
@@ -6853,92 +6599,6 @@ reference-tasks,
   background: var(--color-accent);
   border-color: var(--color-accent);
   color: var(--color-on-accent);
-}
-
-/* Responsive adjustments — on narrow screens the calendar grid keeps its
-   day-column structure but becomes horizontally scrollable (min-width
-   columns) instead of crushing seven days into unusably thin cells. The
-   time/slot column stays pinned left so the row label is always visible. */
-@media (max-width: 700px) {
-  .meal-grid-view {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
-  }
-
-  .meal-grid-header,
-  .meal-grid-body {
-    grid-template-columns: 60px repeat(7, minmax(92px, 1fr));
-    gap: 6px;
-    min-width: 704px;
-  }
-
-  .meal-grid-corner {
-    position: sticky;
-    left: 0;
-    z-index: 2;
-    background: var(--color-canvas);
-  }
-
-  .meal-grid-slot-label {
-    writing-mode: horizontal-tb;
-    text-orientation: mixed;
-    height: auto;
-    min-height: auto;
-    padding: 6px 4px;
-    font-size: 10px;
-    position: sticky;
-    left: 0;
-    z-index: 2;
-  }
-
-  .meal-grid-cell {
-    min-height: 80px;
-  }
-
-  .meal-grid-action-btn {
-    width: 24px;
-    height: 24px;
-  }
-
-  .meal-grid-cell-title {
-    font-size: 11px;
-  }
-
-  .meal-grid-cell-input {
-    font-size: 11px;
-  }
-}
-
-@media (max-width: 480px) {
-  .meal-grid-header,
-  .meal-grid-body {
-    grid-template-columns: 56px repeat(7, minmax(84px, 1fr));
-    gap: 4px;
-    min-width: 648px;
-  }
-
-  .meal-grid-slot-label {
-    font-size: 9px;
-    padding: 4px 2px;
-  }
-
-  .meal-grid-cell {
-    min-height: 72px;
-  }
-
-  .meal-grid-cell-title {
-    font-size: 10px;
-  }
-
-  .meal-grid-action-btn {
-    width: 22px;
-    height: 22px;
-  }
-
-  .meal-grid-cell-input {
-    font-size: 10px;
-  }
 }
 
 /* Modern easing curves */
@@ -7378,20 +7038,18 @@ input:focus, textarea:focus, select:focus {
 }
 
 /* ── Final mobile overrides ──
-   Meal toolbar: week toggle + view toggle stay on one line; buttons never
-   wrap internally. Page titles cap at 20px on phones. */
+   Meal toolbar: week toggle stays on one line; buttons never wrap
+   internally. Page titles cap at 20px on phones. */
 @media (max-width: 700px) {
   .meal-plan-toolbar {
     flex-wrap: nowrap;
     align-items: center;
   }
-  .meal-plan-toolbar .meal-range-toggle,
-  .meal-plan-toolbar .meal-view-toggle {
+  .meal-plan-toolbar .meal-range-toggle {
     flex: 1 1 auto;
     min-width: 0;
   }
-  .meal-plan-toolbar .meal-range-toggle button,
-  .meal-plan-toolbar .meal-view-toggle button {
+  .meal-plan-toolbar .meal-range-toggle button {
     white-space: nowrap;
     padding: 8px 10px;
     font-size: 11.5px;

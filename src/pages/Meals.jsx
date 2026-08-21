@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, BarChart3, Bookmark, CalendarPlus, Check, ChefHat, Clock, Coffee, Dices, Image as ImageIcon, LayoutGrid, LayoutList, ListChecks, Mic, MicOff, Pencil, Plus, ShoppingCart, Soup, Sparkles, Trash2, Users, X } from "lucide-react";
+import { ArrowLeft, BarChart3, Bookmark, CalendarPlus, Check, ChefHat, Clock, Coffee, Dices, Image as ImageIcon, ListChecks, Mic, MicOff, Pencil, Plus, ShoppingCart, Soup, Sparkles, Trash2, Users, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, AvatarStack, Card, Modal, PrimaryButton, ProgressBar, SecondaryButton, TextField, colorVar } from "../components/ui";
@@ -21,7 +21,6 @@ import useVoiceCommands, { requestScreenWakeLock } from "../hooks/useVoiceComman
 import useKitchenInventory from "../hooks/useKitchenInventory";
 import { SHARED_RECIPE_KEY } from "../lib/sharedContent";
 import { lockBodyScroll } from "../lib/bodyScrollLock";
-import { MealGridView } from "../components/MealGridView";
 
 function ShelfLifeRing({ progress, size = 90, strokeWidth = 7 }) {
   const radius = (size - strokeWidth) / 2;
@@ -64,7 +63,10 @@ const DIETARY_PREFERENCES_KEY = "famos:dietary-preferences:v1";
 
 const friendlyRecipeSearchError = (error) => {
   const message = error?.message || String(error || "");
-  if (/quota|429|402/i.test(message)) return "Recipe suggestions have reached today’s provider limit. Your existing meal plan is safe—try again a little later.";
+  // Match the monthly allowance gate too — its message reads “Monthly
+  // allowance reached…”, which must land here and not in the /reach|network/
+  // branch below.
+  if (/quota|429|402|allowance|limit/i.test(message)) return "Recipe ideas have hit your household’s monthly allowance for this month. It resets on the 1st — your existing meal plan is safe.";
   if (/configured|api.?key/i.test(message)) return "Recipe suggestions need the Spoonacular connection configured by your FamOS admin.";
   if (/session|sign in|401|403/i.test(message)) return "Your session needs refreshing. Sign in again, then retry the meal ideas.";
   if (/reach|network|offline|fetch/i.test(message)) return "Recipe suggestions are temporarily offline. Check your connection and try again.";
@@ -193,7 +195,6 @@ export default function Meals() {
   const { items: inventoryItems, ingredientNames: inventoryIngredientNames, removeItem: removeInventoryItem } = useKitchenInventory(household?.id, user?.id);
   const [horizon, setHorizon] = useState(7);
   const [clearing, setClearing] = useState(false);
-  const [viewMode, setViewMode] = useState("list");
   const [editing, setEditing] = useState(null); // { date, slot, mealId }
   const [previewMeal, setPreviewMeal] = useState(null);
   const [draft, setDraft] = useState({ title: "", notes: "", cookIds: [] });
@@ -473,7 +474,7 @@ export default function Meals() {
         totalResults: Number(data?.totalResults || list.length),
       });
     } catch (error) {
-      const quotaLimited = /quota|429|402/i.test(error?.message || "");
+      const quotaLimited = /quota|429|402|allowance|limit/i.test(error?.message || "");
       const savedFallback = quotaLimited ? savedRecipes.slice(0, 3) : [];
       setRouletteError(savedFallback.length
         ? "The recipe provider is taking a breather, so here are ideas you already saved."
@@ -690,26 +691,6 @@ export default function Meals() {
     setPlanningRecipe(null);
   };
 
-  // View definitions (defined before return so they can use kitchenIngredients)
-  const gridView = (
-    <div className="px-5">
-      <MealGridView
-        weekDays={weekDays}
-        mealFor={mealFor}
-        memberById={memberById}
-        SLOT_ORDER={SLOT_ORDER}
-        SLOT_META={SLOT_META}
-        kitchenIngredients={kitchenIngredients}
-        rouletteForSlot={rouletteForSlot}
-        setMealForSlot={setMealForSlot}
-        openEditor={openEditor}
-        openCookRecipe={openCookRecipe}
-        saveRecipeToLibrary={saveRecipeToLibrary}
-        removeMeal={removeMeal}
-      />
-    </div>
-  );
-
   // Use a single object to track all inline inputs instead of individual useState calls
   const [inlineInputs, setInlineInputs] = useState({});
   const handleInlineAdd = (date, slot, e) => {
@@ -810,10 +791,9 @@ export default function Meals() {
 
       <div className="meal-plan-toolbar px-5" aria-label="Meal plan controls">
         <div className="meal-range-toggle" aria-label="Meal planning range"><button className={horizon===7?"selected":""} onClick={()=>setHorizon(7)}>1 week</button><button className={horizon===14?"selected":""} onClick={()=>setHorizon(14)}>2 weeks</button></div>
-        <div className="meal-view-toggle" aria-label="Meal plan view"><button className={viewMode==="list"?"selected":""} onClick={()=>setViewMode("list")}><LayoutList size={14}/> List</button><button className={viewMode==="grid"?"selected":""} onClick={()=>setViewMode("grid")}><LayoutGrid size={14}/> Grid</button></div>
       </div>
 
-      {viewMode === "grid" ? gridView : listView}
+      {listView}
 
       {savedRecipes.length > 0 && (
         <section className="saved-recipes-section" aria-label="Saved recipes">

@@ -82,7 +82,13 @@ const buildSearchParams = ({ query = "", ingredients = "", cuisine = "", mealTyp
   if (diets.length) params.set("diet", diets.join(","));
   if (intolerances.length) params.set("intolerances", intolerances.join(","));
   if (avoidIngredients) params.set("excludeIngredients", cleanText(avoidIngredients, 200));
-  if (mealType) params.set("type", mealType === "dinner" ? "main course" : cleanText(mealType, 40));
+  // Spoonacular's complexSearch only accepts a fixed set of meal types
+  // (breakfast, main course, side dish, …). "lunch" is not one of them, so
+  // map breakfast/lunch/dinner slots onto valid values.
+  if (mealType) {
+    const spoonacularType = { breakfast: "breakfast", lunch: "main course", dinner: "main course" }[cleanText(mealType, 40)];
+    if (spoonacularType) params.set("type", spoonacularType);
+  }
   const safeOffset = Math.min(Math.max(Math.trunc(Number(offset) || 0), 0), 900);
   const safeNumber = Math.min(Math.max(Math.trunc(Number(number) || DEFAULT_RESULT_LIMIT), 1), MAX_RESULT_LIMIT);
   if (safeOffset) params.set("offset", String(safeOffset));

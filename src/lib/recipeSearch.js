@@ -70,7 +70,7 @@ export async function searchRecipes(payload = {}, { force = false } = {}) {
       return data;
     })
     .catch((error) => {
-      if (/quota|429|402/i.test(error?.message || "")) {
+      if (/quota|429|402|allowance|limit/i.test(error?.message || "")) {
         const fallback = exact && now - exact.savedAt <= STALE_FOR_MS
           ? { ...exact.data, cached: true, providerLimited: true }
           : cachedFallback(cache, request, now);

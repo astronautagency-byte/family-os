@@ -3,7 +3,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 export type UsageMetric = "famai_queries" | "premium_api_operations";
 const limits: Record<UsageMetric, { env: string; fallback: number }> = {
   famai_queries: { env: "CHARGEBEE_FAMAI_QUERY_LIMIT", fallback: 100 },
-  premium_api_operations: { env: "CHARGEBEE_PREMIUM_OPERATION_LIMIT", fallback: 50 },
+  // Fallback is intentionally generous but finite: recipe-search is metered
+  // per household per month so one heavy family can't burn through the
+  // shared Spoonacular key. Paid plans raise this via
+  // CHARGEBEE_PREMIUM_OPERATION_LIMIT.
+  premium_api_operations: { env: "CHARGEBEE_PREMIUM_OPERATION_LIMIT", fallback: 200 },
 };
 
 export const usageAllowance = (metric: UsageMetric) => {
