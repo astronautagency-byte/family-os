@@ -1779,6 +1779,13 @@ export function FamilyProvider({ children, tabletMode = false }) {
     setGoogleLastSynced(null);
     setGoogleStatus("idle");
     setGoogleError(null);
+    // Forget the durable refresh token too — otherwise the mount-time status
+    // probe would report "connected" again on the next page load and silently
+    // re-connect the calendar the user just disconnected.
+    if (remote && user?.id) {
+      invokeEdgeFunction("google-calendar-token", { action: "disconnect" }).catch(() => {});
+      try { localStorage.removeItem("family-os:google-refresh-token"); } catch { /* best-effort */ }
+    }
   };
 
   // ---- Published iCal feeds (Apple/iCloud, Outlook, and other calendar providers) ----

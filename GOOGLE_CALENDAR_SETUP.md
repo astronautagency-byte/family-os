@@ -16,8 +16,18 @@ fresh access tokens from it server-side.
 
 ### What's already wired in the app
 - After connecting Google, the client posts `session.provider_refresh_token` to
-  the `google-calendar-token` edge function (`action: "store"`) — best-effort,
-  a silent no-op until the function is deployed.
+  the `google-calendar-token` edge function (`action: "store"`). Because Google
+  only exposes that refresh token once (right after consent), the client now:
+  1. persists the token locally (`family-os:google-refresh-token`),
+  2. retries the backend store with backoff (up to 3 retries), and
+  3. re-uploads a persisted-but-unconfirmed token on the next page load
+     (a "healing pass" that checks `status` first), so a transient store
+     failure can never silently strand the connection.
+- Tapping **Connect** when the identity is linked but the durable token is
+  missing now forces a fresh Google consent (instead of claiming "connected"
+  while every sync 409s) — this was the recurring "keeps disconnecting" loop.
+- **Disconnect** now also deletes the durable backend token, so the status probe
+  can't silently re-connect the calendar the user just disconnected.
 - `syncGoogleCalendarNow()` asks the function for a fresh token
   (`action: "token"`) before falling back to the old expiring token.
 - Expired tokens now surface a real **Reconnect Google** button (previously it

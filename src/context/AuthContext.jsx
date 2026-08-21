@@ -427,13 +427,48 @@ export function AuthProvider({ children }) {
     if (!supabase) return undefined;
     // Capture the long-lived Google refresh token the one time Supabase exposes
     // it (right after OAuth consent) and hand it to the google-calendar-token
-    // edge function for durable storage. Best-effort: silently a no-op until the
-    // backend function is deployed.
+    // edge function for durable storage. The token is only present in the
+    // session immediately after consent, so if the store call fails even once
+    // (cold start, transient network, function not yet deployed) the connection
+    // would silently die an hour later and force a reconnect. We therefore:
+    //   1. persist the token locally first, so a later page load can re-store,
+    //   2. retry the backend store with backoff,
+    //   3. drop the local copy only once the backend confirms it stored.
+    const GOOGLE_REFRESH_TOKEN_KEY = "family-os:google-refresh-token";
+    const storeRefreshToken = (refreshToken, attempt = 0) => {
+      invokeEdgeFunction("google-calendar-token", { action: "store", refresh_token: refreshToken, scope: "" })
+        .then(() => {
+          try { localStorage.removeItem(GOOGLE_REFRESH_TOKEN_KEY); } catch { /* best-effort */ }
+        })
+        .catch(() => {
+          if (attempt < 3) {
+            setTimeout(() => storeRefreshToken(refreshToken, attempt + 1), 1000 * (attempt + 1));
+          }
+        });
+    };
     const captureGoogleRefreshToken = (activeSession) => {
       const refreshToken = activeSession?.provider_refresh_token;
       if (!refreshToken) return;
-      invokeEdgeFunction("google-calendar-token", { action: "store", refresh_token: refreshToken, scope: "" }).catch(() => {});
+      try { localStorage.setItem(GOOGLE_REFRESH_TOKEN_KEY, refreshToken); } catch { /* best-effort */ }
+      storeRefreshToken(refreshToken);
     };
+    // Healing pass: a refresh token captured on a previous visit but never
+    // confirmed stored (app closed before the retry finished, transient 5xx)
+    // is re-uploaded on the next page load so the connection never lapses.
+    (async () => {
+      try {
+        const persisted = localStorage.getItem(GOOGLE_REFRESH_TOKEN_KEY);
+        if (!persisted) return;
+        const status = await invokeEdgeFunction("google-calendar-token", { action: "status" });
+        if (!status?.connected) {
+          storeRefreshToken(persisted);
+        } else {
+          try { localStorage.removeItem(GOOGLE_REFRESH_TOKEN_KEY); } catch { /* best-effort */ }
+        }
+      } catch {
+        /* keep the persisted token for a later retry */
+      }
+    })();
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       if (data.session?.provider_token) {
@@ -660,6 +695,13 @@ export function AuthProvider({ children }) {
         if (status?.connected) {
           return { reused: true, identity: existing };
         }
+        // The identity is linked but the durable refresh token is gone (or was
+        // never stored) — reusing it would let the app claim "connected" while
+        // every sync 409s with reconnect_required, which is the recurring
+        // "keeps disconnecting / asks to reconnect every time" bug. Force a
+        // fresh consent so Google issues a new refresh token we can capture.
+        await performGoogleOAuthLink({ force: true });
+        return undefined;
       } catch {
         // Edge function unreachable / not deployed yet. The identity is still
         // linked — reuse it without OAuth redirect.
