@@ -397,6 +397,7 @@ export default function Meals() {
   const [rouletteOptions, setRouletteOptions] = useState(null); // { date, slot, recipes[] }
   const [rouletteBusy, setRouletteBusy] = useState(false);
   const [rouletteError, setRouletteError] = useState("");
+  const [rouletteCosts, setRouletteCosts] = useState({}); // { [recipeId]: costData }
   const [rouletteCuisine, setRouletteCuisine] = useState(null); // null = any cuisine
   const [savedRecipes, setSavedRecipes] = useState(() => readStoredJson(SAVED_RECIPES_KEY, []));
   const [planningRecipe, setPlanningRecipe] = useState(null);
@@ -1044,7 +1045,7 @@ export default function Meals() {
       />
 
       {/* Meal ideas — Spoonacular results are filtered to the selected meal slot. */}
-      <Modal open={!!rouletteOptions} onClose={() => setRouletteOptions(null)} title={rouletteOptions ? `${SLOT_META[rouletteOptions.slot].label} meal ideas` : ""}>
+      <Modal open={!!rouletteOptions} onClose={() => { setRouletteOptions(null); setRouletteCosts({}); }} title={rouletteOptions ? `${SLOT_META[rouletteOptions.slot].label} meal ideas` : ""}>
         <div className="roulette-picker">
           {/* Cuisine chip row — filter the roulette to a specific cuisine type */}
           <div className="roulette-cuisine-chips" role="group" aria-label="Filter roulette by cuisine">
@@ -1131,7 +1132,25 @@ export default function Meals() {
                       {rouletteOptions.kitchenOnly && (recipe.usedIngredientCount > 0 || recipe.missedIngredientCount > 0) && (
                         <small className="roulette-ingredient-match">Uses {recipe.usedIngredientCount} at home · {recipe.missedIngredientCount} missing</small>
                       )}
-                      <small className="roulette-cost-hint">Tap for cost estimate</small>
+                      {rouletteCosts[recipe.id] ? (
+                        <small className="roulette-cost-hint loaded">~{formatCost(rouletteCosts[recipe.id].totalCostPerServing)}/serving</small>
+                      ) : (
+                        <small
+                          className="roulette-cost-hint"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (!recipe.id || rouletteCosts[recipe.id]) return;
+                            try {
+                              const cost = await getRecipeCost(recipe.id);
+                              if (cost?.totalCostPerServing > 0) {
+                                setRouletteCosts((prev) => ({ ...prev, [recipe.id]: cost }));
+                              }
+                            } catch { /* silent */ }
+                          }}
+                        >
+                          Tap for cost estimate
+                        </small>
+                      )}
                     </div>
                     <ChefHat size={16} className="roulette-picker-arrow" />
                   </button>
@@ -1146,7 +1165,7 @@ export default function Meals() {
                     {rouletteBusy ? "Finding more…" : "Load more recipes"}
                   </button>
                 )}
-                <button className="roulette-picker-close" onClick={() => setRouletteOptions(null)}>Cancel</button>
+                <button className="roulette-picker-close" onClick={() => { setRouletteOptions(null); setRouletteCosts({}); }}>Cancel</button>
               </div>
             </>
           )}
