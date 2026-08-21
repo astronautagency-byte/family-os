@@ -127,9 +127,9 @@ export const FEATURES = [
       ],
     },
     tips: [
-      { headline: "Pin to your morning routine", copy: "Set the home tab to show your evening plans first — a gentle nudge when plans change beats a busy chat every time." },
-      { headline: "Use reactions to keep chat quiet", copy: "Tap a heart on routine updates instead of replying — the kitchen conversation stays in the chat, not on every lock screen." },
-      { headline: "One-tap dinner", copy: "If dinner is planned, the hero CTA jumps straight into Cook Mode in one tap. No menu hunting, no friction." },
+      { headline: "Pin to your morning routine", copy: "Set it to show your evening plans first. A gentle nudge when things change — better than a busy chat." },
+      { headline: "Use reactions to keep chat quiet", copy: "Tap a heart instead of replying. The conversation stays in the chat, not on every lock screen." },
+      { headline: "One-tap dinner", copy: "Dinner planned? The hero CTA jumps straight into Cook Mode. One tap. No friction." },
     ],
     ctaHeadline: "Your day at a glance. Whole household, one screen.",
     ctaCopy: "Start your free trial and try the Today dashboard — broadcasts, weather, today's schedule, every meal, tasks, and kitchen reminders on one page.",
@@ -144,8 +144,8 @@ export const FEATURES = [
     tone: "blue",
     pill: "Calendar",
     bullets: [
-      { icon: CalendarDays, title: "Up to five calendars", copy: "Bring in Google, Apple, Outlook, school, sports, or iCal calendars — then choose private or household-shared for each one." },
-      { icon: CalendarPlus, title: "Quick capture",             copy: "Type 'dentist 3pm Wed' — FamOS parses it, prefills the form, and saves in two taps. The full form stays one tap away." },
+      { icon: CalendarDays, title: "Up to five calendars", copy: "Google, Apple, Outlook, school, sports — bring them all in. Choose private or shared for each." },
+      { icon: CalendarPlus, title: "Quick capture",             copy: "Type 'dentist 3pm Wed'. FamOS parses it, prefills everything, saves in two taps." },
       { icon: MapPin,       title: "Real places and directions", copy: "Pick a real place when creating an event, keep the address with the plan, and open directions when it's time to leave." },
       { icon: BellRing,     title: "Two-way Google sync",       copy: "Add it in FamOS — it shows up in Google Calendar. Delete it here — it's gone there. Owner-only events get a delete button right on the card." },
     ],
@@ -160,7 +160,7 @@ export const FEATURES = [
       ],
     },
     tips: [
-      { headline: "Color-code every calendar", copy: "One tint for kids' school, one for your work, one for the family calendar — at a glance you know whose event is whose." },
+      { headline: "Color-code every calendar", copy: "One tint for school, one for work, one for family. At a glance, you know whose event is whose." },
       { headline: "Weather built in", copy: "Outdoor events pull the forecast automatically, so 'soccer practice' comes with a rain badge when it matters." },
       { headline: "Choose what the household sees", copy: "Keep a work feed private, share the school calendar, and switch between one calendar or the combined family view." },
     ],
@@ -177,10 +177,10 @@ export const FEATURES = [
     tone: "pink",
     pill: "Meals",
     bullets: [
-      { icon: ChefHat,       title: "Cook Mode, hands-free",   copy: "Big step-by-step screen with voice commands — say 'next', 'back', or 'finish' so a flour-covered hand never has to touch the phone." },
-      { icon: Sparkles,      title: "Meal ideas by meal type",  copy: "Find breakfast, lunch, dinner, or snack recipes that match what you actually want tonight — not generic suggestions." },
+      { icon: ChefHat,       title: "Cook Mode, hands-free",   copy: "Big step-by-step screen. Voice commands. Flour-covered hands never touch the phone." },
+      { icon: Sparkles,      title: "Meal ideas by meal type",  copy: "Recipes that match what you actually want tonight. Not generic suggestions." },
       { icon: ListChecks,    title: "Recipes you can come back to", copy: "Save recipes with their picture, ingredients, nutrition, and cooking steps so the whole family can find them again." },
-      { icon: ShoppingCart,  title: "Missing ingredients, one tap",  copy: "Each meal card shows what's still needed. Tap and every missing ingredient pushes into the shopping list — no editing required." },
+      { icon: ShoppingCart,  title: "Missing ingredients, one tap",  copy: "One tap. Every missing ingredient lands in the shopping list." },
     ],
     preview: {
       title: "Dinner plan",
@@ -193,8 +193,8 @@ export const FEATURES = [
       ],
     },
     tips: [
-      { headline: "Use what's already home", copy: "Kitchen inventory helps surface useful meal ideas, and Cook Mode asks before using tracked ingredients." },
-      { headline: "Cook Mode is hands-free", copy: "Say 'next', 'back', or 'finish' from across the kitchen — your flour-covered hand never has to touch the phone." },
+      { headline: "Use what's already home", copy: "Cook with what you already have. Cook Mode asks before using tracked ingredients." },
+      { headline: "Cook Mode is hands-free. Say next, back, or finish from across the kitchen." },
       { headline: "One-tap missing ingredients", copy: "Every meal card has a grocery badge — tap it and every missing ingredient pushes straight into the shopping list." },
     ],
     ctaHeadline: "From 'what's for dinner?' to done.",
@@ -226,9 +226,9 @@ export const FEATURES = [
       ],
     },
     tips: [
-      { headline: "Scan in-store", copy: "Tap the camera icon while shopping — point, scan, and the item lands in the right category automatically. Focus-shop picks it up next." },
-      { headline: "Cook Mode ingredients to list", copy: "From any meal card, the grocery badge shows what's still missing — tap once and every ingredient pushes to the list." },
-      { headline: "Use it, then replace it", copy: "Expiry reminders land on Today with a one-tap option to add the item back to the shopping list." },
+      { headline: "Scan in-store", copy: "Tap the camera. Point. Scan. The item lands in the right category automatically." },
+      { headline: "Cook Mode ingredients to list", copy: "One tap from any meal card. Every missing ingredient pushes to the list." },
+      { headline: "Use it, then replace it", copy: "Expiry reminders land on Today. One tap to restock." },
     ],
     ctaHeadline: "The list that follows you home.",
     ctaCopy: "Try Shopping free for 30 days — share the list, scan products, focus in the aisle, then track what reaches the kitchen.",
@@ -246,7 +246,7 @@ export const FEATURES = [
       { icon: ListChecks,   title: "Custom lists or everything", copy: "Create colour-coded task lists, switch between them, or use All Tasks when the whole household needs one view." },
       { icon: Users,        title: "Clear owners",             copy: "Tap a household member to assign the task. Their color shows up everywhere — list, dashboard, weekly view." },
       { icon: BellRing,     title: "Instant sync",             copy: "Mark done on the porch, see the parent's screen update in the kitchen. No refresh, no manual sync." },
-      { icon: FileInput,    title: "Imports you approve",       copy: "Paste or upload items from Apple, Google Tasks, or Microsoft To Do, choose a destination list, and confirm before anything is added." },
+      { icon: FileInput,    title: "Imports you approve",       copy: "Paste from Apple, Google, or Microsoft. Confirm before anything lands." },
     ],
     preview: {
       title: "Today's tasks",
@@ -259,7 +259,7 @@ export const FEATURES = [
       ],
     },
     tips: [
-      { headline: "Quick-add like iPhone Notes", copy: "Type the task, hit Enter. Then tap to edit the assignee, due date, category, and recurring cadence — nothing blocks the first keystroke." },
+      { headline: "Quick-add like iPhone Notes", copy: "Type the task. Hit Enter. Edit the details after. Nothing blocks the first keystroke." },
       { headline: "Streaks beat nagging", copy: "Tap a household member to assign the task — their color shows up everywhere without anyone asking twice." },
       { headline: "Live across every phone", copy: "Mark a task done on the porch, see the parent's screen update in the kitchen. Mark it deleted from one phone — it's gone from every other in under a second." },
     ],
@@ -276,7 +276,7 @@ export const FEATURES = [
     tone: "peach",
     pill: "Chat",
     bullets: [
-      { icon: Megaphone,   title: "Household updates",       copy: "Send a quick heads-up that lives on everyone's home dashboard with reactions — perfect for 'running 10 minutes late' without a notification storm." },
+      { icon: Megaphone,   title: "Household updates",       copy: "A quick heads-up on everyone's dashboard. No notification storm." },
       { icon: Users,       title: "Direct messages",  copy: "Talk to one partner without the kids group-chat ping. Reactions, attachments, and read receipts still work the same way." },
       { icon: ShoppingCart, title: "Smart suggestions", copy: "Mention 'we need butter' (or any grocery, task, or event) and FamOS suggests the right shortcut — tap to push it straight into the right list." },
       { icon: BellRing,    title: "Quiet by default", copy: "Notifications fire only for things that matter: a direct message to you, a household update, or a deadline. The rest stays in the chat." },
@@ -292,7 +292,7 @@ export const FEATURES = [
       ],
     },
     tips: [
-      { headline: "Smart suggestions turn chat into action", copy: "Type 'we need butter' (or any grocery, task, or event keyword) and Chat suggests the right shortcut — tap to push it straight into that list, not the chat itself." },
+      { headline: "Smart suggestions turn chat into action", copy: "Type 'we need butter'. Chat suggests the right shortcut. One tap to the list." },
       { headline: "Household updates without thread noise", copy: "'Running 10 min late' doesn't deserve a notification storm — send an update and everyone sees the banner with one-tap reactions." },
       { headline: "Direct messages without the group ping", copy: "Talk to one partner without pinging the kids group chat — reactions, attachments, read receipts still work the same way." },
     ],
@@ -325,7 +325,7 @@ export const FEATURES = [
       ],
     },
     tips: [
-      { headline: "Cook with what's in the kitchen", copy: "Type 'what can I make with what's checked?' and Fam AI returns meals you can cook right now — soft-tiered so they don't fight your active plan." },
+      { headline: "Cook with what's in the kitchen", copy: "Type what you have. Fam AI finds meals you can cook right now." },
       { headline: "Plan tonight in one sentence", copy: "Type 'help me plan dinner tonight' and you get a recipe that matches the slot, the person, and the day's weather — confirmed, not silently changed." },
       { headline: "Stays quiet until asked", copy: "Fam AI never edits the calendar or shopping list without your confirmation — you're always in control, never silently overwritten." },
     ],
