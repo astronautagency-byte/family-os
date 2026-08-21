@@ -555,7 +555,7 @@ export default function Today({ goTo }) {
 
   return (
     <PullToRefresh onRefresh={refreshAll}>
-    <div className="pb-24 reference-dashboard famos-noscroll">
+    <div className="pb-28 reference-dashboard famos-noscroll">
       <PageHeader
         eyebrow={fullDateLabel(today)}
         title={tabletMode ? `${greetingLabel}, family` : `${greetingLabel}${greetingName ? `, ${greetingName}` : ""}`}

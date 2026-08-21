@@ -826,7 +826,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
   })();
 
   return (
-    <PullToRefresh onRefresh={refreshData}><div className="pb-24 reference-settings famos-noscroll">
+    <PullToRefresh onRefresh={refreshData}><div className="pb-28 reference-settings famos-noscroll">
       <PageHeader eyebrow="Household" title="Settings" illustration="settings" subtitle="Tweak the home base without making it a whole thing." />
 
       <nav className="settings-tab-bar" aria-label="Settings sections">

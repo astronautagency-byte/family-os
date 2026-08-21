@@ -215,7 +215,7 @@ export default function Chat() {
   };
 
   return (
-    <PullToRefresh onRefresh={refreshData}><div className="h-screen pb-20 flex flex-col famos-noscroll reference-chat">
+    <PullToRefresh onRefresh={refreshData}><div className="h-screen pb-28 flex flex-col famos-noscroll reference-chat">
       <PageHeader eyebrow="Private conversations" title="Chat, minus the chaos." illustration="chat" subtitle="Fewer message archaeology expeditions. More actual answers." />
 
       <div className="px-5 mt-1 mb-2 flex gap-2 overflow-x-auto pb-1">

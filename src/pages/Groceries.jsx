@@ -1015,7 +1015,7 @@ export default function Groceries() {
   };
 
   return (
-    <PullToRefresh onRefresh={refreshData}><div className="pb-24 reference-groceries famos-noscroll">
+    <PullToRefresh onRefresh={refreshData}><div className="pb-28 reference-groceries famos-noscroll">
       {listCelebration && (
         <><CelebrationConfetti intensity={52} /><div className="shopping-complete-celebration" role="status" aria-live="polite">
           <span className="shopping-complete-particles" aria-hidden="true">{Array.from({ length: 8 }, (_, index) => <i key={index} />)}</span>

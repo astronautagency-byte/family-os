@@ -849,7 +849,7 @@ export default function Meals() {
   );
 
   return (
-    <PullToRefresh onRefresh={refreshData}><div className="pb-24 reference-meals">
+    <PullToRefresh onRefresh={refreshData}><div className="pb-28 reference-meals">
       <PageHeader eyebrow="Nourish & connect" title="Meal planner" illustration="meals" subtitle="Answer “what’s for dinner?” before anyone asks it." action={meals.length?<button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button>:null} />
 
       <NativeAdBanner placement={AD_PLACEMENTS.MEALS} />
