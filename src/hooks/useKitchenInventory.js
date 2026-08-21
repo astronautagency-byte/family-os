@@ -97,27 +97,27 @@ export default function useKitchenInventory(householdId, userId) {
   }, [householdId, remoteReady]);
 
   const persistLocal = useCallback((next) => { setItems(next); writeLocal(householdId, next); }, [householdId]);
+  // Each add creates its own watch item — duplicates of the same ingredient
+  // are allowed (e.g. two loaves with different expiry dates), so the row is
+  // always inserted fresh instead of merging quantity into an existing row.
   const addItem = useCallback(async (input) => {
     const name = canonicalIngredientName(input.name);
     if (!name) return null;
-    const existing = items.find((item) => canonicalIngredientName(item.name) === name && item.location === (input.location || "fridge"));
-    const local = existing
-      ? { ...existing, quantity: Number(existing.quantity) + Number(input.quantity || 1), unit: input.unit || existing.unit, expiresOn: input.expiresOn || existing.expiresOn, category: input.category || existing.category, brand: input.brand || existing.brand, barcode: input.barcode || existing.barcode, imageUrl: input.imageUrl || existing.imageUrl }
-      : { id: makeId(), name, quantity: Number(input.quantity || 1), unit: input.unit || "", location: input.location || "fridge", expiresOn: input.expiresOn || "", sourceGroceryId: input.sourceGroceryId || null, category: input.category || "Other", brand: input.brand || "", barcode: input.barcode || "", imageUrl: input.imageUrl || "", createdAt: new Date().toISOString() };
-    persistLocal(existing ? items.map((item) => item.id === existing.id ? local : item) : [...items, local]);
+    const local = { id: makeId(), name, quantity: Number(input.quantity || 1), unit: input.unit || "", location: input.location || "fridge", expiresOn: input.expiresOn || "", sourceGroceryId: input.sourceGroceryId || null, category: input.category || "Other", brand: input.brand || "", barcode: input.barcode || "", imageUrl: input.imageUrl || "", createdAt: new Date().toISOString() };
+    persistLocal([...items, local]);
     if (supabase && householdId) {
       const payload = { household_id: householdId, name, quantity: local.quantity, unit: local.unit, location: local.location, expires_on: local.expiresOn || null, source_grocery_id: local.sourceGroceryId, category: local.category || "Other", brand: local.brand || "", barcode: local.barcode || null, image_url: local.imageUrl || "", added_by: userId };
-      const run = (row) => existing && remoteReady ? supabase.from("kitchen_inventory").update(row).eq("id", existing.id).select().single() : supabase.from("kitchen_inventory").insert(row).select().single();
-      let { data, error } = await run(payload);
+      const insert = (row) => supabase.from("kitchen_inventory").insert(row).select().single();
+      let { data, error } = await insert(payload);
       if (error && /category|brand|barcode|image_url|schema cache|column/i.test(error.message || "")) {
         const { category: _category, brand: _brand, barcode: _barcode, image_url: _imageUrl, ...compatiblePayload } = payload;
-        ({ data, error } = await run(compatiblePayload));
+        ({ data, error } = await insert(compatiblePayload));
       }
-      if (!error && data) persistLocal((existing ? items.filter((item) => item.id !== existing.id) : items).concat(mapRow(data)));
+      if (!error && data) persistLocal(items.filter((item) => item.id !== local.id).concat(mapRow(data)));
       else if (error && !missingTable(error)) console.warn("Could not sync kitchen inventory", error);
     }
     return local;
-  }, [householdId, items, persistLocal, remoteReady, userId]);
+  }, [householdId, items, persistLocal, userId]);
 
   // Writes are attempted even when the initial fetch failed or is still in
   // flight: an individual edit should still reach the database (and flip
