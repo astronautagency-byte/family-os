@@ -25,7 +25,6 @@ export const ONBOARDING_FALLBACK = { src: "/features/app-shots/01-signin.png", a
 export const FEATURE_HERO = {
   today: {
     pills: ["Day-first bento", "Kitchen reminders", "All daily meals", "Family broadcasts"],
-    screenshot: { src: "/features/app-shots/feature-today.png", alt: "FamOS Today dashboard with the family schedule, daily meals, tasks, kitchen reminders, and forecast" },
     cards: [
       { emoji: "👋", title: "Evening, Alex",       subtitle: "Plan visible at a glance", accent: "lilac" },
       { emoji: "🌧️", title: "Rain · Newmarket",   subtitle: "26% · 23° · 8 km/h",      accent: "blue" },
@@ -34,7 +33,6 @@ export const FEATURE_HERO = {
   },
   calendar: {
     pills: ["Multiple Google Calendars", "Two-way sync", "Quick capture", "Shared family views"],
-    screenshot: { src: "/features/app-shots/feature-calendar.png", alt: "FamOS Calendar — month grid with All-calendars toggle and dense event markers" },
     cards: [
       { emoji: "👨‍👩‍👧", title: "All family calendars", subtitle: "Shared view · privacy respected", accent: "blue" },
       { emoji: "🔄", title: "Google calendar · Connected", subtitle: "Two-way sync live",                accent: "amber" },
@@ -43,7 +41,6 @@ export const FEATURE_HERO = {
   },
   meals: {
     pills: ["Spoonacular recipes", "Hands-free Cook Mode", "Every daily meal", "Ingredients → shopping"],
-    screenshot: { src: "/features/app-shots/feature-meals.png", alt: "FamOS Meals — Meal Roulette with cuisine filter, recipe cards, household preferences" },
     cards: [
       { emoji: "🍝", title: "Sheet-pan fajitas", subtitle: "Tonight · 35 min · 8 ingredients", accent: "rose" },
       { emoji: "🥗", title: "Weekly meal plan",  subtitle: "6/7 dinners planned",                  accent: "mint" },
@@ -52,7 +49,6 @@ export const FEATURE_HERO = {
   },
   shopping: {
     pills: ["Kitchen inventory", "Expiry reminders", "Photos + barcode brands", "Focus Shop"],
-    screenshot: { src: "/features/app-shots/feature-shopping.png", alt: "FamOS Shopping — shared list with Focus Shop, scan, delivery and 1-tap checkout" },
     cards: [
       { emoji: "🧊", title: "Kitchen inventory", subtitle: "Fridge · Freezer · Pantry", accent: "mint" },
       { emoji: "⏳", title: "Blueberries",       subtitle: "Use tomorrow",              accent: "lime" },
@@ -61,7 +57,6 @@ export const FEATURE_HERO = {
   },
   tasks: {
     pills: ["Custom task lists", "All-tasks view", "Review-first imports", "Recurring chores"],
-    screenshot: { src: "/features/app-shots/feature-tasks.png", alt: "FamOS Tasks — quick-add bar, household group, share progress + weekly recap" },
     cards: [
       { emoji: "✅", title: "Feed the dog",        subtitle: "Daily · Lou · done",  accent: "mint" },
       { emoji: "📦", title: "Pack soccer bag",    subtitle: "Today · Mia",          accent: "sky" },
@@ -70,10 +65,6 @@ export const FEATURE_HERO = {
   },
   chat: {
     pills: ["Broadcasts · reactions", "Direct messages", "Smart shortcuts", "Quiet by default"],
-    // No chat mockup was supplied in the 6-image upload; reuse the
-    // single onboarding capture (the central source of truth) until
-    // a chat-specific mock ships.
-    screenshot: ONBOARDING_FALLBACK,
     cards: [
       { emoji: "📣", title: "Running 10 min late", subtitle: "Family · 3 ❤️ reactions", accent: "amber" },
       { emoji: "💬", title: "Direct message",       subtitle: "Alex → Mia",              accent: "peach" },
@@ -82,7 +73,6 @@ export const FEATURE_HERO = {
   },
   "fam-ai": {
     pills: ["Meal ideas · from groceries", "Calendar summary", "Weekly recap", "Stays quiet until asked"],
-    screenshot: { src: "/features/app-shots/feature-fam-ai.png", alt: "Fam AI — quiet chief of staff for meals, groceries, tasks, and the schedule" },
     cards: [
       { emoji: "🌮", title: "Avocado pasta",       subtitle: "Uses 4 grocery items", accent: "lime" },
       { emoji: "📊", title: "Weekly recap",         subtitle: "Done · Slipped · Up",  accent: "lilac" },
@@ -91,7 +81,6 @@ export const FEATURE_HERO = {
   },
   family: {
     pills: ["Optional onboarding", "Personal colour schemes", "Private/shared calendars", "Role-aware access"],
-    screenshot: ONBOARDING_FALLBACK,
     cards: [
       { emoji: "🎨", title: "Feels like your FamOS", subtitle: "Colour scheme · light + dark", accent: "lilac" },
       { emoji: "🔒", title: "Work calendar", subtitle: "Private to Alex", accent: "blue" },

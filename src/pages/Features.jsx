@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, ArrowUpRight, ChevronRight } from "lucide-react";
-import { FEATURES, FEATURE_BY_ID, FEATURE_HERO, MARKETING_FEATURES, ONBOARDING_FALLBACK, SITE_WIDE_FEATURES } from "../data/featureData";
+import { FEATURES, FEATURE_BY_ID, FEATURE_HERO, MARKETING_FEATURES, SITE_WIDE_FEATURES } from "../data/featureData";
 import MarketingNav from "../components/MarketingNav";
 import MarketingFooter from "../components/MarketingFooter";
 import "../feature.css";
@@ -49,24 +49,37 @@ const FeatureHero = ({ feature }) => {
 };
 
 const FeatureHeroStage = ({ feature, hero }) => {
-  // Every /features/<id> hero ships a real on-device screenshot. Fall
-  // back to the onboarding capture (imported from featureData.js so the
-  // path is single-sourced) if a future MARKETING_FEATURE is added
-  // without a hero.screenshot entry, instead of rendering a broken
-  // <img>.
-  const screenshot = hero.screenshot || ONBOARDING_FALLBACK;
+  const screenshot = hero.screenshot;
   const cards = hero.cards || [];
-  const isCompositePhone = screenshot.src.includes("/feature-");
   return (
     <div className="feature-hero-stage" data-tone={feature.tone}>
-      <div className={`feature-hero-phone${isCompositePhone ? " is-composite" : ""}`} data-tone={feature.tone}>
-        <img
-          className="feature-hero-phone-screen"
-          src={screenshot.src}
-          alt={screenshot.alt}
-          loading="eager"
-          decoding="async"
-        />
+      <div className="feature-hero-phone" data-tone={feature.tone}>
+        {screenshot ? (
+          <img
+            className="feature-hero-phone-screen"
+            src={screenshot.src}
+            alt={screenshot.alt}
+            loading="eager"
+            decoding="async"
+          />
+        ) : (
+          <div className="feature-hero-phone-css">
+            <div className="feature-hero-phone-header">
+              <span className="feature-hero-phone-notch" />
+            </div>
+            <div className="feature-hero-phone-content">
+              <div className="feature-hero-phone-bar" style={{ width: '60%', height: 8, borderRadius: 4, background: 'var(--color-accent-soft, #ede9fe)' }} />
+              <div className="feature-hero-phone-bar" style={{ width: '80%', height: 6, borderRadius: 3, background: 'var(--color-border, #e5e7eb)' }} />
+              <div className="feature-hero-phone-bar" style={{ width: '45%', height: 6, borderRadius: 3, background: 'var(--color-border, #e5e7eb)' }} />
+              <div style={{ height: 12 }} />
+              <div className="feature-hero-phone-bar" style={{ width: '100%', height: 40, borderRadius: 8, background: 'var(--color-accent-soft, #ede9fe)' }} />
+              <div style={{ height: 8 }} />
+              <div className="feature-hero-phone-bar" style={{ width: '100%', height: 40, borderRadius: 8, background: 'var(--color-accent-soft, #f0fdf4)' }} />
+              <div style={{ height: 8 }} />
+              <div className="feature-hero-phone-bar" style={{ width: '100%', height: 40, borderRadius: 8, background: 'var(--color-accent-soft, #fef3c7)' }} />
+            </div>
+          </div>
+        )}
       </div>
       {cards.length > 0 && cards.map((card, idx) => (
         <div
