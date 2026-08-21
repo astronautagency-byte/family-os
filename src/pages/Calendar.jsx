@@ -14,7 +14,8 @@ import { formatDuration, formatTime, todayISO } from "../lib/dates";
 import { fetchGooglePlaceSuggestions, googleMapsApiKey, loadGooglePlaces } from "../lib/googleMapsPlaces";
 import { invokeEdgeFunction } from "../lib/supabase";
 import { parseQuickAdd } from "../lib/quickCapture";
-import { buildShareUrl, nativeShareWithFallback } from "../lib/share";
+import { buildShareUrl } from "../lib/share";
+import ShareSheet from "../components/ShareSheet";
 import { eventCacheKey, readEventCache, writeEventCache, clearEventCache } from "../lib/eventSearchCache";
 import NativeAdBanner from "../components/NativeAdBanner";
 import { AD_PLACEMENTS } from "../lib/adNetwork";
@@ -275,6 +276,7 @@ export default function CalendarPage() {
   const [conflicts, setConflicts] = useState(null);
   const [clearing, setClearing] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [eventShare, setEventShare] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [discovering, setDiscovering] = useState(false);
   const [discoverBusy, setDiscoverBusy] = useState(false);
@@ -1457,14 +1459,16 @@ export default function CalendarPage() {
               ) : <p className="event-muted">No location added.</p>}
               <p className="event-muted">Source: {sourceId(selectedEvent) === "family" ? "FamOS calendar" : selectedEvent.source === "google" ? "Google Calendar" : "Imported calendar"}</p>
               <div className="reset-confirm-actions">
-                <button className="event-share-button" onClick={async () => {
+                <button className="event-share-button" onClick={() => {
                   if (!selectedEvent?.id) return;
                   const start = selectedEvent.start ? new Date((selectedEvent.start || "").replace(" ", "T")).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }) : "TBD";
-                  const url = buildShareUrl("event", selectedEvent.id);
-                  await nativeShareWithFallback({
-                    title: `${selectedEvent.title} — FamOS`,
-                    text: `${selectedEvent.title}\n${start}${selectedEvent.location ? ` · ${selectedEvent.location}` : ""}`,
-                    url,
+                  const time = selectedEvent.start ? new Date((selectedEvent.start || "").replace(" ", "T")).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "";
+                  setEventShare({
+                    title: selectedEvent.title,
+                    text: `${start}${time ? ` · ${time}` : ""}${selectedEvent.location ? `\n📍 ${selectedEvent.location}` : ""}`,
+                    url: buildShareUrl("event", selectedEvent.id),
+                    image: "/features/app-shots/feature-calendar.png",
+                    imageAlt: selectedEvent.title,
                   });
                 }} aria-label={`Share ${selectedEvent.title}`}><Share2 size={15} /> Share with family</button>
                 {canDeleteEvent(selectedEvent) && <button className="event-edit-button" onClick={() => openEdit(selectedEvent)}><Pencil size={15}/> Edit event</button>}
@@ -1500,6 +1504,7 @@ export default function CalendarPage() {
         />
       </div>
     </PullToRefresh>
+    <ShareSheet open={!!eventShare} onClose={()=>setEventShare(null)} title={eventShare?.title} text={eventShare?.text} url={eventShare?.url} image={eventShare?.image} imageAlt={eventShare?.imageAlt}/>
     <button className="calendar-fab" onClick={openQuick} aria-label="Add event" aria-expanded={quickOpen}>
       <Plus size={26} />
     </button>

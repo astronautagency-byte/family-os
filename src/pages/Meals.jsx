@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, BarChart3, Bookmark, CalendarPlus, Check, ChefHat, Clock, Coffee, Dices, Image as ImageIcon, ListChecks, Mic, MicOff, Pencil, Plus, ShoppingCart, Soup, Sparkles, Trash2, Users, X } from "lucide-react";
+import { ArrowLeft, BarChart3, Bookmark, CalendarPlus, Check, ChefHat, Clock, Coffee, Dices, Image as ImageIcon, ListChecks, Mic, MicOff, Pencil, Plus, Share2, ShoppingCart, Soup, Sparkles, Trash2, Users, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, AvatarStack, Card, Modal, PrimaryButton, ProgressBar, SecondaryButton, TextField, colorVar } from "../components/ui";
@@ -20,6 +20,8 @@ import { getRecipeCost, formatCost, getIngredientSubstitutes } from "../lib/spoo
 import useVoiceCommands, { requestScreenWakeLock } from "../hooks/useVoiceCommands";
 import useKitchenInventory from "../hooks/useKitchenInventory";
 import { SHARED_RECIPE_KEY } from "../lib/sharedContent";
+import { buildShareUrl } from "../lib/share";
+import ShareSheet from "../components/ShareSheet";
 import { lockBodyScroll } from "../lib/bodyScrollLock";
 
 function ShelfLifeRing({ progress, size = 90, strokeWidth = 7 }) {
@@ -746,6 +748,28 @@ export default function Meals() {
 
   // Use a single object to track all inline inputs instead of individual useState calls
   const [inlineInputs, setInlineInputs] = useState({});
+  const [mealShare, setMealShare] = useState(null);
+  const shareMealPlan = () => {
+    const planned = weekDays
+      .map((date) => {
+        const items = MEAL_SLOTS.map((slot) => ({ slot, meal: mealFor(date, slot) })).filter((entry) => entry.meal?.title);
+        if (!items.length) return null;
+        const lines = items.map(({ slot, meal }) => `${SLOT_META[slot]?.label || slot}: ${meal.title}`);
+        return `${formatDayLabel(date)}\n  ${lines.join("\n  ")}`;
+      })
+      .filter(Boolean);
+    if (!planned.length) {
+      setMealShare({ title: "FamOS meal plan", text: "Nothing planned yet — add a meal and share your week with the family.", url: buildShareUrl("plan", "week"), image: "/features/app-shots/feature-meals.png", imageAlt: "FamOS meal planner" });
+      return;
+    }
+    setMealShare({
+      title: `${planned.length} day${planned.length === 1 ? "" : "s"} of meals — FamOS`,
+      text: planned.join("\n\n"),
+      url: buildShareUrl("plan", "week"),
+      image: "/features/app-shots/feature-meals.png",
+      imageAlt: "FamOS meal planner",
+    });
+  };
   const handleInlineAdd = (date, slot, e) => {
     if (e.key === "Enter" && inlineInputs[`${date}-${slot}`]?.trim()) {
       const title = inlineInputs[`${date}-${slot}`].trim();
@@ -857,6 +881,7 @@ export default function Meals() {
 
       <div className="meal-plan-toolbar px-5" aria-label="Meal plan controls">
         <div className="meal-range-toggle" aria-label="Meal planning range"><button className={horizon===7?"selected":""} onClick={()=>setHorizon(7)}>1 week</button><button className={horizon===14?"selected":""} onClick={()=>setHorizon(14)}>2 weeks</button></div>
+        <button className="meal-plan-share" onClick={shareMealPlan} aria-label="Share meal plan" title="Share the meal plan"><Share2 size={15}/> Share</button>
       </div>
 
       {listView}
@@ -1393,6 +1418,7 @@ export default function Meals() {
         </ErrorBoundary>
         </div>
       , document.body)}
+      <ShareSheet open={!!mealShare} onClose={()=>setMealShare(null)} title={mealShare?.title} text={mealShare?.text} url={mealShare?.url} image={mealShare?.image} imageAlt={mealShare?.imageAlt}/>
     </div></PullToRefresh>
   );
 }

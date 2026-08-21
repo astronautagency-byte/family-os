@@ -18,6 +18,8 @@ import useKitchenInventory from "../hooks/useKitchenInventory";
 import { supabase } from "../lib/supabase";
 import { categorizeGroceryItem } from "../lib/groceryCategories";
 import { inventoryExpiryStatus } from "../lib/inventoryExpiry";
+import { buildShareUrl } from "../lib/share";
+import ShareSheet from "../components/ShareSheet";
 
 const emptyDraft = { name: "", category: "Other", categoryManual: false, quantity: 1, unit: "", brand: "", imageUrl: "", assigneeIds: [] };
 const INVENTORY_CATEGORIES = ["Produce", "Deli & Prepared Foods", "Dairy & Eggs", "Meat & Seafood", "Bakery"];
@@ -354,6 +356,7 @@ export default function Groceries() {
   const scannerHandledRef = useRef(false);
   const scannerSessionRef = useRef(0);
   const [deliveryModal, setDeliveryModal] = useState(false);
+  const [groceryShare, setGroceryShare] = useState(null);
   const [deliveryStatus, setDeliveryStatus] = useState("");
   // Plan-aware ingredients: Groceries.jsx reads the same cache Meals.jsx
   // writes after a recipe lookup, then surfaces the cross-reference so the
@@ -963,34 +966,21 @@ export default function Groceries() {
     }
   };
 
-  const shareDeliveryList = async () => {
+  const shareDeliveryList = () => {
     if (!deliveryItems.length) {
       setDeliveryStatus("Your active grocery list is empty.");
       return;
     }
     // Build a deep link so the recipient opens FamOS directly into the list,
-    // not a pasted text dump. Falls back to clipboard copy if the OS share
-    // sheet isn't available.
-    const link = (typeof window !== "undefined" && window.location)
-      ? `${window.location.origin}/?list=${encodeURIComponent(household?.id || "active")}`
-      : "https://home.fam-os.app/?list=active";
-    const fullText = `${deliveryShareText}\n\nOpen in FamOS: ${link}`;
-    if (navigator?.share) {
-      try {
-        await navigator.share({ title: "FamOS grocery list", text: fullText, url: link });
-        setDeliveryStatus("Shared. Tiny domestic victory.");
-        return;
-      } catch (error) {
-        if (error?.name === "AbortError") return;
-        // Non-abort error — fall through to clipboard below.
-      }
-    }
-    try {
-      await navigator.clipboard?.writeText?.(fullText);
-      setDeliveryStatus(`Shared with link. ${deliveryItems.length} items copied.`);
-    } catch {
-      await copyDeliveryList();
-    }
+    // not a pasted text dump. The share sheet offers SMS/email/copy/native.
+    const link = buildShareUrl("list", household?.id || "active");
+    setGroceryShare({
+      title: `Grocery list · ${deliveryItems.length} item${deliveryItems.length === 1 ? "" : "s"}`,
+      text: deliveryShareText,
+      url: link,
+      image: "/features/app-shots/feature-shopping.png",
+      imageAlt: "FamOS shopping list",
+    });
   };
 
   const downloadDeliveryList = () => {
@@ -1566,6 +1556,7 @@ export default function Groceries() {
           </>
         )}
       </Modal>
+      <ShareSheet open={!!groceryShare} onClose={()=>setGroceryShare(null)} title={groceryShare?.title} text={groceryShare?.text} url={groceryShare?.url} image={groceryShare?.image} imageAlt={groceryShare?.imageAlt}/>
     </div></PullToRefresh>
   );
 }
