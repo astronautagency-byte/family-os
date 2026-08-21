@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, BarChart3, Bookmark, CalendarPlus, Check, ChefHat, Clock, Coffee, Dices, Image as ImageIcon, ListChecks, Mic, MicOff, Pencil, Plus, Share2, ShoppingCart, Soup, Sparkles, Trash2, Users, X } from "lucide-react";
+import { ArrowLeft, BarChart3, Bookmark, CalendarPlus, Check, ChefHat, Clock, Coffee, Dices, Image as ImageIcon, ListChecks, Mic, MicOff, Pencil, Plus, Share2, ShoppingCart, Soup, Sparkles, Trash2, Users, Volume2, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, AvatarStack, Card, Modal, PrimaryButton, ProgressBar, SecondaryButton, TextField, colorVar } from "../components/ui";
@@ -267,6 +267,8 @@ export default function Meals() {
   const [cookIngredientsAdded, setCookIngredientsAdded] = useState(false);
   const [cookNutrition, setCookNutrition] = useState(null);
   const [cookNutritionLoading, setCookNutritionLoading] = useState(false);
+  const [ttsSpeaking, setTtsSpeaking] = useState(false);
+  const ttsUtteranceRef = useRef(null);
   const [consumeReview, setConsumeReview] = useState(null);
   const [consumeSelection, setConsumeSelection] = useState([]);
   // Voice-hands-free cook navigation. Bound to next/previous/finish so a
@@ -285,6 +287,31 @@ export default function Meals() {
       return Math.min(Math.max(step + delta, 0), max);
     });
   }, [cookRecipe?.instructions?.length]);
+  // Text-to-speech: read the current cook step aloud
+  const speakStep = useCallback(() => {
+    if (!window.speechSynthesis) return;
+    // Stop any ongoing speech
+    window.speechSynthesis.cancel();
+    const text = cookSteps[currentCookStep];
+    if (!text) return;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.onstart = () => setTtsSpeaking(true);
+    utterance.onend = () => setTtsSpeaking(false);
+    utterance.onerror = () => setTtsSpeaking(false);
+    ttsUtteranceRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+  }, [cookSteps, currentCookStep]);
+  const stopSpeaking = useCallback(() => {
+    window.speechSynthesis?.cancel();
+    setTtsSpeaking(false);
+  }, []);
+  // Stop TTS when step changes or cook mode exits
+  useEffect(() => {
+    if (!cookMode) { stopSpeaking(); return; }
+    stopSpeaking();
+  }, [cookStep, cookMode, stopSpeaking]);
   const { supported: voiceSupported, listening: voiceListening, transcript: voiceTranscript, error: voiceError, start: startVoice, stop: stopVoice } = useVoiceCommands({
     commands: [
       { match: /\b(next|forward|continue|go)\b/i, action: "next" },
@@ -1388,6 +1415,20 @@ export default function Meals() {
                   <h3>{cookSteps[currentCookStep]}</h3>
                   <p>When this step is done, tap next. FamOS will keep the recipe moving without turning this into another checklist.</p>
         <div className="cook-guide-actions">
+          {/* Read aloud button — uses Web Speech API TTS */}
+          {window.speechSynthesis && (
+            <button
+              type="button"
+              className={`cook-listen-toggle ${ttsSpeaking ? "is-listening" : ""}`}
+              onClick={ttsSpeaking ? stopSpeaking : speakStep}
+              aria-pressed={ttsSpeaking}
+              aria-label={ttsSpeaking ? "Stop reading aloud" : "Read this step aloud"}
+              title={ttsSpeaking ? "Stop reading" : "Read this step aloud"}
+            >
+              {ttsSpeaking ? <MicOff size={17} /> : <Volume2 size={17} />}
+              <span>{ttsSpeaking ? "Stop" : "Talk"}</span>
+            </button>
+          )}
           {/* Listen toggle — hidden entirely if SpeechRecognition is unsupported so we never tease a feature we can't deliver. */}
           {voiceSupported && (
             <button

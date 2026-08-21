@@ -90,7 +90,7 @@ export default function useVoiceCommands({ commands = [], onAction, lang = "en-U
       rec.lang = lang;
       rec.interimResults = false;
       rec.maxAlternatives = 1;
-      rec.continuous = false;
+      rec.continuous = true;
 
       rec.onresult = (event) => {
         const result = event?.results?.[0]?.[0];
