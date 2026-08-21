@@ -6,6 +6,11 @@
 -- 2. upsert_from_chargebee derives billing_interval from the term dates, so
 --    yearly pre-paid subscriptions show "year" instead of "month".
 
+-- The return type changes (adds chargebee_items), which create or replace
+-- cannot do — drop the old function first (PUBLIC-executable by default,
+-- no explicit grants to preserve).
+drop function if exists public.get_my_subscription();
+
 create or replace function public.get_my_subscription()
 returns table (
   plan text,
