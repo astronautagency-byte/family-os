@@ -2033,6 +2033,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 
 /* Tablet layout polish for older iPads and mid-size screens */
 @media (min-width: 700px) and (max-width: 1100px) {
+  .app-content { max-width: 560px; }
   .landing-page { overflow-x: hidden; }
   .landing-nav {
     max-width: 860px;
@@ -7380,3 +7381,64 @@ input:focus, textarea:focus, select:focus {
   background:var(--color-surface);color:var(--color-accent);
   box-shadow:0 1px 3px rgba(16,24,40,.08);
 }
+
+/* ── Wide screen (>1440px) ─────────────────────────────────────────── */
+@media(min-width:1440px){
+  .app-content{max-width:580px}
+  .landing-page{font-size:16px}
+  .landing-nav{max-width:1320px}
+  .landing-hero-fullbleed .landing-hero-copy{max-width:720px;padding-left:max(60px,calc((100vw - 1240px)/2))}
+  .landing-hero-fullbleed .landing-hero-copy h1{font-size:92px}
+  .landing-features{max-width:1320px}
+  .landing-feature-grid{grid-template-columns:repeat(3,1fr);gap:22px}
+  .landing-feature{min-height:420px}
+  .capability-grid{grid-template-columns:repeat(3,1fr);gap:20px}
+  .landing-devices-inner{max-width:1240px}
+  .pricing-shell{max-width:1240px}
+  .comparison-shell{max-width:1200px}
+  .comparison-highlights{grid-template-columns:repeat(3,1fr);gap:20px}
+  .landing-community{max-width:1240px}
+  .landing-bento{max-width:1320px}
+}
+
+/* ── Ultra-wide (>1920px) ──────────────────────────────────────────── */
+@media(min-width:1920px){
+  .landing-page{font-size:17px}
+  .landing-hero-fullbleed .landing-hero-copy h1{font-size:108px}
+  .landing-feature-grid{gap:26px}
+  .landing-feature{min-height:460px;padding:32px}
+}
+
+/* ── Button hover/active state consistency ──────────────────────────── */
+.m3-button:active:not(:disabled),
+.primary-button-row:active:not(:disabled){
+  transform:scale(0.97)!important;
+  transition-duration:.08s!important;
+}
+.m3-button:disabled,
+.primary-button-row:disabled{
+  opacity:.45!important;
+  cursor:not-allowed!important;
+  transform:none!important;
+  pointer-events:none;
+}
+.landing-join:hover,
+.landing-hero-ctas>button:first-child:hover,
+.landing-final button:hover,
+.pricing-summary button:hover{
+  transform:translateY(-2px)!important;
+}
+.landing-join:active,
+.landing-hero-ctas>button:first-child:active,
+.landing-final button:active,
+.pricing-summary button:active{
+  transform:translateY(0) scale(0.97)!important;
+  transition-duration:.08s!important;
+}
+/* Ensure all button text is always visible regardless of background */
+.m3-button-filled{color:#fff!important}
+.m3-button-outlined{color:var(--color-ink)!important}
+.m3-button-ghost{color:var(--color-accent)!important}
+.m3-button-soft{color:var(--color-ink)!important}
+.pbtn-primary{color:#fff!important}
+.landing-join,.landing-hero-ctas>button:first-child,.landing-final button{color:#fff!important}
