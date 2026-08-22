@@ -808,7 +808,7 @@ export default function Meals() {
   const setInlineInput = (date, slot, val) => setInlineInputs((prev) => ({ ...prev, [`${date}-${slot}`]: val }));
 
   const listView = (
-    <div className="px-5 space-y-4 mt-2">
+    <div className="meal-plan-list px-5 space-y-4 mt-2">
       {weekDays.map((date) => {
         const isToday = date === todayISO();
         const dayMeals = MEAL_SLOTS.map((slot) => ({ slot, meal: mealFor(date, slot) }));
@@ -831,12 +831,11 @@ export default function Meals() {
             <div className="meal-card-slots">
               {dayMeals.map(({ slot, meal }) => {
                 const Icon = SLOT_META[slot].icon;
-                const slotColor = slot === 'breakfast' ? 'var(--color-good)' : slot === 'lunch' ? '#E85D3A' : '#D94F4F';
                 return (
                   <div key={slot} className={`meal-card-slot ${meal?.title ? '' : 'meal-card-slot--empty'}`}>
                     <div className="meal-card-slot-top">
                       <div className="meal-card-slot-info">
-                        <p className="meal-card-slot-name" style={{ color: slotColor }}>{SLOT_META[slot].label}</p>
+                        <p className="meal-card-slot-name">{SLOT_META[slot].label}</p>
                         {meal?.title ? (
                           <div className="meal-card-slot-dish">
                             <Icon size={14} color="var(--color-ink-soft)" className="shrink-0" />
