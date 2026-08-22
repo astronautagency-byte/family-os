@@ -215,7 +215,7 @@ export default function Chat() {
   };
 
   return (
-    <PullToRefresh onRefresh={refreshData}><div className="h-screen pb-28 flex flex-col famos-noscroll reference-chat">
+    <PullToRefresh onRefresh={refreshData}><div className="h-screen flex flex-col famos-noscroll reference-chat" style={{paddingBottom: 'env(safe-area-inset-bottom, 0px)'}}>
       <PageHeader eyebrow="Private conversations" title="Chat, minus the chaos." illustration="chat" subtitle="Fewer message archaeology expeditions. More actual answers." />
 
       <div className="px-5 mt-1 mb-2 flex gap-2 overflow-x-auto pb-1">
@@ -284,7 +284,7 @@ export default function Chat() {
 
       {(sendError || dataError) && <p className="px-5 py-2 text-[12px] text-[var(--color-warn)]">{sendError || dataError}</p>}
 
-      <form onSubmit={submit} className="chat-mobile-composer px-3 py-2 bg-[var(--color-surface)] border-t border-[var(--color-border)] flex items-center gap-2">
+      <form onSubmit={submit} className="chat-mobile-composer" style={{position:'sticky',bottom:0,zIndex:10,display:'flex',alignItems:'center',gap:8,padding:'8px 12px',background:'var(--color-surface)',borderTop:'1px solid var(--color-border)'}}>
         <div className="shrink-0">{memberById[currentUserId] && <Avatar member={memberById[currentUserId]} size="sm" />}</div>
         <input
           value={text}

@@ -287,6 +287,10 @@ export default function Meals() {
       return Math.min(Math.max(step + delta, 0), max);
     });
   }, [cookRecipe?.instructions?.length]);
+
+  const cookSteps = cookRecipe?.instructions?.length ? cookRecipe.instructions : [];
+  const currentCookStep = Math.min(cookStep, Math.max(cookSteps.length - 1, 0));
+
   // Text-to-speech: read the current cook step aloud
   const speakStep = useCallback(() => {
     if (!window.speechSynthesis) return;
@@ -710,10 +714,6 @@ export default function Meals() {
     }
   };
 
-  const cookSteps = cookRecipe?.instructions?.length
-    ? cookRecipe.instructions
-    : [];
-  const currentCookStep = Math.min(cookStep, Math.max(cookSteps.length - 1, 0));
   const cookProgress = cookSteps.length ? ((currentCookStep + 1) / cookSteps.length) * 100 : 0;
   const cookVideoEmbed = youtubeEmbedUrl(cookRecipe?.videoUrl || "");
 
