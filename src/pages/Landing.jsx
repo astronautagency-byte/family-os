@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, useAnimate, useInView, useScroll, useSpring, useTransform, useReducedMotion, MotionConfig, stagger } from "framer-motion";
-import { ArrowRight, Baby, BellRing, Bot, CalendarDays, Check, CheckSquare, ChefHat, FileInput, GraduationCap, Heart, LoaderCircle, LockKeyhole, MessageCircle, Palette, Refrigerator, ShieldCheck, ShoppingCart, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Baby, BellRing, Bot, CalendarDays, Check, CheckSquare, ChefHat, FileInput, GraduationCap, Heart, LoaderCircle, LockKeyhole, MessageCircle, Palette, Refrigerator, ShieldCheck, ShoppingCart, Smartphone, Sparkles, Users } from "lucide-react";
 import "../landing.css";
 import "../landing-theme.css";
 import "../feature.css";
@@ -369,7 +369,11 @@ export default function Landing({ signedIn = false }) {
     <MarketingNav signedIn={signedIn} />
 
     <main>
-      <section className="landing-hero" ref={heroRef}>
+      <section className="landing-hero landing-hero-fullbleed" ref={heroRef}>
+        <div className="hero-lifestyle-bg">
+          <img src="/illustrations/famos-lifestyle.png" alt="" aria-hidden="true" />
+          <div className="hero-lifestyle-overlay" />
+        </div>
         <motion.div className="landing-hero-copy" variants={staggerParent} initial="hidden" animate="show">
           <motion.p className="landing-kicker" variants={fadeUp}><Sparkles/> Meet FamOS</motion.p>
           <motion.h1 variants={fadeUp}>Your family,<br/>finally in sync.</motion.h1>
@@ -377,14 +381,25 @@ export default function Landing({ signedIn = false }) {
           <motion.div className="landing-hero-ctas" variants={fadeUp}><button onClick={() => go(signedIn ? "today" : "signup")}>{signedIn ? "Open FamOS" : "Start free trial"}<ArrowRight/></button>{!signedIn&&<button onClick={() => go("signin")}>Sign in</button>}</motion.div>
           <motion.div className="landing-trust" variants={fadeUp}><span><Check/> Private to your household</span><span><Check/> Free to start, no card needed</span></motion.div>
         </motion.div>
-        <motion.div className="landing-hero-media" initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.75, ease: EASE }} style={{ y: heroY }}>
-          <img className="hero-family-image" src="/illustrations/famos-family-planning.png" alt="A family planning their week together" />
-          <ProductPreview feature={0} />
-          <svg className="hero-squiggle hero-squiggle-one" viewBox="0 0 150 70" aria-hidden="true"><path d="M5 49c20-55 42 30 64-7s37-19 44 4 24 8 31-12"/></svg><svg className="hero-squiggle hero-squiggle-two" viewBox="0 0 110 62" aria-hidden="true"><path d="M4 30c15-27 28 27 43 0s27-16 33 3 17 8 25-9"/></svg><span className="hero-spark hero-spark-one" aria-hidden="true">✦</span><span className="hero-spark hero-spark-two" aria-hidden="true">✦</span>
-          <motion.span className="landing-float-note landing-float-card" {...floatCard(0)}><CheckSquare/> Three things handled before breakfast</motion.span>
-          <motion.span className="landing-float-note landing-float-card second" {...floatCard(0.35)}><CalendarDays/><b>4:30</b> Soccer pickup</motion.span>
-          <motion.span className="landing-float-note landing-float-card third" {...floatCard(0.7)}><ShoppingCart/><b>6 items</b> Shared grocery list</motion.span>
-        </motion.div>
+      </section>
+
+      <section className="landing-devices">
+        <div className="landing-devices-inner">
+          <motion.div className="landing-devices-copy" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }} transition={{ duration: 0.6, ease: EASE }}>
+            <p className="landing-kicker"><Smartphone /> Works everywhere you do</p>
+            <h2>No new hardware.<br/>Just the screens you already use.</h2>
+            <p>FamOS runs on your phone, tablet, laptop, or any wall-mounted screen. Bring it with you anywhere and use it where you already manage your family life — the kitchen, the car, the couch.</p>
+            <motion.ul className="landing-devices-list" initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.15, ease: EASE }}>
+              <li><Check /> Phone, tablet, laptop, or wall display</li>
+              <li><Check /> Same household view on every device</li>
+              <li><Check /> No dedicated hardware to buy</li>
+              <li><Check /> Works offline for what matters most</li>
+            </motion.ul>
+          </motion.div>
+          <motion.div className="landing-devices-image" initial={{ opacity: 0, scale: 0.96 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true, amount: 0.3 }} transition={{ duration: 0.7, ease: EASE }}>
+            <img src="/illustrations/famos-devices.png" alt="FamOS running on laptop, tablet, and phone" />
+          </motion.div>
+        </div>
       </section>
 
       <motion.section className="landing-purpose" id="app-purpose" {...revealBlock}><div><p>Meet FamOS</p><h2>Made for the way your family actually works.</h2><span>One calm, private place for the everyday stuff — schedules, meals, lists, and the little reminders that keep a household running. No learning curve. No complexity. Just clarity.</span><div className="purpose-actions"><button onClick={() => go(signedIn ? "today" : "signup")}>{signedIn ? "Open FamOS" : "Start free trial"}<ArrowRight/></button>{!signedIn&&<button onClick={() => go("signin")}>Sign in</button>}</div></div><div className="purpose-grid"><motion.article {...hoverLift}><CalendarDays/><h3>Shared calendars</h3><p>Bring in the calendars you already use and see the week together — no more “what’s happening when?”</p></motion.article><motion.article {...hoverLift}><Users/><h3>Family updates</h3><p>Share plans, chat, and give every task a clear owner, so nobody’s left guessing.</p></motion.article><motion.article {...hoverLift}><LockKeyhole/><h3>Private home</h3><p>Your household decides who sees what. Your space stays yours.</p></motion.article></div></motion.section>
