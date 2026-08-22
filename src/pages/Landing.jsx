@@ -381,7 +381,21 @@ export default function Landing({ signedIn = false }) {
           <motion.div className="landing-hero-ctas" variants={fadeUp}><button onClick={() => go(signedIn ? "today" : "signup")}>{signedIn ? "Open FamOS" : "Start free trial"}<ArrowRight/></button>{!signedIn&&<button onClick={() => go("signin")}>Sign in</button>}</motion.div>
           <motion.div className="landing-trust" variants={fadeUp}><span><Check/> Private to your household</span><span><Check/> Free to start, no card needed</span></motion.div>
         </motion.div>
+        {/* Animated floating UI elements */}
+        <div className="hero-animated-elements" aria-hidden="true">
+          <motion.span className="hero-float-card hero-float-1" initial={{ opacity: 0, y: 20, rotate: -4 }} animate={{ opacity: 1, y: 0, rotate: -4 }} transition={{ duration: 0.6, delay: 0.4, ease: EASE }}><CheckSquare size={16} /> Three things handled before breakfast</motion.span>
+          <motion.span className="hero-float-card hero-float-2" initial={{ opacity: 0, y: 20, rotate: 3 }} animate={{ opacity: 1, y: 0, rotate: 3 }} transition={{ duration: 0.6, delay: 0.6, ease: EASE }}><CalendarDays size={16} /><b>4:30</b> Soccer pickup</motion.span>
+          <motion.span className="hero-float-card hero-float-3" initial={{ opacity: 0, y: 20, rotate: -2 }} animate={{ opacity: 1, y: 0, rotate: -2 }} transition={{ duration: 0.6, delay: 0.8, ease: EASE }}><ShoppingCart size={16} /><b>6 items</b> Shared grocery list</motion.span>
+          <svg className="hero-squiggle hero-squiggle-one" viewBox="0 0 150 70"><path d="M5 49c20-55 42 30 64-7s37-19 44 4 24 8 31-12"/></svg>
+          <svg className="hero-squiggle hero-squiggle-two" viewBox="0 0 110 62"><path d="M4 30c15-27 28 27 43 0s27-16 33 3 17 8 25-9"/></svg>
+          <span className="hero-spark hero-spark-one">✦</span>
+          <span className="hero-spark hero-spark-two">✦</span>
+        </div>
       </section>
+
+      <motion.section className="landing-purpose" id="app-purpose" {...revealBlock}><div><p>Meet FamOS</p><h2>Made for the way your family actually works.</h2><span>One calm, private place for the everyday stuff — schedules, meals, lists, and the little reminders that keep a household running. No learning curve. No complexity. Just clarity.</span><div className="purpose-actions"><button onClick={() => go(signedIn ? "today" : "signup")}>{signedIn ? "Open FamOS" : "Start free trial"}<ArrowRight/></button>{!signedIn&&<button onClick={() => go("signin")}>Sign in</button>}</div></div><div className="purpose-grid"><motion.article {...hoverLift}><CalendarDays/><h3>Shared calendars</h3><p>Bring in the calendars you already use and see the week together — no more “what’s happening when?”</p></motion.article><motion.article {...hoverLift}><Users/><h3>Family updates</h3><p>Share plans, chat, and give every task a clear owner, so nobody’s left guessing.</p></motion.article><motion.article {...hoverLift}><LockKeyhole/><h3>Private home</h3><p>Your household decides who sees what. Your space stays yours.</p></motion.article></div></motion.section>
+
+      <section className="landing-intro" id="families"><p>WHY FAMOS</p><motion.h2 {...revealHeading}>Every moving part.<br/>One calm place.</motion.h2><blockquote>The end of the family group-chat panic.</blockquote><div className="landing-family-pills"><span>New parents</span><span>Busy households</span><span>Co-parents</span><span>Multigenerational families</span><span>Families across cities</span></div></section>
 
       <section className="landing-devices">
         <div className="landing-devices-inner">
@@ -401,10 +415,6 @@ export default function Landing({ signedIn = false }) {
           </motion.div>
         </div>
       </section>
-
-      <motion.section className="landing-purpose" id="app-purpose" {...revealBlock}><div><p>Meet FamOS</p><h2>Made for the way your family actually works.</h2><span>One calm, private place for the everyday stuff — schedules, meals, lists, and the little reminders that keep a household running. No learning curve. No complexity. Just clarity.</span><div className="purpose-actions"><button onClick={() => go(signedIn ? "today" : "signup")}>{signedIn ? "Open FamOS" : "Start free trial"}<ArrowRight/></button>{!signedIn&&<button onClick={() => go("signin")}>Sign in</button>}</div></div><div className="purpose-grid"><motion.article {...hoverLift}><CalendarDays/><h3>Shared calendars</h3><p>Bring in the calendars you already use and see the week together — no more “what’s happening when?”</p></motion.article><motion.article {...hoverLift}><Users/><h3>Family updates</h3><p>Share plans, chat, and give every task a clear owner, so nobody’s left guessing.</p></motion.article><motion.article {...hoverLift}><LockKeyhole/><h3>Private home</h3><p>Your household decides who sees what. Your space stays yours.</p></motion.article></div></motion.section>
-
-      <section className="landing-intro" id="families"><p>WHY FAMOS</p><motion.h2 {...revealHeading}>Every moving part.<br/>One calm place.</motion.h2><blockquote>The end of the family group-chat panic.</blockquote><div className="landing-family-pills"><span>New parents</span><span>Busy households</span><span>Co-parents</span><span>Multigenerational families</span><span>Families across cities</span></div></section>
 
       <section className="landing-stages"><SectionHead eyebrow="Built for every chapter" note="Pick a chapter. The app flexes around the real-life version."><span className="no-orphan-line">Wherever your family is,</span><br/>FamOS fits.</SectionHead><div className="stage-tabs" role="tablist">{stages.map(({id,label,icon:Icon},index)=><button role="tab" aria-selected={stage===index} className={`${id} ${stage===index?"active":""}`} onClick={()=>setStage(index)} key={label}><Icon/>{label}</button>)}</div><motion.div className={`stage-panel stage-${selectedStage.id}`} {...revealBlock}><motion.div key={selectedStage.id} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, ease: EASE }}><p>{selectedStage.label}</p><h3>{selectedStage.title}</h3><span>{selectedStage.copy}</span><div className="stage-chips">{selectedStage.chips.map(item=><b key={item}><Check/>{item}</b>)}</div></motion.div><motion.img className="stage-family-art" key={selectedStage.artSrc} src={selectedStage.artSrc} alt="" aria-hidden="true" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, ease: EASE }}/></motion.div></section>
 
