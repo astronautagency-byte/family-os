@@ -2354,7 +2354,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   padding:20px 24px 16px;
   display:flex;
   flex-direction:column;
-  gap:16px;
+  gap:24px;
 }
 
 /* Message rows */
@@ -5672,7 +5672,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .app-shell .fam-ai-msg-avatar{width:34px;height:34px;border:1px solid color-mix(in srgb,var(--color-accent) 18%,var(--color-border));border-radius:8px;background:var(--color-accent-soft);color:var(--color-accent-strong)}
 .app-shell .fam-ai-msg-avatar.user{border-color:color-mix(in srgb,var(--color-chat) 22%,var(--color-border));background:color-mix(in srgb,var(--color-chat) 12%,var(--color-surface));color:var(--color-chat)}
 .app-shell .fam-ai-msg-body{max-width:min(82%,640px)}
-.app-shell .fam-ai-msg-meta{display:flex;align-items:baseline;gap:7px;margin:0 0 5px}
+.app-shell .fam-ai-msg-meta{display:flex;align-items:baseline;gap:7px;margin:0 0 8px}
 .app-shell .fam-ai-msg-meta strong{color:var(--color-ink);font-size:11.5px;font-weight:650}
 .app-shell .fam-ai-msg-meta span{color:var(--color-ink-faint);font-size:9.5px}
 .app-shell .fam-ai-msg.user .fam-ai-msg-meta{justify-content:flex-end}

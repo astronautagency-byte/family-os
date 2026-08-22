@@ -27,8 +27,8 @@ export function getSuggestedPrompts(state = {}, screen = "") {
     // Today / default
     prompts.push({ text: "What's happening today?", tone: "calendar", intent: "GET_TODAY" });
     if (openTasks.length) prompts.push({ text: "Anything we're forgetting?", tone: "tasks", intent: "GET_TASKS" });
-    if (events.length) prompts.push({ text: "Who needs a ride?", tone: "calendar", intent: "GET_DRIVER" });
-    prompts.push({ text: "What's next?", tone: "tasks", intent: "GET_TASKS" });
+    if (events.length) prompts.push({ text: "What's for dinner tonight?", tone: "meals", intent: "GET_EVENT" });
+    prompts.push({ text: "What's next on the list?", tone: "tasks", intent: "GET_TASKS" });
   }
 
   // Deduplicate, cap at 4.
@@ -49,21 +49,6 @@ export function getSuggestedActions(state = {}) {
   const events = (state.events || []).filter((event) => event.start && event.start.slice(0, 10) === today);
   const openTasks = (state.tasks || []).filter((task) => !task.done);
   const openGroceries = (state.groceries || []).filter((item) => !item.checked);
-
-  // Driver needed on today's events (if transportation is tracked).
-  const transport = state.transportation || [];
-  for (const event of events) {
-    const ride = transport.find((t) => t.eventId === event.id);
-    if (!ride || !ride.driverId) {
-      actions.push({
-        id: `drive-${event.id}`,
-        label: `Assign a driver for ${event.title}`,
-        kind: "driver",
-        prompt: `Who's driving for ${event.title}${event.start ? ` at ${formatTime(event.start)}` : ""}?`,
-      });
-      break; // one is enough
-    }
-  }
 
   // Readiness: open tasks without a due date drift.
   if (openTasks.length) {
