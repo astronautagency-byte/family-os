@@ -7441,6 +7441,10 @@ input:focus, textarea:focus, select:focus {
 .m3-button-ghost{color:var(--color-accent)!important}
 .m3-button-soft{color:var(--color-ink)!important}
 .pbtn-primary{color:#fff!important}
-.landing-join,.landing-hero-ctas>button:first-child,.landing-final button{color:#fff!important}
-/* Fullbleed hero override: white button with dark text */
-.landing-hero-fullbleed .landing-hero-ctas>button:first-child{color:#0f0c1e!important}
+.landing-join,.landing-final button{color:#fff!important}
+/* Hero CTA buttons */
+.landing-hero-ctas>button:first-child{color:#fff!important;background:#17171f!important}
+.landing-hero-ctas>button:last-child{color:#fff!important;background:transparent!important}
+/* Fullbleed hero: white button with dark text */
+.landing-hero-fullbleed .landing-hero-ctas>button:first-child{color:#0f0c1e!important;background:#fff!important}
+.landing-hero-fullbleed .landing-hero-ctas>button:last-child{color:rgba(255,255,255,.85)!important;background:transparent!important}

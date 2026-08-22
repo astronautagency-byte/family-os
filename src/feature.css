@@ -72,7 +72,7 @@
 .features-hero-pills b{display:inline-flex;align-items:center;gap:5px;padding:6px 11px;border-radius:10px;background:rgba(255,255,255,.7);border:1px solid rgba(23,23,47,.06);font:700 11.5px/1.1 var(--font-sans);color:#5f5a67}
 
 /* The phone lands directly on the section edge, like a product-launch hero. */
-.features-module-hero{padding:64px 28px 0;background:#fff;border-bottom:1px solid rgba(23,23,31,.08);overflow:hidden}
+.features-module-hero{padding:24px 28px 0;background:#fff;border-bottom:1px solid rgba(23,23,31,.08);overflow:hidden}
 .features-module-hero-grid{max-width:1240px;margin:auto;display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:end}
 .features-module-hero-copy>p{margin-bottom:14px;color:#7952e8;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.12em}
 .features-module-hero-copy h1{font:760 clamp(34px,5vw,60px)/1.04 var(--font-display);letter-spacing:-.038em;margin:0 0 18px;color:#17171f}
@@ -109,7 +109,7 @@
 /* ── Index page ── */
 .features-index-hero{
   position:relative;
-  padding:64px 28px 0;max-width:1240px;margin:0 auto;
+  padding:24px 28px 0;max-width:1240px;margin:0 auto;
   background:#fff;
   border-bottom:1px solid rgba(23,23,31,.08);
 }
@@ -563,12 +563,12 @@
 }
 
 @media(max-width:900px){
-  .features-index-hero{padding:48px 20px 0}
+  .features-index-hero,.features-module-hero{padding:20px 20px 0}
   .features-module-hero-copy{padding-bottom:0}
   .feature-hero-pills{margin-bottom:32px}
 }
 @media(max-width:600px){
-  .features-index-hero{padding:36px 16px 0}
+  .features-index-hero,.features-module-hero{padding:16px 16px 0}
 }
 @media (prefers-reduced-motion:reduce){
   .feature-hero-card{animation:none!important}
