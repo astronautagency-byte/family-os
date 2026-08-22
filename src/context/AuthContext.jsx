@@ -725,7 +725,11 @@ export function AuthProvider({ children }) {
 
   const signOut = async () => {
     // Set flag before signing out so ensureCorrectDomain doesn't loop
-    if (typeof window !== "undefined") window.__famosSigningOut = true;
+    // Use localStorage so the flag persists across page loads
+    if (typeof window !== "undefined") {
+      window.__famosSigningOut = true;
+      try { localStorage.setItem("famos:signing-out", "true"); } catch { /* private mode */ }
+    }
     await supabase?.auth.signOut();
     // Redirect to marketing site after sign-out
     window.location.replace("https://fam-os.app");

@@ -101,18 +101,27 @@ const MARKETING_DOMAIN = "fam-os.app";
 
 function ensureCorrectDomain(session) {
   if (typeof window === "undefined") return;
-  // Skip if we're in the middle of signing out (signOut handles the redirect)
-  if (window.__famosSigningOut) return;
   const hostname = window.location.hostname;
   const isAppDomain = hostname === APP_DOMAIN || hostname.startsWith("home.fam-os");
   const isMarketingDomain = hostname === MARKETING_DOMAIN || hostname.startsWith("fam-os.app");
   
-  if (session && isMarketingDomain) {
+  // Check both in-memory and localStorage flags for sign-out
+  const signingOut = window.__famosSigningOut || (typeof localStorage !== "undefined" && localStorage.getItem("famos:signing-out") === "true");
+  
+  if (session && isMarketingDomain && !signingOut) {
     // Signed in on marketing domain → redirect to app domain
     window.location.replace(`https://${APP_DOMAIN}${window.location.pathname}${window.location.search}`);
   } else if (!session && isAppDomain && !window.location.pathname.startsWith("/signin") && !window.location.pathname.startsWith("/signup") && !window.location.pathname.startsWith("/admin") && !window.location.pathname.startsWith("/partner")) {
     // Not signed in on app domain → redirect to marketing website
     window.location.replace(`https://${MARKETING_DOMAIN}`);
+  }
+  
+  // Clear the signing-out flag once we're on the marketing domain
+  if (signingOut && isMarketingDomain) {
+    try {
+      localStorage.removeItem("famos:signing-out");
+      window.__famosSigningOut = false;
+    } catch { /* private mode */ }
   }
 }
 
