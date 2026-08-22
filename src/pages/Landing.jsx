@@ -69,7 +69,7 @@ const capabilityHighlights = [
   { title: "Photos and quick scans", copy: "Snap a photo or scan a barcode. The brand and image stay on the card.", icon: ShoppingCart, tone: "blue" },
   { title: "Imports you approve", copy: "Paste from Apple, Google, or Microsoft. Confirm before anything lands in your list.", icon: FileInput, tone: "peach" },
   { title: "A look that’s yours", copy: "Choose a palette that feels like yours. Light and dark modes, tuned to match.", icon: Palette, tone: "lilac" },
-  { title: "Updates without clutter", copy: "A quick broadcast to everyone's home page. React and move on.", icon: MessageCircle, tone: "yellow" },
+  { title: "Updates without clutter", copy: "A quick broadcast to everyone's home page. Read and move on.", icon: MessageCircle, tone: "yellow" },
   { title: "Fam AI, review first", copy: "Meal ideas, grocery lists, calendar summaries — always behind your confirmation.", icon: Bot, tone: "mint" },
 ];
 
@@ -202,7 +202,7 @@ function PricingSection({ signedIn }) {
             {!checkoutBusy && <ArrowRight/>}
           </button>
           {checkoutError && <small className="pricing-checkout-error">{checkoutError}</small>}
-          <small><ShieldCheck/> Secure Chargebee checkout. Card required for trial. Cancel anytime.</small>
+          <small><ShieldCheck/> Secure checkout. Card required for trial. Cancel anytime.</small>
         </div>
       </aside>
     </motion.div>
