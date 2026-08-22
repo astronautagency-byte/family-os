@@ -109,8 +109,8 @@ function ensureCorrectDomain(session) {
     // Signed in on marketing domain → redirect to app domain
     window.location.replace(`https://${APP_DOMAIN}${window.location.pathname}${window.location.search}`);
   } else if (!session && isAppDomain && !window.location.pathname.startsWith("/signin") && !window.location.pathname.startsWith("/signup")) {
-    // Not signed in on app domain → redirect to marketing domain
-    window.location.replace(`https://${MARKETING_DOMAIN}/signin`);
+    // Not signed in on app domain → redirect to marketing website
+    window.location.replace(`https://${MARKETING_DOMAIN}`);
   }
 }
 

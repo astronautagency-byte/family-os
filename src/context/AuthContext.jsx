@@ -723,7 +723,10 @@ export function AuthProvider({ children }) {
     await performGoogleOAuthLink({ force: true });
   };
 
-  const signOut = () => supabase?.auth.signOut();
+  const signOut = async () => {
+    await supabase?.auth.signOut();
+    // ensureCorrectDomain in App.jsx will redirect to fam-os.app when session becomes null
+  };
 
   const deleteAccount = async () => {
     const { error: deleteError } = await supabase.rpc("delete_own_account");
