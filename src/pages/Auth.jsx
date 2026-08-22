@@ -512,6 +512,7 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
       partnerPersonalizationOptIn,
       avatarUrl,
     });
+    markOnboardingComplete();
     if (draftKey) localStorage.removeItem(draftKey);
   });
 

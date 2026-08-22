@@ -546,6 +546,7 @@
   .feature-hero-stage{min-height:471px;padding-bottom:0}
   .feature-hero-phone.is-composite{width:226px;height:471px;border-radius:48px}
   .feature-hero-phone.is-composite .feature-hero-phone-screen{height:520px;transform:translateY(-49px)}
+  .feature-hero-phone-css{background:#fff;border:1px solid rgba(23,23,31,.06);box-shadow:0 12px 28px rgba(23,23,31,.08)}
 }
 
 /* One marketing button scale across module heroes and closing CTAs. */

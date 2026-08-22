@@ -389,7 +389,29 @@ export function DateField({ label, value, onChange, min, max, disabled = false, 
         <div className="date-popover" role="dialog" aria-label="Choose a date">
           <div className="date-popover-head">
             <button type="button" onClick={() => setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))} aria-label="Previous month"><ChevronLeft size={17} /></button>
-            <strong>{visibleMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" })}</strong>
+            <div className="date-popover-selects">
+              <select
+                className="date-select"
+                value={visibleMonth.getMonth()}
+                onChange={(e) => setVisibleMonth((current) => new Date(current.getFullYear(), Number(e.target.value), 1))}
+                aria-label="Month"
+              >
+                {Array.from({ length: 12 }, (_, i) => (
+                  <option key={i} value={i}>{new Date(2000, i, 1).toLocaleDateString(undefined, { month: "long" })}</option>
+                ))}
+              </select>
+              <select
+                className="date-select"
+                value={visibleMonth.getFullYear()}
+                onChange={(e) => setVisibleMonth((current) => new Date(Number(e.target.value), current.getMonth(), 1))}
+                aria-label="Year"
+              >
+                {Array.from({ length: 100 }, (_, i) => {
+                  const year = new Date().getFullYear() - i;
+                  return <option key={year} value={year}>{year}</option>;
+                })}
+              </select>
+            </div>
             <button type="button" onClick={() => setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))} aria-label="Next month"><ChevronRight size={17} /></button>
           </div>
           <div className="date-weekdays">{DATE_WEEKDAYS.map((day, index) => <span key={`${day}-${index}`}>{day}</span>)}</div>

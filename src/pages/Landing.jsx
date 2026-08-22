@@ -378,6 +378,7 @@ export default function Landing({ signedIn = false }) {
           <motion.div className="landing-trust" variants={fadeUp}><span><Check/> Private to your household</span><span><Check/> Free to start, no card needed</span></motion.div>
         </motion.div>
         <motion.div className="landing-hero-media" initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.75, ease: EASE }} style={{ y: heroY }}>
+          <img className="hero-family-image" src="/illustrations/famos-family-planning.png" alt="A family planning their week together" />
           <ProductPreview feature={0} />
           <svg className="hero-squiggle hero-squiggle-one" viewBox="0 0 150 70" aria-hidden="true"><path d="M5 49c20-55 42 30 64-7s37-19 44 4 24 8 31-12"/></svg><svg className="hero-squiggle hero-squiggle-two" viewBox="0 0 110 62" aria-hidden="true"><path d="M4 30c15-27 28 27 43 0s27-16 33 3 17 8 25-9"/></svg><span className="hero-spark hero-spark-one" aria-hidden="true">✦</span><span className="hero-spark hero-spark-two" aria-hidden="true">✦</span>
           <motion.span className="landing-float-note landing-float-card" {...floatCard(0)}><CheckSquare/> Three things handled before breakfast</motion.span>

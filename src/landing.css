@@ -946,4 +946,9 @@
     width:auto;
     flex:1 1 auto;
   }
+  .pricing-plan-cards{grid-template-columns:1fr!important}
+  .pricing-toggle{font-size:12px}
+  .pricing-toggle button{min-height:40px;font-size:12px}
+  .pricing-summary{padding:18px!important;border-radius:var(--radius-card)!important}
+  .pricing-summary button{min-height:48px;font-size:14px}
 }
