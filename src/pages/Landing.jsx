@@ -383,13 +383,13 @@ export default function Landing({ signedIn = false }) {
         </motion.div>
         {/* Animated floating UI elements */}
         <div className="hero-animated-elements" aria-hidden="true">
-          <motion.span className="hero-float-card hero-float-1" initial={{ opacity: 0, y: 20, rotate: -4 }} animate={{ opacity: 1, y: 0, rotate: -4 }} transition={{ duration: 0.6, delay: 0.4, ease: EASE }}><CheckSquare size={16} /> Three things handled before breakfast</motion.span>
-          <motion.span className="hero-float-card hero-float-2" initial={{ opacity: 0, y: 20, rotate: 3 }} animate={{ opacity: 1, y: 0, rotate: 3 }} transition={{ duration: 0.6, delay: 0.6, ease: EASE }}><CalendarDays size={16} /><b>4:30</b> Soccer pickup</motion.span>
-          <motion.span className="hero-float-card hero-float-3" initial={{ opacity: 0, y: 20, rotate: -2 }} animate={{ opacity: 1, y: 0, rotate: -2 }} transition={{ duration: 0.6, delay: 0.8, ease: EASE }}><ShoppingCart size={16} /><b>6 items</b> Shared grocery list</motion.span>
-          <svg className="hero-squiggle hero-squiggle-one" viewBox="0 0 150 70"><path d="M5 49c20-55 42 30 64-7s37-19 44 4 24 8 31-12"/></svg>
-          <svg className="hero-squiggle hero-squiggle-two" viewBox="0 0 110 62"><path d="M4 30c15-27 28 27 43 0s27-16 33 3 17 8 25-9"/></svg>
-          <span className="hero-spark hero-spark-one">✦</span>
-          <span className="hero-spark hero-spark-two">✦</span>
+          <motion.img className="hero-float-card hero-float-1" src="/floating/soccer-practice.png" alt="" initial={{ opacity: 0, y: 20, rotate: -4 }} animate={{ opacity: 1, y: 0, rotate: -4 }} transition={{ duration: 0.6, delay: 0.3, ease: EASE }} />
+          <motion.img className="hero-float-card hero-float-2" src="/floating/taco-night.png" alt="" initial={{ opacity: 0, y: 20, rotate: 3 }} animate={{ opacity: 1, y: 0, rotate: 3 }} transition={{ duration: 0.6, delay: 0.5, ease: EASE }} />
+          <motion.img className="hero-float-card hero-float-3" src="/floating/milk-checked.png" alt="" initial={{ opacity: 0, y: 20, rotate: -2 }} animate={{ opacity: 1, y: 0, rotate: -2 }} transition={{ duration: 0.6, delay: 0.7, ease: EASE }} />
+          <motion.img className="hero-float-card hero-float-4" src="/floating/spinach-expiring.png" alt="" initial={{ opacity: 0, y: 20, rotate: 2 }} animate={{ opacity: 1, y: 0, rotate: 2 }} transition={{ duration: 0.6, delay: 0.9, ease: EASE }} />
+          <motion.img className="hero-float-card hero-float-5" src="/floating/task-completed.png" alt="" initial={{ opacity: 0, y: 20, rotate: -3 }} animate={{ opacity: 1, y: 0, rotate: -3 }} transition={{ duration: 0.6, delay: 1.1, ease: EASE }} />
+          <motion.img className="hero-float-card hero-float-6" src="/floating/new-shared-item.png" alt="" initial={{ opacity: 0, y: 20, rotate: 4 }} animate={{ opacity: 1, y: 0, rotate: 4 }} transition={{ duration: 0.6, delay: 1.3, ease: EASE }} />
+          <motion.img className="hero-float-card hero-float-7" src="/floating/ask-fam.png" alt="" initial={{ opacity: 0, y: 20, rotate: -1 }} animate={{ opacity: 1, y: 0, rotate: -1 }} transition={{ duration: 0.6, delay: 1.5, ease: EASE }} />
         </div>
       </section>
 
