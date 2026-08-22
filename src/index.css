@@ -7072,6 +7072,52 @@ input:focus, textarea:focus, select:focus {
   box-shadow: 0 0 0 3px rgba(var(--color-accent-rgb, 105, 91, 217), 0.15);
 }
 
+/* App surface contract: every card and structural container stays white.
+   This block intentionally comes last so page-specific tint rules cannot
+   recolor cards, including the Settings sections. Small status badges,
+   selected controls, and icon backgrounds keep their own semantic colors. */
+.app-shell .app-content,
+.app-shell .kinship-card,
+.app-shell .task-board-group,
+.app-shell .task-board-row,
+.app-shell .meal-card-new,
+.app-shell .meal-day-card,
+.app-shell .saved-recipe-card,
+.app-shell .cook-panel,
+.app-shell .cook-step-card,
+.app-shell .cook-progress-card,
+.app-shell .kw-card,
+.app-shell .kw-purchase-queue,
+.app-shell .kitchen-inventory-card,
+.app-shell .event-carousel-card,
+.app-shell .event-detail-card,
+.app-shell .calendar-event,
+.app-shell .apple-import-card,
+.app-shell .broadcast-compose,
+.app-shell .broadcast-banner,
+.app-shell .today-metric-card,
+.app-shell .today-command-card,
+.app-shell .today-pulse-card,
+.app-shell .today-flow-card,
+.app-shell .today-load-card,
+.app-shell .today-meals-card,
+.app-shell .today-groceries-card,
+.app-shell .today-tasks-card,
+.app-shell .today-messages-card,
+.app-shell .settings-color-scheme-card,
+.app-shell .settings-household-card,
+.app-shell .family-roster-card {
+  background:#fff!important;
+}
+
+/* Keep the app content fluid at every breakpoint; mobile remains viewport
+   width while tablet and desktop use all available space beside the nav. */
+.app-shell .app-content {
+  width:100%;
+  min-width:0;
+  max-width:none;
+}
+
 /* Modal enter/exit — natural */
 .modal-card {
   animation: fadeInScale 0.35s var(--ease-decelerate) forwards;
