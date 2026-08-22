@@ -79,6 +79,14 @@ export const FEATURE_HERO = {
       { emoji: "🎙", title: "Voice in Cook Mode",   subtitle: "Hands-free next/back", accent: "violet" },
     ],
   },
+  tablet: {
+    pills: ["Kitchen wall mount", "Shared family view", "Always-on display", "No phones needed"],
+    cards: [
+      { emoji: "📱", title: "Tablet on the fridge", subtitle: "Everyone sees the plan", accent: "blue" },
+      { emoji: "📅", title: "Shared calendar", subtitle: "3 events today", accent: "lilac" },
+      { emoji: "🍽", title: "Dinner planned", subtitle: "Cook Mode ready", accent: "rose" },
+    ],
+  },
   family: {
     pills: ["Optional onboarding", "Personal colour schemes", "Private/shared calendars", "Role-aware access"],
     cards: [
@@ -366,6 +374,38 @@ export const FEATURES = [
     ctaCopy: "Try Rewards free for 30 days — points per task, a family-wide leaderboard, opt-in redemptions with no shame.",
   },
   {
+    id: "tablet",
+    name: "Tablet Mode",
+    eyebrow: "FAMILY KIOSK",
+    title: "Turn any tablet into a shared family hub.",
+    lede: "Mount a tablet on the kitchen wall or fridge and the whole household sees the same calendar, meals, and tasks — no phones required.",
+    icon: Palette,
+    tone: "blue",
+    pill: "Kiosk",
+    bullets: [
+      { icon: Palette,      title: "One-tap activation",       copy: "Toggle Tablet Mode in Settings. The interface simplifies to a large, touch-friendly view optimized for mounted displays." },
+      { icon: CalendarDays, title: "Shared family view",       copy: "Everyone sees the same calendar, meals, and tasks. No individual profiles — just the household plan at a glance." },
+      { icon: BellRing,     title: "Always-on display",        copy: "Keep the screen on and glanceable. Perfect for kitchen walls, fridges, or living room stands." },
+    ],
+    preview: {
+      title: "Tablet Mode",
+      kicker: "SATURDAY · 9:15 AM",
+      pills: ["Family calendar", "Meal plan", "Shopping list"],
+      rows: [
+        { avatar: "📅", name: "Calendar",    meta: "3 events today",              accent: "blue" },
+        { avatar: "🍽", name: "Meals",       meta: "Dinner planned",              accent: "rose" },
+        { avatar: "🛒", name: "Shopping",    meta: "8 items left",                accent: "mint" },
+      ],
+    },
+    tips: [
+      { headline: "Mount it in the kitchen", copy: "A tablet on the fridge becomes the family's command center. Everyone sees the plan without asking." },
+      { headline: "No phones needed", copy: "Kids and partners can check the schedule without digging through their phones. Just glance and go." },
+      { headline: "Toggle on in Settings", copy: "Enable Tablet Mode from Settings → Appearance. The interface adapts instantly." },
+    ],
+    ctaHeadline: "Turn any tablet into a shared family hub.",
+    ctaCopy: "Try FamOS free for 30 days — enable Tablet Mode and mount a shared view in your kitchen.",
+  },
+  {
     id: "family",
     name: "Family & Settings",
     eyebrow: "HOUSEHOLD SETTINGS",
@@ -412,14 +452,13 @@ export const SITE_WIDE_FEATURES = [
 // and feature index. Rewards remains a supporting Tasks capability until it
 // is ready to stand alone in the primary app navigation.
 export const MARKETING_FEATURE_IDS = [
-  "today",
-  "meals",
   "calendar",
+  "meals",
   "fam-ai",
   "tasks",
   "chat",
   "shopping",
-  "family",
+  "tablet",
 ];
 
 export const MARKETING_FEATURES = MARKETING_FEATURE_IDS

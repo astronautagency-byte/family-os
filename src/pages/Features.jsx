@@ -386,7 +386,7 @@ const FeaturesIndex = () => {
               <a href="/landing">See pricing</a>
             </div>
           </div>
-          <FeatureHeroStage feature={FEATURE_BY_ID("today")} hero={FEATURE_HERO.today} />
+          <FeatureHeroStage feature={FEATURE_BY_ID("calendar")} hero={FEATURE_HERO.calendar} />
         </div>
       </section>
 
