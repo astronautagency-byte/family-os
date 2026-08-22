@@ -54,6 +54,19 @@ npm run desktop:build
 
 On macOS this creates an unsigned `.app`/`.dmg` in `src-tauri/target/release/bundle/`. On Windows, run the same command on Windows to create an unsigned NSIS installer. Unsigned builds are free to create and distribute, though macOS Gatekeeper and Windows SmartScreen may show a warning until the app is signed.
 
+### Trusted Mac releases
+
+The repository includes `.github/workflows/desktop-release.yml` for signed, notarized Mac releases. Add these as GitHub Actions secrets before pushing a version tag:
+
+- `APPLE_CERTIFICATE` — base64-encoded Developer ID Application `.p12`
+- `APPLE_CERTIFICATE_PASSWORD`
+- `APPLE_SIGNING_IDENTITY` — the exact Developer ID Application identity
+- `APPLE_ID` — the Apple ID used for notarization
+- `APPLE_PASSWORD` — an Apple app-specific password
+- `APPLE_TEAM_ID`
+
+The workflow intentionally fails its Gatekeeper validation if those secrets are missing or the notarization ticket is not valid. Once configured, push a `v*` tag and publish the generated DMG from the workflow release; that installer should open normally without the verification warning.
+
 Desktop sign-in opens the secure FamOS web sign-in page and returns through the `famos://auth/callback` deep link. Before deploying that flow, apply migrations and deploy the handoff function:
 
 ```bash

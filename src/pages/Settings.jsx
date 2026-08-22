@@ -464,6 +464,16 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
   const [supportSending, setSupportSending] = useState(false);
   const [supportSent, setSupportSent] = useState(false);
   const [supportError, setSupportError] = useState("");
+  useEffect(() => {
+    const support = new URLSearchParams(window.location.search).get("support");
+    if (!support || !["feedback", "feature"].includes(support)) return;
+    setSupportSubject(support === "feedback" ? "FamOS feedback" : "");
+    setSupportMessage("");
+    setSupportError("");
+    setSupportSent(false);
+    setSupportForm(support === "feature" ? "feature" : "email");
+    window.history.replaceState({}, "", window.location.pathname);
+  }, []);
   const [editingHousehold, setEditingHousehold] = useState(false);
   const [householdName, setHouseholdName] = useState("");
   const [householdCity, setHouseholdCity] = useState("");

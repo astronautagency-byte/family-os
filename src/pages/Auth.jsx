@@ -359,6 +359,7 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
   const [latitude, setLatitude] = useState(null);
   const [longitude, setLongitude] = useState(null);
   const [groceryImportText, setGroceryImportText] = useState("");
+  const [taskImportText, setTaskImportText] = useState("");
   const [partnerPersonalizationOptIn, setPartnerPersonalizationOptIn] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("");
   const [avatarStatus, setAvatarStatus] = useState("");
@@ -369,6 +370,7 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
   const [promoCode, setPromoCode] = useState("");
   const [promoBusy, setPromoBusy] = useState(false);
   const [promoResult, setPromoResult] = useState("");
+  const [promoApplied, setPromoApplied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -404,6 +406,7 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
         setLatitude(draft.latitude ?? null);
         setLongitude(draft.longitude ?? null);
         setGroceryImportText(draft.groceryImportText || "");
+        setTaskImportText(draft.taskImportText || "");
         setPartnerPersonalizationOptIn(Boolean(draft.partnerPersonalizationOptIn));
         setAvatarUrl(draft.avatarUrl || "");
         if (Array.isArray(draft.inviteMembers) && draft.inviteMembers.length) {
@@ -426,14 +429,14 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
     localStorage.setItem(draftKey, JSON.stringify({
       familySize, adultCount, childCount, familyDynamic, lifeStage, planningPriorities,
       primaryColor, profileType, calendarPreference, age, dateOfBirth, dietaryRestrictions, avoidIngredients,
-      mealNotes, groceryImportText, partnerPersonalizationOptIn, avatarUrl, inviteMembers,
+      mealNotes, groceryImportText, taskImportText, partnerPersonalizationOptIn, avatarUrl, inviteMembers,
       city, region, postalCode, country, address, latitude, longitude,
       ownerStep, memberStep, notificationsSkipped,
     }));
   }, [
     draftKey, draftLoaded, familySize, adultCount, childCount, familyDynamic, lifeStage,
     planningPriorities, primaryColor, profileType, calendarPreference, age, dateOfBirth, dietaryRestrictions,
-    avoidIngredients, mealNotes, groceryImportText, partnerPersonalizationOptIn, avatarUrl,
+    avoidIngredients, mealNotes, groceryImportText, taskImportText, partnerPersonalizationOptIn, avatarUrl,
     inviteMembers, city, region, postalCode, country, address, latitude, longitude, ownerStep, memberStep, notificationsSkipped,
   ]);
 
@@ -441,7 +444,7 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
     if (invitation && !household) return "Come on in";
     if (!household) return "What should we call home?";
     if (memberProfileStep) return ["Tell us about you", "Food preferences", "Add your calendar", "Make it yours"][memberStep];
-    if (ownerProfileStep) return ["Who’s at home?", "Where is home? (optional)", "What matters most?", "Make meals easier", "Bring your grocery list", "Connect your calendar", "Make it yours", "Never miss an update", "Start your trial"][ownerStep];
+    if (ownerProfileStep) return ["Who’s at home?", "Where is home?", "Connect your calendar", "Bring your task lists", "Set food preferences", "Bring your shopping list", "Choose your look", "Start your trial"][ownerStep];
     return "Invite your people";
   }, [household, invitation, memberProfileStep, memberStep, ownerProfileStep, ownerStep]);
 
@@ -457,12 +460,11 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
     if (ownerProfileStep) return [
       "Start with the basics. You can change these later in Settings.",
       "Optional. Choose a Google Maps suggestion to add local weather and weather-sensitive event alerts, or skip this for now.",
-      "Pick the areas you want FamOS to focus on first.",
-      "Optional details that make meal ideas more useful.",
+      "Connect a Google Calendar now, or come back to it anytime in Settings.",
+      "Bring your current task lists into FamOS. Review everything before it is added.",
+      "Optional details that make meal ideas and shopping suggestions more useful.",
       "Optional. Paste what you already buy and we’ll organize it.",
-      "Connect your calendar now or come back to it anytime.",
-      "Choose your personal app colours and profile picture. Other household members can choose their own.",
-      "Get notified about tasks, meals, messages, and calendar updates from your household.",
+      "Choose your personal app colours. You can change this anytime.",
       "Start your 30-day free trial of FamOS Pro. All features unlocked — cancel anytime.",
     ][ownerStep];
     return `Invite people to ${household.name} now, or skip and add them later from Settings.`;
@@ -512,11 +514,18 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
       latitude,
       longitude,
       groceryImportText,
+      taskImportText,
       partnerPersonalizationOptIn,
       avatarUrl,
     });
     markOnboardingComplete();
     if (draftKey) localStorage.removeItem(draftKey);
+    if (!promoApplied) {
+      const { data, error: checkoutError } = await supabase.functions.invoke("chargebee-checkout", { body: { feature: "pro", billing: "monthly", onboarding: true } });
+      if (checkoutError) throw checkoutError;
+      if (!data?.url) throw new Error("Secure checkout could not be opened. Please try again.");
+      window.location.assign(data.url);
+    }
   });
 
   const saveMember = () => run(async () => {
@@ -572,6 +581,8 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
             setMealNotes={setMealNotes}
             groceryImportText={groceryImportText}
             setGroceryImportText={setGroceryImportText}
+            taskImportText={taskImportText}
+            setTaskImportText={setTaskImportText}
             partnerPersonalizationOptIn={partnerPersonalizationOptIn}
             setPartnerPersonalizationOptIn={setPartnerPersonalizationOptIn}
             avatarUrl={avatarUrl}
@@ -589,7 +600,8 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
             setPromoBusy={setPromoBusy}
             promoResult={promoResult}
             setPromoResult={setPromoResult}
-            onSkipSetup={() => { setNotificationsSkipped(true); run(async () => { markOnboardingComplete(); }); }}
+            promoApplied={promoApplied}
+            setPromoApplied={setPromoApplied}
             step={ownerStep}
             setStep={setOwnerStep}
             session={session}
@@ -685,7 +697,7 @@ function OwnerProfileStep(props) {
     ["Vegetarian", Leaf], ["Vegan", Salad], ["Gluten-free", WheatOff], ["Dairy-free", ChefHat],
     ["Nut-free", HeartHandshake], ["Shellfish-free", ShieldCheck], ["Low sugar", Sparkles],
   ];
-  const steps = ["Household", "Address", "Priorities", "Food", "Shopping", "Calendar", "Your look", "Notifications", "Start trial"];
+  const steps = ["Household", "Address", "Calendar", "Task lists", "Food", "Shopping", "Your look", "Start trial"];
   const next = () => {
     if (props.step === 0 && props.adultCount + props.childCount !== props.familySize) return;
     props.setStep((step) => Math.min(step + 1, steps.length - 1));
@@ -742,12 +754,11 @@ function OwnerProfileStep(props) {
           </p>
         </>}
 
-        {props.step === 2 && <div className="onboarding-choice-group onboarding-priority-grid">
-          <span><Sparkles size={15} /> Choose all that apply</span>
-          <div>{[["calendar", "Schedules", CalendarDays], ["meals", "Meal planning", ChefHat], ["groceries", "Shopping", ShoppingCart], ["tasks", "Chores & tasks", CheckSquare], ["finance", "Budgeting", WalletCards], ["chat", "Family chat", MessageCircle]].map(([value, label, Icon]) => <button type="button" key={value} className={props.planningPriorities.includes(value) ? "selected" : ""} onClick={() => props.togglePriority(value)}><Icon size={16} />{label}{props.planningPriorities.includes(value) && <Check className="onboarding-pill-check" size={13} />}</button>)}</div>
-        </div>}
+        {props.step === 2 && <GoogleCalendarStep signInWithGoogle={props.signInWithGoogle} googleProviderToken={props.googleProviderToken} busy={props.busy} run={props.run} />}
 
-        {props.step === 3 && <>
+        {props.step === 3 && <TaskImportStep value={props.taskImportText} onChange={props.setTaskImportText} />}
+
+        {props.step === 4 && <>
           <div className="onboarding-choice-group">
             <span><ChefHat size={15} /> Dietary preferences</span>
             <div>{restrictions.map(([restriction, Icon]) => <button type="button" key={restriction} className={props.dietaryRestrictions.includes(restriction) ? "selected" : ""} onClick={() => props.toggleRestriction(restriction)}><Icon size={15} />{restriction}</button>)}</div>
@@ -758,24 +769,16 @@ function OwnerProfileStep(props) {
           </div>
         </>}
 
-        {props.step === 4 && <label className="onboarding-field onboarding-full onboarding-grocery-import"><span><ShoppingCart size={15} /> Paste your current shopping list</span><textarea placeholder={"Milk\nEggs\nBananas x6\nGreek yogurt"} value={props.groceryImportText} onChange={(e) => props.setGroceryImportText(e.target.value)} /><small>One item per line works best. We’ll add them to your shopping list and remember them as staples.</small></label>}
+        {props.step === 5 && <label className="onboarding-field onboarding-full onboarding-grocery-import"><span><ShoppingCart size={15} /> Paste your current shopping list</span><textarea placeholder={"Milk\nEggs\nBananas x6\nGreek yogurt"} value={props.groceryImportText} onChange={(e) => props.setGroceryImportText(e.target.value)} /><small>One item per line works best. We’ll add them to your shopping list and remember them as staples.</small></label>}
 
-        {props.step === 5 && <>
-          <GoogleCalendarStep signInWithGoogle={props.signInWithGoogle} googleProviderToken={props.googleProviderToken} busy={props.busy} run={props.run} />
-          <label className="partner-consent">
-            <input type="checkbox" checked={props.partnerPersonalizationOptIn} onChange={(event) => props.setPartnerPersonalizationOptIn(event.target.checked)} />
-            <span><strong>Personalize suggestions for my household</strong><small>Optional. Uses the preferences you entered to improve meal and grocery suggestions.</small></span>
-          </label>
-        </>}
+        {props.step === 6 && <OnboardingColourScheme value={props.colorScheme} onChange={props.onColorSchemeChange} />}
 
-        {props.step === 6 && <><OnboardingColourScheme value={props.colorScheme} onChange={props.onColorSchemeChange} /><AvatarPicker avatarUrl={props.avatarUrl} setAvatarUrl={props.setAvatarUrl} status={props.avatarStatus} setStatus={props.setAvatarStatus} /></>}
 
-        {props.step === 7 && <NotificationStep user={props.session?.user} busy={props.busy} run={props.run} />}
 
-        {props.step === 8 && <div className="onboarding-trial-step">
+        {props.step === 7 && <div className="onboarding-trial-step">
           <div className="onboarding-trial-card">
-            <h3>Start your 30-day free trial</h3>
-            <p>Try FamOS Pro free for 30 days. All features unlocked — calendar sync, recipes, Cook Mode, meal planning, Fam AI, and more. Cancel anytime during the trial.</p>
+            <h3>Start your 30-day FamOS Pro trial</h3>
+            <p>Unlock every Pro feature for 30 days. Add a card through secure Chargebee checkout and you won’t be charged until the trial ends. Cancel anytime before then.</p>
             <div className="onboarding-trial-features">
               <span>Google & Outlook two-way sync</span>
               <span>Recipe discovery, meal planning, and Cook Mode</span>
@@ -784,16 +787,16 @@ function OwnerProfileStep(props) {
               <span>Priority support</span>
             </div>
             <div className="onboarding-promo-field">
-              <label>Promo code (optional)</label>
+              <label>Promo code</label>
               <div className="onboarding-promo-row">
                 <input
                   value={props.promoCode}
-                  onChange={(e) => props.setPromoCode(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ""))}
-                  placeholder="Enter code"
-                  disabled={props.promoBusy}
+                  onChange={(e) => { props.setPromoCode(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, "")); props.setPromoApplied(false); }}
+                  placeholder="Enter code to skip card details"
+                  disabled={props.promoBusy || props.promoApplied}
                   maxLength={32}
                 />
-                {props.promoCode.trim().length >= 3 && (
+                {props.promoCode.trim().length >= 3 && !props.promoApplied && (
                   <button
                     type="button"
                     className="onboarding-promo-apply"
@@ -804,8 +807,10 @@ function OwnerProfileStep(props) {
                       try {
                         const { data, error } = await supabase.rpc("apply_my_promo_code", { promo_code: props.promoCode.trim() });
                         if (error) throw error;
-                        props.setPromoResult("Promo code applied! All features unlocked.");
+                        props.setPromoApplied(true);
+                        props.setPromoResult(data || "Promo code applied. Pro is unlocked.");
                       } catch (e) {
+                        props.setPromoApplied(false);
                         props.setPromoResult(e.message || "Invalid promo code.");
                       } finally {
                         props.setPromoBusy(false);
@@ -814,7 +819,7 @@ function OwnerProfileStep(props) {
                   >{props.promoBusy ? "Applying…" : "Apply"}</button>
                 )}
               </div>
-              {props.promoResult && <p className={`onboarding-promo-result ${props.promoResult.includes("applied") ? "success" : "error"}`}>{props.promoResult}</p>}
+              {props.promoResult && <p className={`onboarding-promo-result ${props.promoApplied ? "success" : "error"}`}>{props.promoResult}</p>}
             </div>
           </div>
         </div>}
@@ -826,22 +831,28 @@ function OwnerProfileStep(props) {
         nextDisabled={props.step === 0 && !basicsValid}
         nextLabel={
           (props.step === 1 && !props.address.trim())
-          || (props.step === 3 && !props.dietaryRestrictions.length && !props.avoidIngredients.trim() && !props.mealNotes.trim())
-          || (props.step === 4 && !props.groceryImportText.trim())
+          || (props.step === 3 && !props.taskImportText.trim())
+          || (props.step === 4 && !props.dietaryRestrictions.length && !props.avoidIngredients.trim() && !props.mealNotes.trim())
+          || (props.step === 5 && !props.groceryImportText.trim())
             ? "Skip for now"
             : undefined
         }
         onBack={() => props.setStep((step) => Math.max(0, step - 1))}
         onNext={next}
         onFinish={props.onSave}
-        finishLabel="Finish setup"
+        finishLabel={props.promoApplied ? "Unlock FamOS Pro" : "Start Pro trial"}
       />
-      {props.onSkipSetup && (
-        <SecondaryButton type="button" className="onboarding-skip-button onboarding-skip-setup" disabled={props.busy} onClick={props.onSkipSetup} title="Mark onboarding complete without filling the wizard — your existing home is fine.">
-          Skip the rest — my home is ready
-        </SecondaryButton>
-      )}
     </div>
+  );
+}
+
+function TaskImportStep({ value, onChange }) {
+  return (
+    <label className="onboarding-field onboarding-full onboarding-grocery-import">
+      <span><CheckSquare size={15} /> Bring in existing task lists</span>
+      <textarea value={value} onChange={(event) => onChange(event.target.value)} placeholder={"Book the dentist\nPick up prescriptions\nReturn library books"} />
+      <small>Paste tasks from Apple Reminders, Google Tasks, Microsoft To Do, or any plain-text list. One task per line. FamOS reviews and imports them into a new task list.</small>
+    </label>
   );
 }
 

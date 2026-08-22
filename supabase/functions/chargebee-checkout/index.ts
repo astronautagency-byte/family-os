@@ -45,6 +45,9 @@ Deno.serve(async (req) => {
 
     form.set("subscription_items[item_price_id][0]", itemPriceId);
     form.set("subscription_items[quantity][0]", "1");
+    // Onboarding starts the Pro plan in a 30-day Chargebee trial. Existing
+    // upgrades keep their normal checkout behaviour unless explicitly asked.
+    if (input.onboarding === true) form.set("subscription[trial_end]", String(Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60));
     form.set("customer[id]", membership.household_id);
     form.set("customer[email]", auth.user.email || "");
     form.set("customer[first_name]", household?.name || "FamOS household");

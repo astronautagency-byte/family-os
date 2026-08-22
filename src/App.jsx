@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { ShieldCheck } from "lucide-react";
+import { HeartHandshake, ShieldCheck, X } from "lucide-react";
 // Eager-load feature.css alongside the main entry so the FeaturesDropdown's
 // `position:absolute` popover styles are guaranteed to be present before any
 // page (lazy-loaded Landing.jsx OR Features.jsx) renders its nav. Without this,
@@ -60,6 +60,25 @@ const PageFallback = () => (
     </div>
   </div>
 );
+function FounderWelcomeModal({ onDismiss }) {
+  return (
+    <div className="founder-welcome-layer" role="presentation">
+      <section className="founder-welcome-card" role="dialog" aria-modal="true" aria-labelledby="founder-welcome-title">
+        <button type="button" className="founder-welcome-close" onClick={onDismiss} aria-label="Close welcome message"><X size={18} /></button>
+        <div className="founder-welcome-mark"><HeartHandshake size={22} /></div>
+        <p className="founder-welcome-eyebrow">A note from Alex</p>
+        <h2 id="founder-welcome-title">Welcome to FamOS.</h2>
+        <p className="founder-welcome-copy">I built FamOS to make the everyday work of family life feel a little lighter. I’m so glad you’re here — I hope it gives your household more clarity, more calm, and more time together.</p>
+        <p className="founder-welcome-signoff">— Alex Vorobiev<br /><span>Founder, FamOS</span></p>
+        <div className="founder-welcome-actions">
+          <a href="/settings?support=feedback" onClick={onDismiss}>Share feedback</a>
+          <a href="/settings?support=feature" onClick={onDismiss}>Suggest a feature</a>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 const PageErrorFallback = ({ retry, reloadLatest, goToday }) => {
   const crash = (() => {
     try {
@@ -147,6 +166,7 @@ export default function App() {
   // Sparkles button (no more floating FAB). The boolean below drives the
   // controlled-mode `open` prop on <FamAI />.
   const [famAiOpen, setFamAiOpen] = useState(false);
+  const [founderWelcomeOpen, setFounderWelcomeOpen] = useState(false);
   const [desktopAuth, setDesktopAuth] = useState({ status: "idle", error: "" });
   const desktopHandoffAttempted = useRef(false);
   const [tabletMode, setTabletMode] = useState(() => localStorage.getItem("familyos:tablet-mode") === "true");
@@ -325,6 +345,17 @@ export default function App() {
   }, [configured, session]);
 
   useEffect(() => {
+    if (!session?.user?.id || !household?.id || onboardingRequired) return;
+    const key = `family-os:founder-welcome-seen:v1:${session.user.id}`;
+    if (localStorage.getItem(key) !== "true") setFounderWelcomeOpen(true);
+  }, [session?.user?.id, household?.id, onboardingRequired]);
+
+  const dismissFounderWelcome = () => {
+    if (session?.user?.id) localStorage.setItem(`family-os:founder-welcome-seen:v1:${session.user.id}`, "true");
+    setFounderWelcomeOpen(false);
+  };
+
+  useEffect(() => {
     if (!configured || !session || !household?.id || publicRoute === "admin") return;
     let active = true;
     supabase.rpc("household_runtime_config", { target_household: household.id }).then(({ data, error }) => {
@@ -483,6 +514,7 @@ export default function App() {
             <FamAI open={famAiOpen} onClose={() => setFamAiOpen(false)} screen={tab} />
           </Suspense>
         </ErrorBoundary>
+        {founderWelcomeOpen && <FounderWelcomeModal onDismiss={dismissFounderWelcome} />}
         <InstallPrompt />
         <Confetti />
       </div>

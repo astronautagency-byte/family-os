@@ -124,6 +124,39 @@ async function importStapleGroceries(text, householdId, userId) {
   }
 }
 
+async function importOnboardingTasks(text, householdId, userId) {
+  const titles = String(text || "")
+    .split(/[\n,]+/)
+    .map((line) => line.trim().replace(/^[-*•]\s*/, ""))
+    .filter(Boolean)
+    .slice(0, 200);
+  if (!titles.length || !supabase || !householdId || !userId) return;
+
+  try {
+    const { data: list, error: listError } = await supabase
+      .from("task_lists")
+      .insert({ household_id: householdId, name: "Imported tasks", color: "#7F56D9", created_by: userId })
+      .select("id")
+      .single();
+    if (listError) {
+      if (isMissingTaskListsSchemaMessage(listError.message)) {
+        const { error } = await supabase.from("tasks").insert(titles.map((title) => ({ household_id: householdId, title, created_by: userId })));
+        if (error) throw error;
+        return;
+      }
+      throw listError;
+    }
+    const { error } = await supabase.from("tasks").insert(titles.map((title) => ({ household_id: householdId, title, list_id: list.id, created_by: userId })));
+    if (error) throw error;
+  } catch (error) {
+    console.warn("Could not import onboarding tasks.", error);
+  }
+}
+
+function isMissingTaskListsSchemaMessage(message = "") {
+  return /task_lists|list_id|schema cache|relation .* does not exist|could not find the table/i.test(message);
+}
+
 async function getFunctionErrorMessage(functionError) {
   const response = functionError?.context;
   try {
@@ -857,6 +890,7 @@ export function AuthProvider({ children }) {
     setMemberProfile(memberPayload);
     await saveOwnAvatar(profileInput.avatarUrl);
     await importStapleGroceries(profileInput.groceryImportText, household.id, session.user.id);
+    await importOnboardingTasks(profileInput.taskImportText, household.id, session.user.id);
     await refreshAccount(session);
   };
 

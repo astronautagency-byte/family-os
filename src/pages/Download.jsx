@@ -24,7 +24,11 @@ export default function Download() {
             </a>
           </div>
           <p className="download-note">For Mac with Apple silicon · Free to download · Your FamOS account stays the same</p>
-          <p className="download-security-note">First time opening it? Control-click FamOS in Applications, choose Open, then confirm Open. This is expected for a free, unsigned Mac download.</p>
+          <div className="download-security-note">
+            <strong>Opening FamOS for the first time</strong>
+            <p>After moving FamOS to Applications, Control-click the app and choose <b>Open</b>. Confirm <b>Open</b> in the next dialog. This one-time step is required because this free Mac download is not notarized by Apple.</p>
+            <p>If macOS still shows the damaged message, open <b>System Settings → Privacy &amp; Security</b>, scroll down, choose <b>Open Anyway</b> beside FamOS, and confirm. Do not open it by double-clicking first.</p>
+          </div>
         </div>
         <div className="download-hero-art" aria-hidden="true">
           <div className="download-window">
@@ -51,7 +55,7 @@ export default function Download() {
             <div>
               <p className="download-option-kicker">READY NOW</p>
               <h3>Mac desktop app</h3>
-              <p>Download FamOS for Mac, open the file, and move FamOS into Applications. Then sign in as usual.</p>
+              <p>Download FamOS for Mac, open the file, and move FamOS into Applications. Then Control-click FamOS, choose Open once, and sign in as usual.</p>
               <a href={DESKTOP_DOWNLOAD_URL}>Download for Mac <ArrowDownToLine size={15} /></a>
             </div>
           </article>
@@ -84,7 +88,8 @@ export default function Download() {
         <div className="download-step-grid" id="download-steps-title">
           <article><b>1</b><h3>Download</h3><p>Select Download for Mac above. The file will appear in your Downloads folder.</p></article>
           <article><b>2</b><h3>Move to Applications</h3><p>Open the downloaded file and drag FamOS into your Applications folder.</p></article>
-          <article><b>3</b><h3>Sign in and settle in</h3><p>Open FamOS, sign in with your normal account, and pick up right where you left off.</p></article>
+          <article><b>3</b><h3>Open it once</h3><p>In Applications, Control-click FamOS, choose Open, and confirm Open. You only need to do this the first time.</p></article>
+          <article><b>4</b><h3>Sign in and settle in</h3><p>Sign in with your normal account and pick up right where you left off.</p></article>
         </div>
         <div className="download-trust"><CheckCircle2 size={17} /> Your family data stays connected across every screen.</div>
       </section>
