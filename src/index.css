@@ -4129,8 +4129,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
     padding-inline: 14px;
   }
   .topbar-brand-group{gap:8px}
-  .topbar-brand-group .topbar-download{width:34px;min-height:34px;padding:0}
-  .topbar-brand-group .topbar-download span{display:none}
+  .topbar-brand-group .topbar-download{display:none}
   .app-content > [class*="reference-"] > .px-5 {
     padding-left: 16px !important;
     padding-right: 16px !important;

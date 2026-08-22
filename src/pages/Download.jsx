@@ -24,6 +24,7 @@ export default function Download() {
             </a>
           </div>
           <p className="download-note">For Mac with Apple silicon · Free to download · Your FamOS account stays the same</p>
+          <p className="download-security-note">First time opening it? Control-click FamOS in Applications, choose Open, then confirm Open. This is expected for a free, unsigned Mac download.</p>
         </div>
         <div className="download-hero-art" aria-hidden="true">
           <div className="download-window">

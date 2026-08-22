@@ -9,7 +9,7 @@
 .download-primary:hover{background:var(--color-accent-strong);border-color:var(--color-accent-strong);transform:translateY(-2px);box-shadow:0 16px 30px color-mix(in srgb,var(--color-accent) 30%,transparent)}
 .download-secondary{min-height:48px;padding:0 18px;border:1px solid var(--color-border-strong);border-radius:var(--radius-control);background:#fff;color:var(--color-ink)}
 .download-secondary:hover{background:var(--color-surface-sunken);transform:translateY(-2px)}
-.download-note{margin:15px 0 0;color:var(--color-ink-faint);font-size:11px;line-height:1.5}
+.download-note{margin:15px 0 0;color:var(--color-ink-faint);font-size:11px;line-height:1.5}.download-security-note{max-width:520px;margin:8px 0 0;color:#8b6a24;font-size:11px;line-height:1.5}
 .download-hero-art{position:relative;min-height:370px;display:grid;place-items:center;padding:32px;border-radius:32px;background:linear-gradient(135deg,#eee8ff,#fff2df);overflow:hidden}
 .download-hero-art:before,.download-hero-art:after{content:"";position:absolute;border-radius:50%;background:rgba(255,255,255,.5)}
 .download-hero-art:before{width:280px;height:280px;left:-85px;bottom:-140px}.download-hero-art:after{width:230px;height:230px;right:-60px;top:-110px}
