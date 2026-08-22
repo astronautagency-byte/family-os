@@ -81,8 +81,8 @@ const PageErrorFallback = ({ retry, reloadLatest, goToday }) => {
 };
 const VALID_TABS = ["today","calendar","meals","tasks","groceries","kitchen","chat","famai","settings"];
 const PUBLIC_ROUTES = ["privacy", "terms", "pricing", "signin", "signup"];
-const ROUTE_ALIASES = { "sign-in": "signin", "lsign-in": "signin", "sign-up": "signup" };
-const VALID_ROUTES = [...VALID_TABS, "landing", "admin", "partner", ...PUBLIC_ROUTES];
+const ROUTE_ALIASES = { "sign-in": "signin", "lsign-in": "signin", "sign-up": "signup", "partners": "partner" };
+const VALID_ROUTES = [...VALID_TABS, "landing", "admin", "partner", "partners", ...PUBLIC_ROUTES];
 const FEATURES_PATH_REGEX = /^\/features(?:\/([a-z-]+))?\/?$/i;
 const normalizeRoute = (route = "") => ROUTE_ALIASES[route] || route;
 const pathRoute = () => normalizeRoute(window.location.pathname.replace(/^\/+|\/+$/g, ""));
@@ -90,7 +90,7 @@ const isFeaturesPath = () => FEATURES_PATH_REGEX.test(window.location.pathname.r
 const routeFromLocation = () => {
   const route = pathRoute();
   if (isFeaturesPath()) return "features";
-  if ([...PUBLIC_ROUTES, "admin", "partner"].includes(route)) return route;
+  if ([...PUBLIC_ROUTES, "admin", "partner", "partners"].includes(route)) return route;
   if (VALID_TABS.includes(route)) return route;
   return "";
 };
@@ -108,7 +108,7 @@ function ensureCorrectDomain(session) {
   if (session && isMarketingDomain) {
     // Signed in on marketing domain → redirect to app domain
     window.location.replace(`https://${APP_DOMAIN}${window.location.pathname}${window.location.search}`);
-  } else if (!session && isAppDomain && !window.location.pathname.startsWith("/signin") && !window.location.pathname.startsWith("/signup")) {
+  } else if (!session && isAppDomain && !window.location.pathname.startsWith("/signin") && !window.location.pathname.startsWith("/signup") && !window.location.pathname.startsWith("/admin") && !window.location.pathname.startsWith("/partner")) {
     // Not signed in on app domain → redirect to marketing website
     window.location.replace(`https://${MARKETING_DOMAIN}`);
   }

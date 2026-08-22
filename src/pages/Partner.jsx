@@ -6,6 +6,7 @@ import {
   Target, Trash2, TrendingUp, Upload, Users, X, PieChart,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { Card } from "../components/ui";
 import {
   getMyPartner,
   getMyCampaigns,
@@ -22,6 +23,7 @@ import {
   getAnalyticsDaily,
   getAnalyticsPlacement,
   getAnalyticsTopCampaigns,
+  partnerApply,
 } from "../lib/partnerApi";
 import { AD_PLACEMENTS } from "../lib/adNetwork";
 
@@ -214,6 +216,86 @@ function PartnerLogin({ onSignedIn }) {
             Sign in
           </button>
         </div>
+      </Card>
+    </PartnerShell>
+  );
+}
+
+/* ── Partner Profile (application form for existing auth users) ──────── */
+
+function PartnerProfile({ onApplied }) {
+  const [companyName, setCompanyName] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [companySize, setCompanySize] = useState("");
+  const [monthlyBudget, setMonthlyBudget] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleApply = async (e) => {
+    e.preventDefault();
+    setError("");
+    if (!companyName.trim()) { setError("Company name is required"); return; }
+    setBusy(true);
+    try {
+      const result = await partnerApply({ companyName, websiteUrl, contactName: "", industry, companySize, monthlyBudget });
+      if (result?.status === "active") {
+        onApplied();
+      } else {
+        setSubmitted(true);
+      }
+    } catch (err) { setError(err.message || "Application failed"); }
+    finally { setBusy(false); }
+  };
+
+  if (submitted) {
+    return (
+      <PartnerShell>
+        <h1 className="minimal-auth-title">Application submitted</h1>
+        <p className="minimal-auth-subtitle">Thanks for your interest in FamOS Ad Partners. We review applications within 1–2 business days.</p>
+        <Card className="minimal-auth-card">
+          <button className="pbtn pbtn-ghost pbtn-full" type="button" onClick={() => supabase.auth.signOut()}>Sign out</button>
+        </Card>
+      </PartnerShell>
+    );
+  }
+
+  return (
+    <PartnerShell>
+      <h1 className="minimal-auth-title">Tell us about your brand</h1>
+      <p className="minimal-auth-subtitle">This helps us match your ads to the right families.</p>
+      <Card className="minimal-auth-card">
+        <form onSubmit={handleApply}>
+          <label className="pfield"><span>Company name *</span>
+            <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Acme Inc." required />
+          </label>
+          <label className="pfield"><span>Website</span>
+            <input type="url" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder="https://example.com" />
+          </label>
+          <label className="pfield"><span>Industry</span>
+            <select value={industry} onChange={(e) => setIndustry(e.target.value)}>
+              <option value="">Select industry</option>
+              {INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}
+            </select>
+          </label>
+          <label className="pfield"><span>Company size</span>
+            <select value={companySize} onChange={(e) => setCompanySize(e.target.value)}>
+              <option value="">Select size</option>
+              {COMPANY_SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </label>
+          <label className="pfield"><span>Monthly ad budget</span>
+            <select value={monthlyBudget} onChange={(e) => setMonthlyBudget(e.target.value)}>
+              <option value="">Select range</option>
+              {BUDGET_RANGES.map((b) => <option key={b} value={b}>{b}</option>)}
+            </select>
+          </label>
+          {error && <p className="pform-error">{error}</p>}
+          <button className="pbtn pbtn-primary pbtn-full" type="submit" disabled={busy || !companyName.trim()}>
+            {busy ? "Please wait…" : "Submit application"}
+          </button>
+        </form>
       </Card>
     </PartnerShell>
   );
