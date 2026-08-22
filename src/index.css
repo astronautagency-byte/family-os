@@ -164,7 +164,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .text-on-accent { color: var(--color-on-accent) !important; }
 
 .app-shell { width:100%; min-width:0; min-height:100dvh; }
-.app-content { width:100%; min-width:0; max-width:512px; min-height:100dvh; margin:0 auto; background:linear-gradient(180deg,var(--color-canvas) 0,var(--color-canvas) 100%); }
+.app-content { width:100%; min-width:0; max-width:none; min-height:100dvh; margin:0; background:linear-gradient(180deg,var(--color-canvas) 0,var(--color-canvas) 100%); }
 
 /* Smooth scrolling for all scrollable areas */
 /* Native scrolling only — no global -webkit-overflow-scrolling (obsolete
@@ -2037,7 +2037,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 
 /* Tablet layout polish for older iPads and mid-size screens */
 @media (min-width: 700px) and (max-width: 1100px) {
-  .app-content { max-width: 560px; }
+  .app-content { max-width: none; }
   .landing-page { overflow-x: hidden; }
   .landing-nav {
     max-width: 860px;
@@ -7453,7 +7453,7 @@ input:focus, textarea:focus, select:focus {
 
 /* ── Wide screen (>1440px) ─────────────────────────────────────────── */
 @media(min-width:1440px){
-  .app-content{max-width:580px}
+  .app-content{max-width:none}
   .landing-page{font-size:16px}
   .landing-nav{max-width:1320px}
   .landing-hero-fullbleed .landing-hero-copy{max-width:720px;padding-left:max(60px,calc((100vw - 1240px)/2))}
