@@ -16,7 +16,7 @@
 
 /* ── Top nav (matches Landing language but simpler) ── */
 .features-nav{
-  position:sticky;top:0;z-index:30;
+  position:sticky!important;top:0;z-index:30;isolation:isolate;
   display:grid;grid-template-columns:auto 1fr auto;gap:24px;align-items:center;
   width:100%;max-width:1240px;margin:auto;padding:18px 28px;
   background:rgba(255,253,249,.85);
@@ -570,6 +570,51 @@
 @media(max-width:600px){
   .features-index-hero,.features-module-hero{padding:16px 16px 40px}
 }
-@media (prefers-reduced-motion:reduce){
+
+/* Tablet Mode uses a wide landscape mockup rather than a phone silhouette.
+ * Center it against the copy and let it use the full hero column so it reads
+ * as an always-on family display instead of sitting low and undersized. */
+.feature-hero-stage-tablet{
+  align-self:center;
+  place-items:center;
+  max-width:680px;
+  min-height:560px;
+}
+.feature-hero-stage-tablet .feature-hero-phone{
+  width:min(640px,100%);
+}
+.feature-hero-stage-tablet .feature-hero-phone-screen{
+  width:100%;
+  border-radius:22px;
+  filter:drop-shadow(0 24px 34px rgba(23,23,31,.16));
+}
+@media(max-width:900px){
+  .feature-hero-stage-tablet{
+    max-width:760px;
+    min-height:0;
+    margin-top:8px;
+  }
+  .feature-hero-stage-tablet .feature-hero-phone{
+    width:min(720px,100%);
+  }
+}
+@media(max-width:600px){
+  .feature-hero-stage-tablet{
+    margin-top:12px;
+  }
+  .feature-hero-stage-tablet .feature-hero-phone{
+    width:100%;
+  }
+  .feature-hero-stage-tablet .feature-hero-phone-screen{
+    border-radius:16px;
+  }
+}
+
+@media(max-width:600px){
+  /* Feature-page mockups are wide banners on mobile, so keep their edges soft. */
+  .feature-hero-phone-screen{border-radius:20px}
+}
+
+@media(prefers-reduced-motion:reduce){
   .feature-hero-card{animation:none!important}
 }

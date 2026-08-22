@@ -203,7 +203,7 @@ const FeaturesDropdown = ({ active = false, label = "Features", currentId = null
               Browse all features <ArrowRight size={15} aria-hidden="true" />
             </a>
             <a
-              href="/landing#pricing"
+              href="/#pricing"
               className="features-dropdown-hero-cta"
               role="menuitem"
               onClick={() => { setOpen(false); onItemClick?.(); }}

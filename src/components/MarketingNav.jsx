@@ -150,6 +150,9 @@ const MarketingNav = ({ signedIn = false, currentId = null }) => {
   const handleBrandClick = (event) => {
     if (!onLanding) return;
     event.preventDefault();
+    if (window.location.pathname !== "/") {
+      window.history.replaceState({}, "", `/${window.location.search}${window.location.hash}`);
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -164,7 +167,7 @@ const MarketingNav = ({ signedIn = false, currentId = null }) => {
       >
         <a
           className="marketing-nav-brand"
-          href="/landing"
+          href="/"
           onClick={handleBrandClick}
           aria-label="FamOS home"
         >
@@ -172,19 +175,19 @@ const MarketingNav = ({ signedIn = false, currentId = null }) => {
           <strong><span>Fam</span>OS</strong>
         </a>
         <div className="marketing-nav-links">
-          <a href="/landing">Home</a>
+          <a href="/">Home</a>
           <FeaturesDropdown active label="Features" currentId={currentId} />
-          <a href="/landing#how-it-works">How it works</a>
-          <a href="/landing#compare">Compare</a>
-          <a href="/landing#pricing">Pricing</a>
+          <a href="/#how-it-works">How it works</a>
+          <a href="/#compare">Compare</a>
+          <a href="/#pricing">Pricing</a>
         </div>
         <div className="marketing-nav-actions">
           {!signedIn && (
-            <a className="marketing-nav-signin" href="/signin">Sign in</a>
+            <a className="marketing-nav-signin" href="https://home.fam-os.app/sign-in">Sign in</a>
           )}
           <a
             className="marketing-nav-join"
-            href={signedIn ? "/today" : "/signup"}
+            href={signedIn ? "/today" : "https://home.fam-os.app/sign-up"}
           >
             {signedIn ? "Open FamOS" : (<>Get started <ArrowRight size={15} /></>)}
           </a>
@@ -232,7 +235,7 @@ const MarketingNav = ({ signedIn = false, currentId = null }) => {
             </button>
             <a
               className="marketing-drawer-brand"
-              href="/landing"
+              href="/"
               onClick={closeDrawer}
             >
               <strong>FamOS</strong>
@@ -240,7 +243,7 @@ const MarketingNav = ({ signedIn = false, currentId = null }) => {
             <span style={{ width: 40 }} />
           </div>
           <nav className="marketing-drawer-links" aria-label="FamOS marketing menu links">
-            <a href="/landing" className="marketing-drawer-link" onClick={closeDrawer}>
+            <a href="/" className="marketing-drawer-link" onClick={closeDrawer}>
               <Home size={20} />
               <span>Home</span>
             </a>
@@ -274,15 +277,15 @@ const MarketingNav = ({ signedIn = false, currentId = null }) => {
                 })}
               </div>
             </div>
-            <a href="/landing#how-it-works" className="marketing-drawer-link" onClick={closeDrawer}>
+            <a href="/#how-it-works" className="marketing-drawer-link" onClick={closeDrawer}>
               <CalendarDays size={20} />
               <span>How it works</span>
             </a>
-            <a href="/landing#compare" className="marketing-drawer-link" onClick={closeDrawer}>
+            <a href="/#compare" className="marketing-drawer-link" onClick={closeDrawer}>
               <BarChart3 size={20} />
               <span>Compare</span>
             </a>
-            <a href="/landing#pricing" className="marketing-drawer-link" onClick={closeDrawer}>
+            <a href="/#pricing" className="marketing-drawer-link" onClick={closeDrawer}>
               <Tag size={20} />
               <span>Pricing</span>
             </a>
@@ -290,12 +293,12 @@ const MarketingNav = ({ signedIn = false, currentId = null }) => {
           <div className="marketing-drawer-divider" />
           <div className="marketing-drawer-bottom">
             {!signedIn && (
-              <a className="marketing-drawer-link" href="/signin" onClick={closeDrawer}>
+              <a className="marketing-drawer-link" href="https://home.fam-os.app/sign-in" onClick={closeDrawer}>
                 <Search size={20} />
                 <span>Sign in</span>
               </a>
             )}
-            <a className="marketing-drawer-link" href={signedIn ? "/today" : "/signup"} onClick={closeDrawer}>
+            <a className="marketing-drawer-link" href={signedIn ? "/today" : "https://home.fam-os.app/sign-up"} onClick={closeDrawer}>
               <User size={20} />
               <span>{signedIn ? "Open FamOS" : "Get started"}</span>
             </a>

@@ -571,7 +571,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
       setInviteStatus(result?.message || "Invitation sent.");
       if (invitePhone.trim() && result?.sms?.requested && !result.sms.sent) {
         const normalizedPhone = normalizePhoneE164(invitePhone);
-        const joinUrl = `${window.location.origin}/sign-in?invited=1&email=${encodeURIComponent(inviteEmail.trim().toLowerCase())}`;
+        const joinUrl = `https://home.fam-os.app/sign-in?invited=1&email=${encodeURIComponent(inviteEmail.trim().toLowerCase())}`;
         const message = `You’re invited to ${household?.name || "a family home"} on FamOS. Join your family home: ${joinUrl} Reply STOP to opt out.`;
         const originalPhone = invitePhone.trim();
         if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {

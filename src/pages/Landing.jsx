@@ -73,8 +73,15 @@ const capabilityHighlights = [
   { title: "Fam AI, review first", copy: "Meal ideas, grocery lists, calendar summaries — always behind your confirmation.", icon: Bot, tone: "mint" },
 ];
 
+const APP_ORIGIN = "https://home.fam-os.app";
+
 const go = (route) => {
-  const cleanPaths = { signin: "/sign-in", signup: "/sign-up", pricing: "/pricing", privacy: "/privacy", terms: "/terms" };
+  const authPaths = { signin: "/sign-in", signup: "/sign-up" };
+  if (authPaths[route]) {
+    window.location.assign(`${APP_ORIGIN}${authPaths[route]}`);
+    return;
+  }
+  const cleanPaths = { landing: "/", pricing: "/pricing", privacy: "/privacy", terms: "/terms" };
   if (cleanPaths[route]) {
     window.history.pushState(null, "", cleanPaths[route]);
     window.dispatchEvent(new Event("popstate"));
@@ -127,8 +134,7 @@ function PricingSection({ signedIn }) {
     setCheckoutError("");
     if (!signedIn) {
       const params = new URLSearchParams({ returnPath: "/pricing" });
-      window.history.pushState(null, "", `/sign-up?${params.toString()}`);
-      window.dispatchEvent(new Event("popstate"));
+      window.location.assign(`${APP_ORIGIN}/sign-up?${params.toString()}`);
       return;
     }
     setCheckoutBusy(true);

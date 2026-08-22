@@ -50,15 +50,15 @@ const MarketingFooter = ({ signedIn = false }) => {
           <ul>
             <li><a href="/privacy">Privacy</a></li>
             <li><a href="/terms">Terms</a></li>
-            {!signedIn && <li><a href="/signin">Sign in</a></li>}
-            {!signedIn && <li><a href="/signup">Start trial</a></li>}
+            {!signedIn && <li><a href="https://home.fam-os.app/sign-in">Sign in</a></li>}
+            {!signedIn && <li><a href="https://home.fam-os.app/sign-up">Start trial</a></li>}
             {signedIn && <li><a href="/today">Open FamOS</a></li>}
           </ul>
         </div>
       </div>
       <div className="features-footer-bottom">
         <span>© {new Date().getFullYear()} FamOS, Inc.</span>
-        <span><a href="/landing">Home</a> · <a href="/features">All features</a> · <a href="/landing#pricing">Pricing</a></span>
+        <span><a href="/">Home</a> · <a href="/features">All features</a> · <a href="/#pricing">Pricing</a></span>
       </div>
     </footer>
   );

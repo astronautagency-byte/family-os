@@ -130,7 +130,7 @@ const FeatureHero = ({ feature }) => {
           <h1>{feature.title}</h1>
           <span className="lede">{feature.lede}</span>
           <div className="features-module-hero-actions">
-            <a href="/signup">Try it free <ArrowRight size={14} /></a>
+            <a href="https://home.fam-os.app/sign-up">Try it free <ArrowRight size={14} /></a>
             <a href="/features">See all features <ArrowUpRight size={14} /></a>
           </div>
           {hero.pills?.length > 0 && (
@@ -149,7 +149,7 @@ const FeatureHeroStage = ({ feature, hero }) => {
   const screenshot = hero.screenshot;
   const cards = hero.cards || [];
   return (
-    <div className="feature-hero-stage" data-tone={feature.tone}>
+    <div className={`feature-hero-stage feature-hero-stage-${feature.id}`} data-tone={feature.tone}>
       <div className="feature-hero-phone" data-tone={feature.tone}>
         {screenshot ? (
           <img
@@ -301,8 +301,8 @@ const FinalCta = ({ feature = null }) => {
         <h2>{headline}</h2>
         <p>{copy}</p>
         <div className="features-final-actions">
-          <a href="/signup">Start free trial <ArrowRight size={14} /></a>
-          <a href="/landing">See pricing</a>
+          <a href="https://home.fam-os.app/sign-up">Start free trial <ArrowRight size={14} /></a>
+          <a href="/">See pricing</a>
         </div>
       </div>
     </section>
@@ -349,7 +349,7 @@ const Feedback = ({ eyebrow, title, lede }) => (
       <p style={{ color: "#5a5260", fontSize: 16, lineHeight: 1.55, marginBottom: 24 }}>{lede}</p>
       <div className="features-final-actions" style={{ justifyContent: "center" }}>
         <a href="/features">Browse all features</a>
-        <a href="/landing">Back to home</a>
+        <a href="/">Back to home</a>
       </div>
     </div>
   </section>
@@ -382,8 +382,8 @@ const FeaturesIndex = () => {
               Calendars, meals, tasks, shopping, chat, and Fam AI. Tap a module to see what it feels like at home.
             </p>
             <div className="features-index-hero-actions">
-              <a href="/signup">Try FamOS free for 30 days <ArrowRight size={14} /></a>
-              <a href="/landing">See pricing</a>
+              <a href="https://home.fam-os.app/sign-up">Try FamOS free for 30 days <ArrowRight size={14} /></a>
+              <a href="/">See pricing</a>
             </div>
           </div>
           <FeatureHeroStage feature={FEATURE_BY_ID("calendar")} hero={FEATURE_HERO.calendar} />

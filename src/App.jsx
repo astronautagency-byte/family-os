@@ -98,6 +98,7 @@ const tabFromLocation = () => VALID_TABS.includes(routeFromLocation()) ? routeFr
 
 const APP_DOMAIN = "home.fam-os.app";
 const MARKETING_DOMAIN = "fam-os.app";
+const AUTH_PATH_REGEX = /^\/sign[-_]?(?:in|up)\/?$/i;
 
 function ensureCorrectDomain(session) {
   if (typeof window === "undefined") return;
@@ -112,10 +113,16 @@ function ensureCorrectDomain(session) {
   // a stale session left behind from an earlier visit.
   if (signedOutHandoff) return;
 
+  // The public homepage is canonical at https://fam-os.app/. Keep the old
+  // /landing path working for existing bookmarks, but remove it from the URL.
+  if (isMarketingDomain && /^\/landing\/?$/i.test(window.location.pathname)) {
+    window.history.replaceState({}, "", `/${window.location.search}${window.location.hash}`);
+  }
+
   if (session && isMarketingDomain) {
     // Signed in on marketing domain → redirect to app domain
     window.location.replace(`https://${APP_DOMAIN}${window.location.pathname}${window.location.search}`);
-  } else if (!session && isAppDomain && !window.location.pathname.startsWith("/signin") && !window.location.pathname.startsWith("/signup") && !window.location.pathname.startsWith("/admin") && !window.location.pathname.startsWith("/partner")) {
+  } else if (!session && isAppDomain && !AUTH_PATH_REGEX.test(window.location.pathname) && !window.location.pathname.startsWith("/admin") && !window.location.pathname.startsWith("/partner")) {
     // Not signed in on app domain → redirect to marketing website
     window.location.replace(`https://${MARKETING_DOMAIN}`);
   }
