@@ -110,8 +110,8 @@
 .features-index-hero{
   position:relative;
   padding:88px 28px 0;max-width:1240px;margin:0 auto;
-  background:linear-gradient(180deg,#fffdf9 0%,#f6f1ff 60%,#fffdf9 100%);
-  border-radius:0 0 32px 32px;
+  background:#fff;
+  border-bottom:1px solid rgba(23,23,31,.08);
 }
 .features-index-hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:46px;align-items:end}
 .features-index-hero-copy>p:first-child{margin-bottom:14px;color:#7952e8;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.12em}
