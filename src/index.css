@@ -1973,15 +1973,18 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .landing-hero-fullbleed .landing-trust svg{color:rgba(255,255,255,.5)}
 /* Animated floating cards */
 .hero-animated-elements{position:absolute;inset:0;z-index:3;pointer-events:none}
-.hero-float-card{position:absolute;border-radius:var(--radius-pill);box-shadow:0 14px 35px rgba(0,0,0,.18);white-space:nowrap;max-width:220px;height:auto}
+.hero-float-card{position:absolute;width:clamp(128px,10vw,176px);max-width:none;height:auto;border-radius:var(--radius-pill);box-shadow:0 14px 35px rgba(0,0,0,.18);white-space:nowrap;will-change:transform,opacity}
 .hero-float-card img{width:100%;height:auto;border-radius:inherit;display:block}
-.hero-float-1{right:15%;top:18%}
-.hero-float-2{right:5%;top:38%}
-.hero-float-3{right:18%;top:58%}
-.hero-float-4{right:8%;bottom:28%}
-.hero-float-5{left:55%;top:12%}
-.hero-float-6{left:60%;bottom:35%}
-.hero-float-7{left:52%;bottom:15%}
+/* Keep the cards in a loose, staggered constellation around the product
+   screen. The horizontal lanes avoid the hero copy while the vertical lanes
+   leave enough breathing room for the floating motion. */
+.hero-float-1{right:25%;top:11%}
+.hero-float-2{right:4%;top:28%}
+.hero-float-3{right:26%;top:46%}
+.hero-float-4{right:5%;top:64%}
+.hero-float-5{right:47%;top:10%}
+.hero-float-6{right:43%;bottom:24%}
+.hero-float-7{right:23%;bottom:7%}
 .hero-squiggle{position:absolute;z-index:2;fill:none;stroke:rgba(255,255,255,.3);stroke-width:5;stroke-linecap:round;pointer-events:none}
 .hero-squiggle-one{left:48%;bottom:12%;width:120px;transform:rotate(-8deg)}
 .hero-squiggle-two{right:8%;top:16%;width:90px;stroke:rgba(255,255,255,.2);transform:rotate(12deg)}

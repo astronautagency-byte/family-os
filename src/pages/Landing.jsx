@@ -359,9 +359,21 @@ export default function Landing({ signedIn = false }) {
   // Persistent mobile CTA appears once the hero has scrolled out of view.
   const heroInView = useInView(heroRef, { amount: 0.25 });
 
-  const floatCard = (delay) => ({
-    animate: { y: [0, -9, 0], rotate: [0, 1.2, 0] },
-    transition: { duration: 2.4, repeat: Infinity, ease: "easeInOut", delay },
+  // Keep the hero UI alive without letting the cards collide: each card gets
+  // its own gentle vertical drift and a tiny tilt, while MotionConfig respects
+  // the user's reduced-motion preference.
+  const floatCard = (delay, restingRotation, drift = 8) => ({
+    initial: { opacity: 0, y: 16, rotate: restingRotation },
+    animate: {
+      opacity: 1,
+      y: [0, -drift, 0],
+      rotate: [restingRotation, restingRotation + 0.8, restingRotation],
+    },
+    transition: {
+      opacity: { duration: 0.55, delay, ease: EASE },
+      y: { duration: 4.8, delay: delay + 0.5, repeat: Infinity, ease: "easeInOut" },
+      rotate: { duration: 4.8, delay: delay + 0.5, repeat: Infinity, ease: "easeInOut" },
+    },
   });
 
   return <MotionConfig reducedMotion="user"><div className="landing-page">
@@ -383,13 +395,13 @@ export default function Landing({ signedIn = false }) {
         </motion.div>
         {/* Animated floating UI elements */}
         <div className="hero-animated-elements" aria-hidden="true">
-          <motion.img className="hero-float-card hero-float-1" src="/floating/soccer-practice.png" alt="" initial={{ opacity: 0, y: 20, rotate: -4 }} animate={{ opacity: 1, y: 0, rotate: -4 }} transition={{ duration: 0.6, delay: 0.3, ease: EASE }} />
-          <motion.img className="hero-float-card hero-float-2" src="/floating/taco-night.png" alt="" initial={{ opacity: 0, y: 20, rotate: 3 }} animate={{ opacity: 1, y: 0, rotate: 3 }} transition={{ duration: 0.6, delay: 0.5, ease: EASE }} />
-          <motion.img className="hero-float-card hero-float-3" src="/floating/milk-checked.png" alt="" initial={{ opacity: 0, y: 20, rotate: -2 }} animate={{ opacity: 1, y: 0, rotate: -2 }} transition={{ duration: 0.6, delay: 0.7, ease: EASE }} />
-          <motion.img className="hero-float-card hero-float-4" src="/floating/spinach-expiring.png" alt="" initial={{ opacity: 0, y: 20, rotate: 2 }} animate={{ opacity: 1, y: 0, rotate: 2 }} transition={{ duration: 0.6, delay: 0.9, ease: EASE }} />
-          <motion.img className="hero-float-card hero-float-5" src="/floating/task-completed.png" alt="" initial={{ opacity: 0, y: 20, rotate: -3 }} animate={{ opacity: 1, y: 0, rotate: -3 }} transition={{ duration: 0.6, delay: 1.1, ease: EASE }} />
-          <motion.img className="hero-float-card hero-float-6" src="/floating/new-shared-item.png" alt="" initial={{ opacity: 0, y: 20, rotate: 4 }} animate={{ opacity: 1, y: 0, rotate: 4 }} transition={{ duration: 0.6, delay: 1.3, ease: EASE }} />
-          <motion.img className="hero-float-card hero-float-7" src="/floating/ask-fam.png" alt="" initial={{ opacity: 0, y: 20, rotate: -1 }} animate={{ opacity: 1, y: 0, rotate: -1 }} transition={{ duration: 0.6, delay: 1.5, ease: EASE }} />
+          <motion.img className="hero-float-card hero-float-1" src="/floating/soccer-practice.png" alt="" {...floatCard(0.3, -4, 7)} />
+          <motion.img className="hero-float-card hero-float-2" src="/floating/taco-night.png" alt="" {...floatCard(0.5, 3, 9)} />
+          <motion.img className="hero-float-card hero-float-3" src="/floating/milk-checked.png" alt="" {...floatCard(0.7, -2, 7)} />
+          <motion.img className="hero-float-card hero-float-4" src="/floating/spinach-expiring.png" alt="" {...floatCard(0.9, 2, 8)} />
+          <motion.img className="hero-float-card hero-float-5" src="/floating/task-completed.png" alt="" {...floatCard(1.1, -3, 6)} />
+          <motion.img className="hero-float-card hero-float-6" src="/floating/new-shared-item.png" alt="" {...floatCard(1.3, 4, 8)} />
+          <motion.img className="hero-float-card hero-float-7" src="/floating/ask-fam.png" alt="" {...floatCard(1.5, -1, 6)} />
         </div>
       </section>
 
