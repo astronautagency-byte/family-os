@@ -11,7 +11,7 @@ const go = (route) => {
 export default function Terms({ signedIn = false }) {
   return <div className="legal-page">
     <header className="legal-nav">
-      <button className="landing-brand" onClick={()=>go("landing")}><img src="/icons/icon-512.png" alt=""/><strong>Fam<span>OS</span></strong></button>
+      <button className="landing-brand" onClick={()=>go("landing")}><img src="/icons/famos-app-icon.png" alt=""/><strong>Fam<span>OS</span></strong></button>
       <button className="legal-back" onClick={()=>go(signedIn?"settings":"landing")}><ArrowLeft/> {signedIn?"Back to settings":"Back to home"}</button>
     </header>
     <main className="legal-content">

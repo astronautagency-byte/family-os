@@ -70,6 +70,16 @@ export function parseDesktopAuthUrl(value) {
   }
 }
 
+export async function openExternalUrl(url) {
+  if (!url) return;
+  if (isTauriRuntime()) {
+    const { openUrl } = await import("@tauri-apps/plugin-opener");
+    await openUrl(url);
+    return;
+  }
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
 export async function openDesktopSignIn() {
   const url = buildDesktopSignInUrl();
   if (!isTauriRuntime()) {

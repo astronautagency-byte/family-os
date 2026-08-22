@@ -25,7 +25,7 @@ export default function BottomNav({ active, onChange, features = {}, tabletMode 
   return (
     <nav className="primary-nav m3-navigation" aria-label="FamOS navigation">
       <div className="nav-brand">
-        <img src="/brand/famos-icon.png" alt="" />
+        <img src="/icons/famos-app-icon.png" alt="" />
         <div>
           <strong>FamOS</strong>
           <span>Your home base</span>

@@ -254,7 +254,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
     let permission = Notification.permission;
     if (permission === "default") permission = await requestNotifications();
     if (permission !== "granted") return permission;
-    const options = { body: "Notifications are ready. Tap to return to your family dashboard.", icon: "/icons/icon-192.png", badge: "/icons/icon-192.png", tag: "familyos-test", data: { url: "/#today" } };
+    const options = { body: "Notifications are ready. Tap to return to your family dashboard.", icon: "/icons/famos-app-icon.png", badge: "/icons/famos-app-icon.png", tag: "familyos-test", data: { url: "/#today" } };
     const registration = await getNotificationRegistration();
     if (registration?.showNotification) {
       await registration.showNotification("FamilyOS notifications are working", options);
@@ -266,7 +266,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
 
   const showHouseholdNotification = async ({ title, body, tag, url }) => {
     if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
-    const options = { body, icon: "/icons/icon-192.png", badge: "/icons/icon-192.png", tag, data: { url }, renotify: true };
+    const options = { body, icon: "/icons/famos-app-icon.png", badge: "/icons/famos-app-icon.png", tag, data: { url }, renotify: true };
     const registration = await getNotificationRegistration();
     if (registration) await registration.showNotification(title, options);
     else showLocalNotification(title, options);

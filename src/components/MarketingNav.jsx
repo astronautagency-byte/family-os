@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, X, Home, Puzzle, CalendarDays, BarChart3, Tag, Search, User, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowRight, Download, X, Home, Puzzle, CalendarDays, BarChart3, Tag, Search, User, ChevronDown, ChevronRight } from "lucide-react";
+import { DESKTOP_DOWNLOAD_LABEL, DESKTOP_DOWNLOAD_URL } from "../lib/downloads";
 import FeaturesDropdown from "./FeaturesDropdown";
 import { MARKETING_FEATURES } from "../data/featureData";
 import { lockBodyScroll } from "../lib/bodyScrollLock";
@@ -171,7 +172,7 @@ const MarketingNav = ({ signedIn = false, currentId = null }) => {
           onClick={handleBrandClick}
           aria-label="FamOS home"
         >
-          <img src="/icons/icon-512.png" alt="" />
+          <img src="/icons/famos-app-icon.png" alt="" />
           <strong><span>Fam</span>OS</strong>
         </a>
         <div className="marketing-nav-links">
@@ -182,6 +183,9 @@ const MarketingNav = ({ signedIn = false, currentId = null }) => {
           <a href="/#pricing">Pricing</a>
         </div>
         <div className="marketing-nav-actions">
+          <a className="marketing-nav-download" href={DESKTOP_DOWNLOAD_URL} target="_blank" rel="noreferrer">
+            <Download size={15} /> <span>{DESKTOP_DOWNLOAD_LABEL}</span>
+          </a>
           {!signedIn && (
             <a className="marketing-nav-signin" href="https://home.fam-os.app/sign-in">Sign in</a>
           )}
@@ -292,6 +296,10 @@ const MarketingNav = ({ signedIn = false, currentId = null }) => {
           </nav>
           <div className="marketing-drawer-divider" />
           <div className="marketing-drawer-bottom">
+            <a className="marketing-drawer-link marketing-drawer-download" href={DESKTOP_DOWNLOAD_URL} target="_blank" rel="noreferrer" onClick={closeDrawer}>
+              <Download size={20} />
+              <span>{DESKTOP_DOWNLOAD_LABEL}</span>
+            </a>
             {!signedIn && (
               <a className="marketing-drawer-link" href="https://home.fam-os.app/sign-in" onClick={closeDrawer}>
                 <Search size={20} />

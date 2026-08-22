@@ -51,7 +51,7 @@ function AdminLogin({ onSignedIn }) {
     } finally { setBusy(false); }
   };
   return <main className={`admin-login ${themeClass}`} data-color-scheme={colorScheme}><form onSubmit={recovering ? requestReset : submit} className="admin-login-card">
-    <img src="/icons/icon-512.png" alt="FamOS" />
+    <img src="/icons/famos-app-icon.png" alt="FamOS" />
     <span className="admin-kicker"><ShieldCheck size={14} /> FamOS operations</span>
     <h1>{recovering ? "Reset admin password" : "Admin sign in"}</h1><p>{recovering ? "We’ll email a secure reset link to the authorized admin account." : "Secure access for authorized FamOS operators."}</p>
     {resetSent ? <div className="admin-recovery-sent"><Mail size={20}/><strong>Check your inbox</strong><span>If that admin account exists, its secure reset link is on the way.</span></div> : <>

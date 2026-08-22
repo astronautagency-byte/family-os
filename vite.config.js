@@ -38,7 +38,7 @@ export default defineConfig({
       // one to detect an update. This prevents the stale-SW white screen where
       // an old SW serves cached HTML referencing old asset hashes.
       version: new Date().toISOString().slice(0, 10).replace(/-/g, ''),
-      includeAssets: ['icons/icon-192.png', 'icons/icon-512.png'],
+      includeAssets: ['icons/famos-app-icon.png', 'icons/famos-mark.svg', 'icons/icon-192.png', 'icons/icon-512.png'],
       manifest: {
         id: 'https://home.fam-os.app/',
         name: 'FamOS - Families Run Better on FamOS',
@@ -58,6 +58,8 @@ export default defineConfig({
         },
         categories: ['lifestyle', 'productivity'],
         icons: [
+          { src: 'icons/famos-app-icon.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icons/famos-mark.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any' },
           { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
           { src: 'icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }

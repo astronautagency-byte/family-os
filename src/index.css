@@ -705,6 +705,10 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .topbar-wordmark img{width:30px;height:30px}
 .topbar-wordmark strong{font-size:14px;font-weight:600;color:var(--color-accent);letter-spacing:-.02em}
 .topbar-actions{display:flex;align-items:center;gap:var(--space-3)}
+.topbar-download{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;padding:0 12px;border:1px solid var(--color-border);border-radius:var(--radius-sm);background:var(--color-surface);color:var(--color-ink);font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap;transition:background var(--motion-fast) var(--ease-out),border-color var(--motion-fast) var(--ease-out),transform var(--motion-fast) var(--ease-out)}
+.topbar-download:hover{background:var(--color-surface-sunken);border-color:var(--color-accent);transform:translateY(-1px)}
+.topbar-download:active{transform:translateY(0) scale(.98)}
+.topbar-download svg{width:16px;height:16px;flex:0 0 auto}
 .topbar-actions button{
   position:relative;
   color:var(--color-ink-muted);
@@ -726,6 +730,8 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   color:var(--color-on-accent);
   font-size:8px;font-style:normal;font-weight:700;
 }
+.topbar-actions .topbar-download{min-height:36px;padding:0 12px;border:1px solid var(--color-border);border-radius:var(--radius-sm);background:var(--color-surface);color:var(--color-ink);font-size:11px;font-weight:700}
+.topbar-actions .topbar-download:hover{background:var(--color-surface-sunken);border-color:var(--color-accent);color:var(--color-ink)}
 
 /* Primary navigation — premium pill active state */
 .primary-nav{
@@ -4119,6 +4125,8 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
     height: 60px;
     padding-inline: 14px;
   }
+  .topbar-download{width:34px;min-height:34px;padding:0;border-radius:var(--radius-sm)}
+  .topbar-download span{display:none}
   .app-content > [class*="reference-"] > .px-5 {
     padding-left: 16px !important;
     padding-right: 16px !important;
@@ -5027,6 +5035,10 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .marketing-nav-links>a,.marketing-nav-links>div{display:inline-flex;align-items:center;padding:9px 13px;border-radius:var(--radius-pill);color:var(--landing-color-surface-dark);font-size:14px;font-weight:700;text-decoration:none;transition:background-color .2s ease,color .2s ease}
 .marketing-nav-links>a:hover{background:var(--landing-color-lavender-soft);color:var(--landing-color-primary-dark)}
 .marketing-nav-actions{display:inline-flex;align-items:center;gap:8px}
+.marketing-nav-download{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:42px;padding:0 13px;border:1px solid rgba(23,23,47,.12);border-radius:var(--radius-pill);background:rgba(255,255,255,.72);color:var(--landing-color-surface-dark);font-size:12px;font-weight:750;text-decoration:none;white-space:nowrap;transition:background-color .2s ease,border-color .2s ease,transform .18s ease}
+.marketing-nav-download:hover{background:#fff;border-color:rgba(121,82,232,.35);color:var(--landing-color-primary-dark);transform:translateY(-1px)}
+.marketing-nav-download:active{transform:scale(.97)}
+.marketing-nav-download svg{width:15px;height:15px}
 .marketing-nav-signin{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 16px;border-radius:var(--radius-pill);border:1px solid transparent;color:var(--landing-color-surface-dark);font-size:14px;font-weight:700;text-decoration:none;transition:background-color .2s ease}
 .marketing-nav-signin:hover{background:var(--landing-color-lavender-soft);color:var(--landing-color-primary-dark)}
 .marketing-nav-join{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 20px;border-radius:var(--radius-pill);background:var(--landing-color-primary);color:#fff;font-size:14px;font-weight:850;text-decoration:none;box-shadow:0 12px 26px rgba(121,82,232,.26);transition:transform .18s ease,box-shadow .18s ease,background-color .2s ease}
@@ -5065,6 +5077,8 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .marketing-drawer-link{display:flex;align-items:center;gap:14px;width:100%;padding:14px 16px;border-radius:var(--radius-tag);color:var(--landing-color-surface-dark);font-size:17px;font-weight:650;text-decoration:none;transition:background-color .18s ease,color .18s ease;border:0;background:none;cursor:pointer;text-align:left}
 .marketing-drawer-link:hover{background:var(--landing-color-lavender-soft);color:var(--landing-color-primary-dark)}
 .marketing-drawer-link span{flex:1}
+.marketing-drawer-download{background:var(--landing-color-lavender-soft);color:var(--landing-color-primary-dark)}
+.marketing-drawer-download:hover{background:var(--landing-color-lavender-mid)}
 .marketing-drawer-divider{height:1px;background:var(--color-border);margin:8px 0}
 .marketing-drawer-bottom{display:flex;flex-direction:column;gap:2px;margin-top:auto;padding-top:8px}
 /* Accordion Features sub-menu */
@@ -5126,6 +5140,8 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   .marketing-nav-brand img{width:33px;height:33px;border-radius:9px}
   .marketing-nav-signin,.marketing-nav-join{min-height:38px}
   .marketing-nav-signin{display:none}
+  .marketing-nav-download span{display:none}
+  .marketing-nav-download{width:38px;min-height:38px;padding:0}
 }
 @media (prefers-reduced-motion:reduce){
   .marketing-nav-join{transition:none}
