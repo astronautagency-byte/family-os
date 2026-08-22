@@ -1,5 +1,5 @@
 import { Bell, CalendarDays, CheckSquare, Download, Home, MessageCircle, Moon, Refrigerator, RefreshCw, Settings2, ShoppingCart, Sparkles, Sun, Tablet, X } from "lucide-react";
-import { DESKTOP_DOWNLOAD_LABEL, DESKTOP_DOWNLOAD_URL } from "../lib/downloads";
+import { DESKTOP_DOWNLOAD_LABEL, DESKTOP_DOWNLOAD_PAGE_URL } from "../lib/downloads";
 import { openExternalUrl } from "../lib/desktopRuntime";
 import { useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
@@ -30,13 +30,15 @@ export default function AppTopBar({ onOpenSettings, onNavigate, onOpenFamAI, dar
   const openChat=()=>{markChatRead?.();onNavigate("chat");setOpen(false);};
   return <header className="app-topbar">
     <div className={`topbar-avatar ${tabletMode ? "is-household" : ""}`}>{tabletMode?<Home aria-hidden="true"/>:avatar?<img src={avatar} alt={name}/>:<span>{name.slice(0,1).toUpperCase()}</span>}</div>
-    <div className="topbar-wordmark"><img src="/icons/famos-app-icon.png" alt=""/><strong>Fam<span>OS</span></strong>{tabletMode&&<em>{household?.name || "Shared display"}</em>}</div>
+    <div className="topbar-brand-group">
+      <div className="topbar-wordmark"><img src="/icons/famos-app-icon.png" alt=""/><strong>Fam<span>OS</span></strong>{tabletMode&&<em>{household?.name || "Shared display"}</em>}</div>
+      <button className="topbar-download" type="button" onClick={() => openExternalUrl(DESKTOP_DOWNLOAD_PAGE_URL)} aria-label={DESKTOP_DOWNLOAD_LABEL} title={DESKTOP_DOWNLOAD_LABEL}><Download/><span>{DESKTOP_DOWNLOAD_LABEL}</span></button>
+    </div>
     <div className="topbar-actions">
       <button className="m3-icon-button" aria-label={`${bellCount} unread notifications`} aria-expanded={open} onClick={()=>setOpen(v=>!v)}><Bell/>{bellCount>0&&<i>{bellCount>9?"9+":bellCount}</i>}</button>
       {refreshData&&!tabletMode&&<button className="m3-icon-button" aria-label={dataLoading ? "Refreshing data" : "Refresh data"} aria-busy={dataLoading || undefined} title="Pull-to-refresh works too — swipe down on the page" onClick={() => { refreshData(); }} disabled={dataLoading} type="button"><RefreshCw className={dataLoading ? "topbar-refresh-spin" : undefined} /></button>}
       {onOpenFamAI&&!tabletMode&&<button className="topbar-fam-ai m3-icon-button" aria-label="Open Fam AI assistant" title="Fam AI — ask anything" onClick={onOpenFamAI} type="button"><Sparkles/></button>}
       {(tabletModeAvailable||tabletMode)&&<button className={`tablet-mode-button m3-icon-button ${tabletMode ? "is-active" : ""}`} aria-label={tabletMode?"Exit tablet mode":"Turn on tablet mode"} aria-pressed={tabletMode} title={tabletMode?"Exit tablet mode":"Tablet mode: shared household display"} onClick={onToggleTabletMode} type="button"><Tablet/></button>}
-      <button className="topbar-download" type="button" onClick={() => openExternalUrl(DESKTOP_DOWNLOAD_URL)} aria-label={DESKTOP_DOWNLOAD_LABEL} title={DESKTOP_DOWNLOAD_LABEL}><Download/><span>{DESKTOP_DOWNLOAD_LABEL}</span></button>
       <button className="theme-toggle-button m3-icon-button" aria-label={darkMode?"Switch to light mode":"Switch to dark mode"} aria-pressed={darkMode} onClick={onToggleDarkMode} type="button">{darkMode?<Sun/>:<Moon/>}</button>
       {!tabletMode&&<button className="m3-icon-button" aria-label="Settings" onClick={onOpenSettings}><Settings2/></button>}
     </div>

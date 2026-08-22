@@ -37,6 +37,7 @@ const Settings = lazy(() => import("./pages/Settings"));
 const Chat = lazy(() => import("./pages/Chat"));
 const FamAI = lazy(() => import("./pages/FamAI"));
 const Landing = lazy(() => import("./pages/Landing"));
+const Download = lazy(() => import("./pages/Download"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Admin = lazy(() => import("./pages/Admin"));
@@ -83,7 +84,7 @@ const PageErrorFallback = ({ retry, reloadLatest, goToday }) => {
   );
 };
 const VALID_TABS = ["today","calendar","meals","tasks","groceries","kitchen","chat","famai","settings"];
-const PUBLIC_ROUTES = ["privacy", "terms", "pricing", "signin", "signup"];
+const PUBLIC_ROUTES = ["privacy", "terms", "pricing", "signin", "signup", "download"];
 const ROUTE_ALIASES = { "sign-in": "signin", "lsign-in": "signin", "sign-up": "signup", "partners": "partner" };
 const VALID_ROUTES = [...VALID_TABS, "landing", "admin", "partner", "partners", ...PUBLIC_ROUTES];
 const FEATURES_PATH_REGEX = /^\/features(?:\/([a-z-]+))?\/?$/i;
@@ -427,6 +428,7 @@ export default function App() {
   if (publicRoute === "partner") return <Suspense fallback={<PageFallback />}><Partner /></Suspense>;
   if (publicRoute === "features") return <Suspense fallback={<PageFallback />}><Features /></Suspense>;
   if (publicRoute === "landing" || publicRoute === "pricing") return <Suspense fallback={<PageFallback />}><Landing signedIn={!!session} /></Suspense>;
+  if (publicRoute === "download") return <Suspense fallback={<PageFallback />}><Download /></Suspense>;
   if (publicRoute === "privacy") return <Suspense fallback={<PageFallback />}><Privacy signedIn={!!session} /></Suspense>;
   if (publicRoute === "terms") return <Suspense fallback={<PageFallback />}><Terms signedIn={!!session} /></Suspense>;
   if (configured && !session && publicRoute === "signin") return <SignIn key="signin" initialCreating={false} />;

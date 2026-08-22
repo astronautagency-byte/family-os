@@ -701,14 +701,19 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 }
 .topbar-avatar:not(:has(img)){background:var(--color-accent-soft);color:var(--color-accent)}
 .topbar-avatar img{width:100%;height:100%;object-fit:cover}
-.topbar-wordmark{display:flex;align-items:center;gap:var(--space-3)}
-.topbar-wordmark img{width:30px;height:30px}
-.topbar-wordmark strong{font-size:14px;font-weight:600;color:var(--color-accent);letter-spacing:-.02em}
+.topbar-brand-group{display:flex;align-items:center;gap:14px;min-width:0}
+.topbar-wordmark{display:flex;align-items:center;gap:var(--space-3);min-width:0}
+.topbar-wordmark img{width:30px;height:30px;flex:0 0 auto}
+.topbar-wordmark strong{font-size:14px;font-weight:600;color:var(--color-accent);letter-spacing:-.02em;white-space:nowrap}
 .topbar-actions{display:flex;align-items:center;gap:var(--space-3)}
-.topbar-download{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;padding:0 12px;border:1px solid var(--color-border);border-radius:var(--radius-sm);background:var(--color-surface);color:var(--color-ink);font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap;transition:background var(--motion-fast) var(--ease-out),border-color var(--motion-fast) var(--ease-out),transform var(--motion-fast) var(--ease-out)}
-.topbar-download:hover{background:var(--color-surface-sunken);border-color:var(--color-accent);transform:translateY(-1px)}
-.topbar-download:active{transform:translateY(0) scale(.98)}
-.topbar-download svg{width:16px;height:16px;flex:0 0 auto}
+.topbar-download{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;padding:0 13px;overflow:hidden;border:1px solid color-mix(in srgb,var(--color-accent) 24%,var(--color-border));border-radius:999px;background:color-mix(in srgb,var(--color-accent-soft) 78%,var(--color-surface));color:var(--color-accent-strong);font-size:11px;font-weight:750;text-decoration:none;white-space:nowrap;box-shadow:0 4px 12px rgba(84,70,190,.08);transition:background var(--motion-fast) var(--ease-out),border-color var(--motion-fast) var(--ease-out),color var(--motion-fast) var(--ease-out),transform var(--motion-fast) var(--ease-out),box-shadow var(--motion-fast) var(--ease-out)}
+.topbar-download::after{content:"";position:absolute;inset:0;width:32%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.65),transparent);transform:translateX(-170%) skewX(-18deg);transition:transform .55s cubic-bezier(.22,1,.36,1);pointer-events:none}
+.topbar-download:hover{background:var(--color-accent);border-color:var(--color-accent);color:var(--color-on-accent);transform:translateY(-2px);box-shadow:0 9px 20px color-mix(in srgb,var(--color-accent) 24%,transparent)}
+.topbar-download:hover::after{transform:translateX(430%) skewX(-18deg)}
+.topbar-download:active{transform:translateY(0) scale(.97)}
+.topbar-download svg{position:relative;z-index:1;width:16px;height:16px;flex:0 0 auto;transition:transform .3s cubic-bezier(.22,1,.36,1)}
+.topbar-download:hover svg{transform:translateY(2px)}
+.topbar-download span{position:relative;z-index:1}
 .topbar-actions button{
   position:relative;
   color:var(--color-ink-muted);
@@ -730,8 +735,6 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   color:var(--color-on-accent);
   font-size:8px;font-style:normal;font-weight:700;
 }
-.topbar-actions .topbar-download{min-height:36px;padding:0 12px;border:1px solid var(--color-border);border-radius:var(--radius-sm);background:var(--color-surface);color:var(--color-ink);font-size:11px;font-weight:700}
-.topbar-actions .topbar-download:hover{background:var(--color-surface-sunken);border-color:var(--color-accent);color:var(--color-ink)}
 
 /* Primary navigation — premium pill active state */
 .primary-nav{
@@ -4125,8 +4128,9 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
     height: 60px;
     padding-inline: 14px;
   }
-  .topbar-download{width:34px;min-height:34px;padding:0;border-radius:var(--radius-sm)}
-  .topbar-download span{display:none}
+  .topbar-brand-group{gap:8px}
+  .topbar-brand-group .topbar-download{width:34px;min-height:34px;padding:0}
+  .topbar-brand-group .topbar-download span{display:none}
   .app-content > [class*="reference-"] > .px-5 {
     padding-left: 16px !important;
     padding-right: 16px !important;

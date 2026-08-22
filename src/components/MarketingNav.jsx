@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Download, X, Home, Puzzle, CalendarDays, BarChart3, Tag, Search, User, ChevronDown, ChevronRight } from "lucide-react";
-import { DESKTOP_DOWNLOAD_LABEL, DESKTOP_DOWNLOAD_URL } from "../lib/downloads";
+import { DESKTOP_DOWNLOAD_LABEL } from "../lib/downloads";
 import FeaturesDropdown from "./FeaturesDropdown";
 import { MARKETING_FEATURES } from "../data/featureData";
 import { lockBodyScroll } from "../lib/bodyScrollLock";
@@ -183,7 +183,7 @@ const MarketingNav = ({ signedIn = false, currentId = null }) => {
           <a href="/#pricing">Pricing</a>
         </div>
         <div className="marketing-nav-actions">
-          <a className="marketing-nav-download" href={DESKTOP_DOWNLOAD_URL} target="_blank" rel="noreferrer">
+          <a className="marketing-nav-download" href="/download" target="_blank" rel="noreferrer">
             <Download size={15} /> <span>{DESKTOP_DOWNLOAD_LABEL}</span>
           </a>
           {!signedIn && (
@@ -296,7 +296,7 @@ const MarketingNav = ({ signedIn = false, currentId = null }) => {
           </nav>
           <div className="marketing-drawer-divider" />
           <div className="marketing-drawer-bottom">
-            <a className="marketing-drawer-link marketing-drawer-download" href={DESKTOP_DOWNLOAD_URL} target="_blank" rel="noreferrer" onClick={closeDrawer}>
+            <a className="marketing-drawer-link marketing-drawer-download" href="/download" target="_blank" rel="noreferrer" onClick={closeDrawer}>
               <Download size={20} />
               <span>{DESKTOP_DOWNLOAD_LABEL}</span>
             </a>
