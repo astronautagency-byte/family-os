@@ -7442,3 +7442,5 @@ input:focus, textarea:focus, select:focus {
 .m3-button-soft{color:var(--color-ink)!important}
 .pbtn-primary{color:#fff!important}
 .landing-join,.landing-hero-ctas>button:first-child,.landing-final button{color:#fff!important}
+/* Fullbleed hero override: white button with dark text */
+.landing-hero-fullbleed .landing-hero-ctas>button:first-child{color:#0f0c1e!important}
