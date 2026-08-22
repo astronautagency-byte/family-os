@@ -24,68 +24,44 @@ export const ONBOARDING_FALLBACK = { src: "/features/app-shots/01-signin.png", a
 // benefits for that module — separate from the deeper bullet list.
 export const FEATURE_HERO = {
   today: {
+    screenshot: { src: "/hero-mockups/tablet-mode.png", alt: "FamOS tablet mode dashboard" },
     pills: ["Day-first bento", "Kitchen reminders", "All daily meals", "Family broadcasts"],
-    cards: [
-      { emoji: "👋", title: "Evening, Alex",       subtitle: "Plan visible at a glance", accent: "lilac" },
-      { emoji: "🌧️", title: "Rain · Newmarket",   subtitle: "26% · 23° · 8 km/h",      accent: "blue" },
-      { emoji: "✅", title: "5 calendar · 0 open", subtitle: "Nothing due today",       accent: "mint" },
-    ],
+    cards: [],
   },
   calendar: {
+    screenshot: { src: "/hero-mockups/calendar.png", alt: "FamOS calendar with events" },
     pills: ["Multiple Google Calendars", "Two-way sync", "Quick capture", "Shared family views"],
-    cards: [
-      { emoji: "👨‍👩‍👧", title: "All family calendars", subtitle: "Shared view · privacy respected", accent: "blue" },
-      { emoji: "🔄", title: "Google calendar · Connected", subtitle: "Two-way sync live",                accent: "amber" },
-      { emoji: "🎟", title: "Family Fun at Bradley Museum", subtitle: "Saturday · Aug 1",                    accent: "peach" },
-    ],
+    cards: [],
   },
   meals: {
+    screenshot: { src: "/hero-mockups/meal-planning.png", alt: "FamOS meal planner" },
     pills: ["Spoonacular recipes", "Hands-free Cook Mode", "Every daily meal", "Ingredients → shopping"],
-    cards: [
-      { emoji: "🍝", title: "Sheet-pan fajitas", subtitle: "Tonight · 35 min · 8 ingredients", accent: "rose" },
-      { emoji: "🥗", title: "Weekly meal plan",  subtitle: "6/7 dinners planned",                  accent: "mint" },
-      { emoji: "🎙", title: "Voice-next on step 3", subtitle: "Cook Mode is listening",             accent: "violet" },
-    ],
+    cards: [],
   },
   shopping: {
+    screenshot: { src: "/hero-mockups/shopping-lists.png", alt: "FamOS shopping list" },
     pills: ["Kitchen inventory", "Expiry reminders", "Photos + barcode brands", "Focus Shop"],
-    cards: [
-      { emoji: "🧊", title: "Kitchen inventory", subtitle: "Fridge · Freezer · Pantry", accent: "mint" },
-      { emoji: "⏳", title: "Blueberries",       subtitle: "Use tomorrow",              accent: "lime" },
-      { emoji: "📸", title: "Scan or add a photo", subtitle: "Brand stays on the card", accent: "blue" },
-    ],
+    cards: [],
   },
   tasks: {
+    screenshot: { src: "/hero-mockups/tasks.png", alt: "FamOS task board" },
     pills: ["Custom task lists", "All-tasks view", "Review-first imports", "Recurring chores"],
-    cards: [
-      { emoji: "✅", title: "Feed the dog",        subtitle: "Daily · Lou · done",  accent: "mint" },
-      { emoji: "📦", title: "Pack soccer bag",    subtitle: "Today · Mia",          accent: "sky" },
-      { emoji: "🔥", title: "6-day streak",        subtitle: "Lou",                  accent: "amber" },
-    ],
+    cards: [],
   },
   chat: {
+    screenshot: { src: "/hero-mockups/chat.png", alt: "FamOS family chat" },
     pills: ["Broadcasts · reactions", "Direct messages", "Smart shortcuts", "Quiet by default"],
-    cards: [
-      { emoji: "📣", title: "Running 10 min late", subtitle: "Family · 3 ❤️ reactions", accent: "amber" },
-      { emoji: "💬", title: "Direct message",       subtitle: "Alex → Mia",              accent: "peach" },
-      { emoji: "⚡", title: "Shortcut: 'butter'",   subtitle: "Echo into grocery",       accent: "blue" },
-    ],
+    cards: [],
   },
   "fam-ai": {
+    screenshot: { src: "/hero-mockups/fam-ai.png", alt: "Fam AI chat assistant" },
     pills: ["Meal ideas · from groceries", "Calendar summary", "Weekly recap", "Stays quiet until asked"],
-    cards: [
-      { emoji: "🌮", title: "Avocado pasta",       subtitle: "Uses 4 grocery items", accent: "lime" },
-      { emoji: "📊", title: "Weekly recap",         subtitle: "Done · Slipped · Up",  accent: "lilac" },
-      { emoji: "🎙", title: "Voice in Cook Mode",   subtitle: "Hands-free next/back", accent: "violet" },
-    ],
+    cards: [],
   },
   tablet: {
+    screenshot: { src: "/hero-mockups/tablet-mode.png", alt: "FamOS tablet mode dashboard" },
     pills: ["Kitchen wall mount", "Shared family view", "Always-on display", "No phones needed"],
-    cards: [
-      { emoji: "📱", title: "Tablet on the fridge", subtitle: "Everyone sees the plan", accent: "blue" },
-      { emoji: "📅", title: "Shared calendar", subtitle: "3 events today", accent: "lilac" },
-      { emoji: "🍽", title: "Dinner planned", subtitle: "Cook Mode ready", accent: "rose" },
-    ],
+    cards: [],
   },
   family: {
     pills: ["Optional onboarding", "Personal colour schemes", "Private/shared calendars", "Role-aware access"],
