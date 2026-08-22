@@ -91,3 +91,40 @@
 @media(max-width:980px){.admin-operations-grid{grid-template-columns:1fr}}@media(max-width:620px){.admin-operations-toolbar{align-items:flex-start;flex-direction:column}.admin-operations-toolbar .m3-button{width:100%}.admin-queue-list>button{grid-template-columns:34px minmax(0,1fr) auto}.admin-queue-list>button>svg{display:none}}
 @media(max-width:760px){.admin-mobile-nav{grid-template-columns:repeat(6,1fr)}}
 .ui-badge-success{background:var(--color-good-soft);color:var(--color-good)}.ui-badge-warning,.ui-badge-danger{background:var(--color-warn-soft);color:var(--color-warn)}
+
+/* Dashboard layout and scroll contract. Desktop keeps the rail fixed while
+   the content column scrolls; mobile returns to document scrolling so nested
+   overflow cannot trap touch gestures. */
+.admin-shell{width:100%;min-width:0;overflow-x:hidden}
+.admin-shell>main{min-width:0;max-width:100%;}
+.admin-table-scroll,.pcampaigns-table-wrap,.pinvoice-table-wrap{max-width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+@media(min-width:761px){
+  .admin-shell{height:100dvh;min-height:0;overflow:hidden}
+  .admin-shell>main{height:100dvh;min-height:0;overflow-y:auto;overflow-x:hidden;padding-bottom:72px;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;scrollbar-gutter:stable}
+  .admin-detail-shell{height:100dvh;min-height:0;overflow-y:auto;overflow-x:hidden;padding-bottom:80px;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;scrollbar-gutter:stable}
+}
+@media(max-width:760px){
+  .admin-shell{display:block;min-height:100dvh;height:auto;overflow:visible;padding-bottom:0}
+  .admin-shell>main{min-height:calc(100dvh - 72px);height:auto;overflow:visible;padding:18px 14px 104px}
+  .admin-detail-shell{height:auto;min-height:100dvh;overflow:visible;padding-bottom:0}
+  .admin-detail-shell>main{padding-bottom:32px}
+  .admin-topbar{position:sticky;top:0;z-index:12;margin:0 -14px 18px;padding:12px 14px;background:color-mix(in srgb,var(--color-canvas) 94%,transparent);backdrop-filter:blur(14px)}
+  .admin-panel,.admin-table-card,.admin-detail-section{padding:18px!important}
+  .admin-metrics-grid{grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}
+  .admin-metric{min-width:0;min-height:118px}
+  .admin-table-scroll{margin-inline:-18px;padding-inline:18px}
+  .admin-table-tools{gap:12px;margin-bottom:14px}
+  .admin-table-tools h2{font-size:20px}
+  .admin-support-filters{width:100%;align-items:stretch}
+  .admin-support-filters select,.admin-support-filters label{min-width:0;flex:1 1 140px}
+  .admin-payment-form{gap:10px}
+}
+@media(max-width:430px){
+  .admin-shell>main{padding-inline:12px;padding-bottom:104px}
+  .admin-topbar{margin-inline:-12px;padding-inline:12px}
+  .admin-metrics-grid{gap:8px}
+  .admin-metric{padding:14px!important;min-height:112px}
+  .admin-metric strong{font-size:24px}
+  .admin-panel,.admin-table-card,.admin-detail-section{padding:16px!important}
+  .admin-table-scroll{margin-inline:-16px;padding-inline:16px}
+}
