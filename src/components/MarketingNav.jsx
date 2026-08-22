@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, X } from "lucide-react";
+import { ArrowRight, X, Home, Puzzle, CalendarDays, BarChart3, Tag, Search, User, ChevronDown, ChevronRight } from "lucide-react";
 import FeaturesDropdown from "./FeaturesDropdown";
+import { MARKETING_FEATURES } from "../data/featureData";
 import { lockBodyScroll } from "../lib/bodyScrollLock";
 
 /* ── MarketingNav ───────────────────────────────────────────────────
@@ -64,6 +65,7 @@ const MarketingNav = ({ signedIn = false, currentId = null }) => {
   // Drawer state lives separately from the scroll-aware className so a
   // re-render on scroll doesn't reset the hamburger press.
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [featuresOpen, setFeaturesOpen] = useState(false);
   const hamburgerRef = useRef(null);
   const drawerRef = useRef(null);
 
@@ -220,40 +222,82 @@ const MarketingNav = ({ signedIn = false, currentId = null }) => {
           aria-label="FamOS marketing menu"
         >
           <div className="marketing-drawer-head">
-            <a
-              className="marketing-drawer-brand"
-              href="/landing"
-              onClick={closeDrawer}
-            >
-              <img src="/icons/icon-512.png" alt="" />
-              <strong><span>Fam</span>OS</strong>
-            </a>
             <button
               type="button"
               className="marketing-drawer-close"
               aria-label="Close FamOS marketing menu"
               onClick={closeDrawer}
             >
-              <X size={18} aria-hidden="true" />
+              <X size={22} aria-hidden="true" />
             </button>
-          </div>
-          <nav className="marketing-drawer-links" aria-label="FamOS marketing menu links">
-            <a href="/landing" onClick={closeDrawer}>Home</a>
-            <FeaturesDropdown active label="Features" currentId={currentId} onItemClick={closeDrawer} onDismiss={closeDrawer} />
-            <a href="/landing#how-it-works" onClick={closeDrawer}>How it works</a>
-            <a href="/landing#compare" onClick={closeDrawer}>Compare</a>
-            <a href="/landing#pricing" onClick={closeDrawer}>Pricing</a>
-          </nav>
-          <div className="marketing-drawer-actions">
-            {!signedIn && (
-              <a className="marketing-drawer-signin" href="/signin" onClick={closeDrawer}>Sign in</a>
-            )}
             <a
-              className="marketing-drawer-join"
-              href={signedIn ? "/today" : "/signup"}
+              className="marketing-drawer-brand"
+              href="/landing"
               onClick={closeDrawer}
             >
-              {signedIn ? "Open FamOS" : (<>Get started <ArrowRight size={16} /></>)}
+              <strong>FamOS</strong>
+            </a>
+            <span style={{ width: 40 }} />
+          </div>
+          <nav className="marketing-drawer-links" aria-label="FamOS marketing menu links">
+            <a href="/landing" className="marketing-drawer-link" onClick={closeDrawer}>
+              <Home size={20} />
+              <span>Home</span>
+            </a>
+            <div className={`marketing-drawer-accordion${featuresOpen ? " is-open" : ""}`}>
+              <button
+                type="button"
+                className="marketing-drawer-link marketing-drawer-accordion-trigger"
+                onClick={() => setFeaturesOpen((v) => !v)}
+                aria-expanded={featuresOpen}
+              >
+                <Puzzle size={20} />
+                <span>Features</span>
+                <ChevronDown size={18} className="marketing-drawer-accordion-chev" />
+              </button>
+              <div className="marketing-drawer-accordion-panel" role="menu">
+                {MARKETING_FEATURES.map((feature) => {
+                  const Icon = feature.icon;
+                  return (
+                    <a
+                      key={feature.id}
+                      href={`/features/${feature.id}`}
+                      className="marketing-drawer-accordion-item"
+                      role="menuitem"
+                      onClick={closeDrawer}
+                    >
+                      <Icon size={18} />
+                      <span>{feature.name}</span>
+                      <ChevronRight size={16} className="marketing-drawer-accordion-item-chev" />
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+            <a href="/landing#how-it-works" className="marketing-drawer-link" onClick={closeDrawer}>
+              <CalendarDays size={20} />
+              <span>How it works</span>
+            </a>
+            <a href="/landing#compare" className="marketing-drawer-link" onClick={closeDrawer}>
+              <BarChart3 size={20} />
+              <span>Compare</span>
+            </a>
+            <a href="/landing#pricing" className="marketing-drawer-link" onClick={closeDrawer}>
+              <Tag size={20} />
+              <span>Pricing</span>
+            </a>
+          </nav>
+          <div className="marketing-drawer-divider" />
+          <div className="marketing-drawer-bottom">
+            {!signedIn && (
+              <a className="marketing-drawer-link" href="/signin" onClick={closeDrawer}>
+                <Search size={20} />
+                <span>Sign in</span>
+              </a>
+            )}
+            <a className="marketing-drawer-link" href={signedIn ? "/today" : "/signup"} onClick={closeDrawer}>
+              <User size={20} />
+              <span>{signedIn ? "Open FamOS" : "Get started"}</span>
             </a>
           </div>
         </div>

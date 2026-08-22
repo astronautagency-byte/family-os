@@ -4984,39 +4984,33 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .marketing-drawer.is-open{pointer-events:auto}
 .marketing-drawer-backdrop{position:absolute;inset:0;background:rgba(20,16,40,.42);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:0;transition:opacity .24s ease;border:0;padding:0;cursor:pointer}
 .marketing-drawer.is-open .marketing-drawer-backdrop{opacity:1}
-.marketing-drawer-panel{position:absolute;top:0;right:0;bottom:0;width:min(360px,86vw);background:#fffdf9;border-left:1px solid rgba(121,82,232,.08);box-shadow:-22px 0 60px rgba(20,16,40,.18);padding:64px 22px max(28px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:22px;transform:translateX(102%);opacity:0;transition:transform .38s cubic-bezier(.22,1,.36,1),opacity .24s ease;pointer-events:none;overflow-y:auto;overscroll-behavior:contain}
+.marketing-drawer-panel{position:absolute;top:0;left:0;bottom:0;width:100%;max-width:420px;background:#fff;border-right:1px solid var(--color-border);box-shadow:22px 0 60px rgba(20,16,40,.18);padding:20px 24px max(28px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px;transform:translateX(-102%);opacity:0;transition:transform .38s cubic-bezier(.22,1,.36,1),opacity .24s ease;pointer-events:none;overflow-y:auto;overscroll-behavior:contain}
 .marketing-drawer.is-open .marketing-drawer-panel{transform:translateX(0);opacity:1;pointer-events:auto}
-.marketing-drawer-brand{display:flex;align-items:center;gap:11px;text-decoration:none;color:var(--landing-color-surface-dark);font:760 18px/1 var(--font-display);letter-spacing:-.04em}
-.marketing-drawer-brand img{width:38px;height:38px;border-radius:11px;border:1px solid var(--color-border);text-shadow:none}
-.marketing-drawer-brand strong{display:inline-block}
-.marketing-drawer-brand span{color:var(--landing-color-primary)}
-.marketing-drawer-links{display:flex;flex-direction:column;gap:2px;margin:0;padding:0;list-style:none}
-.marketing-drawer-links>a,.marketing-drawer-links .features-dropdown>a,.marketing-drawer-links .features-dropdown .features-dropdown-trigger{display:flex;align-items:center;justify-content:flex-start;width:100%;padding:12px 14px;border-radius:var(--radius-tag);color:var(--landing-color-surface-dark);font-size:16px;font-weight:650;text-decoration:none;transition:background-color .18s ease,color .18s ease}
-.marketing-drawer-links>a:hover,.marketing-drawer-links .features-dropdown-trigger:hover{background:var(--landing-color-lavender-soft);color:var(--landing-color-primary-dark)}
-.marketing-drawer-links .features-dropdown{display:block}
-.marketing-drawer-links .features-dropdown-trigger{justify-content:flex-start;width:100%;border-radius:20px}
-.marketing-drawer-links .features-dropdown-panel{position:static;display:none;min-width:0;width:auto;max-height:none;overflow:visible;padding:6px 0 10px}
-.marketing-drawer-links .features-dropdown.is-open .features-dropdown-panel{display:block}
-.marketing-drawer-links .features-dropdown-hero{flex-direction:column;align-items:flex-start;gap:12px;padding:2px 4px 14px}
-.marketing-drawer-links .features-dropdown-hero-actions{width:100%;flex-direction:column}
-.marketing-drawer-links .features-dropdown-hero-cta{flex:1 1 auto;width:100%;min-height:44px}
-.marketing-drawer-links .features-dropdown-grid{grid-template-columns:1fr;gap:2px}
-.marketing-drawer-links .features-dropdown-item{flex-direction:row;align-items:center;gap:12px;padding:10px 12px;border-radius:20px}
-.marketing-drawer-links .features-dropdown-item-copy{flex:1}
-.marketing-drawer-links .features-dropdown-item-link{margin-top:0;font-size:0}
-.marketing-drawer-links .features-dropdown-item-link svg{width:15px;height:15px;color:#a89bc8}
-.marketing-drawer-links .features-dropdown-item:hover .features-dropdown-item-link svg{transform:translateX(2px)}
-.marketing-drawer-actions{display:flex;flex-direction:column;gap:10px;margin-top:auto;padding-top:16px;border-top:1px solid var(--color-border)}
-.marketing-drawer-signin{display:inline-flex;align-items:center;justify-content:center;width:100%;min-height:48px;border-radius:var(--radius-control);border:1px solid var(--color-border);color:var(--landing-color-surface-dark);font-size:15px;font-weight:700;text-decoration:none;transition:background-color .2s ease,border-color .2s ease,color .2s ease}
-.marketing-drawer-signin:hover{background:var(--landing-color-lavender-soft);color:var(--landing-color-primary-dark);border-color:var(--landing-color-primary)}
-.marketing-drawer-join{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:52px;border-radius:var(--radius-control);background:var(--landing-color-primary);color:#fff;font-size:15px;font-weight:850;text-decoration:none;box-shadow:0 12px 26px rgba(121,82,232,.26);transition:transform .18s ease,box-shadow .18s ease,background-color .2s ease}
-.marketing-drawer-join:hover{background:#5b3fc7;transform:translateY(-1px);box-shadow:0 16px 32px rgba(121,82,232,.32)}
-.marketing-drawer-join svg{width:16px;height:16px}
-.marketing-drawer-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.marketing-drawer-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--color-border);margin-bottom:8px}
+.marketing-drawer-brand{text-decoration:none;color:var(--landing-color-surface-dark);font:760 20px/1 var(--font-display);letter-spacing:-.04em}
 .marketing-drawer-close{display:grid;place-items:center;width:40px;height:40px;flex:none;border:0;border-radius:999px;background:transparent;color:var(--landing-color-surface-dark);cursor:pointer;transition:background-color .18s ease,transform .18s ease}
 .marketing-drawer-close:hover{background:var(--landing-color-lavender-soft);color:var(--landing-color-primary-dark)}
 .marketing-drawer-close:focus-visible{outline:0;background:var(--landing-color-lavender-soft);color:var(--landing-color-primary-dark);box-shadow:0 0 0 3px rgba(121,82,232,.28)}
 .marketing-drawer-close:active{transform:scale(.92)}
+.marketing-drawer-links{display:flex;flex-direction:column;gap:2px;margin:0;padding:0;list-style:none}
+.marketing-drawer-link{display:flex;align-items:center;gap:14px;width:100%;padding:14px 16px;border-radius:var(--radius-tag);color:var(--landing-color-surface-dark);font-size:17px;font-weight:650;text-decoration:none;transition:background-color .18s ease,color .18s ease;border:0;background:none;cursor:pointer;text-align:left}
+.marketing-drawer-link:hover{background:var(--landing-color-lavender-soft);color:var(--landing-color-primary-dark)}
+.marketing-drawer-link span{flex:1}
+.marketing-drawer-divider{height:1px;background:var(--color-border);margin:8px 0}
+.marketing-drawer-bottom{display:flex;flex-direction:column;gap:2px;margin-top:auto;padding-top:8px}
+/* Accordion Features sub-menu */
+.marketing-drawer-accordion{display:flex;flex-direction:column}
+.marketing-drawer-accordion-trigger{justify-content:flex-start}
+.marketing-drawer-accordion-chev{transition:transform .25s ease;color:var(--color-ink-soft);flex:none}
+.marketing-drawer-accordion.is-open .marketing-drawer-accordion-chev{transform:rotate(180deg)}
+.marketing-drawer-accordion-panel{display:none;flex-direction:column;gap:0;padding:4px 0 8px 20px}
+.marketing-drawer-accordion.is-open .marketing-drawer-accordion-panel{display:flex}
+.marketing-drawer-accordion-item{display:flex;align-items:center;gap:12px;width:100%;padding:11px 14px;border-radius:var(--radius-tag);color:var(--landing-color-surface-dark);font-size:15px;font-weight:600;text-decoration:none;transition:background-color .18s ease;color:var(--color-ink);border:0;background:none;cursor:pointer;text-align:left}
+.marketing-drawer-accordion-item:hover{background:var(--landing-color-lavender-soft);color:var(--landing-color-primary-dark)}
+.marketing-drawer-accordion-item span{flex:1}
+.marketing-drawer-accordion-item svg:first-child{color:var(--color-ink-soft);flex:none}
+.marketing-drawer-accordion-item-chev{color:var(--color-ink-faint);flex:none;opacity:.5}
+@media(max-width:480px){.marketing-drawer-panel{max-width:100%;padding:16px 18px max(20px,env(safe-area-inset-bottom))}}
 
 /* ── Marketing surface micro-interactions ────────────────────────────────
    Subtle "alive" feel without flash — Apple HIG ratio: confirm every
@@ -5027,37 +5021,28 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .marketing-nav-menu-bars i{transition:transform .28s cubic-bezier(.22,1,.36,1),opacity .18s ease,top .28s cubic-bezier(.22,1,.36,1)}
 .marketing-nav-menu:not(.is-open):hover .marketing-nav-menu-bars i:nth-child(1){transform:translateX(2px)}
 .marketing-nav-menu:not(.is-open):hover .marketing-nav-menu-bars i:nth-child(3){transform:translateX(-2px)}
-.marketing-nav-brand img,.marketing-drawer-brand img{transition:transform .4s cubic-bezier(.22,1,.36,1)}
-.marketing-nav-brand:hover img,.marketing-drawer-brand:hover img{transform:rotate(-8deg) scale(1.06)}
+.marketing-nav-brand img{transition:transform .4s cubic-bezier(.22,1,.36,1)}
+.marketing-nav-brand:hover img{transform:rotate(-8deg) scale(1.06)}
 .marketing-drawer-close svg{transition:transform .42s cubic-bezier(.22,1,.36,1)}
 .marketing-drawer-close:active svg{transform:rotate(45deg) scale(.82);transition-duration:.12s}
 
-/* Stagger fade-in for drawer link list — feels like Apple cascading
-   into place. nth-child matches DOM order: Home / Features dropdown /
-   How it works / Compare / Pricing in nav, then Sign in + Get started
-   in actions. Backwards fill-mode keeps each item at opacity 0 during
-   its delay so they cascade in instead of jumping uncontrolled. */
+/* Stagger fade-in for drawer link list — cascades from left like Apple menu */
 @keyframes famos-drawer-item-in{
   from{opacity:0;transform:translateX(-12px)}
   to{opacity:1;transform:translateX(0)}
 }
-.marketing-drawer.is-open .marketing-drawer-links>*:nth-child(1){animation:famos-drawer-item-in 380ms cubic-bezier(.22,1,.36,1) 80ms backwards}
-.marketing-drawer.is-open .marketing-drawer-links>*:nth-child(2){animation:famos-drawer-item-in 380ms cubic-bezier(.22,1,.36,1) 120ms backwards}
-.marketing-drawer.is-open .marketing-drawer-links>*:nth-child(3){animation:famos-drawer-item-in 380ms cubic-bezier(.22,1,.36,1) 160ms backwards}
-.marketing-drawer.is-open .marketing-drawer-links>*:nth-child(4){animation:famos-drawer-item-in 380ms cubic-bezier(.22,1,.36,1) 200ms backwards}
-.marketing-drawer.is-open .marketing-drawer-links>*:nth-child(5){animation:famos-drawer-item-in 380ms cubic-bezier(.22,1,.36,1) 240ms backwards}
-.marketing-drawer.is-open .marketing-drawer-actions>*:nth-child(1){animation:famos-drawer-item-in 380ms cubic-bezier(.22,1,.36,1) 290ms backwards}
-.marketing-drawer.is-open .marketing-drawer-actions>*:nth-child(2){animation:famos-drawer-item-in 380ms cubic-bezier(.22,1,.36,1) 330ms backwards}
+.marketing-drawer.is-open .marketing-drawer-link:nth-child(1){animation:famos-drawer-item-in 380ms cubic-bezier(.22,1,.36,1) 80ms backwards}
+.marketing-drawer.is-open .marketing-drawer-accordion{animation:famos-drawer-item-in 380ms cubic-bezier(.22,1,.36,1) 120ms backwards}
+.marketing-drawer.is-open .marketing-drawer-link:nth-child(3){animation:famos-drawer-item-in 380ms cubic-bezier(.22,1,.36,1) 160ms backwards}
+.marketing-drawer.is-open .marketing-drawer-link:nth-child(4){animation:famos-drawer-item-in 380ms cubic-bezier(.22,1,.36,1) 200ms backwards}
+.marketing-drawer.is-open .marketing-drawer-link:nth-child(5){animation:famos-drawer-item-in 380ms cubic-bezier(.22,1,.36,1) 240ms backwards}
+.marketing-drawer.is-open .marketing-drawer-bottom .marketing-drawer-link:nth-child(1){animation:famos-drawer-item-in 380ms cubic-bezier(.22,1,.36,1) 290ms backwards}
+.marketing-drawer.is-open .marketing-drawer-bottom .marketing-drawer-link:nth-child(2){animation:famos-drawer-item-in 380ms cubic-bezier(.22,1,.36,1) 330ms backwards}
 
 @media (prefers-reduced-motion:reduce){
-  .marketing-drawer.is-open .marketing-drawer-links>*:nth-child(n),
-  .marketing-drawer.is-open .marketing-drawer-actions>*:nth-child(n){animation:none}
-  .marketing-nav-brand:hover img,.marketing-drawer-brand:hover img{transform:none}
-  /* WCAG 2.3.3 — transition-driven motion (hover lifts, bar shifts,
-     press wobble) also plays at full duration for reduced-motion
-     users unless we cut the transition itself. `.01ms` collapses the
-     motion to a single frame without losing the visual states. */
-  .marketing-nav-menu,.marketing-nav-menu-bars i,.marketing-nav-brand img,.marketing-drawer-brand img,.marketing-drawer-close svg{transition-duration:.01ms!important}
+  .marketing-drawer.is-open .marketing-drawer-link,.marketing-drawer.is-open .marketing-drawer-accordion,.marketing-drawer.is-open .marketing-drawer-bottom .marketing-drawer-link{animation:none!important}
+  .marketing-nav-brand:hover img{transform:none}
+  .marketing-nav-menu,.marketing-nav-menu-bars i,.marketing-nav-brand img,.marketing-drawer-close svg{transition-duration:.01ms!important}
 }
 
 @media (max-width:900px){
