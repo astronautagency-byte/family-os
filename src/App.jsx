@@ -101,6 +101,8 @@ const MARKETING_DOMAIN = "fam-os.app";
 
 function ensureCorrectDomain(session) {
   if (typeof window === "undefined") return;
+  // Skip if we're in the middle of signing out (signOut handles the redirect)
+  if (window.__famosSigningOut) return;
   const hostname = window.location.hostname;
   const isAppDomain = hostname === APP_DOMAIN || hostname.startsWith("home.fam-os");
   const isMarketingDomain = hostname === MARKETING_DOMAIN || hostname.startsWith("fam-os.app");

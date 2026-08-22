@@ -724,8 +724,11 @@ export function AuthProvider({ children }) {
   };
 
   const signOut = async () => {
+    // Set flag before signing out so ensureCorrectDomain doesn't loop
+    if (typeof window !== "undefined") window.__famosSigningOut = true;
     await supabase?.auth.signOut();
-    // ensureCorrectDomain in App.jsx will redirect to fam-os.app when session becomes null
+    // Redirect to marketing site after sign-out
+    window.location.replace("https://fam-os.app");
   };
 
   const deleteAccount = async () => {
