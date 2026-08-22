@@ -104,24 +104,20 @@ function ensureCorrectDomain(session) {
   const hostname = window.location.hostname;
   const isAppDomain = hostname === APP_DOMAIN || hostname.startsWith("home.fam-os");
   const isMarketingDomain = hostname === MARKETING_DOMAIN || hostname.startsWith("fam-os.app");
-  
-  // Check both in-memory and localStorage flags for sign-out
-  const signingOut = window.__famosSigningOut || (typeof localStorage !== "undefined" && localStorage.getItem("famos:signing-out") === "true");
-  
-  if (session && isMarketingDomain && !signingOut) {
+  const params = new URLSearchParams(window.location.search);
+  const signedOutHandoff = params.get("signed_out") === "1";
+
+  // This marker is intentionally carried in the URL because localStorage is
+  // isolated per origin. Never redirect while the marketing origin is clearing
+  // a stale session left behind from an earlier visit.
+  if (signedOutHandoff) return;
+
+  if (session && isMarketingDomain) {
     // Signed in on marketing domain → redirect to app domain
     window.location.replace(`https://${APP_DOMAIN}${window.location.pathname}${window.location.search}`);
   } else if (!session && isAppDomain && !window.location.pathname.startsWith("/signin") && !window.location.pathname.startsWith("/signup") && !window.location.pathname.startsWith("/admin") && !window.location.pathname.startsWith("/partner")) {
     // Not signed in on app domain → redirect to marketing website
     window.location.replace(`https://${MARKETING_DOMAIN}`);
-  }
-  
-  // Clear the signing-out flag once we're on the marketing domain
-  if (signingOut && isMarketingDomain) {
-    try {
-      localStorage.removeItem("famos:signing-out");
-      window.__famosSigningOut = false;
-    } catch { /* private mode */ }
   }
 }
 
@@ -175,10 +171,30 @@ export default function App() {
       document.documentElement.dataset.daypart = hour < 12 ? "morning" : hour < 17 ? "day" : "evening";
     };
     applyDaypart();
-    ensureCorrectDomain(session);
+
+    const params = new URLSearchParams(window.location.search);
+    const signedOutHandoff = params.get("signed_out") === "1";
+    if (signedOutHandoff && window.location.hostname === MARKETING_DOMAIN && !loading) {
+      // Supabase stores auth state per origin. Clear the marketing origin too,
+      // then remove the handoff marker only after getSession has finished and
+      // the local sign-out has completed, so a stale session cannot bounce the
+      // user back to home.fam-os.app.
+      const finishHandoff = () => {
+        window.history.replaceState({}, "", `${window.location.pathname}${window.location.hash}`);
+        window.__famosSigningOut = false;
+      };
+      if (session) {
+        supabase.auth.signOut({ scope: "local" }).then(finishHandoff).catch(finishHandoff);
+      } else {
+        finishHandoff();
+      }
+    } else if (!loading) {
+      ensureCorrectDomain(session);
+    }
+
     const timer = window.setInterval(applyDaypart, 60_000);
     return () => window.clearInterval(timer);
-  }, [session]);
+  }, [session, loading, configured]);
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 700px) and (max-width: 1100px)");
     const onChange = (event) => setIsTabletViewport(event.matches);

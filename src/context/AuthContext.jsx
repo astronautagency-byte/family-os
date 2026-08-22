@@ -724,15 +724,13 @@ export function AuthProvider({ children }) {
   };
 
   const signOut = async () => {
-    // Set flag before signing out so ensureCorrectDomain doesn't loop
-    // Use localStorage so the flag persists across page loads
-    if (typeof window !== "undefined") {
-      window.__famosSigningOut = true;
-      try { localStorage.setItem("famos:signing-out", "true"); } catch { /* private mode */ }
-    }
-    await supabase?.auth.signOut();
-    // Redirect to marketing site after sign-out
-    window.location.replace("https://fam-os.app");
+    // The two domains have separate localStorage buckets, so an in-memory or
+    // localStorage-only guard cannot survive the cross-origin redirect. Carry
+    // an explicit handoff marker in the destination URL instead; App.jsx uses
+    // it to clear any stale session cached on the marketing origin.
+    if (typeof window !== "undefined") window.__famosSigningOut = true;
+    if (supabase) await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+    window.location.replace("https://fam-os.app/?signed_out=1");
   };
 
   const deleteAccount = async () => {
