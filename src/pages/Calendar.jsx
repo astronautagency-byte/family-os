@@ -1765,7 +1765,7 @@ export default function CalendarPage() {
                     title: selectedEvent.title,
                     text: `${start}${time ? ` · ${time}` : ""}${selectedEvent.location ? `\n📍 ${selectedEvent.location}` : ""}`,
                     url: buildShareUrl("event", selectedEvent.id),
-                    image: "/features/app-shots/feature-calendar.png",
+                    image: "/banners/banner-calendar.jpg",
                     imageAlt: selectedEvent.title,
                   });
                 }} aria-label={`Share ${selectedEvent.title}`}><Share2 size={15} /> Share with family</button>

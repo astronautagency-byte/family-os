@@ -787,14 +787,14 @@ export default function Meals() {
       })
       .filter(Boolean);
     if (!planned.length) {
-      setMealShare({ title: "FamOS meal plan", text: "Nothing planned yet — add a meal and share your week with the family.", url: buildShareUrl("plan", "week"), image: "/features/app-shots/feature-meals.png", imageAlt: "FamOS meal planner" });
+      setMealShare({ title: "FamOS meal plan", text: "Nothing planned yet — add a meal and share your week with the family.", url: buildShareUrl("plan", "week"), image: "/banners/banner-meal-planning.jpg", imageAlt: "FamOS meal planner" });
       return;
     }
     setMealShare({
       title: `${planned.length} day${planned.length === 1 ? "" : "s"} of meals — FamOS`,
       text: planned.join("\n\n"),
       url: buildShareUrl("plan", "week"),
-      image: "/features/app-shots/feature-meals.png",
+      image: "/banners/banner-meal-planning.jpg",
       imageAlt: "FamOS meal planner",
     });
   };

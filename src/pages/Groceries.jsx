@@ -978,7 +978,7 @@ export default function Groceries() {
       title: `Grocery list · ${deliveryItems.length} item${deliveryItems.length === 1 ? "" : "s"}`,
       text: deliveryShareText,
       url: link,
-      image: "/features/app-shots/feature-shopping.png",
+      image: "/banners/banner-shopping-lists.jpg",
       imageAlt: "FamOS shopping list",
     });
   };
