@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Bell, CalendarPlus, ChefHat, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, Coffee, Droplets, ExternalLink, GripVertical, LayoutGrid, ListChecks, LoaderCircle, MapPin, Megaphone, MessageCircle, Moon, PartyPopper, Refrigerator, RotateCcw, ShoppingCart, Soup, Sparkles, Sun, Ticket, Trash2, TriangleAlert, Wind, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Bell, CalendarPlus, ChefHat, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, Coffee, Droplets, ExternalLink, GripVertical, LayoutGrid, ListChecks, LoaderCircle, MapPin, Megaphone, MessageCircle, Moon, PartyPopper, Refrigerator, RotateCcw, ShoppingCart, Soup, Sun, Ticket, Trash2, TriangleAlert, Wind, X } from "lucide-react";
 // ChefHat is already imported above for the Cook button icon.
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -785,24 +785,19 @@ export default function Today({ goTo }) {
         <section className="m3-grid lg:grid-cols-2 today-bento-meal-grid">
           <Card className={`today-meals-card p-4 ${editingDashboard ? "is-customizing" : ""}`} style={dashboardPosition("meals")} {...dashboardDragProps("meals")}>
             {moveHandle("meals")}
-            <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-3 mb-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Meals</p>
                 <h2 className="ui-section-title">Meal plan</h2>
               </div>
-              <button onClick={() => goTo("meals")} className="text-[13px] font-semibold text-[var(--color-accent)] flex items-center gap-0.5">
-                Meal planner <ChevronRight size={14} />
-              </button>
             </div>
             <div className="today-daily-meals">
               {TODAY_MEAL_SLOTS.map(({ id: slot, label, icon: SlotIcon }) => {
                 const meal = meals.find((m) => m.date === today && m.slot === slot && m.title);
                 const adder = meal?.createdBy ? memberById[meal.createdBy] : null;
-                const openIdeas = () => {
-                  try { window.sessionStorage.setItem("famos:meal-ideas-intent:v1", JSON.stringify({ date: today, slot })); } catch { /* private mode */ }
-                  goTo("meals");
-                };
+                const suggestedMeal = meal?.source === "spoonacular";
                 const openCook = () => {
+                  if (!suggestedMeal) return;
                   try { window.sessionStorage.setItem("famos:cook-intent:v1", meal.id || `${today}:${slot}`); } catch { /* private mode */ }
                   goTo("meals");
                 };
@@ -824,16 +819,15 @@ export default function Today({ goTo }) {
                         </span>
                       );
                     })()}
-                    <div className={`today-daily-meal-actions ${meal ? "is-single" : ""}`}>
-                      {meal ? (
-                        <button type="button" className="cook" onClick={openCook}><ChefHat size={14} /> Cook</button>
-                      ) : (
-                        <>
-                          <button type="button" className="ideas" onClick={openIdeas}><Sparkles size={14} /> Meal ideas</button>
-                          <button type="button" onClick={() => goTo("meals")}><CalendarPlus size={14} /> Plan</button>
-                        </>
-                      )}
-                    </div>
+                    {(!meal || suggestedMeal) && (
+                      <div className="today-daily-meal-actions is-single">
+                        {meal ? (
+                          <button type="button" className="cook" onClick={openCook}><ChefHat size={14} /> Cook Mode</button>
+                        ) : (
+                          <button type="button" className="plan" onClick={() => goTo("meals")}><CalendarPlus size={14} /> Plan a meal</button>
+                        )}
+                      </div>
+                    )}
                   </article>
                 );
               })}

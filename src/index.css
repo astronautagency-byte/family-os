@@ -7105,9 +7105,28 @@ input:focus, textarea:focus, select:focus {
 .app-shell .today-tasks-card,
 .app-shell .today-messages-card,
 .app-shell .settings-color-scheme-card,
-.app-shell .settings-household-card,
-.app-shell .family-roster-card {
+.app-shell .settings-household-card,  .app-shell .family-roster-card {
   background:#fff!important;
+}
+
+/* Today mirrors the Meal Planner: neutral white rows, one clear action per
+   slot, and no empty action rail when a manually-entered meal is displayed. */
+.app-shell .today-daily-meal,
+.app-shell .today-daily-meal.is-planned {
+  background:#fff!important;
+}
+.app-shell .today-daily-meal-actions:empty {
+  display:none;
+}
+.app-shell .today-daily-meal-actions button.plan {
+  border-color:var(--color-border);
+  background:#fff;
+  color:var(--color-accent-strong);
+}
+.app-shell .today-daily-meal-actions button.plan:hover {
+  border-color:var(--color-accent);
+  background:var(--color-accent-soft);
+  color:var(--color-accent-strong);
 }
 
 /* Keep the app content fluid at every breakpoint; mobile remains viewport
