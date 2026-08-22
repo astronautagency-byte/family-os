@@ -12,6 +12,7 @@ import { FamilyProvider } from "./context/FamilyContext";
 import BottomNav from "./components/BottomNav";
 import AppTopBar from "./components/AppTopBar";
 import InstallPrompt from "./components/InstallPrompt";
+import DesktopAuthGate from "./components/DesktopAuthGate";
 import Confetti from "./components/Confetti";
 import { useAuth } from "./context/AuthContext";
 import { AuthLoading, HouseholdOnboarding, ResetPassword, SignIn } from "./pages/Auth";
@@ -20,6 +21,8 @@ import { classifySharedContent, SHARED_RECIPE_KEY, sharedRecipeTitle } from "./l
 import ErrorBoundary from "./components/ErrorBoundary";
 import FeaturePaywall from "./components/FeaturePaywall";
 import { PREMIUM_FEATURE_IDS } from "./data/billingCatalog";
+import { clearDesktopAuthState, expectedDesktopAuthState, isTauriRuntime, listenForDesktopAuth } from "./lib/desktopRuntime";
+import { finishDesktopAuthHandoff, redeemDesktopAuthHandoff } from "./lib/desktopAuth";
 
 // Route/page-level code splitting: each page is its own chunk, so the initial
 // bundle isn't the whole app. Signed-out visitors load only Landing; signed-in
@@ -143,6 +146,8 @@ export default function App() {
   // Sparkles button (no more floating FAB). The boolean below drives the
   // controlled-mode `open` prop on <FamAI />.
   const [famAiOpen, setFamAiOpen] = useState(false);
+  const [desktopAuth, setDesktopAuth] = useState({ status: "idle", error: "" });
+  const desktopHandoffAttempted = useRef(false);
   const [tabletMode, setTabletMode] = useState(() => localStorage.getItem("familyos:tablet-mode") === "true");
   // Tablet mode is a shared-display layout meant only for tablet-sized screens.
   // We track whether the viewport is actually a tablet so the mode never applies
@@ -271,6 +276,54 @@ export default function App() {
     };
   }, [configured, hasSession]);
   useEffect(() => {
+    if (!configured || !isTauriRuntime()) return undefined;
+    let active = true;
+    const onOpenError = (event) => {
+      if (active) setDesktopAuth({ status: "idle", error: event.detail || "Could not open the FamOS sign-in page." });
+    };
+    window.addEventListener("famos:desktop-auth-error", onOpenError);
+    const stopListening = listenForDesktopAuth(async ({ code, state }) => {
+      if (!active) return;
+      const expected = expectedDesktopAuthState();
+      if (!expected || expected !== state) {
+        setDesktopAuth({ status: "idle", error: "This sign-in request expired. Start again from the FamOS app." });
+        return;
+      }
+      setDesktopAuth({ status: "exchanging", error: "" });
+      try {
+        const payload = await redeemDesktopAuthHandoff(code, state);
+        if (!payload?.session?.access_token || !payload?.session?.refresh_token) throw new Error("The sign-in response was incomplete. Start again from the FamOS app.");
+        const { error } = await supabase.auth.setSession(payload.session);
+        if (error) throw error;
+        clearDesktopAuthState();
+        setDesktopAuth({ status: "ready", error: "" });
+      } catch (error) {
+        setDesktopAuth({ status: "idle", error: error?.message || "Desktop sign-in could not be completed." });
+      }
+    }).catch((error) => {
+      if (active) setDesktopAuth({ status: "idle", error: error?.message || "Desktop sign-in is unavailable." });
+    });
+    return () => {
+      active = false;
+      window.removeEventListener("famos:desktop-auth-error", onOpenError);
+      Promise.resolve(stopListening).then((stop) => stop?.());
+    };
+  }, [configured]);
+
+  // If the user was already signed in when the desktop browser flow opened,
+  // complete the handoff without forcing another password entry.
+  useEffect(() => {
+    if (!configured || isTauriRuntime() || !session || desktopHandoffAttempted.current) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("desktop") !== "1") return;
+    desktopHandoffAttempted.current = true;
+    finishDesktopAuthHandoff(session).catch((error) => {
+      desktopHandoffAttempted.current = false;
+      setDesktopAuth({ status: "idle", error: error?.message || "Desktop sign-in could not be completed." });
+    });
+  }, [configured, session]);
+
+  useEffect(() => {
     if (!configured || !session || !household?.id || publicRoute === "admin") return;
     let active = true;
     supabase.rpc("household_runtime_config", { target_household: household.id }).then(({ data, error }) => {
@@ -378,6 +431,7 @@ export default function App() {
   if (publicRoute === "terms") return <Suspense fallback={<PageFallback />}><Terms signedIn={!!session} /></Suspense>;
   if (configured && !session && publicRoute === "signin") return <SignIn key="signin" initialCreating={false} />;
   if (configured && !session && publicRoute === "signup") return <SignIn key="signup" initialCreating />;
+  if (configured && !session && isTauriRuntime()) return <DesktopAuthGate status={desktopAuth.status} error={desktopAuth.error} />;
   if (configured && !session) return <Suspense fallback={<PageFallback />}><Landing /></Suspense>;
   if (configured && (!household || onboardingRequired)) return <HouseholdOnboarding colorScheme={colorScheme} onColorSchemeChange={setColorScheme} />;
   if (["suspended", "disabled"].includes(runtimeConfig.status)) return (

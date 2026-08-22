@@ -1,0 +1,24 @@
+[package]
+name = "famos"
+version = "0.36.0"
+description = "FamOS family organizer"
+authors = ["FamOS"]
+edition = "2021"
+rust-version = "1.77.2"
+
+[lib]
+name = "famos_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-deep-link = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]

@@ -1466,9 +1466,18 @@ export default function Meals() {
 
                 <Card className="cook-quiet-reference">
                   <div className="cook-panel-head"><ListChecks size={18} /><h3>Ingredients nearby</h3></div>
-                  <div className="cook-ingredient-chips">
-                    {cookRecipe.ingredients.slice(0, 10).map((item, index) => <span key={`${typeof item === "string" ? item : item?.name}-${index}`}>{typeof item === "string" ? item : item?.name}</span>)}
-                  </div>
+                  <ul className="cook-ingredient-nearby-list" aria-label="Ingredients nearby">
+                    {cookRecipe.ingredients.slice(0, 10).map((item, index) => {
+                      const name = typeof item === "string" ? item : item?.name;
+                      const amount = typeof item === "string" ? "" : [item?.amount, item?.unit].filter(Boolean).join(" ");
+                      return (
+                        <li key={`${name}-${index}`}>
+                          <span>{name}</span>
+                          {amount && <small>{amount}</small>}
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </Card>
               </div>
             )}

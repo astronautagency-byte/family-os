@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Share, X } from "lucide-react";
+import { isTauriRuntime } from "../lib/desktopRuntime";
 
 const DISMISS_KEY = "family-os:install-prompt-dismissed:v1";
 
@@ -18,8 +19,10 @@ export default function InstallPrompt() {
     return { iOS };
   }, []);
 
+  const desktop = isTauriRuntime();
+
   useEffect(() => {
-    if (dismissed || isStandalone()) return undefined;
+    if (dismissed || desktop || isStandalone()) return undefined;
     if (device.iOS) {
       const timer = window.setTimeout(() => setVisible(true), 1600);
       return () => window.clearTimeout(timer);
@@ -32,9 +35,9 @@ export default function InstallPrompt() {
     };
     window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
     return () => window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
-  }, [device.iOS, dismissed]);
+  }, [device.iOS, dismissed, desktop]);
 
-  if (!visible || dismissed || isStandalone()) return null;
+  if (!visible || dismissed || desktop || isStandalone()) return null;
 
   const dismiss = () => {
     localStorage.setItem(DISMISS_KEY, "true");
@@ -53,7 +56,7 @@ export default function InstallPrompt() {
     <aside className="install-prompt" role="status">
       <div className="install-prompt-icon"><Share size={18} /></div>
       <div>
-        <p>Add FamOS to your iPhone</p>
+        <p>{device.iOS ? "Add FamOS to your iPhone" : "Install FamOS"}</p>
         <span>{device.iOS ? "Tap Share, then Add to Home Screen for the best notification experience." : "Install FamOS for faster access and a more app-like experience."}</span>
       </div>
       {deferredPrompt && <button className="install-prompt-action" onClick={install}>Install</button>}

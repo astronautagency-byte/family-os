@@ -10,6 +10,7 @@ import { ColorSchemePicker } from "../components/ColorSchemePicker";
 // TDZ that broke new-password setup.
 import * as PasswordStrength from "../utils/passwordStrength";
 import { supabase } from "../lib/supabase";
+import { finishDesktopAuthHandoff } from "../lib/desktopAuth";
 
 const VAPID_PUBLIC_KEY = "BK4WksXI5RRZqDhurNH8v2VbinrSKrBLzOA6xni__siwCbKjhtJ1T0N3GOSVKKQPNAnENCacYtdlLW553fadxHQ";
 
@@ -87,9 +88,11 @@ export function SignIn({ initialCreating = false }) {
     try {
       if (creating) {
         const data = await signUp(email, password, displayName);
-        if (!data.session) setNotice("Account created. Check your email, then sign in.");
+        if (data.session) await finishDesktopAuthHandoff(data.session);
+        else setNotice("Account created. Check your email, then sign in.");
       } else {
-        await signIn(email, password);
+        const data = await signIn(email, password);
+        if (data?.session) await finishDesktopAuthHandoff(data.session);
       }
     } catch (e) {
       const invitedAccount = e.message === "INVITED_ACCOUNT_PASSWORD_REQUIRED";

@@ -31,6 +31,54 @@ The production build (in `dist/`) includes the web app manifest and service work
 
 Production domain: `https://home.fam-os.app/`.
 
+## Desktop app (free Tauri build)
+
+FamOS can be packaged as a small desktop app with Tauri. The desktop client reuses the same web app, keeps data online-first through Supabase, and does not require a paid developer account.
+
+### Local development
+
+Install Rust once from [rustup.rs](https://rustup.rs/), then run:
+
+```bash
+npm install
+npm run desktop:dev
+```
+
+The first native build downloads Rust crates and can take a few minutes. The app opens a local FamOS window and uses the existing Vite dev server.
+
+### Build installers
+
+```bash
+npm run desktop:build
+```
+
+On macOS this creates an unsigned `.app`/`.dmg` in `src-tauri/target/release/bundle/`. On Windows, run the same command on Windows to create an unsigned NSIS installer. Unsigned builds are free to create and distribute, though macOS Gatekeeper and Windows SmartScreen may show a warning until the app is signed.
+
+Desktop sign-in opens the secure FamOS web sign-in page and returns through the `famos://auth/callback` deep link. Before deploying that flow, apply migrations and deploy the handoff function:
+
+```bash
+supabase db push
+supabase functions deploy desktop-auth-handoff --no-verify-jwt
+```
+
+Keep `SUPABASE_SERVICE_ROLE_KEY` in Supabase Edge Function secrets only; it must never be placed in the frontend `.env` file.
+
+## Free mobile distribution
+
+The zero-cost mobile release is the installable PWA. It works on iPhone, iPad, and Android without app-store fees, and it receives the same updates as the website.
+
+- **iPhone/iPad:** open `https://home.fam-os.app` in Safari → Share → Add to Home Screen.
+- **Android:** open the same URL in Chrome → Install app (or Add to Home screen).
+
+For an optional direct-download Android APK, install Android Studio and the Tauri mobile prerequisites, then run:
+
+```bash
+npm run mobile:android:init   # once per checkout
+npm run mobile:android:build
+```
+
+The APK is produced under `src-tauri/gen/android/app/build/outputs/apk/`. It can be shared through a website or GitHub Release at no cost, but Android users may need to allow installation from that source. iOS direct-download distribution is not generally available for free; use the PWA on iPhone/iPad.
+
 ## Installing on an iPhone (PWA)
 
 1. Deploy the contents of `dist/` to any static host (Vercel, Netlify, Cloudflare Pages, GitHub Pages — all work with zero config for a Vite app), or run it on your home network.

@@ -199,6 +199,36 @@ const barcodeCandidates = (code) => [...new Set([
   code.length === 13 && code.startsWith("0") ? code.slice(1) : "",
 ].filter(Boolean))];
 
+// ZXing is loaded only for browsers without BarcodeDetector and only once per
+// tab. Restricting its decoder to grocery barcode formats avoids the expensive
+// multi-format search across QR, PDF, Data Matrix, and other formats.
+let zxingModulePromise;
+const loadZxing = () => {
+  if (!zxingModulePromise) {
+    zxingModulePromise = Promise.all([import("@zxing/browser"), import("@zxing/library")]);
+  }
+  return zxingModulePromise;
+};
+
+async function prepareBarcodeImage(file) {
+  if (typeof URL === "undefined" || !URL.createObjectURL) return "";
+  if (typeof createImageBitmap !== "function") return URL.createObjectURL(file);
+  try {
+    const bitmap = await createImageBitmap(file);
+    const maxDimension = 1600;
+    const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close?.();
+    const resized = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.86));
+    return URL.createObjectURL(resized || file);
+  } catch {
+    return URL.createObjectURL(file);
+  }
+}
+
 const firstCommaValue = (value = "") => value.split(",").map((part) => part.trim()).filter(Boolean)[0] || "";
 
 function productNameFromApi(product = {}) {
@@ -803,9 +833,16 @@ export default function Groceries() {
     if (!file) return;
     setBarcodeStatus("Reading barcode from photo…");
     try {
-      const { BrowserMultiFormatReader } = await import("@zxing/browser");
-      const reader = new BrowserMultiFormatReader();
-      const objectUrl = URL.createObjectURL(file);
+      const [{ BrowserMultiFormatReader }, { BarcodeFormat, DecodeHintType }] = await loadZxing();
+      const hints = new Map([[DecodeHintType.POSSIBLE_FORMATS, [
+        BarcodeFormat.EAN_13,
+        BarcodeFormat.EAN_8,
+        BarcodeFormat.UPC_A,
+        BarcodeFormat.UPC_E,
+        BarcodeFormat.CODE_128,
+      ]]]);
+      const reader = new BrowserMultiFormatReader(hints);
+      const objectUrl = await prepareBarcodeImage(file);
       let result;
       try {
         result = await reader.decodeFromImageUrl(objectUrl);
@@ -831,7 +868,9 @@ export default function Groceries() {
     setScannerStarting(true);
     setScannerError("");
     scannerHandledRef.current = false;
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    // Let the modal paint once so the video ref exists, instead of waiting two
+    // animation frames before requesting camera permission.
+    await new Promise((resolve) => requestAnimationFrame(resolve));
     try {
       const video = scannerVideoRef.current;
       if (!video || !navigator.mediaDevices?.getUserMedia) throw new Error("Camera is unavailable in this browser.");
@@ -865,13 +904,20 @@ export default function Groceries() {
               return;
             }
           } catch { /* A frame can be unavailable while Safari focuses. */ }
-          window.setTimeout(scan, 280);
+          window.setTimeout(scan, 160);
         };
-        window.setTimeout(scan, 280);
+        window.setTimeout(scan, 120);
         return;
       }
-      const { BrowserMultiFormatReader } = await import("@zxing/browser");
-      const reader = new BrowserMultiFormatReader();
+      const [{ BrowserMultiFormatReader }, { BarcodeFormat, DecodeHintType }] = await loadZxing();
+      const hints = new Map([[DecodeHintType.POSSIBLE_FORMATS, [
+        BarcodeFormat.EAN_13,
+        BarcodeFormat.EAN_8,
+        BarcodeFormat.UPC_A,
+        BarcodeFormat.UPC_E,
+        BarcodeFormat.CODE_128,
+      ]]]);
+      const reader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 140, delayBetweenScanSuccess: 400 });
       const controls = await reader.decodeFromConstraints(
         { audio: false, video: { facingMode: { ideal: "environment" }, width: { ideal: 640, max: 960 }, height: { ideal: 480, max: 720 }, frameRate: { ideal: 12, max: 20 } } },
         video,
@@ -1368,7 +1414,7 @@ export default function Groceries() {
         <p className="barcode-note">Point your camera at a UPC or EAN barcode. FamOS will identify the product, then let you review where it goes.</p>
         {scannerOpen ? (
           <div className="barcode-camera">
-            <video ref={scannerVideoRef} muted playsInline aria-label="Live barcode camera preview" />
+            <video ref={scannerVideoRef} autoPlay muted playsInline aria-label="Live barcode camera preview" />
             <div className="barcode-camera-guide" aria-hidden="true"><span /></div>
             <div className="barcode-camera-footer">
               <span>{scannerStarting ? "Starting camera…" : "Hold the barcode inside the frame"}</span>

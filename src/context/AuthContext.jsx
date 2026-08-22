@@ -519,7 +519,7 @@ export function AuthProvider({ children }) {
 
   const signIn = async (email, password) => {
     setError(null);
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
       password,
     });
@@ -536,6 +536,7 @@ export function AuthProvider({ children }) {
       }
       throw signInError;
     }
+    return signInData;
   };
 
   const signUp = async (email, password, displayName) => {
