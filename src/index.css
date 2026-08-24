@@ -7554,8 +7554,8 @@ input:focus, textarea:focus, select:focus {
   .app-content{max-width:none}
   .landing-page{font-size:16px}
   .landing-nav{max-width:1400px}
-  .landing-hero-fullbleed .landing-hero-copy{max-width:720px;padding-left:max(60px,calc((100vw - 1240px)/2))}
-  .landing-hero-fullbleed .landing-hero-copy h1{font-size:92px}
+  .landing-hero-fullbleed .landing-hero-copy{max-width:900px;padding-left:max(48px,calc((100vw - 1360px)/2))}
+  .landing-hero-fullbleed .landing-hero-copy h1{font-size:clamp(64px,5vw,88px);max-width:800px}
   .landing-features{max-width:1400px}
   .landing-feature-grid{grid-template-columns:repeat(3,1fr);gap:24px}
   .landing-feature{min-height:480px}
@@ -7573,7 +7573,8 @@ input:focus, textarea:focus, select:focus {
 /* ── Ultra-wide (≥1920px) ────────────────────────────────────────── */
 @media(min-width:1920px){
   .landing-page{font-size:17px}
-  .landing-hero-fullbleed .landing-hero-copy h1{font-size:108px}
+  .landing-hero-fullbleed .landing-hero-copy{max-width:1000px;padding-left:max(60px,calc((100vw - 1480px)/2))}
+  .landing-hero-fullbleed .landing-hero-copy h1{font-size:clamp(72px,4.5vw,92px);max-width:860px}
   .landing-feature-grid{gap:28px}
   .landing-feature{min-height:520px;padding:36px}
   .landing-devices-inner{max-width:1560px}
