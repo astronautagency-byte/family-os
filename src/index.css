@@ -8359,3 +8359,175 @@ input:focus, textarea:focus, select:focus {
 .theme-dark .co-plan-shell,
 .theme-dark .co-plan-sidebar
 {background:var(--color-surface)!important}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * COMPREHENSIVE WHITE BACKGROUND RULES
+ * Every card, box, container, and bordered element gets #FFFFFF
+ * so it pops off the #FAFAFA canvas.
+ * ────────────────────────────────────────────────────────────────────── */
+
+/* Shopping page — staples and list items */
+.grocery-list-row,
+.grocery-list-card,
+.kitchen-inventory-card,
+.inventory-item,
+.grocery-category-title,
+.card,.Card
+{background:#fff!important}
+
+/* Kitchen Watch — expiring item cards */
+.kw-card,
+.kw-card--expired,
+.kw-card--soon,
+.kw-pq-item,
+.kw-group-items article,
+.kw-page .kw-card
+{background:#fff!important}
+
+/* Settings page — all section cards */
+.settings-color-scheme-card,
+.settings-household-card,
+.settings-color-scheme-option,
+.reference-settings .kinship-card,
+.reference-settings section .kinship-card,
+.reference-settings .settings-dietary-picker button,
+.family-roster-card,
+.family-roster li,
+.pending-invite-actions button,
+.reference-settings .google-calendar-picker li.is-connected
+{background:#fff!important}
+
+/* Today dashboard — all cards */
+.today-metric-card,
+.today-command-card,
+.today-pulse-card,
+.today-flow-card,
+.today-load-card,
+.today-list-item,
+.today-list-item-card,
+.today-messages-card,
+.today-kitchen-card,
+.today-meals-card,
+.today-tasks-card,
+.today-shopping-card,
+.today-calendar-card,
+.reference-dashboard .kinship-card,
+.reference-dashboard section .kinship-card
+{background:#fff!important}
+
+/* Calendar page — events and agenda */
+.calendar-event,
+.calendar-hero-action,
+.calendar-agenda article,
+.calendar-month-grid button,
+.calendar-daystrip-item,
+.calendar-sources-tab,
+.calendar-view-btn,
+.calendar-manager-item,
+.calendar-manager-list,
+.calendar-manager-status,
+.calendar-manager-famos .calendar-manager-item,
+.calendar-color-picker,
+.google-calendar-picker li.is-connected
+{background:#fff!important}
+
+/* Meals page — day cards and slots */
+.meal-card-new,
+.meal-day-card,
+.meal-slot-button,
+.meal-preferences-card,
+.meal-card-slot,
+.reference-meals .kinship-card,
+.reference-meals .meal-day-card
+{background:#fff!important}
+
+/* Tasks page — groups and rows */
+.task-board-group,
+.task-board-row,
+.reference-tasks .kinship-card,
+.reference-tasks .page-header
+{background:#fff!important}
+
+/* Chat page */
+.chat-message,
+.chat-input,
+.chat-intent-chip,
+.chat-clear-option
+{background:#fff!important}
+
+/* Fam AI page */
+.fam-ai-page,
+.fam-ai-msg:not(.user),
+.fam-ai-suggestion,
+.fam-ai-review,
+.fam-ai-review-item,
+.fam-ai-composer,
+.fam-ai-composer-inner
+{background:#fff!important}
+
+/* Modals and dialogs */
+.modal-card,
+.m3-dialog-layer .modal-card
+{background:#fff!important}
+
+/* Navigation */
+.primary-nav,
+.app-topbar,
+.primary-nav .nav-item
+{background:rgba(255,255,255,.98)!important}
+
+/* All generic cards with borders */
+[class*="border"][class*="rounded"]:not(button):not(a):not(input):not(select):not(textarea):not(svg):not(img):not(br):not(hr)
+{background:#fff!important}
+
+/* Dark mode — use var(--color-surface) instead of #fff */
+.theme-dark .grocery-list-row,
+.theme-dark .grocery-list-card,
+.theme-dark .kitchen-inventory-card,
+.theme-dark .kw-card,
+.theme-dark .kw-card--expired,
+.theme-dark .kw-card--soon,
+.theme-dark .kw-pq-item,
+.theme-dark .settings-color-scheme-card,
+.theme-dark .settings-household-card,
+.theme-dark .settings-color-scheme-option,
+.theme-dark .family-roster-card,
+.theme-dark .family-roster li,
+.theme-dark .today-metric-card,
+.theme-dark .today-command-card,
+.theme-dark .today-pulse-card,
+.theme-dark .today-flow-card,
+.theme-dark .today-load-card,
+.theme-dark .today-list-item,
+.theme-dark .today-messages-card,
+.theme-dark .today-kitchen-card,
+.theme-dark .today-meals-card,
+.theme-dark .today-tasks-card,
+.theme-dark .today-shopping-card,
+.theme-dark .today-calendar-card,
+.theme-dark .calendar-event,
+.theme-dark .calendar-hero-action,
+.theme-dark .calendar-manager-item,
+.theme-dark .calendar-manager-list,
+.theme-dark .calendar-manager-status,
+.theme-dark .meal-card-new,
+.theme-dark .meal-day-card,
+.theme-dark .meal-slot-button,
+.theme-dark .meal-preferences-card,
+.theme-dark .task-board-group,
+.theme-dark .task-board-row,
+.theme-dark .chat-message,
+.theme-dark .chat-input,
+.theme-dark .chat-intent-chip,
+.theme-dark .chat-clear-option,
+.theme-dark .fam-ai-page,
+.theme-dark .fam-ai-msg:not(.user),
+.theme-dark .fam-ai-suggestion,
+.theme-dark .fam-ai-review,
+.theme-dark .fam-ai-composer,
+.theme-dark .fam-ai-composer-inner,
+.theme-dark .modal-card,
+.theme-dark .primary-nav,
+.theme-dark .app-topbar,
+.theme-dark .pending-invite-actions button
+{background:var(--color-surface)!important}
