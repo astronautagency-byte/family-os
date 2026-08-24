@@ -148,6 +148,10 @@ Companion changes (apply in this order if you are reproducing from scratch):
 - **If you remove the wizard, remove the gate entirely** instead. Leaving the gate without its `OwnerProfileStep` content would silently sign owners into a half-configured home.
 - **If you change `onboardingProfileKey()`, retest the existing-user scenario**: sign in to a household whose `household_profiles` row has no `completed_at` **and** whose localStorage flag is empty. They must NOT see the wizard.
 
+## Stripe billing setup
+
+The active signup and subscription flow uses Stripe Checkout and Stripe Customer Portal. Configure the catalog, webhook, and Supabase secrets described in [STRIPE_SETUP.md](./STRIPE_SETUP.md) before enabling paid plans in production.
+
 ## Supabase setup
 
 1. Create a Supabase project and run the SQL files in `supabase/migrations/` in filename order (or use `supabase db push`).

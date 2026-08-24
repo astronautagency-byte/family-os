@@ -59,12 +59,12 @@ CREATE TABLE ad_impressions (
 - `NativeAdBanner` — reusable component matching FamOS design system
 - Props: `placement`, `variant` (banner/card/inline), `size` (compact/standard)
 - Renders partner creative with "Sponsored" label + "Remove ads" upsell link
-- Only shows for free-tier users (checks `subscription_status` from Chargebee)
+- Only shows for free-tier users (checks `subscription status from Stripe)
 
 ### 1.3 Ad Visibility Logic
 - Free users: See ads on all 5 placements
 - Plus/Pro users: No ads
-- Check via `has_household_feature()` or direct Chargebee subscription lookup
+- Check via `has_household_feature()` or direct Stripe subscription lookup
 
 ---
 

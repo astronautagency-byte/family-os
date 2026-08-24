@@ -465,14 +465,22 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
   const [supportSent, setSupportSent] = useState(false);
   const [supportError, setSupportError] = useState("");
   useEffect(() => {
+    const openSupport = (type) => {
+      const supportType = type === "feature" ? "feature" : "email";
+      setSupportSubject(supportType === "email" ? "FamOS feedback" : "");
+      setSupportMessage("");
+      setSupportError("");
+      setSupportSent(false);
+      setSupportForm(supportType);
+    };
     const support = new URLSearchParams(window.location.search).get("support");
-    if (!support || !["feedback", "feature"].includes(support)) return;
-    setSupportSubject(support === "feedback" ? "FamOS feedback" : "");
-    setSupportMessage("");
-    setSupportError("");
-    setSupportSent(false);
-    setSupportForm(support === "feature" ? "feature" : "email");
-    window.history.replaceState({}, "", window.location.pathname);
+    if (support && ["feedback", "feature"].includes(support)) {
+      openSupport(support);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+    const onSupportRequest = (event) => openSupport(event.detail?.type);
+    window.addEventListener("famos:open-support", onSupportRequest);
+    return () => window.removeEventListener("famos:open-support", onSupportRequest);
   }, []);
   const [editingHousehold, setEditingHousehold] = useState(false);
   const [householdName, setHouseholdName] = useState("");
@@ -723,21 +731,22 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
   const extraMembers = Math.max(0, members.length - includedMembers);
   const estimatedMonthlyPlan = PRICING_PLAN.basePlan.price.monthly + extraMembers * PRICING_PLAN.basePlan.additionalMemberPrice.monthly;
 
-  // ── Subscription status (Chargebee-backed) ──
+  // ── Subscription status (Stripe-backed) ──
   // Pulls the household's real subscription via get_my_subscription so the
   // Plan & billing card can show a status badge, payment method, and
   // next-charge date instead of the static PRICING_PLAN values.
   const [subscription, setSubscription] = useState(null);
   const [usageStatus, setUsageStatus] = useState(null);
-  const [billingBusy, setBillingBusy] = useState(false);
+  // Track the specific billing action so only the clicked control shows progress.
+  const [billingBusy, setBillingBusy] = useState(null);
   const [billingError, setBillingError] = useState("");
   // Billing cadence offered on checkout — monthly is default; yearly pre-pays
-  // the full year (a separate Chargebee item price carries the yearly period).
+  // the full year through Stripe's yearly price.
   const [billingInterval, setBillingInterval] = useState("monthly");
 
   const planFeature = (() => {
-    if (!subscription?.chargebee_items?.length) return null;
-    const itemId = subscription.chargebee_items[0];
+    if (!subscription?.plan || subscription.plan === "core" || subscription.plan === "family") return null;
+    const itemId = subscription.plan;
     return PLAN_FEATURES.find((plan) => itemId.includes(plan.id)) || null;
   })();
 
@@ -768,9 +777,9 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
 
   const openBillingPortal = async () => {
     setBillingError("");
-    setBillingBusy(true);
+    setBillingBusy("portal");
     try {
-      const { data, error } = await supabase.functions.invoke("chargebee-portal");
+      const { data, error } = await supabase.functions.invoke("billing-portal");
       if (error) {
         let message = data?.error || error.message;
         try { if (error.context instanceof Response) message = (await error.context.clone().json())?.error || message; } catch { /* keep client message */ }
@@ -781,15 +790,15 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
       window.location.assign(url);
     } catch (err) {
       setBillingError(err?.message || "Could not open the billing portal. Please try again.");
-      setBillingBusy(false);
+      setBillingBusy(null);
     }
   };
 
   const addPaidFeature = async (feature, billing = "monthly") => {
     setBillingError("");
-    setBillingBusy(true);
+    setBillingBusy(feature);
     try {
-      const { data, error } = await supabase.functions.invoke("chargebee-checkout", { body: { feature, billing } });
+      const { data, error } = await supabase.functions.invoke("create-checkout-session", { body: { feature, billing } });
       if (error) {
         let message = data?.error || error.message;
         try { if (error.context instanceof Response) message = (await error.context.clone().json())?.error || message; } catch { /* keep client message */ }
@@ -799,7 +808,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
       window.location.assign(data.url);
     } catch (err) {
       setBillingError(err?.message || "Could not open secure checkout.");
-      setBillingBusy(false);
+      setBillingBusy(null);
     }
   };
 
@@ -1056,8 +1065,8 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
                 <p className="text-[11px] text-[var(--color-ink-faint)]">{billingInterval === "yearly" ? "$14.99/mo equivalent" : "$149/year (save 17%)"}</p>
                 <p className="text-[12px] text-[var(--color-ink-soft)] mt-2">Calendar sync, recipes, meal planning</p>
                 {(!planFeature || planFeature.id !== 'plus') && (
-                  <button type="button" className="mt-3 w-full rounded-lg bg-[var(--color-accent)] text-white text-[13px] font-semibold py-2 px-3 hover:opacity-90 transition-opacity" onClick={() => addPaidFeature('plus', billingInterval)} disabled={billingBusy || !isMasterOwner}>
-                    {billingBusy ? "Processing…" : `Upgrade to Plus (${billingInterval === "yearly" ? "yearly" : "monthly"})`}
+                  <button type="button" className="mt-3 w-full rounded-lg bg-[var(--color-accent)] text-white text-[13px] font-semibold py-2 px-3 hover:opacity-90 transition-opacity" onClick={() => addPaidFeature('plus', billingInterval)} disabled={billingBusy !== null || !isMasterOwner}>
+                    {billingBusy === "plus" ? "Processing…" : `Upgrade to Plus (${billingInterval === "yearly" ? "yearly" : "monthly"})`}
                   </button>
                 )}
                 {planFeature?.id === 'plus' && (
@@ -1072,8 +1081,8 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
                 <p className="text-[11px] text-[var(--color-ink-faint)]">{billingInterval === "yearly" ? "$19.99/mo equivalent" : "$199/year (save 17%)"}</p>
                 <p className="text-[12px] text-[var(--color-ink-soft)] mt-2">Higher limits, priority support</p>
                 {(!planFeature || planFeature.id !== 'pro') && (
-                  <button type="button" className="mt-3 w-full rounded-lg bg-[var(--color-accent)] text-white text-[13px] font-semibold py-2 px-3 hover:opacity-90 transition-opacity" onClick={() => addPaidFeature('pro', billingInterval)} disabled={billingBusy || !isMasterOwner}>
-                    {billingBusy ? "Processing…" : `Upgrade to Pro (${billingInterval === "yearly" ? "yearly" : "monthly"})`}
+                  <button type="button" className="mt-3 w-full rounded-lg bg-[var(--color-accent)] text-white text-[13px] font-semibold py-2 px-3 hover:opacity-90 transition-opacity" onClick={() => addPaidFeature('pro', billingInterval)} disabled={billingBusy !== null || !isMasterOwner}>
+                    {billingBusy === "pro" ? "Processing…" : `Upgrade to Pro (${billingInterval === "yearly" ? "yearly" : "monthly"})`}
                   </button>
                 )}
                 {planFeature?.id === 'pro' && (
@@ -1187,8 +1196,8 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
               </div>
             )}
 
-            <SecondaryButton onClick={openBillingPortal} disabled={billingBusy} className="mt-3">
-              {billingBusy ? "Opening billing portal…" : "Manage billing"}
+            <SecondaryButton onClick={openBillingPortal} disabled={billingBusy !== null} className="mt-3">
+              {billingBusy === "portal" ? "Opening billing portal…" : "Manage billing"}
             </SecondaryButton>
             {billingError && <div className="text-[12px] text-[var(--color-warn)] mt-2">{billingError}</div>}
           </Card>

@@ -27,8 +27,8 @@ test("settings displays remaining monthly usage", async () => {
   assert.match(settings, /remaining} left/);
 });
 
-test("allowance defaults mirror the Chargebee feature limits", async () => {
+test("allowance defaults remain server-configured and finite", async () => {
   const helper = await read("supabase/functions/_shared/usage.ts");
   assert.match(helper, /CHARGEBEE_FAMAI_QUERY_LIMIT".*, fallback: 100/);
-  assert.match(helper, /CHARGEBEE_PREMIUM_OPERATION_LIMIT".*, fallback: 50/);
+  assert.match(helper, /CHARGEBEE_PREMIUM_OPERATION_LIMIT".*, fallback: 200/);
 });

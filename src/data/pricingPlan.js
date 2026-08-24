@@ -5,7 +5,7 @@ export const PRICING_PLAN = {
       name: "FamOS Core",
       tagline: "Free forever",
       price: { monthly: 0, yearly: 0 },
-      membersIncluded: 99,
+      membersIncluded: 5,
       additionalMemberPrice: { monthly: 0 },
       featureList: [
         "Shared calendar",
@@ -13,6 +13,9 @@ export const PRICING_PLAN = {
         "Grocery lists & favourites",
         "Family chat & broadcasts",
         "Kitchen Watch & expiry reminders",
+        "Basic ride requests",
+        "Manual event creation",
+        "Limited calendar sync",
       ],
       isDefault: true,
       isFree: true,

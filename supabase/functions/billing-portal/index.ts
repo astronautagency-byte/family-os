@@ -60,19 +60,23 @@ Deno.serve(async (req) => {
   const { data: userData, error: uErr } = await admin.auth.getUser(token);
   if (uErr || !userData?.user) return respond({ error: "Sign-in expired — please sign in again." }, 401);
 
-  const profileRes = await admin
-    .from("profiles")
-    .select("account_id")
+  const { data: membership, error: membershipError } = await admin
+    .from("household_members")
+    .select("household_id, role")
     .eq("user_id", userData.user.id)
+    .limit(1)
     .single();
-  if (profileRes.error || !profileRes.data?.account_id) {
-    return respond({ error: "Profile not found for this account." }, 400);
+  if (membershipError || !membership?.household_id) {
+    return respond({ error: "Household not found." }, 404);
+  }
+  if (membership.role !== "owner") {
+    return respond({ error: "Only the household owner can manage billing." }, 403);
   }
 
   const subRes = await admin
     .from("account_subscriptions")
     .select("stripe_customer_id")
-    .eq("account_id", profileRes.data.account_id)
+    .eq("household_id", membership.household_id)
     .maybeSingle();
 
   if (!subRes.data?.stripe_customer_id) {

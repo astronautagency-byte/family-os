@@ -1,5 +1,5 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { HeartHandshake, ShieldCheck, X } from "lucide-react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { CalendarDays, CheckSquare, CookingPot, HeartHandshake, Home, MessageCircle, Refrigerator, Settings2, ShieldCheck, ShoppingCart, Sparkles, X } from "lucide-react";
 // Eager-load feature.css alongside the main entry so the FeaturesDropdown's
 // `position:absolute` popover styles are guaranteed to be present before any
 // page (lazy-loaded Landing.jsx OR Features.jsx) renders its nav. Without this,
@@ -21,8 +21,10 @@ import { classifySharedContent, SHARED_RECIPE_KEY, sharedRecipeTitle } from "./l
 import ErrorBoundary from "./components/ErrorBoundary";
 import FeaturePaywall from "./components/FeaturePaywall";
 import { PREMIUM_FEATURE_IDS } from "./data/billingCatalog";
+import { PRICING_PLAN, formatMoney } from "./data/pricingPlan";
 import { clearDesktopAuthState, expectedDesktopAuthState, isTauriRuntime, listenForDesktopAuth } from "./lib/desktopRuntime";
 import { finishDesktopAuthHandoff, redeemDesktopAuthHandoff } from "./lib/desktopAuth";
+import { checkAndSendLifecycleEmails } from "./lib/onboardingEmails";
 
 // Route/page-level code splitting: each page is its own chunk, so the initial
 // bundle isn't the whole app. Signed-out visitors load only Landing; signed-in
@@ -60,6 +62,40 @@ const PageFallback = () => (
     </div>
   </div>
 );
+const TOUR_FEATURES = [
+  { id: "today", label: "Today", icon: Home, copy: "See the day at a glance: what's next, what needs attention, and where the household is headed." },
+  { id: "calendar", label: "Calendar", icon: CalendarDays, featureKey: "calendar", copy: "Bring family calendars together, keep private events private, and plan the week from one shared view." },
+  { id: "meals", label: "Meals", icon: CookingPot, featureKey: "meals", copy: "Plan breakfast, lunch, and dinner, discover ideas, and use Cook Mode when it is time to make dinner." },
+  { id: "tasks", label: "Tasks", icon: CheckSquare, featureKey: "tasks", copy: "Give everyday jobs a clear owner, bring in existing lists, and see what is done without asking twice." },
+  { id: "groceries", label: "Shopping", icon: ShoppingCart, featureKey: "groceries", copy: "Keep one shared shopping list, add items quickly, and move through the store with less mental load." },
+  { id: "kitchen", label: "Kitchen Watch", icon: Refrigerator, featureKey: "kitchen", copy: "Keep an eye on what is in the kitchen and get a gentle nudge before food needs to be used." },
+  { id: "chat", label: "Chat", icon: MessageCircle, featureKey: "chat", copy: "Keep family conversation close to the plans, lists, and decisions it belongs with." },
+  { id: "famai", label: "Fam AI", icon: Sparkles, featureKey: "fam_ai", copy: "Ask for help with meals, lists, tasks, and the week. Fam AI proposes actions and waits for your approval." },
+  { id: "settings", label: "Settings", icon: Settings2, copy: "Make FamOS feel like home: connect calendars, choose a colour, invite family, and manage your plan." },
+];
+
+function TrialConfirmationModal({ onClose, onManage }) {
+  const trialEnds = new Date(Date.now() + PRICING_PLAN.trial.days * 86400000).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
+  const proPlan = PRICING_PLAN.plans.find((plan) => plan.id === "pro");
+  return (
+    <div className="trial-confirmation-layer" role="presentation">
+      <section className="trial-confirmation-card" role="dialog" aria-modal="true" aria-labelledby="trial-confirmation-title">
+        <div className="trial-confirmation-mark"><ShieldCheck size={22} /></div>
+        <p className="feature-tour-eyebrow">FamOS Pro</p>
+        <h2 id="trial-confirmation-title">You’re on FamOS Pro.</h2>
+        <p className="trial-confirmation-copy">Your {PRICING_PLAN.trial.days}-day trial has started.</p>
+        <div className="trial-confirmation-summary">
+          <div><span>Trial ends</span><strong>{trialEnds}</strong></div>
+          <div><span>Today</span><strong>$0</strong></div>
+          <div><span>After trial</span><strong>{formatMoney(proPlan?.price.monthly || 0)}/month</strong></div>
+        </div>
+        <button type="button" className="trial-confirmation-primary" onClick={onClose}>Start Using FamOS</button>
+        <button type="button" className="trial-confirmation-secondary" onClick={onManage}>Manage Subscription</button>
+      </section>
+    </div>
+  );
+}
+
 function FounderWelcomeModal({ onDismiss }) {
   return (
     <div className="founder-welcome-layer" role="presentation">
@@ -74,6 +110,71 @@ function FounderWelcomeModal({ onDismiss }) {
           <a href="/settings?support=feedback" onClick={onDismiss}>Share feedback</a>
           <a href="/settings?support=feature" onClick={onDismiss}>Suggest a feature</a>
         </div>
+      </section>
+    </div>
+  );
+}
+
+function FeatureTour({ mode, steps, stepIndex, onStart, onSkip, onNext, onBack, onExplore, onFinish, onFeedback, onFeatureRequest }) {
+  if (!mode) return null;
+  if (mode === "complete") {
+    return (
+      <div className="feature-tour-layer" role="presentation">
+        <section className="feature-tour-card feature-tour-complete" role="dialog" aria-modal="true" aria-labelledby="feature-tour-complete-title">
+          <div className="feature-tour-complete-mark"><HeartHandshake size={22} /></div>
+          <p className="feature-tour-eyebrow">You’re all set</p>
+          <h2 id="feature-tour-complete-title">Thanks for taking the tour.</h2>
+          <p>FamOS is yours to shape. Tell us what would make your family’s everyday flow even better.</p>
+          <div className="feature-tour-actions feature-tour-complete-actions">
+            <button type="button" className="feature-tour-secondary" onClick={onFeedback}>Share feedback</button>
+            <button type="button" className="feature-tour-primary" onClick={onFeatureRequest}>Suggest a feature</button>
+          </div>
+          <button type="button" className="feature-tour-feedback-link" onClick={onFinish}>Continue to FamOS</button>
+        </section>
+      </div>
+    );
+  }
+  if (mode === "prompt") {
+    return (
+      <div className="feature-tour-layer" role="presentation">
+        <section className="feature-tour-card feature-tour-prompt" role="dialog" aria-modal="true" aria-labelledby="feature-tour-prompt-title">
+          <button type="button" className="feature-tour-close" onClick={onSkip} aria-label="Skip FamOS tour"><X size={18} /></button>
+          <div className="feature-tour-mark"><Sparkles size={22} /></div>
+          <p className="feature-tour-eyebrow">Make yourself at home</p>
+          <h2 id="feature-tour-prompt-title">Want a quick tour?</h2>
+          <p>We’ll show you the FamOS features available to your household. You can explore each one as we go, or jump in on your own.</p>
+          <div className="feature-tour-actions">
+            <button type="button" className="feature-tour-secondary" onClick={onSkip}>Maybe later</button>
+            <button type="button" className="feature-tour-primary" onClick={onStart}>Show me around</button>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  const step = steps[stepIndex];
+  if (!step) return null;
+  const Icon = step.icon;
+  const isFirst = stepIndex === 0;
+  const isLast = stepIndex === steps.length - 1;
+  return (
+    <div className="feature-tour-layer feature-tour-layer-active" role="presentation">
+      <section className="feature-tour-card feature-tour-active-card" role="dialog" aria-modal="true" aria-labelledby="feature-tour-title">
+        <div className="feature-tour-active-head">
+          <span className="feature-tour-step-count">{stepIndex + 1} of {steps.length}</span>
+          <button type="button" className="feature-tour-close" onClick={onSkip} aria-label="Exit FamOS tour"><X size={18} /></button>
+        </div>
+        <div className="feature-tour-progress" aria-hidden="true"><i style={{ width: `${((stepIndex + 1) / steps.length) * 100}%` }} /></div>
+        <div className="feature-tour-feature-icon"><Icon size={22} /></div>
+        <p className="feature-tour-eyebrow">Explore {step.label}</p>
+        <h2 id="feature-tour-title">{step.label}</h2>
+        <p>{step.copy}</p>
+        <button type="button" className="feature-tour-explore" onClick={() => onExplore(step.id)}><Icon size={16} /> Open {step.label}</button>
+        <div className="feature-tour-actions">
+          <button type="button" className="feature-tour-secondary" onClick={isFirst ? onSkip : onBack}>{isFirst ? "Skip tour" : "Back"}</button>
+          <button type="button" className="feature-tour-primary" onClick={isLast ? onFinish : onNext}>{isLast ? "Finish tour" : "Next"}</button>
+        </div>
+        <button type="button" className="feature-tour-feedback-link" onClick={onFinish}>I’m ready to explore on my own</button>
       </section>
     </div>
   );
@@ -104,7 +205,7 @@ const PageErrorFallback = ({ retry, reloadLatest, goToday }) => {
 };
 const VALID_TABS = ["today","calendar","meals","tasks","groceries","kitchen","chat","famai","settings"];
 const PUBLIC_ROUTES = ["privacy", "terms", "pricing", "signin", "signup", "download"];
-const ROUTE_ALIASES = { "sign-in": "signin", "lsign-in": "signin", "sign-up": "signup", "partners": "partner" };
+const ROUTE_ALIASES = { "sign-in": "signin", "lsign-in": "signin", "sign-up": "signup", "partners": "partner", "app/admin": "admin" };
 const VALID_ROUTES = [...VALID_TABS, "landing", "admin", "partner", "partners", ...PUBLIC_ROUTES];
 const FEATURES_PATH_REGEX = /^\/features(?:\/([a-z-]+))?\/?$/i;
 const normalizeRoute = (route = "") => ROUTE_ALIASES[route] || route;
@@ -145,7 +246,7 @@ function ensureCorrectDomain(session) {
   if (session && isMarketingDomain) {
     // Signed in on marketing domain → redirect to app domain
     window.location.replace(`https://${APP_DOMAIN}${window.location.pathname}${window.location.search}`);
-  } else if (!session && isAppDomain && !AUTH_PATH_REGEX.test(window.location.pathname) && !window.location.pathname.startsWith("/admin") && !window.location.pathname.startsWith("/partner")) {
+  } else if (!session && isAppDomain && !AUTH_PATH_REGEX.test(window.location.pathname) && !window.location.pathname.startsWith("/admin") && !window.location.pathname.startsWith("/app/admin") && !window.location.pathname.startsWith("/partner")) {
     // Not signed in on app domain → redirect to marketing website
     window.location.replace(`https://${MARKETING_DOMAIN}`);
   }
@@ -167,6 +268,9 @@ export default function App() {
   // controlled-mode `open` prop on <FamAI />.
   const [famAiOpen, setFamAiOpen] = useState(false);
   const [founderWelcomeOpen, setFounderWelcomeOpen] = useState(false);
+  const [featureTourMode, setFeatureTourMode] = useState(null);
+  const [featureTourStep, setFeatureTourStep] = useState(0);
+  const [trialConfirmationOpen, setTrialConfirmationOpen] = useState(false);
   const [desktopAuth, setDesktopAuth] = useState({ status: "idle", error: "" });
   const desktopHandoffAttempted = useRef(false);
   const [tabletMode, setTabletMode] = useState(() => localStorage.getItem("familyos:tablet-mode") === "true");
@@ -195,8 +299,34 @@ export default function App() {
     }
   };
   const shellRef = useRef(null);
-  const { configured, session, household, loading, passwordRecovery, onboardingRequired } = useAuth();
+  const { configured, session, household, householdProfile, loading, passwordRecovery, onboardingRequired } = useAuth();
   const publicRoute = route;
+  const featureTourSteps = useMemo(() => TOUR_FEATURES.filter((feature) => {
+    if (feature.id === "today" || feature.id === "settings") return true;
+    return runtimeConfig.features?.[feature.featureKey] !== false && entitlements?.features?.[feature.featureKey] !== false;
+  }), [entitlements, runtimeConfig.features]);
+  const featureTourKey = session?.user?.id ? `family-os:feature-tour-seen:v1:${session.user.id}` : "";
+
+  useEffect(() => {
+    const onTrialConfirmation = () => setTrialConfirmationOpen(true);
+    window.addEventListener("famos:onboarding-trial-confirmation", onTrialConfirmation);
+    return () => window.removeEventListener("famos:onboarding-trial-confirmation", onTrialConfirmation);
+  }, []);
+
+  useEffect(() => {
+    if (!session?.user?.id || loading) return;
+    const params = new URLSearchParams(window.location.search);
+    const pendingKey = `family-os:onboarding-trial-pending:${session.user.id}`;
+    const confirmationKey = `family-os:onboarding-trial-confirmation:${session.user.id}`;
+    if ((params.get("billing") === "success" && localStorage.getItem(pendingKey) === "true") || localStorage.getItem(confirmationKey) === "promo") {
+      setTrialConfirmationOpen(true);
+      localStorage.removeItem(pendingKey);
+      localStorage.removeItem(confirmationKey);
+      if (params.get("billing") === "success") window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [session?.user?.id, loading]);
+
+  const closeTrialConfirmation = () => setTrialConfirmationOpen(false);
 
   useEffect(() => {
     const applyDaypart = () => {
@@ -344,15 +474,76 @@ export default function App() {
     });
   }, [configured, session]);
 
+  // Lifecycle onboarding emails — check on mount and send any that are due
   useEffect(() => {
     if (!session?.user?.id || !household?.id || onboardingRequired) return;
-    const key = `family-os:founder-welcome-seen:v1:${session.user.id}`;
-    if (localStorage.getItem(key) !== "true") setFounderWelcomeOpen(true);
-  }, [session?.user?.id, household?.id, onboardingRequired]);
+    const completedAt = householdProfile?.completed_at;
+    if (!completedAt) return;
+    checkAndSendLifecycleEmails({
+      householdId: household.id,
+      userId: session.user.id,
+      completedAt,
+      householdName: household.name,
+      userFirstName: session.user.user_metadata?.display_name?.split(" ")[0] || session.user.email?.split("@")[0],
+    }).catch(() => {});
+  }, [session?.user?.id, household?.id, onboardingRequired, householdProfile?.completed_at]);
+
+  useEffect(() => {
+    if (!session?.user?.id || !household?.id || onboardingRequired || entitlements === null) return;
+    const founderKey = `family-os:founder-welcome-seen:v1:${session.user.id}`;
+    const tourSeen = featureTourKey && localStorage.getItem(featureTourKey) === "true";
+    if (localStorage.getItem(founderKey) !== "true") {
+      setFounderWelcomeOpen(true);
+    } else if (!tourSeen && featureTourMode === null) {
+      setFeatureTourMode("prompt");
+    }
+  }, [session?.user?.id, household?.id, onboardingRequired, entitlements, featureTourKey, featureTourMode]);
 
   const dismissFounderWelcome = () => {
     if (session?.user?.id) localStorage.setItem(`family-os:founder-welcome-seen:v1:${session.user.id}`, "true");
     setFounderWelcomeOpen(false);
+    if (featureTourKey && localStorage.getItem(featureTourKey) !== "true") setFeatureTourMode("prompt");
+  };
+
+  const skipFeatureTour = () => {
+    if (featureTourKey) localStorage.setItem(featureTourKey, "true");
+    setFeatureTourMode(null);
+  };
+
+  const startFeatureTour = () => {
+    setFeatureTourStep(0);
+    setFeatureTourMode("active");
+  };
+
+  const finishFeatureTour = () => {
+    if (featureTourKey) localStorage.setItem(featureTourKey, "true");
+    setFeatureTourMode(null);
+  };
+
+  const completeFeatureTour = () => {
+    if (featureTourMode === "complete") {
+      setFeatureTourMode(null);
+      return;
+    }
+    if (featureTourKey) localStorage.setItem(featureTourKey, "true");
+    setFeatureTourMode("complete");
+  };
+
+  const openTourFeedback = (type) => {
+    if (featureTourKey) localStorage.setItem(featureTourKey, "true");
+    setFeatureTourMode(null);
+    setTab("settings");
+    const supportType = type === "feature" ? "feature" : "feedback";
+    window.history.replaceState({}, "", `/settings?support=${supportType}`);
+    window.setTimeout(() => window.dispatchEvent(new CustomEvent("famos:open-support", { detail: { type } })), 0);
+  };
+
+  const exploreFeatureTourStep = (featureId) => {
+    if (featureId === "famai") {
+      setFamAiOpen(true);
+      return;
+    }
+    setTab(featureId);
   };
 
   useEffect(() => {
@@ -383,7 +574,7 @@ export default function App() {
     setBillingBusy(true);
     setBillingError("");
     try {
-      const { data, error } = await supabase.functions.invoke("chargebee-checkout", { body: { feature } });
+      const { data, error } = await supabase.functions.invoke("create-checkout-session", { body: { feature, billing: "monthly" } });
       if (error) throw error;
       if (!data?.url) throw new Error("Secure checkout could not be opened.");
       window.location.assign(data.url);
@@ -514,7 +705,9 @@ export default function App() {
             <FamAI open={famAiOpen} onClose={() => setFamAiOpen(false)} screen={tab} />
           </Suspense>
         </ErrorBoundary>
+        {trialConfirmationOpen && <TrialConfirmationModal onClose={closeTrialConfirmation} onManage={() => { closeTrialConfirmation(); setTab("settings"); }} />}
         {founderWelcomeOpen && <FounderWelcomeModal onDismiss={dismissFounderWelcome} />}
+        {!founderWelcomeOpen && <FeatureTour mode={featureTourMode} steps={featureTourSteps} stepIndex={featureTourStep} onStart={startFeatureTour} onSkip={skipFeatureTour} onNext={() => setFeatureTourStep((current) => Math.min(featureTourSteps.length - 1, current + 1))} onBack={() => setFeatureTourStep((current) => Math.max(0, current - 1))} onExplore={exploreFeatureTourStep} onFinish={featureTourStep === featureTourSteps.length - 1 ? completeFeatureTour : finishFeatureTour} onFeedback={() => openTourFeedback("feedback")} onFeatureRequest={() => openTourFeedback("feature")} />}
         <InstallPrompt />
         <Confetti />
       </div>

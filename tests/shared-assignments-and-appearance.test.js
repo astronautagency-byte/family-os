@@ -24,18 +24,19 @@ test("tasks and groceries persist multi-person assignments", async () => {
   assert.match(groceries, /For family members/);
 });
 
-test("appearance dropdown renders the real palette for every option", async () => {
+test("appearance picker renders the real palette for every option", async () => {
   const settings = await read("src/pages/Settings.jsx");
+  const picker = await read("src/components/ColorSchemePicker.jsx");
   const palettes = await read("src/data/appColorSchemes.js");
-  assert.match(settings, /<MenuDropdown/);
-  assert.match(settings, /scheme\.colors\.map/);
+  assert.match(settings, /<ColorSchemePicker/);
+  assert.match(picker, /scheme\.colors\.map/);
   assert.match(palettes, /FamOS Pop/);
-  assert.match(palettes, /Electric coast/);
+  assert.match(palettes, /Electric Coast/);
 });
 
-test("billing portal creates and persists a Chargebee customer when needed", async () => {
-  const portal = await read("supabase/functions/chargebee-portal/index.ts");
-  assert.match(portal, /chargebeeRequest\("\/customers"/);
-  assert.match(portal, /chargebee_customer_id: customerId/);
-  assert.match(portal, /\/portal_sessions/);
+test("Stripe billing portal is owner-scoped and server-side", async () => {
+  const portal = await read("supabase/functions/billing-portal/index.ts");
+  assert.match(portal, /stripe\.billingPortal\.sessions\.create/);
+  assert.match(portal, /stripe_customer_id/);
+  assert.match(portal, /Only the household owner can manage billing/);
 });

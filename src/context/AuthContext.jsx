@@ -286,6 +286,10 @@ export function AuthProvider({ children }) {
           address: profileRow.address || localHouseholdExtra?.address || "",
           latitude: profileRow.latitude ?? localHouseholdExtra?.latitude ?? null,
           longitude: profileRow.longitude ?? localHouseholdExtra?.longitude ?? null,
+          onboardingFamily: profileRow.onboarding_family || localHouseholdExtra?.onboardingFamily || [],
+          onboardingInterests: profileRow.onboarding_interests || localHouseholdExtra?.onboardingInterests || [],
+          onboardingScheduleSources: profileRow.onboarding_schedule_sources || localHouseholdExtra?.onboardingScheduleSources || [],
+          scheduleFeedUrl: profileRow.schedule_feed_url || localHouseholdExtra?.scheduleFeedUrl || "",
           updatedAt: profileRow.updated_at || localHouseholdExtra?.updatedAt || null,
         } : localHouseholdExtra;
 
@@ -367,7 +371,8 @@ export function AuthProvider({ children }) {
         // finished the name step of onboarding, so we shouldn't trap them in
         // the wizard again just because `completed_at` was lost on a deploy or
         // never written on a legacy device.
-        const householdHasRealName = Boolean(householdData?.name) && householdData.name !== "Home";
+        const personalSetupPending = localStorage.getItem(personalOnboardingPendingKey(nextSession.user.id)) === "true";
+        const householdHasRealName = Boolean(householdData?.name) && householdData.name !== "Home" && !personalSetupPending;
         if (!householdProfileData?.completed_at && !localProfileComplete) {
           if (householdHasRealName) {
             activityInferredComplete = true;
@@ -783,13 +788,26 @@ export function AuthProvider({ children }) {
     setSession(null);
   };
 
-  const createHousehold = async (name) => {
+  const createHousehold = async (name, location = {}) => {
     const householdName = name.trim();
     if (!householdName) throw new Error("Household name is required.");
+    if (!location.address?.trim()) throw new Error("Home address is required.");
     localStorage.setItem(personalOnboardingPendingKey(session.user.id), "true");
     const { error: createError } = await supabase.rpc("create_household", { household_name: householdName });
     if (createError && !/already belong to a household|already have an invitation/i.test(createError.message || "")) throw createError;
     await refreshAccount(session);
+    const { data: membership } = await supabase.from("household_members").select("household_id").eq("user_id", session.user.id).limit(1).maybeSingle();
+    const { error: profileError } = await supabase.from("household_profiles").upsert({
+      household_id: membership?.household_id,
+      address: location.address.trim(),
+      city: location.city || "",
+      region: location.region || "",
+      postal_code: location.postalCode || "",
+      country: location.country || "",
+      latitude: location.latitude ?? null,
+      longitude: location.longitude ?? null,
+    }, { onConflict: "household_id" });
+    if (profileError && !/schema cache|does not exist/i.test(profileError.message || "")) throw profileError;
   };
 
   const saveOwnAvatar = useCallback(async (avatarUrl) => {
@@ -830,6 +848,10 @@ export function AuthProvider({ children }) {
       address: profileInput.address?.trim() || "",
       latitude: profileInput.latitude ?? null,
       longitude: profileInput.longitude ?? null,
+      onboarding_family: profileInput.onboardingFamily || [],
+      onboarding_interests: profileInput.onboardingInterests || [],
+      onboarding_schedule_sources: profileInput.onboardingScheduleSources || [],
+      schedule_feed_url: profileInput.scheduleFeedUrl?.trim() || "",
       completed_at: completedAt,
     };
     const extraProfile = {
@@ -844,13 +866,17 @@ export function AuthProvider({ children }) {
       address: profileInput.address || "",
       latitude: profileInput.latitude ?? null,
       longitude: profileInput.longitude ?? null,
+      onboardingFamily: profileInput.onboardingFamily || [],
+      onboardingInterests: profileInput.onboardingInterests || [],
+      onboardingScheduleSources: profileInput.onboardingScheduleSources || [],
+      scheduleFeedUrl: profileInput.scheduleFeedUrl || "",
       updatedAt: completedAt,
     };
     const memberPayload = { profileType: extraProfile.profileType, calendarPreference: "family", completedAt };
     let { error: profileError } = await supabase
       .from("household_profiles")
       .upsert(payload, { onConflict: "household_id" });
-    if (profileError && /profile_type|dietary_restrictions|avoid_ingredients|meal_notes|city|country|address|latitude|longitude|schema cache/i.test(profileError.message || "")) {
+    if (profileError && /profile_type|dietary_restrictions|avoid_ingredients|meal_notes|city|country|address|latitude|longitude|onboarding_family|onboarding_interests|onboarding_schedule_sources|schedule_feed_url|schema cache/i.test(profileError.message || "")) {
       const {
         profile_type: _profileType,
         dietary_restrictions: _dietaryRestrictions,
@@ -863,6 +889,10 @@ export function AuthProvider({ children }) {
         address: _address,
         latitude: _latitude,
         longitude: _longitude,
+        onboarding_family: _onboardingFamily,
+        onboarding_interests: _onboardingInterests,
+        onboarding_schedule_sources: _onboardingScheduleSources,
+        schedule_feed_url: _scheduleFeedUrl,
         ...legacyPayload
       } = payload;
       ({ error: profileError } = await supabase.from("household_profiles").upsert(legacyPayload, { onConflict: "household_id" }));
@@ -883,6 +913,7 @@ export function AuthProvider({ children }) {
     }
 
     localStorage.setItem(onboardingProfileKey(household.id, session.user.id), "true");
+    localStorage.removeItem(personalOnboardingPendingKey(session.user.id));
     localStorage.setItem(householdProfileExtraKey(household.id), JSON.stringify(extraProfile));
     localStorage.setItem(memberProfileKey(household.id, session.user.id), JSON.stringify(memberPayload));
     setHouseholdProfile(payload);

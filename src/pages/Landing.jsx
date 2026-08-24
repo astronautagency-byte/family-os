@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, useAnimate, useInView, useScroll, useSpring, useTransform, useReducedMotion, MotionConfig, stagger } from "framer-motion";
-import { ArrowRight, Baby, BellRing, Bot, CalendarDays, Check, CheckSquare, ChefHat, FileInput, GraduationCap, Heart, LoaderCircle, LockKeyhole, MessageCircle, Palette, Refrigerator, ShieldCheck, ShoppingCart, Smartphone, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Baby, BellRing, Bot, CalendarDays, Check, CheckSquare, ChefHat, FileInput, Gift, GraduationCap, Heart, LoaderCircle, LockKeyhole, MessageCircle, Palette, Refrigerator, ShieldCheck, ShoppingCart, Smartphone, Sparkles, Users } from "lucide-react";
 import "../landing.css";
 import "../landing-theme.css";
 import "../feature.css";
@@ -139,7 +139,7 @@ function PricingSection({ signedIn }) {
     }
     setCheckoutBusy(true);
     try {
-      const { data, error } = await supabase.functions.invoke("chargebee-checkout", {
+      const { data, error } = await supabase.functions.invoke("create-checkout-session", {
         body: { feature: selectedPlan, billing },
       });
       if (error) throw error;
@@ -236,8 +236,8 @@ function ProductPreview({ feature }) {
     const timers = [];
     const q = (sel) => node.querySelectorAll(sel);
     const has = (sel) => q(sel).length > 0;
-    const set = (sel, props) => (has(sel) ? animate(sel, props, { duration: 0 }) : Promise.resolve());
-    const to = (sel, props, opts) => (has(sel) ? animate(sel, props, opts) : Promise.resolve());
+    const set = (sel, props) => (!cancelled && node.isConnected && has(sel) ? animate(sel, props, { duration: 0 }) : Promise.resolve());
+    const to = (sel, props, opts) => (!cancelled && node.isConnected && has(sel) ? animate(sel, props, opts) : Promise.resolve());
     const deco = (on) => q(".product-screen-row span").forEach((el) => { el.style.textDecoration = on ? "line-through" : "none"; });
     const wait = (s) => new Promise((r) => { const id = setTimeout(r, s * 1000); timers.push(id); });
 

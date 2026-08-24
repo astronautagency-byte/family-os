@@ -294,7 +294,7 @@ const ModuleNav = ({ currentId }) => {
  * the across-the-board "Every module unlocked." */
 const FinalCta = ({ feature = null }) => {
   const headline = feature?.ctaHeadline || "One month free. Every module unlocked.";
-  const copy = feature?.ctaCopy || "Start a 30-day trial with the full Core plan, the Smart Family Bundle add-on, and Fam AI all included. No card required to look around.";
+  const copy = feature?.ctaCopy || "Start a 30-day Pro trial with every FamOS feature unlocked. A card is required for the trial, and you can cancel before it ends.";
   return (
     <section className="features-final">
       <div className="features-final-inner">

@@ -11,6 +11,7 @@ import { ColorSchemePicker } from "../components/ColorSchemePicker";
 import * as PasswordStrength from "../utils/passwordStrength";
 import { supabase } from "../lib/supabase";
 import { finishDesktopAuthHandoff } from "../lib/desktopAuth";
+import { PRICING_PLAN, formatMoney } from "../data/pricingPlan";
 
 const VAPID_PUBLIC_KEY = "BK4WksXI5RRZqDhurNH8v2VbinrSKrBLzOA6xni__siwCbKjhtJ1T0N3GOSVKKQPNAnENCacYtdlLW553fadxHQ";
 
@@ -22,6 +23,7 @@ function base64UrlToUint8Array(value) {
 import AddressAutocomplete from "../components/AddressAutocomplete";
 import { formatPhoneInput, isValidPhoneNumber, normalizePhoneE164 } from "../utils/phone";
 import { APP_COLOR_SCHEMES } from "../data/appColorSchemes";
+import { sendWelcomeEmail } from "../lib/onboardingEmails";
 
 function resizeAvatarImage(file) {
   return new Promise((resolve, reject) => {
@@ -335,8 +337,12 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
     memberDeliveryChannel,
     updateDeliveryChannel,
   } = useAuth();
-  const [name, setName] = useState("Our family");
+  const [name, setName] = useState("");
   const [inviteMembers, setInviteMembers] = useState([newInviteMember()]);
+  const [onboardingFamilyMembers, setOnboardingFamilyMembers] = useState([{ firstName: "", relationship: "", birthday: "" }]);
+  const [familyInterests, setFamilyInterests] = useState([]);
+  const [scheduleSources, setScheduleSources] = useState([]);
+  const [scheduleFeedUrl, setScheduleFeedUrl] = useState("");
   const [familySize, setFamilySize] = useState(3);
   const [adultCount, setAdultCount] = useState(2);
   const [childCount, setChildCount] = useState(1);
@@ -365,6 +371,7 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
   const [avatarStatus, setAvatarStatus] = useState("");
   const [ownerStep, setOwnerStep] = useState(0);
   const [memberStep, setMemberStep] = useState(0);
+  const [trialConfirmation, setTrialConfirmation] = useState("");
   const [notificationsSkipped, setNotificationsSkipped] = useState(false);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [promoCode, setPromoCode] = useState("");
@@ -377,13 +384,18 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
   const profileComplete = Boolean(householdProfile?.completed_at);
   const ownerProfileStep = household?.role === "owner" && !profileComplete;
   const memberProfileStep = household && !ownerProfileStep && !memberProfile?.completedAt;
-  const draftKey = household?.id && session?.user?.id ? `family-os:onboarding-draft:${household.id}:${session.user.id}` : "";
+  const draftKey = household?.id && session?.user?.id ? `family-os:onboarding-draft:v2:${household.id}:${session.user.id}` : "";
 
   useEffect(() => {
     if (!draftKey) return;
     try {
       const draft = JSON.parse(localStorage.getItem(draftKey) || "null");
       if (draft) {
+        setName(draft.name || "");
+        setOnboardingFamilyMembers(Array.isArray(draft.onboardingFamilyMembers) && draft.onboardingFamilyMembers.length ? draft.onboardingFamilyMembers : [{ firstName: "", relationship: "", birthday: "" }]);
+        setFamilyInterests(draft.familyInterests || []);
+        setScheduleSources(draft.scheduleSources || []);
+        setScheduleFeedUrl(draft.scheduleFeedUrl || "");
         setFamilySize(draft.familySize ?? 3);
         setAdultCount(draft.adultCount ?? 2);
         setChildCount(draft.childCount ?? 1);
@@ -415,7 +427,7 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
           setInviteMembers(draft.inviteEmails.split(/[\n,;]+/).filter(Boolean).map((email) => ({ ...newInviteMember(), email: email.trim() })));
         }
         setNotificationsSkipped(Boolean(draft.notificationsSkipped));
-        setOwnerStep(Math.max(0, Math.min(Number(draft.ownerStep) || 0, 7)));
+        setOwnerStep(Math.max(0, Math.min(Number(draft.ownerStep) || 0, 5)));
         setMemberStep(Math.max(0, Math.min(Number(draft.memberStep) || 0, 3)));
       }
     } catch {
@@ -427,6 +439,7 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
   useEffect(() => {
     if (!draftKey || !draftLoaded) return;
     localStorage.setItem(draftKey, JSON.stringify({
+      name, onboardingFamilyMembers, familyInterests, scheduleSources, scheduleFeedUrl,
       familySize, adultCount, childCount, familyDynamic, lifeStage, planningPriorities,
       primaryColor, profileType, calendarPreference, age, dateOfBirth, dietaryRestrictions, avoidIngredients,
       mealNotes, groceryImportText, taskImportText, partnerPersonalizationOptIn, avatarUrl, inviteMembers,
@@ -434,7 +447,8 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
       ownerStep, memberStep, notificationsSkipped,
     }));
   }, [
-    draftKey, draftLoaded, familySize, adultCount, childCount, familyDynamic, lifeStage,
+    draftKey, draftLoaded, name, onboardingFamilyMembers, familyInterests, scheduleSources, scheduleFeedUrl,
+    familySize, adultCount, childCount, familyDynamic, lifeStage,
     planningPriorities, primaryColor, profileType, calendarPreference, age, dateOfBirth, dietaryRestrictions,
     avoidIngredients, mealNotes, groceryImportText, taskImportText, partnerPersonalizationOptIn, avatarUrl,
     inviteMembers, city, region, postalCode, country, address, latitude, longitude, ownerStep, memberStep, notificationsSkipped,
@@ -442,7 +456,7 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
 
   const title = useMemo(() => {
     if (invitation && !household) return "Come on in";
-    if (!household) return "What should we call home?";
+    if (!household) return "Create your family";
     if (memberProfileStep) return ["Tell us about you", "Food preferences", "Add your calendar", "Make it yours"][memberStep];
     if (ownerProfileStep) return ["Who’s at home?", "Where is home?", "Connect your calendar", "Bring your task lists", "Set food preferences", "Bring your shopping list", "Choose your look", "Start your trial"][ownerStep];
     return "Invite your people";
@@ -450,7 +464,7 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
 
   const intro = useMemo(() => {
     if (invitation && !household) return `You’ve been invited to ${invitation.households?.name}. Join the shared home for calendars, lists, tasks, meals, and chat.`;
-    if (!household) return "Create the private home space everyone will share. Cozy, but organized.";
+    if (!household) return "Set up the private home your household will share.";
     if (memberProfileStep) return [
       "Everything here is optional. These details help FamOS tailor schedules, meals, and suggestions to you.",
       "Share only what is useful. Dietary preferences help personalize meal ideas and shopping suggestions.",
@@ -458,14 +472,11 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
       "Choose the look you like. It only changes FamOS for you, and everything here is optional.",
     ][memberStep];
     if (ownerProfileStep) return [
-      "Start with the basics. You can change these later in Settings.",
-      "Optional. Choose a Google Maps suggestion to add local weather and weather-sensitive event alerts, or skip this for now.",
-      "Connect a Google Calendar now, or come back to it anytime in Settings.",
-      "Bring your current task lists into FamOS. Review everything before it is added.",
-      "Optional details that make meal ideas and shopping suggestions more useful.",
-      "Optional. Paste what you already buy and we’ll organize it.",
-      "Choose your personal app colours. You can change this anytime.",
-      "Start your 30-day free trial of FamOS Pro. All features unlocked — cancel anytime.",
+      "Add the people you plan around. You can edit this later.",
+      "Choose the activities that keep your household moving.",
+      "Connect calendars now, or add things yourself as you go.",
+      "Here’s a useful starting point for your family’s week.",
+      "Unlock every Pro feature for 30 days. Your family can always stay on Core.",
     ][ownerStep];
     return `Invite people to ${household.name} now, or skip and add them later from Settings.`;
   }, [household, invitation, memberProfileStep, memberStep, ownerProfileStep, ownerStep]);
@@ -490,12 +501,17 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
     setDietaryRestrictions((current) => current.includes(restriction) ? current.filter((item) => item !== restriction) : [...current, restriction]);
   };
 
+  const finishRevisedOnboarding = () => {
+    skipOnboardingInvites();
+    window.location.assign("/");
+  };
+
   const saveOwnerProfile = () => run(async () => {
-    if (adultCount + childCount !== familySize) {
-      throw new Error("Family members should equal the number of adults plus kids.");
+    if (!onboardingFamilyMembers.some((member) => member.firstName.trim())) {
+      throw new Error("Add at least one family member, or add yourself to continue.");
     }
     await saveHouseholdProfile({
-      familySize,
+      familySize: Math.max(1, onboardingFamilyMembers.length + 1),
       adultCount,
       childCount,
       familyDynamic,
@@ -513,19 +529,45 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
       address,
       latitude,
       longitude,
+      onboardingFamily: onboardingFamilyMembers.filter((member) => member.firstName.trim()),
+      onboardingInterests: familyInterests,
+      onboardingScheduleSources: scheduleSources,
+      scheduleFeedUrl,
       groceryImportText,
       taskImportText,
       partnerPersonalizationOptIn,
       avatarUrl,
     });
-    markOnboardingComplete();
     if (draftKey) localStorage.removeItem(draftKey);
-    if (!promoApplied) {
-      const { data, error: checkoutError } = await supabase.functions.invoke("chargebee-checkout", { body: { feature: "pro", billing: "monthly", onboarding: true } });
-      if (checkoutError) throw checkoutError;
-      if (!data?.url) throw new Error("Secure checkout could not be opened. Please try again.");
-      window.location.assign(data.url);
+    if (promoApplied) {
+      markOnboardingComplete();
+      localStorage.setItem(`family-os:onboarding-trial-confirmation:${session.user.id}`, "promo");
+      skipOnboardingInvites();
+      // Fire welcome email for promo users too
+      sendWelcomeEmail({
+        householdId: household?.id,
+        userId: session.user.id,
+        householdName: household?.name,
+        userFirstName: onboardingFamilyMembers.find((m) => m.firstName.trim())?.firstName || session.user.email?.split("@")[0],
+      }).catch(() => {});
+      window.dispatchEvent(new Event("famos:onboarding-trial-confirmation"));
+      setTrialConfirmation("promo");
+      return;
     }
+    markOnboardingComplete();
+    skipOnboardingInvites();
+    // Fire welcome email in the background (non-blocking)
+    sendWelcomeEmail({
+      householdId: household?.id,
+      userId: session.user.id,
+      householdName: household?.name,
+      userFirstName: onboardingFamilyMembers.find((m) => m.firstName.trim())?.firstName || session.user.email?.split("@")[0],
+    }).catch(() => {});
+    const { data, error: checkoutError } = await supabase.functions.invoke("create-checkout-session", { body: { feature: "pro", billing: "monthly", onboarding: true } });
+    if (checkoutError) throw checkoutError;
+    if (!data?.url) throw new Error("Secure checkout could not be opened. Please try again.");
+    localStorage.setItem(`family-os:onboarding-trial-pending:${session.user.id}`, "true");
+    window.location.assign(data.url);
   });
 
   const saveMember = () => run(async () => {
@@ -542,57 +584,34 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
         {invitation && !household ? (
           <InvitationStep invitation={invitation} busy={busy} onAccept={() => run(acceptInvitation)} />
         ) : !household ? (
-          <HouseholdNameStep name={name} setName={setName} busy={busy} refreshAccount={refreshAccount} session={session} onContinue={() => run(() => createHousehold(name))} />
+          <HouseholdNameStep name={name} setName={setName} address={address} setAddress={setAddress} onAddressChange={(place) => {
+            setAddress(place.address ?? "");
+            setCity(place.city || "");
+            setRegion(place.region || "");
+            setPostalCode(place.postalCode || "");
+            setCountry(place.country || "");
+            setLatitude(place.latitude ?? null);
+            setLongitude(place.longitude ?? null);
+          }} busy={busy} refreshAccount={refreshAccount} session={session} onContinue={() => run(() => createHousehold(name, { address, city, region, postalCode, country, latitude, longitude }))} />
         ) : ownerProfileStep ? (
-          <OwnerProfileStep
-            familySize={familySize}
-            setFamilySize={setFamilySize}
-            adultCount={adultCount}
-            setAdultCount={setAdultCount}
-            childCount={childCount}
-            setChildCount={setChildCount}
-            profileType={profileType}
-            setProfileType={setProfileType}
-            familyDynamic={familyDynamic}
-            setFamilyDynamic={setFamilyDynamic}
-            lifeStage={lifeStage}
-            setLifeStage={setLifeStage}
-            city={city}
-            setCity={setCity}
-            region={region}
-            setRegion={setRegion}
-            postalCode={postalCode}
-            setPostalCode={setPostalCode}
-            country={country}
-            setCountry={setCountry}
+          <RevisedOwnerProfileStep
+            familyMembers={onboardingFamilyMembers}
+            setFamilyMembers={setOnboardingFamilyMembers}
+            interests={familyInterests}
+            toggleInterest={(interest) => setFamilyInterests((current) => current.includes(interest) ? current.filter((item) => item !== interest) : [...current, interest])}
+            scheduleSources={scheduleSources}
+            toggleScheduleSource={(source) => setScheduleSources((current) => current.includes(source) ? current.filter((item) => item !== source) : [...current, source])}
+            scheduleFeedUrl={scheduleFeedUrl}
+            setScheduleFeedUrl={setScheduleFeedUrl}
             address={address}
             setAddress={setAddress}
-            latitude={latitude}
+            setCity={setCity}
+            setRegion={setRegion}
+            setPostalCode={setPostalCode}
+            setCountry={setCountry}
             setLatitude={setLatitude}
-            longitude={longitude}
             setLongitude={setLongitude}
-            planningPriorities={planningPriorities}
-            togglePriority={togglePriority}
-            dietaryRestrictions={dietaryRestrictions}
-            toggleRestriction={toggleRestriction}
-            avoidIngredients={avoidIngredients}
-            setAvoidIngredients={setAvoidIngredients}
-            mealNotes={mealNotes}
-            setMealNotes={setMealNotes}
-            groceryImportText={groceryImportText}
-            setGroceryImportText={setGroceryImportText}
-            taskImportText={taskImportText}
-            setTaskImportText={setTaskImportText}
-            partnerPersonalizationOptIn={partnerPersonalizationOptIn}
-            setPartnerPersonalizationOptIn={setPartnerPersonalizationOptIn}
-            avatarUrl={avatarUrl}
-            setAvatarUrl={setAvatarUrl}
-            avatarStatus={avatarStatus}
-            setAvatarStatus={setAvatarStatus}
-            signInWithGoogle={signInWithGoogle}
-            googleProviderToken={googleProviderToken}
             busy={busy}
-            run={run}
             onSave={saveOwnerProfile}
             promoCode={promoCode}
             setPromoCode={setPromoCode}
@@ -604,9 +623,10 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
             setPromoApplied={setPromoApplied}
             step={ownerStep}
             setStep={setOwnerStep}
-            session={session}
-            colorScheme={colorScheme}
-            onColorSchemeChange={onColorSchemeChange}
+            trialConfirmation={trialConfirmation}
+            onComplete={finishRevisedOnboarding}
+            signInWithGoogle={signInWithGoogle}
+            googleProviderToken={googleProviderToken}
           />
         ) : memberProfileStep ? (
           <MemberProfileStep
@@ -670,12 +690,17 @@ function InvitationStep({ invitation, busy, onAccept }) {
   );
 }
 
-function HouseholdNameStep({ name, setName, busy, refreshAccount, session, onContinue }) {
+function HouseholdNameStep({ name, setName, address, onAddressChange, busy, refreshAccount, session, onContinue }) {
   return (
     <>
-      {/* Esc key + Enter work natively on the TextField. */}
       <TextField label="Household name" placeholder="e.g. The Miller Family" value={name} onChange={(e) => setName(e.target.value)} required />
-      <PrimaryButton disabled={busy || !name.trim()} onClick={onContinue}>{busy ? "Creating…" : "Continue"}</PrimaryButton>
+      <AddressAutocomplete
+        label="Home address"
+        value={address}
+        placeholder="Start typing your home address"
+        onChange={onAddressChange}
+      />
+      <PrimaryButton disabled={busy || !name.trim() || !address.trim()} onClick={onContinue}>{busy ? "Creating…" : "Continue"}</PrimaryButton>
       {/* Escape hatch: arriving on this screen usually means the membership
           lookup failed transiently on the previous refresh. Give the user a
           one-tap re-fetch before they consider signing out entirely. */}
@@ -690,6 +715,91 @@ function HouseholdNameStep({ name, setName, busy, refreshAccount, session, onCon
       </button>
     </>
   );
+}
+
+const REVISED_INTERESTS = ["Sports", "Outdoors", "School", "Dance & gymnastics", "Music & lessons", "Travel", "Pets", "Cottage / second home", "New baby", "Teen driver"];
+const REVISED_SCHEDULE_SOURCES = [
+  ["google", "Google Calendar", CalendarDays],
+  ["apple", "Apple Calendar", Smartphone],
+  ["outlook", "Outlook", Mail],
+  ["feed", "Team / school calendar feed", CalendarDays],
+];
+
+function RevisedOwnerProfileStep({ familyMembers, setFamilyMembers, interests, toggleInterest, scheduleSources, toggleScheduleSource, scheduleFeedUrl, setScheduleFeedUrl, busy, onSave, promoCode, setPromoCode, promoBusy, setPromoBusy, promoResult, setPromoResult, promoApplied, setPromoApplied, step, setStep, trialConfirmation, onComplete, signInWithGoogle, googleProviderToken }) {
+  const steps = ["Your family", "What keeps you busy?", "Bring in your schedule", "Your family is ready", "Unlock FamOS"];
+  const updateMember = (index, key, value) => setFamilyMembers((current) => current.map((member, memberIndex) => memberIndex === index ? { ...member, [key]: value } : member));
+  const addMember = () => setFamilyMembers((current) => [...current, { firstName: "", relationship: "", birthday: "" }]);
+  const removeMember = (index) => setFamilyMembers((current) => current.length === 1 ? current : current.filter((_, memberIndex) => memberIndex !== index));
+  const canContinue = step === 0 ? familyMembers.some((member) => member.firstName.trim()) : true;
+
+  if (trialConfirmation) return <RevisedTrialConfirmation promo={trialConfirmation === "promo"} onComplete={onComplete} />;
+
+  return (
+    <div className="guided-onboarding revised-onboarding">
+      <OnboardingProgress steps={steps} current={step} />
+      <div className="guided-onboarding-panel">
+        {step === 0 && <>
+          <div className="onboarding-value-heading"><UsersRound size={19} /><div><strong>Add your family</strong><span>Add the people you plan around. You can add or edit members later.</span></div></div>
+          <div className="revised-family-list">
+            {familyMembers.map((member, index) => <div className="revised-family-row" key={index}>
+              <TextField label="First name" placeholder="e.g. Leo" value={member.firstName} onChange={(event) => updateMember(index, "firstName", event.target.value)} />
+              <TextField label="Relationship" placeholder="e.g. child" value={member.relationship} onChange={(event) => updateMember(index, "relationship", event.target.value)} />
+              <TextField type="date" label="Birthday" value={member.birthday} onChange={(event) => updateMember(index, "birthday", event.target.value)} />
+              {familyMembers.length > 1 && <button type="button" className="revised-remove-member" onClick={() => removeMember(index)} aria-label={`Remove ${member.firstName || `family member ${index + 1}`}`}><Trash2 size={15} /></button>}
+            </div>)}
+          </div>
+          <button type="button" className="onboarding-add-invite" onClick={addMember}><Plus size={16} /> Add another person</button>
+        </>}
+        {step === 1 && <>
+          <div className="onboarding-value-heading"><Sparkles size={19} /><div><strong>What keeps your family busy?</strong><span>Choose anything that sounds like your household. This helps FamOS shape your first view.</span></div></div>
+          <div className="revised-interest-grid">{REVISED_INTERESTS.map((interest) => <button type="button" key={interest} className={interests.includes(interest) ? "selected" : ""} onClick={() => toggleInterest(interest)}>{interest}{interests.includes(interest) && <Check size={15} />}</button>)}</div>
+        </>}
+        {step === 2 && <>
+          <div className="onboarding-value-heading"><CalendarDays size={19} /><div><strong>Bring in your schedule</strong><span>Connect a calendar now or add things yourself later.</span></div></div>
+          <div className="revised-schedule-grid">{REVISED_SCHEDULE_SOURCES.map(([id, label, Icon]) => <button type="button" key={id} className={scheduleSources.includes(id) ? "selected" : ""} onClick={() => toggleScheduleSource(id)}><Icon size={18} /><span>{label}</span>{scheduleSources.includes(id) && <Check size={15} />}</button>)}</div>
+          {scheduleSources.includes("google") && <GoogleCalendarStep signInWithGoogle={signInWithGoogle} googleProviderToken={googleProviderToken} busy={busy} run={async (action) => action()} />}
+          {scheduleSources.includes("feed") && <TextField label="Team or school calendar feed URL" value={scheduleFeedUrl} onChange={(event) => setScheduleFeedUrl(event.target.value)} placeholder="https://…" type="url" />}
+          <button type="button" className={`revised-manual-schedule${scheduleSources.includes("manual") ? " selected" : ""}`} onClick={() => toggleScheduleSource("manual")}><Check size={16} /> I’ll add things myself</button>
+        </>}
+        {step === 3 && <RevisedValueScreen familyMembers={familyMembers} interests={interests} />}
+        {step === 4 && <RevisedTrialGate promoCode={promoCode} setPromoCode={setPromoCode} promoBusy={promoBusy} setPromoBusy={setPromoBusy} promoResult={promoResult} setPromoResult={setPromoResult} promoApplied={promoApplied} setPromoApplied={setPromoApplied} />}
+      </div>
+      <div className="onboarding-actions">
+        {step > 0 ? <SecondaryButton type="button" disabled={busy} onClick={() => setStep((current) => Math.max(0, current - 1))}><ChevronLeft size={16} /> Back</SecondaryButton> : <span />}
+        {step < 3 && <PrimaryButton type="button" disabled={busy || !canContinue} onClick={() => setStep((current) => Math.min(4, current + 1))}>{step === 0 ? "That’s Everyone" : step === 2 ? "Build My FamOS" : "Continue"}</PrimaryButton>}
+        {step === 3 && <PrimaryButton type="button" disabled={busy} onClick={() => setStep(4)}>Unlock Full FamOS</PrimaryButton>}
+        {step === 4 && <PrimaryButton type="button" disabled={busy || promoBusy} onClick={onSave}>{busy ? "Opening secure checkout…" : promoApplied ? "Start FamOS Pro" : "Start My 30-Day Free Trial"}</PrimaryButton>}
+      </div>
+      {step === 4 && <p className="revised-trial-secondary">You won’t be charged today. Cancel anytime during your trial.</p>}
+    </div>
+  );
+}
+
+function RevisedValueScreen({ familyMembers, interests }) {
+  const activityCount = Math.max(3, Math.min(9, familyMembers.length + (interests.length ? 2 : 0)));
+  return <div className="revised-value-screen">
+    <div className="onboarding-value-heading"><Check size={20} /><div><strong>Your family is ready</strong><span>Here’s a quick look at the week FamOS can help coordinate.</span></div></div>
+    <div className="revised-value-metrics"><div><strong>{activityCount}</strong><span>activities this week</span></div><div><strong>1</strong><span>transportation gap</span></div><div><strong>2</strong><span>things need attention</span></div></div>
+    <div className="revised-value-items"><article><CalendarDays size={16} /><div><strong>Soccer practice</strong><span>Thursday · 5:00 PM · Shared with family</span></div></article><article><ShoppingCart size={16} /><div><strong>Milk and bananas</strong><span>Shopping list · ready to pick up</span></div></article><article><CheckSquare size={16} /><div><strong>Pack school bags</strong><span>Task · needs attention</span></div></article></div>
+  </div>;
+}
+
+function RevisedTrialGate({ promoCode, setPromoCode, promoBusy, setPromoBusy, promoResult, setPromoResult, promoApplied, setPromoApplied }) {
+  const features = ["Unlimited family activities", "Smart schedule coordination", "Ride planning and driver assignments", "Activity Readiness", "Weekly Family Game Plan", "Fam AI actions", "Smart screenshot and document import", "Advanced calendar integrations", "Caregiver access", "Advanced routines", "Family lifecycle packs"];
+  return <div className="revised-trial-gate">
+    <div className="onboarding-value-heading"><ShieldCheck size={20} /><div><strong>Try everything FamOS can do for 30 days.</strong><span>Start your 30-day FamOS Pro trial today. You’ll get every premium feature during your trial. If you decide not to continue, your household can stay on FamOS Core with the free features.</span></div></div>
+    <h3>FamOS Pro — 30 Days Free</h3>
+    <ul className="revised-trial-features">{features.map((feature) => <li key={feature}><Check size={14} />{feature}</li>)}</ul>
+    <div className="revised-trial-price"><strong>{formatMoney(PRICING_PLAN.plans.find((plan) => plan.id === "pro")?.price.monthly || 0)}</strong><span>/month after your trial</span></div>
+    <div className="onboarding-promo-field"><label>Promo code</label><div className="onboarding-promo-row"><input value={promoCode} onChange={(event) => { setPromoCode(event.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, "")); setPromoApplied(false); }} placeholder="Have a promo code?" disabled={promoBusy || promoApplied} />{promoCode.trim().length >= 3 && !promoApplied && <button type="button" className="onboarding-promo-apply" disabled={promoBusy} onClick={async () => { setPromoBusy(true); setPromoResult(""); try { const { data, error } = await supabase.rpc("apply_my_promo_code", { promo_code: promoCode.trim() }); if (error) throw error; setPromoApplied(true); setPromoResult(data || "Promo code applied. Pro is unlocked."); } catch (error) { setPromoApplied(false); setPromoResult(error.message || "Invalid promo code."); } finally { setPromoBusy(false); } }}> {promoBusy ? "Applying…" : "Apply"}</button>}</div>{promoResult && <p className={`onboarding-promo-result ${promoApplied ? "success" : "error"}`}>{promoResult}</p>}</div>
+    <p className="revised-trial-note">Cancel anytime during your trial. You won’t be charged today.</p>
+  </div>;
+}
+
+function RevisedTrialConfirmation({ onComplete }) {
+  const trialEnds = new Date(Date.now() + PRICING_PLAN.trial.days * 86400000).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
+  const proPlan = PRICING_PLAN.plans.find((plan) => plan.id === "pro");
+  return <div className="revised-trial-confirmation"><div className="onboarding-value-heading"><Check size={22} /><div><strong>You’re on FamOS Pro.</strong><span>Your 30-day trial has started.</span></div></div><div className="revised-trial-summary"><div><span>Trial ends</span><strong>{trialEnds}</strong></div><div><span>Today</span><strong>$0</strong></div><div><span>After trial</span><strong>{formatMoney(proPlan?.price.monthly || 0)}/month</strong></div></div><PrimaryButton type="button" onClick={onComplete}>Start Using FamOS</PrimaryButton><button type="button" className="revised-manual-schedule" onClick={() => window.location.assign("/settings")}>Manage Subscription</button></div>;
 }
 
 function OwnerProfileStep(props) {
@@ -778,7 +888,7 @@ function OwnerProfileStep(props) {
         {props.step === 7 && <div className="onboarding-trial-step">
           <div className="onboarding-trial-card">
             <h3>Start your 30-day FamOS Pro trial</h3>
-            <p>Unlock every Pro feature for 30 days. Add a card through secure Chargebee checkout and you won’t be charged until the trial ends. Cancel anytime before then.</p>
+            <p>Unlock every Pro feature for 30 days. Add a card through secure Stripe checkout and you won’t be charged until the trial ends. Cancel anytime before then.</p>
             <div className="onboarding-trial-features">
               <span>Google & Outlook two-way sync</span>
               <span>Recipe discovery, meal planning, and Cook Mode</span>

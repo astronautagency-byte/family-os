@@ -270,8 +270,8 @@
 .features-dropdown-panel{
   display:none!important;
   position:absolute!important;z-index:60;
-  top:calc(100% + 14px);left:50%;
-  transform:translateX(-50%) translateY(-6px);
+  top:calc(100% + 14px);left:0;
+  transform:translateY(-6px);
   width:min(920px,calc(100vw - 48px));
   padding:22px 22px 18px;
   border:1px solid rgba(121,82,232,.16);border-radius:20px;
@@ -387,7 +387,7 @@
 }
 @media (max-width:760px){
   .features-dropdown-panel{
-    left:-8px;right:auto;width:min(360px,calc(100vw - 32px));
+    top:calc(100% + 10px);left:0;right:auto;width:auto;
     transform:translateY(-6px)
   }
   .features-dropdown.is-open .features-dropdown-panel{transform:translateY(0)}
@@ -399,9 +399,9 @@
 
 /* Reduced-motion: no fade/transform transitions on the dropdown.
  * We drop transitions but let the per-breakpoint .is-open transform
- * (translateX(-50%) translateY(0) on desktop, translateY(0) on mobile)
- * still apply so the panel ends up in the right place — the lack of
- * transition just means it appears instantly rather than fading. */
+ * (translateY(0) at every breakpoint) still applies so the panel ends up
+ * in the right place — the lack of transition just means it appears
+ * instantly rather than fading. */
 @media (prefers-reduced-motion: reduce){
   .features-dropdown-panel,
   .features-dropdown-chev,

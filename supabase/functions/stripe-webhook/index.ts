@@ -1,206 +1,116 @@
-/* ── stripe-webhook ────────────────────────────────────────────────────────
- * Receives events from Stripe and mirrors the household's subscription
- * state into account_subscriptions via the upsert_from_stripe RPC.
- *
- * Handles:
- *   - checkout.session.completed      → upserts subscription row
- *   - customer.subscription.created  → upserts
- *   - customer.subscription.updated  → upserts
- *   - customer.subscription.deleted  → upserts (status=canceled) +
- *                                       records subscription_canceled via
- *                                       admin_record_billing_event
- *   - invoice.payment_succeeded      → upserts (status flipped to 'active'
- *                                       after trial) + records invoice_paid
- *   - invoice.payment_failed         → upserts (status=past_due) +
- *                                       records payment_failed
- *
- * Auth: verified via Stripe-Signature header using STRIPE_WEBHOOK_SECRET.
- * Public endpoint — Supabase auth NOT required.
- *
- * Env: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, SUPABASE_URL,
- *      SUPABASE_SERVICE_ROLE_KEY
- * -------------------------------------------------------------------------- */
+/* Stripe webhook: the only provider write path for FamOS subscriptions. */
 import Stripe from "npm:stripe@14";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
+const headers = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Content-Type": "application/json",
 };
-const respond = (body: Record<string, unknown>, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-
-const errorMessage = (err: unknown): string => {
-  if (err && typeof err === "object") {
-    const anyErr = err as { raw?: { message?: string }; message?: string };
-    if (typeof anyErr.raw?.message === "string") return anyErr.raw.message;
-    if (typeof anyErr.message === "string") return anyErr.message;
-  }
-  return typeof err === "string" ? err : "Unexpected error.";
+const respond = (body: Record<string, unknown>, status = 200) => new Response(JSON.stringify(body), { status, headers });
+const errorMessage = (error: unknown) => error instanceof Error ? error.message : "Unexpected Stripe webhook error.";
+const iso = (seconds: number | null | undefined) => typeof seconds === "number" ? new Date(seconds * 1000).toISOString() : null;
+const mapStatus = (status: string) => status === "trialing" ? "trial" : status === "active" ? "active" : status === "past_due" ? "past_due" : status === "canceled" ? "canceled" : status === "paused" ? "paused" : "incomplete";
+const planFromPrice = (priceId: string) => {
+  if (priceId && priceId === Deno.env.get("STRIPE_PRICE_PLUS_MONTHLY")) return "plus";
+  if (priceId && priceId === Deno.env.get("STRIPE_PRICE_PLUS_YEARLY")) return "plus";
+  if (priceId && priceId === Deno.env.get("STRIPE_PRICE_PRO_MONTHLY")) return "pro";
+  if (priceId && priceId === Deno.env.get("STRIPE_PRICE_PRO_YEARLY")) return "pro";
+  return "pro";
 };
 
-const mapStripeStatus = (s: string): string => {
-  if (s === "trialing") return "trial";
-  if (s === "active") return "active";
-  if (s === "past_due") return "past_due";
-  if (s === "canceled") return "canceled";
-  if (s === "unpaid" || s === "incomplete" || s === "incomplete_expired") return "incomplete";
-  if (s === "paused") return "paused";
-  return "incomplete";
-};
-
-const ISO_FROM_UNIX = (seconds: number | null | undefined): string | null => {
-  if (!seconds || typeof seconds !== "number") return null;
-  return new Date(seconds * 1000).toISOString();
-};
-
-const handleSubscription = async (
-  admin: ReturnType<typeof createClient>,
-  stripe: Stripe,
-  sub: Stripe.Subscription,
-) => {
-  const accountId = (sub.metadata?.famoso_account_id as string | undefined) || null;
-  if (!accountId) {
-    console.warn("[stripe-webhook] subscription missing famoso_account_id metadata", sub.id);
+async function syncSubscription(admin: ReturnType<typeof createClient>, stripe: Stripe, sub: Stripe.Subscription) {
+  const householdId = String(sub.metadata?.famos_household_id || "");
+  if (!householdId) {
+    console.warn(`[stripe-webhook] ignored ${sub.id}: missing famos_household_id metadata`);
     return;
   }
-
-  const status = mapStripeStatus(sub.status);
-  const item = sub.items?.data?.[0];
-  const priceId = item?.price?.id;
-  const amountCents = Number(item?.price?.unit_amount || 0);
-  const interval = (item?.price?.recurring?.interval as string) || "month";
-
-  // Stripe exposes the default payment method via the customer when expanded;
-  // we fetch the customer separately to keep the subscription object light.
-  const pmId = (sub as unknown as { default_payment_method?: string | Stripe.PaymentMethod | null })
-    .default_payment_method;
+  const item = sub.items.data[0];
+  const priceId = item?.price?.id || "";
+  const plan = String(sub.metadata?.famos_plan || planFromPrice(priceId));
+  const amount = Number(item?.price?.unit_amount || 0);
+  const interval = item?.price?.recurring?.interval === "year" ? "year" : "month";
+  const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
   let brand = "";
   let last4 = "";
+  const paymentMethod = (sub as unknown as { default_payment_method?: string | Stripe.PaymentMethod | null }).default_payment_method;
   try {
-    const pm = typeof pmId === "string"
-      ? await stripe.paymentMethods.retrieve(pmId)
-      : (pmId as Stripe.PaymentMethod | null);
-    if (pm?.card) {
-      brand = String(pm.card.brand || "");
-      last4 = String(pm.card.last4 || "");
-    }
-  } catch (_err) {
-    // PM might be unattached or already removed — not fatal.
-  }
+    const method = typeof paymentMethod === "string" ? await stripe.paymentMethods.retrieve(paymentMethod) : paymentMethod;
+    brand = method?.card?.brand || "";
+    last4 = method?.card?.last4 || "";
+  } catch { /* A removed payment method should not block entitlement sync. */ }
 
-  const addonsCsv = String(sub.metadata?.addons || "");
-  const addons = addonsCsv.split(",").map((s) => s.trim()).filter(Boolean);
-  const memberCount = Number(sub.metadata?.member_count || 2);
-
-  await admin.rpc("upsert_from_stripe", {
-    p_account_id: accountId,
-    p_stripe_customer_id: typeof sub.customer === "string" ? sub.customer : sub.customer.id,
+  const { error } = await admin.rpc("upsert_from_stripe", {
+    p_household_id: householdId,
+    p_stripe_customer_id: customerId,
     p_stripe_subscription_id: sub.id,
-    p_status: status,
-    p_amount_cents: amountCents,
+    p_plan_key: plan,
+    p_status: mapStatus(sub.status),
+    p_amount_cents: amount,
     p_billing_interval: interval,
-    p_trial_ends_at: ISO_FROM_UNIX(sub.trial_end),
-    p_current_period_start: ISO_FROM_UNIX(sub.current_period_start),
-    p_current_period_ends_at: ISO_FROM_UNIX(sub.current_period_end),
+    p_trial_ends_at: iso(sub.trial_end),
+    p_current_period_start: iso(sub.current_period_start),
+    p_current_period_ends_at: iso(sub.current_period_end),
     p_cancel_at_period_end: Boolean(sub.cancel_at_period_end),
     p_payment_method_brand: brand,
     p_payment_method_last4: last4,
-    p_addons: addons,
-    p_member_count: memberCount,
-    p_currency: sub.currency || "usd",
+    p_addons: [],
+    p_member_count: 2,
+    p_currency: String(sub.currency || "cad").toUpperCase(),
   });
+  if (error) throw error;
 
-  // Mirror to revenue tracking (admin-facing MRR/ARR charts use this).
-  const eventType =
-    status === "canceled" ? "subscription_canceled" :
-    status === "past_due" ? "payment_failed" :
-    status === "active" ? "invoice_paid" :
-    null;
+  const eventType = sub.status === "canceled" ? "subscription_canceled" : sub.status === "past_due" ? "payment_failed" : sub.status === "active" ? "invoice_paid" : null;
   if (eventType) {
     await admin.rpc("admin_record_billing_event", {
-      target_household: accountId,
+      target_household: householdId,
       next_event_type: eventType,
-      next_amount_cents: amountCents,
-      next_currency: sub.currency || "usd",
-      event_note: `Stripe subscription ${sub.id} → ${status}`,
-    }).catch((err) => console.warn("[stripe-webhook] admin_record_billing_event:", errorMessage(err)));
+      next_amount_cents: amount,
+      next_currency: String(sub.currency || "cad").toUpperCase(),
+      event_note: `Stripe ${plan} subscription ${sub.id} → ${mapStatus(sub.status)}`,
+    });
   }
-};
+}
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response("ok", { headers });
   if (req.method !== "POST") return respond({ error: "Method not allowed" }, 405);
-
   const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
   const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
-  if (!stripeKey || !webhookSecret) {
-    return respond({ error: "Webhook is not configured on the server." }, 500);
-  }
-
-  const sig = req.headers.get("stripe-signature");
-  if (!sig) return respond({ error: "Missing Stripe-Signature header." }, 400);
+  if (!stripeKey || !webhookSecret) return respond({ error: "Stripe webhook is not configured on the server." }, 500);
+  const signature = req.headers.get("stripe-signature");
+  if (!signature) return respond({ error: "Missing Stripe-Signature header." }, 400);
 
   const rawBody = await req.text();
   const stripe = new Stripe(stripeKey, { apiVersion: "2024-06-20" });
-
   let event: Stripe.Event;
   try {
-    event = await stripe.webhooks.constructEventAsync(rawBody, sig, webhookSecret);
-  } catch (err) {
-    return respond({ error: `Signature verification failed: ${errorMessage(err)}` }, 400);
+    event = await stripe.webhooks.constructEventAsync(rawBody, signature, webhookSecret);
+  } catch (error) {
+    return respond({ error: `Signature verification failed: ${errorMessage(error)}` }, 400);
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!supabaseUrl || !serviceKey) {
-    return respond({ error: "Server is misconfigured." }, 500);
-  }
-  const admin = createClient(supabaseUrl, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
+  if (!supabaseUrl || !serviceKey) return respond({ error: "Server is misconfigured." }, 500);
+  const admin = createClient(supabaseUrl, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
 
   try {
-    switch (event.type) {
-      case "checkout.session.completed": {
-        const session = event.data.object;
-        const subId = typeof session.subscription === "string"
-          ? session.subscription
-          : session.subscription?.id;
-        if (subId) {
-          const sub = await stripe.subscriptions.retrieve(subId);
-          await handleSubscription(admin, stripe, sub);
-        }
-        break;
-      }
-      case "customer.subscription.created":
-      case "customer.subscription.updated":
-      case "customer.subscription.deleted":
-        await handleSubscription(admin, stripe, event.data.object);
-        break;
-      case "invoice.payment_succeeded":
-      case "invoice.payment_failed": {
-        const inv = event.data.object;
-        const subRef = inv.subscription;
-        const subId = typeof subRef === "string" ? subRef : subRef?.id;
-        if (subId) {
-          const sub = await stripe.subscriptions.retrieve(subId);
-          await handleSubscription(admin, stripe, sub);
-        }
-        break;
-      }
-      default:
-        // Other events we don't act on (e.g. payment_intent.* standalone)
-        break;
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object;
+      const subscriptionId = typeof session.subscription === "string" ? session.subscription : session.subscription?.id;
+      if (subscriptionId) await syncSubscription(admin, stripe, await stripe.subscriptions.retrieve(subscriptionId));
+    } else if (["customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"].includes(event.type)) {
+      await syncSubscription(admin, stripe, event.data.object as Stripe.Subscription);
+    } else if (event.type === "invoice.payment_succeeded" || event.type === "invoice.payment_failed") {
+      const invoice = event.data.object;
+      const subscriptionId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
+      if (subscriptionId) await syncSubscription(admin, stripe, await stripe.subscriptions.retrieve(subscriptionId));
     }
-  } catch (err) {
-    console.error("[stripe-webhook] handler failed:", errorMessage(err));
-    return respond({ error: errorMessage(err) }, 500);
+    return respond({ received: true, processed: event.type });
+  } catch (error) {
+    console.error("[stripe-webhook] failed", errorMessage(error));
+    return respond({ error: errorMessage(error) }, 500);
   }
-
-  return respond({ received: true, processed: event.type });
 });

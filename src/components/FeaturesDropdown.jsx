@@ -45,7 +45,9 @@ const MENU_TAGLINES = {
 const FeaturesDropdown = ({ active = false, label = "Features", currentId = null, onItemClick = null, onDismiss = null }) => {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef(null);
+  const dropdownRef = useRef(null);
   const panelRef = useRef(null);
+  const [panelStyle, setPanelStyle] = useState({});
   const closeTimerRef = useRef(null);
   const openTimerRef = useRef(null);
 
@@ -98,7 +100,29 @@ const FeaturesDropdown = ({ active = false, label = "Features", currentId = null
   // Click outside + Escape close. The trigger and panel themselves are
   // excluded via ref so clicks inside them don't trigger the listener.
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open) {
+      setPanelStyle({});
+      return undefined;
+    }
+    const positionPanel = () => {
+      const dropdown = dropdownRef.current;
+      if (!dropdown || typeof window === "undefined") return;
+      const viewportWidth = window.innerWidth;
+      const isMobile = viewportWidth <= 760;
+      const isTablet = viewportWidth <= 1080;
+      const panelWidth = Math.min(isMobile ? 360 : isTablet ? 720 : 920, viewportWidth - (isMobile ? 32 : 48));
+      const inset = isMobile ? 16 : 24;
+      const left = isMobile ? inset : Math.max(inset, (viewportWidth - panelWidth) / 2);
+      const dropdownRect = dropdown.getBoundingClientRect();
+      setPanelStyle({
+        left: `${left - dropdownRect.left}px`,
+        top: `${dropdownRect.height + (isMobile ? 10 : 14)}px`,
+        width: `${panelWidth}px`,
+      });
+    };
+    const frame = requestAnimationFrame(positionPanel);
+    window.addEventListener("resize", positionPanel, { passive: true });
+    window.addEventListener("scroll", positionPanel, { passive: true });
     const onPointerDown = (event) => {
       const target = event.target;
       if (triggerRef.current && triggerRef.current.contains(target)) return;
@@ -119,6 +143,9 @@ const FeaturesDropdown = ({ active = false, label = "Features", currentId = null
     document.addEventListener("touchstart", onPointerDown);
     document.addEventListener("keydown", onKey);
     return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", positionPanel);
+      window.removeEventListener("scroll", positionPanel);
       document.removeEventListener("mousedown", onPointerDown);
       document.removeEventListener("touchstart", onPointerDown);
       document.removeEventListener("keydown", onKey);
@@ -140,6 +167,7 @@ const FeaturesDropdown = ({ active = false, label = "Features", currentId = null
 
   return (
     <div
+      ref={dropdownRef}
       className={`features-dropdown${open ? " is-open" : ""}${isActiveTrigger ? " is-active" : ""}`}
       onMouseEnter={openSoon}
       onMouseLeave={closeSoon}
@@ -184,6 +212,7 @@ const FeaturesDropdown = ({ active = false, label = "Features", currentId = null
       <div
         ref={panelRef}
         className="features-dropdown-panel"
+        style={panelStyle}
         role="menu"
         aria-label="FamOS feature modules"
       >
