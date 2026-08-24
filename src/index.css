@@ -3975,13 +3975,13 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .calendar-manager-list-heading span{font-size:11px;font-weight:600;color:var(--color-ink-faint)}
 .calendar-manager-help{font-size:11.5px;color:var(--color-ink-soft);line-height:1.5;margin:-10px 4px 0;padding:0}
 .calendar-manager-list{display:grid;gap:6px;border:1px solid var(--color-border);border-radius:var(--radius-control);padding:6px;background:var(--color-surface);max-height:50vh;overflow-y:auto}
-.calendar-manager-item{display:grid;grid-template-columns:12px 1fr auto;align-items:center;gap:12px;padding:12px 12px;border-radius:var(--radius-control);background:var(--color-surface);min-height:52px;position:relative}
+.calendar-manager-item{display:grid;grid-template-columns:12px 1fr auto;align-items:center;gap:14px;padding:14px 14px;border-radius:var(--radius-control);background:var(--color-surface);min-height:56px;position:relative}
 .calendar-manager-item.is-connected{background:var(--color-surface-sunken)}
 .calendar-manager-item>i{width:12px;height:12px;border-radius:50%;flex:0 0 auto}
 .calendar-manager-item-info{display:grid;min-width:0}
-.calendar-manager-item-info b{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.calendar-manager-item-info b{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;min-width:0}
 .calendar-manager-item-info small{font-size:10.5px;color:var(--color-ink-faint);margin-top:1px}
-.calendar-manager-item-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.calendar-manager-item-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .calendar-manager-toggle{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:var(--radius-pill);border:1px solid var(--color-border);background:var(--color-surface);font-size:10.5px;font-weight:700;color:var(--color-ink-soft);transition:all 180ms ease}
 .calendar-manager-toggle.on{border-color:var(--color-accent);background:var(--color-accent-soft);color:var(--color-accent-strong)}
 .calendar-manager-toggle-track{position:relative;width:22px;height:12px;border-radius:var(--radius-pill);background:var(--color-ink-faint);transition:background 180ms ease}
@@ -3997,18 +3997,22 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .calendar-manager-sync-full{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:42px;border-radius:var(--radius-pill);background:var(--color-accent);color:#fff;font-size:12px;font-weight:700}
 .calendar-manager-sync-full.is-busy{opacity:.65}
 .calendar-manager-sync-full:hover{background:var(--color-accent-strong)}
-@media(max-width:480px){
+@media(max-width:600px){
   .calendar-manager{gap:16px}
   .calendar-manager-item{grid-template-columns:12px 1fr;gap:10px;padding:14px 12px;min-height:auto}
-  .calendar-manager-item-info b{font-size:14px;white-space:normal;word-break:break-word;overflow:visible;text-overflow:unset}
+  .calendar-manager-item-info b{font-size:14px;white-space:normal;word-break:break-word;overflow:visible;text-overflow:unset;max-width:none}
   .calendar-manager-item-info small{white-space:normal;word-break:break-word}
   .calendar-manager-item-actions{grid-column:1/-1;justify-self:start;margin-top:6px;flex-wrap:wrap}
+  .calendar-manager-item-actions button{min-height:34px;padding:0 10px;font-size:11px}
   .calendar-manager-footer{grid-template-columns:1fr}
   .calendar-manager-sync-full{order:-1}
   .calendar-manager-list{padding:8px;gap:8px}
   .calendar-manager-status{padding:14px 12px}
   .calendar-manager-status-left strong{font-size:15px}
   .calendar-manager-help{margin-top:0}
+  .calendar-color-swatch{width:22px;height:22px}
+  .calendar-manager-item-colors{padding-left:22px}
+  .calendar-manager-famos .calendar-manager-item{margin-bottom:4px}
 }
 
 /* FamOS calendar section in the calendar manager */
@@ -4025,7 +4029,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 
 /* iOS-style calendar color palette (swatches + custom picker) */
 .calendar-color-picker{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--color-border);border-radius:var(--radius-control);background:var(--color-surface)}
-.calendar-color-swatch{width:26px;height:26px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--color-border-strong);cursor:pointer;padding:0;transition:transform 140ms ease,box-shadow 140ms ease}
+.calendar-color-swatch{width:24px;height:24px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--color-border-strong);cursor:pointer;padding:0;transition:transform 140ms ease,box-shadow 140ms ease}
 .calendar-color-swatch:hover{transform:scale(1.12)}
 .calendar-color-swatch.selected{box-shadow:0 0 0 2px var(--color-surface),0 0 0 4px var(--color-accent)}
 .calendar-color-custom{position:relative;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;cursor:pointer;overflow:hidden}
