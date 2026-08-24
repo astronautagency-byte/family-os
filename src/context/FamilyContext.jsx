@@ -457,9 +457,15 @@ export function FamilyProvider({ children, tabletMode = false }) {
     };
     document.addEventListener("visibilitychange", refreshOnReturn);
     window.addEventListener("focus", refreshOnReturn);
+    // Background auto-refresh every 30s catches any realtime gaps
+    // (iOS throttles background WebSocket frames aggressively).
+    const autoRefresh = window.setInterval(() => {
+      if (document.visibilityState === "visible") loadRemoteData();
+    }, 30000);
     return () => {
       document.removeEventListener("visibilitychange", refreshOnReturn);
       window.removeEventListener("focus", refreshOnReturn);
+      window.clearInterval(autoRefresh);
     };
   }, [remote, household?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   // Apply a single postgres_changes payload to the matching state setter,
