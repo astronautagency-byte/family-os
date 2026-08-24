@@ -8575,6 +8575,7 @@ input:focus, textarea:focus, select:focus {
 
 /* Feature paywall trial note */
 .feature-paywall-trial-note{margin:6px 0 0;color:var(--color-ink-soft);font-size:13px;text-align:center}
+.feature-paywall-tagline{margin:4px 0 12px;color:var(--color-ink-muted);font-size:14px;text-align:center}
 
 /* Roulette upgrade prompt */
 .roulette-upgrade-prompt{display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px;text-align:center}

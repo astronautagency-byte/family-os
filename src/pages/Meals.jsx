@@ -427,6 +427,10 @@ export default function Meals({ entitlements = null, goTo } = {}) {
   useEffect(() => () => { if (badgeTimerRef.current) window.clearTimeout(badgeTimerRef.current); }, []);
   const [rouletteOptions, setRouletteOptions] = useState(null); // { date, slot, recipes[] }
   const [rouletteUpgradePrompt, setRouletteUpgradePrompt] = useState(false);
+  const [mealUpgradePrompt, setMealUpgradePrompt] = useState(false);
+
+  // Check if meal planning is allowed (requires active subscription or trial)
+  const canPlanMeals = entitlements?.features?.meals !== false;
   const [rouletteBusy, setRouletteBusy] = useState(false);
   const [rouletteError, setRouletteError] = useState("");
   const [rouletteCosts, setRouletteCosts] = useState({}); // { [recipeId]: costData }
@@ -616,6 +620,10 @@ export default function Meals({ entitlements = null, goTo } = {}) {
 
   const chooseSavedRecipe = async (recipeToPlan) => {
     if (!editing || !recipeToPlan?.title) return;
+    if (!canPlanMeals) {
+      setMealUpgradePrompt(true);
+      return;
+    }
     await setMealForSlot(editing.date, editing.slot, {
       title: recipeToPlan.title,
       notes: `Saved recipe · ${recipeToPlan.cuisine || "Family favourite"}`,
@@ -626,6 +634,10 @@ export default function Meals({ entitlements = null, goTo } = {}) {
   };
 
   const save = () => {
+    if (!canPlanMeals) {
+      setMealUpgradePrompt(true);
+      return;
+    }
     setMealForSlot(editing.date, editing.slot, draft);
     setEditing(null);
   };
@@ -801,6 +813,10 @@ export default function Meals({ entitlements = null, goTo } = {}) {
   };
   const handleInlineAdd = (date, slot, e) => {
     if (e.key === "Enter" && inlineInputs[`${date}-${slot}`]?.trim()) {
+      if (!canPlanMeals) {
+        setMealUpgradePrompt(true);
+        return;
+      }
       const title = inlineInputs[`${date}-${slot}`].trim();
       setInlineInputs((prev) => ({ ...prev, [`${date}-${slot}`]: "" }));
       setMealForSlot(date, slot, { title, notes: "", cookIds: [], source: "manual" });
@@ -1499,6 +1515,19 @@ export default function Meals({ entitlements = null, goTo } = {}) {
             <Sparkles size={16} /> Upgrade to FamOS Plus
           </PrimaryButton>
           <SecondaryButton onClick={() => setRouletteUpgradePrompt(false)}>Maybe later</SecondaryButton>
+        </div>
+      </Modal>
+
+      {/* Upgrade prompt for meal planning (requires FamOS Plus after trial) */}
+      <Modal open={mealUpgradePrompt} onClose={() => setMealUpgradePrompt(false)} title="Unlock meal planning">
+        <div className="roulette-upgrade-prompt">
+          <Sparkles size={24} />
+          <h3>Plan meals for your family</h3>
+          <p>Meal planning is part of FamOS Plus. Start a 30-day free trial to unlock recipe ideas, Cook Mode, and meal scheduling.</p>
+          <PrimaryButton onClick={() => { setMealUpgradePrompt(false); goTo?.("settings"); }}>
+            <Sparkles size={16} /> Upgrade to FamOS Plus
+          </PrimaryButton>
+          <SecondaryButton onClick={() => setMealUpgradePrompt(false)}>Maybe later</SecondaryButton>
         </div>
       </Modal>
     </div></PullToRefresh>
