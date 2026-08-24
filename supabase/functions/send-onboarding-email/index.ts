@@ -42,17 +42,94 @@ function injectTracking(html: string, emailId: string, trackingBase: string): st
   return tracked;
 }
 
+// ─── Household activity stats ──────────────────────────────────────
+
+interface HouseholdActivity {
+  events: number;
+  tasks: number;
+  tasksCompleted: number;
+  meals: number;
+  groceries: number;
+  messages: number;
+  members: number;
+  daysActive: number;
+}
+
+async function fetchHouseholdActivity(
+  admin: ReturnType<typeof createClient>,
+  householdId: string,
+  completedAt: string
+): Promise<HouseholdActivity> {
+  const since = completedAt || new Date(0).toISOString();
+  const empty: HouseholdActivity = {
+    events: 0, tasks: 0, tasksCompleted: 0, meals: 0,
+    groceries: 0, messages: 0, members: 0, daysActive: 0,
+  };
+  try {
+    const [events, tasks, allTasks, meals, groceries, messages, members] = await Promise.all([
+      admin.from("events").select("id", { count: "exact", head: true })
+        .eq("household_id", householdId).gte("created_at", since),
+      admin.from("tasks").select("id", { count: "exact", head: true })
+        .eq("household_id", householdId).gte("created_at", since),
+      admin.from("tasks").select("id", { count: "exact", head: true })
+        .eq("household_id", householdId),
+      admin.from("meals").select("id", { count: "exact", head: true })
+        .eq("household_id", householdId).gte("created_at", since),
+      admin.from("grocery_items").select("id", { count: "exact", head: true })
+        .eq("household_id", householdId),
+      admin.from("messages").select("id", { count: "exact", head: true })
+        .eq("household_id", householdId).gte("created_at", since),
+      admin.from("household_members").select("id", { count: "exact", head: true })
+        .eq("household_id", householdId),
+    ]);
+    const daysActive = Math.max(1, Math.floor((Date.now() - new Date(since).getTime()) / 86400000));
+    return {
+      events: events.count || 0,
+      tasks: tasks.count || 0,
+      tasksCompleted: allTasks.count || 0,
+      meals: meals.count || 0,
+      groceries: groceries.count || 0,
+      messages: messages.count || 0,
+      members: members.count || 0,
+      daysActive,
+    };
+  } catch {
+    return empty;
+  }
+}
+
+function statBlock(activity: HouseholdActivity): string {
+  const items: string[] = [];
+  if (activity.events) items.push(`${activity.events} event${activity.events !== 1 ? "s" : ""} on the calendar`);
+  if (activity.tasks) items.push(`${activity.tasks} task${activity.tasks !== 1 ? "s" : ""} created`);
+  if (activity.meals) items.push(`${activity.meals} meal${activity.meals !== 1 ? "s" : ""} planned`);
+  if (activity.groceries) items.push(`${activity.groceries} grocery item${activity.groceries !== 1 ? "s" : ""}`);
+  if (activity.messages) items.push(`${activity.messages} message${activity.messages !== 1 ? "s" : ""} sent`);
+  return items.join("\n• ");
+}
+
+function statBlockHtml(activity: HouseholdActivity): string {
+  const items: string[] = [];
+  if (activity.events) items.push(`<strong style="color:#19172b">${activity.events}</strong> event${activity.events !== 1 ? "s" : ""} on the calendar`);
+  if (activity.tasks) items.push(`<strong style="color:#19172b">${activity.tasks}</strong> task${activity.tasks !== 1 ? "s" : ""} created`);
+  if (activity.meals) items.push(`<strong style="color:#19172b">${activity.meals}</strong> meal${activity.meals !== 1 ? "s" : ""} planned`);
+  if (activity.groceries) items.push(`<strong style="color:#19172b">${activity.groceries}</strong> grocery item${activity.groceries !== 1 ? "s" : ""}`);
+  if (activity.messages) items.push(`<strong style="color:#19172b">${activity.messages}</strong> message${activity.messages !== 1 ? "s" : ""} sent`);
+  if (!items.length) return "";
+  return items.map((item) => `<div style="margin-bottom:6px">• ${item}</div>`).join("");
+}
+
 // ─── Email templates ────────────────────────────────────────────────
 
 const EMAIL_TEMPLATES: Record<
   string,
-  (vars: { firstName: string; householdName: string; appOrigin: string }) => {
+  (vars: { firstName: string; householdName: string; appOrigin: string; activity: HouseholdActivity }) => {
     subject: string;
     html: string;
     text: string;
   }
 > = {
-  welcome: ({ firstName, householdName, appOrigin }) => ({
+  welcome: ({ firstName, householdName, appOrigin, activity }) => ({
     subject: `Welcome to FamOS, ${firstName}!`,
     text: `Hi ${firstName},\n\nI'm Alex, the founder of FamOS. Thank you for setting up ${householdName} — I'm genuinely excited to have your family here.\n\nFamOS started because I watched my own family drown in scattered calendars, group texts, and last-minute scrambling. We built the thing we wished existed: one place where your family's schedule, tasks, meals, and conversations actually live together.\n\nHere's what I'd suggest in your first few days:\n\n• Add a few events to your shared calendar\n• Create your first grocery or shopping list\n• Try asking Fam AI something like "What's happening this week?"\n\nIf anything feels confusing or broken, hit reply — I read every email. And if you have an idea for a feature that would make FamOS work better for your family, I want to hear that too.\n\nYou can also share feedback anytime from inside the app under Settings → Support.\n\nWelcome aboard.\n\nAlex Vorobiev\nFounder, FamOS\nfam-os.app`,
     html: `<!doctype html>
@@ -129,7 +206,7 @@ const EMAIL_TEMPLATES: Record<
 </html>`,
   }),
 
-  day1_quick_wins: ({ firstName, appOrigin }) => ({
+  day1_quick_wins: ({ firstName, appOrigin, activity }) => ({
     subject: `Your first day on FamOS — 3 quick wins`,
     text: `Hi ${firstName},\n\nYour first day with FamOS is a great time to knock out a few quick wins:\n\n1. Create a shared grocery list — tap Shopping and add a few staples.\n2. Drop a recurring event on the calendar — soccer practice, dance class, whatever repeats.\n3. Ask Fam AI "What's on this week?" — it pulls from everything you've set up.\n\nEach one takes about 30 seconds, and suddenly your family has a shared source of truth.\n\n— The FamOS Team`,
     html: `<!doctype html>
@@ -171,7 +248,7 @@ const EMAIL_TEMPLATES: Record<
 </body></html>`,
   }),
 
-  day3_tips: ({ firstName, appOrigin }) => ({
+  day3_tips: ({ firstName, appOrigin, activity }) => ({
     subject: `FamOS tips your family will love`,
     text: `Hi ${firstName},\n\nYou're a few days in — here are tips that power FamOS families use most:\n\n• Kitchen Watch — add items that are expiring and get reminded before they go bad.\n• Meal Planning — let Fam OS suggest meals based on what you already have.\n• Tasks — assign tasks to specific family members with due dates.\n• Chat — keep family conversations out of buried text threads.\n\nThe more you add, the smarter FamOS gets at helping your family stay coordinated.\n\n— The FamOS Team`,
     html: `<!doctype html>
@@ -215,9 +292,9 @@ const EMAIL_TEMPLATES: Record<
 </body></html>`,
   }),
 
-  day7_recap: ({ firstName, appOrigin }) => ({
+  day7_recap: ({ firstName, appOrigin, activity }) => ({
     subject: `Your first week on FamOS — here's what happened`,
-    text: `Hi ${firstName},\n\nYou've been using FamOS for a week. Here's a look at what your family has accomplished:\n\n• Activities coordinated\n• Lists shared\n• Tasks completed\n\nThe more your family uses FamOS together, the less time you spend managing logistics and the more time you have for what actually matters.\n\nWant to see what FamOS Pro can do? Open the app and check Settings → Billing.\n\n— The FamOS Team`,
+    text: `Hi ${firstName},\n\nYou've been using FamOS for a week. Here's a look at what your family has accomplished:\n\n• ${activity.events} event${activity.events !== 1 ? "s" : ""} on the calendar\n• ${activity.tasks} task${activity.tasks !== 1 ? "s" : ""} created\n• ${activity.meals} meal${activity.meals !== 1 ? "s" : ""} planned\n• ${activity.groceries} grocery item${activity.groceries !== 1 ? "s" : ""}\n• ${activity.messages} message${activity.messages !== 1 ? "s" : ""} sent\n\nThe more your family uses FamOS together, the less time you spend managing logistics and the more time you have for what actually matters.\n\nWant to see what FamOS Pro can do? Open the app and check Settings → Billing.\n\n— The FamOS Team`,
     html: `<!doctype html>
 <html><body style="margin:0;background:#f8f5ff;color:#19172b;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8f5ff;padding:32px 16px">
@@ -235,10 +312,13 @@ const EMAIL_TEMPLATES: Record<
         </td></tr>
         <tr><td style="padding:18px 32px">
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f7f4ff;border-radius:18px">
-            <tr><td style="padding:20px 24px;font-size:14px;line-height:1.8;color:#5d5970;text-align:center">
-              <div style="font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6457d9;margin-bottom:12px">This week on FamOS</div>
-              <div style="font-size:28px;font-weight:800;color:#19172b;margin-bottom:4px">📈</div>
-              <div style="font-size:14px;color:#5d5970">The more your family uses FamOS together, the less time you spend on logistics.</div>
+            <tr><td style="padding:20px 24px;font-size:14px;line-height:1.8;color:#5d5970">
+              <div style="font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6457d9;margin-bottom:12px;text-align:center">This week on FamOS</div>
+              <div style="text-align:center;margin-bottom:16px">
+                <div style="font-size:14px;color:#5d5970">${activity.events} event${activity.events !== 1 ? "s" : ""} · ${activity.tasks} task${activity.tasks !== 1 ? "s" : ""} · ${activity.meals} meal${activity.meals !== 1 ? "s" : ""}</div>
+                <div style="font-size:14px;color:#5d5970">${activity.groceries} grocery item${activity.groceries !== 1 ? "s" : ""} · ${activity.messages} message${activity.messages !== 1 ? "s" : ""}</div>
+              </div>
+              <div style="font-size:14px;color:#5d5970;text-align:center">The more your family uses FamOS together, the less time you spend on logistics.</div>
             </td></tr>
           </table>
         </td></tr>
@@ -254,7 +334,7 @@ const EMAIL_TEMPLATES: Record<
 </body></html>`,
   }),
 
-  day14_missing: ({ firstName, appOrigin }) => ({
+  day14_missing: ({ firstName, appOrigin, activity }) => ({
     subject: `Things your family might be missing on FamOS`,
     text: `Hi ${firstName},\n\nTwo weeks in — here are features that families say changed how they run their week:\n\n• Fam AI — ask natural-language questions about your schedule, meals, or tasks.\n• Meal Roulette — let FamOS decide what's for dinner based on what you have.\n• Smart Suggestions — FamOS spots gaps in your schedule and suggests what to add.\n\nIf you haven't tried these yet, they're worth a look.\n\n— The FamOS Team`,
     html: `<!doctype html>
@@ -296,7 +376,7 @@ const EMAIL_TEMPLATES: Record<
 </body></html>`,
   }),
 
-  day21_nudge: ({ firstName, appOrigin }) => ({
+  day21_nudge: ({ firstName, appOrigin, activity }) => ({
     subject: `Your FamOS Pro trial — 7 days left`,
     text: `Hi ${firstName},\n\nYour FamOS Pro trial has 7 days left.\n\nSo far this month FamOS has helped your family:\n\n• Coordinate activities\n• Share lists and tasks\n• Keep everyone on the same page\n\nFamOS Pro unlocks everything: unlimited activities, advanced transportation, Fam AI actions, multiple calendar integrations, and more.\n\nIf you decide not to continue, your family stays on FamOS Core with the free features. Nothing gets deleted.\n\n— The FamOS Team`,
     html: `<!doctype html>
@@ -317,13 +397,10 @@ const EMAIL_TEMPLATES: Record<
         <tr><td style="padding:18px 32px">
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f7f4ff;border-radius:18px">
             <tr><td style="padding:20px 24px;font-size:14px;line-height:1.8;color:#5d5970">
-              FamOS Pro unlocks everything:<br><br>
-              • Unlimited activities<br>
-              • Advanced transportation planning<br>
-              • Fam AI actions<br>
-              • Multiple calendar integrations<br>
-              • Activity Readiness & Weekly Game Plan<br>
-              • Caregiver permissions & more
+              So far this month your family has used FamOS to coordinate:<br><br>
+              ${activity.events} event${activity.events !== 1 ? "s" : ""} · ${activity.tasks} task${activity.tasks !== 1 ? "s" : ""} · ${activity.meals} meal${activity.meals !== 1 ? "s" : ""}<br>
+              ${activity.groceries} grocery item${activity.groceries !== 1 ? "s" : ""} · ${activity.messages} message${activity.messages !== 1 ? "s" : ""}<br><br>
+              FamOS Pro keeps all of this working — plus unlimited activities, Fam AI actions, advanced transportation, and more.
             </td></tr>
           </table>
         </td></tr>
@@ -342,7 +419,7 @@ const EMAIL_TEMPLATES: Record<
 </body></html>`,
   }),
 
-  day28_final: ({ firstName, appOrigin }) => ({
+  day28_final: ({ firstName, appOrigin, activity }) => ({
     subject: `Your FamOS Pro trial ends in 2 days`,
     text: `Hi ${firstName},\n\nYour FamOS Pro trial ends in 2 days.\n\nIf you continue with FamOS Pro, you'll keep everything your family has been using: advanced scheduling, Fam AI, calendar sync, and more — for $12.99/month after the trial.\n\nIf you don't continue, you'll move to FamOS Core — still free, still useful, and your family's data stays intact.\n\nNo pressure. You can manage your subscription anytime from Settings → Billing.\n\n— The FamOS Team`,
     html: `<!doctype html>
@@ -363,7 +440,8 @@ const EMAIL_TEMPLATES: Record<
         <tr><td style="padding:18px 32px">
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f7f4ff;border-radius:18px">
             <tr><td style="padding:20px 24px;font-size:14px;line-height:1.8;color:#5d5970">
-              <strong style="color:#19172b">Keep FamOS Pro</strong> — $12.99/month after your trial. You'll keep everything your family has been using.<br><br>
+              Your family has coordinated <strong style="color:#19172b">${activity.events} event${activity.events !== 1 ? "s" : ""}</strong>, created <strong style="color:#19172b">${activity.tasks} task${activity.tasks !== 1 ? "s" : ""}</strong>, and planned <strong style="color:#19172b">${activity.meals} meal${activity.meals !== 1 ? "s" : ""}</strong> on FamOS so far.<br><br>
+              <strong style="color:#19172b">Keep FamOS Pro</strong> — $12.99/month after your trial. Everything keeps working.<br><br>
               <strong style="color:#19172b">Stay on Core</strong> — free forever. Your family's data stays intact. You just lose access to Pro features.
             </td></tr>
           </table>
@@ -458,7 +536,19 @@ Deno.serve(async (request) => {
     const householdName = household_name || "your family home";
     const appOrigin = "https://home.fam-os.app";
 
-    const template = EMAIL_TEMPLATES[email_type]({ firstName, householdName, appOrigin });
+    // Fetch household activity for personalized content
+    const { data: householdProfile } = await admin
+      .from("household_profiles")
+      .select("completed_at")
+      .eq("household_id", household_id)
+      .maybeSingle();
+    const activity = await fetchHouseholdActivity(
+      admin,
+      household_id,
+      householdProfile?.completed_at || new Date().toISOString()
+    );
+
+    const template = EMAIL_TEMPLATES[email_type]({ firstName, householdName, appOrigin, activity });
 
     // Upsert tracking row — must happen BEFORE tracking injection
     const trackingPayload = {
