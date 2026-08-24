@@ -1720,7 +1720,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 @media (min-width: 700px) {
   body { background: radial-gradient(circle at top left, rgba(121,82,232,.10), transparent 32rem), #FAFAFA; }
   .app-shell { display:grid; grid-template-columns:clamp(184px,17vw,240px) minmax(0, 1fr); gap:clamp(12px,1.5vw,24px); width:100%; min-height:100dvh; margin:0; padding:clamp(12px,1.5vw,24px); align-items:start; }
-  .app-content { max-width:none; min-height:calc(100dvh - clamp(24px,3vw,48px)); margin:0; background:#fff!important; border:1px solid var(--color-border); border-radius:clamp(22px,2vw,32px); overflow:visible; box-shadow:0 22px 70px rgba(31,29,54,.08); }
+  .app-content { max-width:none; min-height:calc(100dvh - clamp(24px,3vw,48px)); margin:0; background:#FAFAFA!important; border:1px solid var(--color-border); border-radius:clamp(22px,2vw,32px); overflow:visible; box-shadow:0 22px 70px rgba(31,29,54,.08); }
   .primary-nav { position:sticky; top:24px; left:auto; bottom:auto; transform:none; width:220px; height:calc(100vh - 48px); min-height:620px; padding:18px; border:1px solid var(--color-border); border-radius:28px; background:rgba(255,255,255,.84); display:flex; flex-direction:column; box-shadow:0 22px 60px rgba(31,29,54,.07); }
   .nav-brand { display:flex; align-items:center; gap:11px; padding:4px 4px 18px; border-bottom:1px solid var(--color-border); margin-bottom:12px; }
   .nav-brand img { width:40px; height:40px; object-fit:contain; border-radius:var(--radius-sm); }
@@ -5171,6 +5171,12 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .app-shell .task-board-group{border-color:transparent;border-radius:var(--radius-card);background:var(--color-surface)}
 .app-shell .task-board-row{border:1px solid transparent;border-radius:var(--radius-control);background:var(--color-surface)}
 .app-shell .reference-meals{background:#FAFAFA}
+.app-shell .reference-tasks{background:#FAFAFA}
+.app-shell .reference-groceries{background:#FAFAFA}
+.app-shell .reference-settings{background:#FAFAFA}
+.app-shell .reference-calendar{background:#FAFAFA}
+.app-shell .reference-dashboard{background:#FAFAFA}
+.app-shell .reference-kitchen{background:#FAFAFA}
 .app-shell .reference-meals>.px-5>.kinship-card:nth-child(n),.app-shell .reference-settings section:nth-of-type(n)>.kinship-card{background:#FFFFFF!important}
 .app-shell .broadcast-compose{border-color:var(--color-border);border-radius:var(--radius-card);background:var(--color-surface);background-image:none;animation:none;box-shadow:none}
 .app-shell .broadcast-compose:focus-within{border-color:var(--color-accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--color-accent) 18%,transparent);transform:none}
@@ -8237,7 +8243,6 @@ input:focus, textarea:focus, select:focus {
 .calendar-month,
 .calendar-daystrip,
 .calendar-hero,
-.calendar-page,
 .meal-card-new,
 .meal-day-card,
 .meal-preferences-card,
@@ -8254,11 +8259,9 @@ input:focus, textarea:focus, select:focus {
 .settings-household-card,
 .reference-settings .kinship-card,
 .reference-tasks .kinship-card,
-.reference-tasks .page-header,
 .reference-dashboard .kinship-card,
 .reference-meals .kinship-card,
 .reference-meals .meal-day-card,
-.reference-groceries,
 .primary-nav,
 .app-topbar,
 .modal-card,
