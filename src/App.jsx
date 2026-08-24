@@ -25,6 +25,7 @@ import { PRICING_PLAN, formatMoney } from "./data/pricingPlan";
 import { clearDesktopAuthState, expectedDesktopAuthState, isTauriRuntime, listenForDesktopAuth } from "./lib/desktopRuntime";
 import { finishDesktopAuthHandoff, redeemDesktopAuthHandoff } from "./lib/desktopAuth";
 import { checkAndSendLifecycleEmails } from "./lib/onboardingEmails";
+import { checkAndSendTrialExpiryEmails } from "./lib/trialExpiryEmails";
 
 // Route/page-level code splitting: each page is its own chunk, so the initial
 // bundle isn't the whole app. Signed-out visitors load only Landing; signed-in
@@ -492,6 +493,20 @@ export default function App() {
       completedAt,
       householdName: household.name,
       userFirstName: session.user.user_metadata?.display_name?.split(" ")[0] || session.user.email?.split("@")[0],
+    }).catch(() => {});
+
+    // Check for trial expiry emails (7 days and 2 days before trial ends)
+    supabase.rpc("get_my_subscription").then(({ data }) => {
+      const sub = data?.[0];
+      if (sub?.trial_ends_at && (sub.status === "trial" || sub.status === "trialing")) {
+        checkAndSendTrialExpiryEmails({
+          householdId: household.id,
+          userId: session.user.id,
+          trialEndsAt: sub.trial_ends_at,
+          householdName: household.name,
+          userFirstName: session.user.user_metadata?.display_name?.split(" ")[0] || session.user.email?.split("@")[0],
+        }).catch(() => {});
+      }
     }).catch(() => {});
   }, [session?.user?.id, household?.id, onboardingRequired, householdProfile?.completed_at]);
 

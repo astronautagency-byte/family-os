@@ -460,6 +460,93 @@ const EMAIL_TEMPLATES: Record<
   </table>
 </body></html>`,
   }),
+
+  trial_7_days: ({ firstName, appOrigin, activity }) => ({
+    subject: `Your FamOS Pro trial — 7 days left`,
+    text: `Hi ${firstName},\n\nYour FamOS Pro trial has 7 days left.\n\nSo far this month FamOS has helped your family:\n\n• ${activity.events} event${activity.events !== 1 ? "s" : ""} on the calendar\n• ${activity.tasks} task${activity.tasks !== 1 ? "s" : ""} created\n• ${activity.meals} meal${activity.meals !== 1 ? "s" : ""} planned\n• ${activity.groceries} grocery item${activity.groceries !== 1 ? "s" : ""}\n\nFamOS Pro keeps all of this working — plus unlimited activities, Fam AI actions, advanced transportation, and more.\n\nIf you decide not to continue, your family stays on FamOS Core with the free features. Nothing gets deleted.\n\n— The FamOS Team`,
+    html: `<!doctype html>
+<html><body style="margin:0;background:#f8f5ff;color:#19172b;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8f5ff;padding:32px 16px">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border:1px solid #e2dcf5;border-radius:28px;overflow:hidden;box-shadow:0 12px 40px rgba(44,35,90,.08)">
+        <tr><td style="padding:28px 32px 20px;text-align:center;background:linear-gradient(135deg,#f2edff,#fff4f8)">
+          <img src="https://home.fam-os.app/brand/famos-icon-transparent.png" width="72" height="64" alt="FamOS" style="display:block;margin:0 auto 8px;border:0">
+          <div style="font-size:20px;font-weight:800;letter-spacing:-.04em;color:#19172b">Fam<span style="color:#7952e8">OS</span></div>
+        </td></tr>
+        <tr><td style="padding:34px 32px 12px;text-align:center">
+          <h1 style="margin:0;font-size:28px;line-height:1.15;color:#19172b">7 days left on your Pro trial</h1>
+          <p style="margin:16px auto 0;max-width:430px;font-size:16px;line-height:1.6;color:#5d5970">
+            Hi <strong style="color:#19172b">${escapeHtml(firstName)}</strong>, your FamOS Pro trial has 7 days left. Here's what your family has been up to.
+          </p>
+        </td></tr>
+        <tr><td style="padding:18px 32px">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f7f4ff;border-radius:18px">
+            <tr><td style="padding:20px 24px;font-size:14px;line-height:1.8;color:#5d5970">
+              <div style="font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6457d9;margin-bottom:12px;text-align:center">This month on FamOS</div>
+              <div style="text-align:center;margin-bottom:16px">
+                <div style="font-size:14px;color:#5d5970">${activity.events} event${activity.events !== 1 ? "s" : ""} · ${activity.tasks} task${activity.tasks !== 1 ? "s" : ""} · ${activity.meals} meal${activity.meals !== 1 ? "s" : ""}</div>
+                <div style="font-size:14px;color:#5d5970">${activity.groceries} grocery item${activity.groceries !== 1 ? "s" : ""} · ${activity.messages} message${activity.messages !== 1 ? "s" : ""}</div>
+              </div>
+              FamOS Pro keeps all of this working — plus unlimited activities, Fam AI actions, advanced transportation, and more.
+            </td></tr>
+          </table>
+        </td></tr>
+        <tr><td style="padding:6px 32px;text-align:center;font-size:14px;line-height:1.6;color:#5d5970">
+          If you decide not to continue, your family stays on <strong style="color:#19172b">FamOS Core</strong> with the free features. Nothing gets deleted.
+        </td></tr>
+        <tr><td align="center" style="padding:18px 32px 34px">
+          <a href="${escapeHtml(appOrigin)}/settings" style="display:inline-block;min-width:200px;padding:14px 24px;border-radius:999px;background:#5b4fd6;color:#fff;text-decoration:none;font-size:15px;font-weight:700">Manage Subscription</a>
+        </td></tr>
+        <tr><td style="padding:16px 32px 24px;text-align:center;font-size:12px;line-height:1.5;color:#918ca4">
+          © 2026 FamOS. All rights reserved.
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`,
+  }),
+
+  trial_2_days: ({ firstName, appOrigin, activity }) => ({
+    subject: `Your FamOS Pro trial ends in 2 days`,
+    text: `Hi ${firstName},\n\nYour FamOS Pro trial ends in 2 days.\n\nIf you continue with FamOS Pro, you'll keep everything your family has been using: advanced scheduling, Fam AI, calendar sync, and more — for $19.99/month after the trial.\n\nIf you don't continue, you'll move to FamOS Core — still free, still useful, and your family's data stays intact.\n\nNo pressure. You can manage your subscription anytime from Settings → Billing.\n\n— The FamOS Team`,
+    html: `<!doctype html>
+<html><body style="margin:0;background:#f8f5ff;color:#19172b;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8f5ff;padding:32px 16px">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border:1px solid #e2dcf5;border-radius:28px;overflow:hidden;box-shadow:0 12px 40px rgba(44,35,90,.08)">
+        <tr><td style="padding:28px 32px 20px;text-align:center;background:linear-gradient(135deg,#f2edff,#fff4f8)">
+          <img src="https://home.fam-os.app/brand/famos-icon-transparent.png" width="72" height="64" alt="FamOS" style="display:block;margin:0 auto 8px;border:0">
+          <div style="font-size:20px;font-weight:800;letter-spacing:-.04em;color:#19172b">Fam<span style="color:#7952e8">OS</span></div>
+        </td></tr>
+        <tr><td style="padding:34px 32px 12px;text-align:center">
+          <h1 style="margin:0;font-size:28px;line-height:1.15;color:#19172b">Your trial ends in 2 days</h1>
+          <p style="margin:16px auto 0;max-width:430px;font-size:16px;line-height:1.6;color:#5d5970">
+            Hi <strong style="color:#19172b">${escapeHtml(firstName)}</strong>, your FamOS Pro trial ends soon. Here's what you need to know.
+          </p>
+        </td></tr>
+        <tr><td style="padding:18px 32px">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f7f4ff;border-radius:18px">
+            <tr><td style="padding:20px 24px;font-size:14px;line-height:1.8;color:#5d5970">
+              Your family has coordinated <strong style="color:#19172b">${activity.events} event${activity.events !== 1 ? "s" : ""}</strong>, created <strong style="color:#19172b">${activity.tasks} task${activity.tasks !== 1 ? "s" : ""}</strong>, and planned <strong style="color:#19172b">${activity.meals} meal${activity.meals !== 1 ? "s" : ""}</strong> on FamOS so far.<br><br>
+              <strong style="color:#19172b">Keep FamOS Pro</strong> — $19.99/month after your trial. Everything keeps working.<br><br>
+              <strong style="color:#19172b">Stay on Core</strong> — free forever. Your family's data stays intact. You just lose access to Pro features.
+            </td></tr>
+          </table>
+        </td></tr>
+        <tr><td style="padding:6px 32px;text-align:center;font-size:14px;line-height:1.6;color:#5d5970">
+          No pressure. You can manage your subscription anytime from Settings → Billing.
+        </td></tr>
+        <tr><td align="center" style="padding:18px 32px 34px">
+          <a href="${escapeHtml(appOrigin)}/settings" style="display:inline-block;min-width:200px;padding:14px 24px;border-radius:999px;background:#5b4fd6;color:#fff;text-decoration:none;font-size:15px;font-weight:700">Manage Subscription</a>
+        </td></tr>
+        <tr><td style="padding:16px 32px 24px;text-align:center;font-size:12px;line-height:1.5;color:#918ca4">
+          © 2026 FamOS. All rights reserved.
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`,
+  }),
 };
 
 // Lifecycle schedule: email_type → days after onboarding completed_at
