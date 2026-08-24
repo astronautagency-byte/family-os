@@ -2997,7 +2997,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .task-row-share{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:10px;color:var(--color-accent);background:transparent;transition:background .15s ease,color .15s ease}.task-row-share:hover{background:var(--color-accent-soft);color:var(--color-accent-strong)}
 .event-share-button{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:var(--radius-pill);background:var(--color-accent-soft);color:var(--color-accent-strong);font-weight:700;font-size:12.5px;white-space:nowrap;transition:transform .12s ease,background .15s ease}.event-share-button:hover{background:color-mix(in srgb,var(--color-accent) 22%,var(--color-accent-soft))}.event-share-button:active{transform:scale(.97)}
 .theme-dark,.theme-dark .app-shell{color:var(--color-ink);background:var(--color-canvas)}
-.theme-dark .app-content{background:var(--color-canvas);color:var(--color-ink)}
+.theme-dark .app-content{background:var(--color-canvas)!important;color:var(--color-ink)}
 .theme-dark .app-topbar,.theme-dark .primary-nav{background:color-mix(in srgb,var(--color-surface) 92%,transparent);backdrop-filter:blur(18px);color:var(--color-ink)}
 .theme-dark .topbar-wordmark strong,.theme-dark .nav-brand strong{color:#fff}
 .theme-dark .topbar-wordmark img,.theme-dark .nav-brand img{background:#25213a}
@@ -5387,7 +5387,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .app-shell .recipe-detail-card{background:color-mix(in srgb,var(--pastel-yellow) 28%,var(--color-surface))}
 .app-shell .weather-now-card{background:color-mix(in srgb,var(--pastel-blue) 52%,var(--color-surface))}
 .app-shell .avatar-preset-grid button{background:var(--color-surface)}
-.theme-dark .app-shell .app-content{background:var(--color-canvas)}
+.theme-dark .app-shell .app-content{background:var(--color-canvas)!important}
 .theme-dark .app-shell .weekly-progress{background:color-mix(in srgb,var(--color-fam-plum) 13%,var(--color-surface));border-color:color-mix(in srgb,var(--color-accent) 28%,var(--color-border));color:var(--color-ink)}
 .theme-dark .app-shell .weekly-progress p,.theme-dark .app-shell .weekly-progress small,.theme-dark .app-shell .weekly-progress b{color:var(--color-ink-soft)}
 .theme-dark .app-shell .weather-now-card{background:color-mix(in srgb,var(--color-fam-sky) 10%,var(--color-surface))!important}
