@@ -3974,8 +3974,8 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .calendar-manager-list-heading strong{font:650 14px/1 var(--font-display);color:var(--color-ink)}
 .calendar-manager-list-heading span{font-size:11px;font-weight:600;color:var(--color-ink-faint)}
 .calendar-manager-help{font-size:11.5px;color:var(--color-ink-soft);line-height:1.5;margin:-10px 4px 0;padding:0}
-.calendar-manager-list{display:grid;gap:6px;border:1px solid var(--color-border);border-radius:var(--radius-control);padding:6px;background:var(--color-surface)}
-.calendar-manager-item{display:grid;grid-template-columns:12px 1fr auto;align-items:center;gap:10px;padding:10px 10px;border-radius:var(--radius-pill-sm);background:var(--color-surface)}
+.calendar-manager-list{display:grid;gap:6px;border:1px solid var(--color-border);border-radius:var(--radius-control);padding:6px;background:var(--color-surface);max-height:50vh;overflow-y:auto}
+.calendar-manager-item{display:grid;grid-template-columns:12px 1fr auto;align-items:center;gap:10px;padding:10px 10px;border-radius:var(--radius-pill-sm);background:var(--color-surface);min-height:48px;position:relative}
 .calendar-manager-item.is-connected{background:var(--color-surface-sunken)}
 .calendar-manager-item>i{width:12px;height:12px;border-radius:50%;flex:0 0 auto}
 .calendar-manager-item-info{display:grid;min-width:0}
@@ -4024,9 +4024,9 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .calendar-color-custom{position:relative;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;cursor:pointer;overflow:hidden}
 .calendar-color-custom-swatch{box-shadow:0 0 0 1px var(--color-border-strong)}
 .calendar-color-custom input[type="color"]{position:absolute;inset:-8px;width:42px;height:42px;opacity:0;cursor:pointer}
-.calendar-manager-item-colors{padding:0 4px 4px 32px}
-.calendar-manager-item-colors .calendar-color-picker{padding:6px 8px;gap:6px}
-.calendar-manager-item-colors .calendar-color-swatch{width:22px;height:22px}
+.calendar-manager-item-colors{grid-column:1/-1;padding:2px 4px 4px 32px}
+.calendar-manager-item-colors .calendar-color-picker{padding:4px 6px;gap:4px}
+.calendar-manager-item-colors .calendar-color-swatch{width:20px;height:20px}
 .address-autocomplete{position:relative}.address-autocomplete-control{position:relative;display:block}.address-autocomplete-control>svg{position:absolute;z-index:2;left:15px;top:50%;transform:translateY(-50%);color:var(--color-ink-faint)}.address-autocomplete-control .form-control{padding-left:43px}.address-autocomplete-results{position:absolute;z-index:30;left:0;right:0;top:calc(100% - 4px);display:grid;padding:6px;border:1px solid var(--color-border);border-radius:var(--radius-control);background:#fff;box-shadow:0 16px 38px rgba(31,25,70,.16)}.address-autocomplete-results button{display:flex;align-items:flex-start;gap:9px;padding:10px;border-radius:var(--radius-xs);text-align:left;font-size:12.5px}.address-autocomplete-results button:hover{background:var(--color-accent-soft)}.address-autocomplete-results svg{margin-top:1px;flex:none;color:var(--color-accent)}.address-autocomplete-warning{display:block;margin-top:6px;color:var(--color-warn);font-size:11px}
 .weather-now-card{background:linear-gradient(135deg,#f4f8ff,#fff9e9)}.weather-now-main{display:flex;align-items:center;gap:12px}.weather-now-main>span{width:44px;height:44px;border-radius:var(--radius-control);display:grid;place-items:center;background:#fff;color:#5d6ddf;border:1px solid var(--color-border)}.weather-now-main div{display:grid}.weather-now-main strong{font:700 24px/1 var(--font-display)}.weather-now-main small{margin-top:3px;color:var(--color-ink-soft)}.weather-now-main>p{margin-left:auto;color:var(--color-ink-soft);font-size:12px}.weather-event-warning,.weather-address-action{display:flex;align-items:center;gap:10px;width:100%;margin-top:12px;padding:11px 12px;border-radius:var(--radius-md);text-align:left}.weather-event-warning{background:#fff1de;color:#9a5b18}.weather-address-action{border:1px solid var(--color-border);background:rgba(255,255,255,.72);color:var(--color-accent-strong)}.weather-event-warning span,.weather-address-action span{display:grid;flex:1}.weather-event-warning small{margin-top:2px;color:#8a6845}.weather-address-action small{margin-top:2px;color:var(--color-ink-soft);font-weight:500}.task-row-copy{display:grid;flex:1;min-width:0;text-align:left}.task-row-copy strong,.task-row-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.task-row-edit{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;color:var(--color-accent);background:var(--color-accent-soft)}.task-row-edit svg{width:14px}
 .weather-now-glyph{color:#5d6ddf}
