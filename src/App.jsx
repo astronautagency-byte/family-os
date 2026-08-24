@@ -288,15 +288,18 @@ export default function App() {
   const [billingBusy, setBillingBusy] = useState(false);
   const [billingError, setBillingError] = useState("");
   // Map tab IDs to entitlement feature keys for gating
+  // REMOVED: meals and calendar tabs are now free for all users
+  // Only specific features within those pages are gated (Google sync, meal suggestions)
   const TAB_ENTITLEMENT_MAP = {
-    meals: "meals",
-    calendar: "calendar_sync",
+    // meals: "meals",  // Manual meal planning is free
+    // calendar: "calendar_sync",  // Basic calendar is free
+    fam_ai: "fam_ai",
   };
   const setTab = (next) => {
     // Check if this tab requires a premium entitlement
     const entitlementKey = TAB_ENTITLEMENT_MAP[next];
     if (entitlementKey && entitlements && entitlements.features?.[entitlementKey] === false) {
-      setUpgradeFeature(entitlementKey === "meals" ? "plus" : "plus");
+      setUpgradeFeature(entitlementKey === "fam_ai" ? "plus" : "plus");
       setBillingError("");
       return;
     }
