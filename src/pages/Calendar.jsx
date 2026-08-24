@@ -447,7 +447,7 @@ function LocationAutocompleteField({ value, onChange }) {
   );
 }
 
-export default function CalendarPage() {
+export default function CalendarPage({ entitlements = null } = {}) {
   const { members, memberById, events, googleEvents, feedEvents, calendarFeeds, googleConnected, googleCalendars, googleCalendarAliases, googleCalendarColors, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleStatus, googleError, googleLastSynced, addEvent, updateEvent, addGoogleCalendarEvent, updateGoogleCalendarEvent, deleteGoogleCalendarEvent, removeEvent, clearEvents, refreshData, syncGoogleCalendarNow, connectGoogleCalendar, reconnectGoogleCalendar, disconnectGoogleCalendar, toggleGoogleCalendar, toggleGoogleCalendarSharing, renameGoogleCalendar, setGoogleCalendarColor, famosCalendar, setFamosCalendar } = useFamily();
   const { householdProfileExtra } = useAuth();
   const todayStr = todayISO();
@@ -1342,9 +1342,15 @@ export default function CalendarPage() {
                 <span><CalendarDays size={32} /></span>
                 <strong>No Google Calendar connected</strong>
                 <p>Connect your Google Calendar to see events from multiple calendars in FamOS. You can connect personal, shared, and family calendars — then choose which ones to display and whether to share them with the household.</p>
-                <button className="primary-button" onClick={connectGoogleCalendar} disabled={googleStatus === "connecting"}>
-                  {googleStatus === "connecting" ? "Connecting…" : "Connect Google Calendar"}
-                </button>
+                <button className="primary-button" onClick={() => {
+                    if (entitlements && entitlements.features?.calendar_sync === false) {
+                      window.location.hash = "/settings";
+                    } else {
+                      connectGoogleCalendar();
+                    }
+                  }} disabled={googleStatus === "connecting"}>
+                    {googleStatus === "connecting" ? "Connecting…" : "Connect Google Calendar"}
+                  </button>
               </div>
             ) : (
               <div className="calendar-manager-content">

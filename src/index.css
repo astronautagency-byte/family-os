@@ -8575,3 +8575,9 @@ input:focus, textarea:focus, select:focus {
 
 /* Feature paywall trial note */
 .feature-paywall-trial-note{margin:6px 0 0;color:var(--color-ink-soft);font-size:13px;text-align:center}
+
+/* Roulette upgrade prompt */
+.roulette-upgrade-prompt{display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px;text-align:center}
+.roulette-upgrade-prompt svg{color:var(--color-accent-strong)}
+.roulette-upgrade-prompt h3{font:700 18px/1.2 var(--font-sans);color:var(--color-ink);margin:0}
+.roulette-upgrade-prompt p{font:400 14px/1.5 var(--font-sans);color:var(--color-ink-soft);margin:0}

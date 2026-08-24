@@ -286,9 +286,16 @@ export default function App() {
   const [upgradeFeature, setUpgradeFeature] = useState("");
   const [billingBusy, setBillingBusy] = useState(false);
   const [billingError, setBillingError] = useState("");
+  // Map tab IDs to entitlement feature keys for gating
+  const TAB_ENTITLEMENT_MAP = {
+    meals: "meals",
+    calendar: "calendar_sync",
+  };
   const setTab = (next) => {
-    if (entitlements && PREMIUM_FEATURE_IDS.includes(next) && entitlements.features?.[next] !== true) {
-      setUpgradeFeature(next);
+    // Check if this tab requires a premium entitlement
+    const entitlementKey = TAB_ENTITLEMENT_MAP[next];
+    if (entitlementKey && entitlements && entitlements.features?.[entitlementKey] === false) {
+      setUpgradeFeature(entitlementKey === "meals" ? "plus" : "plus");
       setBillingError("");
       return;
     }
@@ -696,7 +703,7 @@ export default function App() {
           <AppTopBar
             onOpenSettings={() => setTab("settings")}
             onNavigate={setTab}
-            onOpenFamAI={() => entitlements?.features?.fam_ai === false ? setUpgradeFeature("fam_ai") : setFamAiOpen(true)}
+            onOpenFamAI={() => entitlements?.features?.fam_ai === false ? setUpgradeFeature("plus") : setFamAiOpen(true)}
             darkMode={darkMode}
             onToggleDarkMode={() => setDarkMode((value) => !value)}
             tabletMode={effectiveTabletMode}
@@ -707,8 +714,8 @@ export default function App() {
             <Suspense fallback={<PageFallback />}>
               {upgradeFeature ? <FeaturePaywall featureId={upgradeFeature} onChoose={startFeatureCheckout} onBack={() => setUpgradeFeature("")} busy={billingBusy} error={billingError} /> : <>
               {tab === "today" && <Today goTo={setTab} />}
-              {tab === "calendar" && <CalendarPage goTo={setTab} />}
-              {tab === "meals" && <Meals />}
+              {tab === "calendar" && <CalendarPage goTo={setTab} entitlements={entitlements} />}
+              {tab === "meals" && <Meals entitlements={entitlements} />}
               {tab === "groceries" && <Groceries />}
               {tab === "kitchen" && <KitchenWatch goTo={setTab} />}
               {tab === "tasks" && <Tasks />}

@@ -244,7 +244,7 @@ const youtubeEmbedUrl = (value = "") => {
   } catch { return ""; }
 };
 
-export default function Meals() {
+export default function Meals({ entitlements = null } = {}) {
   const { members, memberById, meals, groceries, addGrocery, setMealForSlot, removeMeal, clearMeals, refreshData } = useFamily();
   const { householdProfileExtra, household, user } = useAuth();
   const { items: inventoryItems, ingredientNames: inventoryIngredientNames, removeItem: removeInventoryItem } = useKitchenInventory(household?.id, user?.id);
@@ -426,6 +426,7 @@ export default function Meals() {
   const [, forceUpdate] = useState(0);
   useEffect(() => () => { if (badgeTimerRef.current) window.clearTimeout(badgeTimerRef.current); }, []);
   const [rouletteOptions, setRouletteOptions] = useState(null); // { date, slot, recipes[] }
+  const [rouletteUpgradePrompt, setRouletteUpgradePrompt] = useState(false);
   const [rouletteBusy, setRouletteBusy] = useState(false);
   const [rouletteError, setRouletteError] = useState("");
   const [rouletteCosts, setRouletteCosts] = useState({}); // { [recipeId]: costData }
@@ -1010,7 +1011,7 @@ export default function Meals() {
         />
 
         <div className="meal-editor-tools">
-          <button onClick={() => { if (editing) { rouletteForSlot(editing.date, editing.slot); setEditing(null); } }}><Dices size={16} /> Roulette</button>
+          <button onClick={() => { if (editing) { if (entitlements && entitlements.features?.meals === false) { setRouletteUpgradePrompt(true); } else { rouletteForSlot(editing.date, editing.slot); } setEditing(null); } }}><Dices size={16} /> Roulette</button>
           <button onClick={() => setShowSavedRecipes((value) => !value)}><Bookmark size={16} /> Saved recipes</button>
         </div>
         {showSavedRecipes && (
@@ -1487,6 +1488,19 @@ export default function Meals() {
         </div>
       , document.body)}
       <ShareSheet open={!!mealShare} onClose={()=>setMealShare(null)} title={mealShare?.title} text={mealShare?.text} url={mealShare?.url} image={mealShare?.image} imageAlt={mealShare?.imageAlt}/>
+
+      {/* Upgrade prompt for meal ideas (requires FamOS Plus) */}
+      <Modal open={rouletteUpgradePrompt} onClose={() => setRouletteUpgradePrompt(false)} title="Unlock meal ideas">
+        <div className="roulette-upgrade-prompt">
+          <Sparkles size={24} />
+          <h3>Get personalized meal ideas</h3>
+          <p>Meal ideas, recipe suggestions, and Cook Mode are part of FamOS Plus. Start a 30-day free trial to unlock.</p>
+          <PrimaryButton onClick={() => { setRouletteUpgradePrompt(false); window.location.hash = "/settings"; }}>
+            <Sparkles size={16} /> Upgrade to FamOS Plus
+          </PrimaryButton>
+          <SecondaryButton onClick={() => setRouletteUpgradePrompt(false)}>Maybe later</SecondaryButton>
+        </div>
+      </Modal>
     </div></PullToRefresh>
   );
 }
