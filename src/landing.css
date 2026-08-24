@@ -952,3 +952,110 @@
   .pricing-summary{padding:18px!important;border-radius:var(--radius-card)!important}
   .pricing-summary button{min-height:48px;font-size:14px}
 }
+
+/* ── Widescreen (≥1440px) ─────────────────────────────────────────── */
+@media(min-width:1440px){
+  .landing-nav{max-width:1400px}
+  .landing-hero{max-width:1400px;gap:90px}
+  .landing-hero h1{font-size:clamp(72px,7.5vw,112px);max-width:640px}
+  .landing-hero-copy>p:not(.landing-kicker){max-width:600px;font-size:20px}
+  .landing-hero-media{height:680px}
+  .landing-features{max-width:1400px}
+  .landing-feature-grid{gap:24px}
+  .landing-feature{min-height:480px;padding:30px}
+  .landing-feature-top{height:330px}
+  .landing-feature-top img{height:320px}
+  .landing-feature h3{font-size:27px}
+  .landing-ai{gap:100px;padding:110px max(40px,calc((100vw - 1280px)/2))}
+  .landing-ai h2{font-size:clamp(52px,5.5vw,78px)}
+  .landing-ai-art{height:560px}
+  .landing-stages{padding:120px 40px}
+  .stage-panel{max-width:1100px;padding:60px 72px;gap:50px}
+  .stage-panel>img.stage-family-art{height:460px;max-width:720px}
+  .landing-product{padding:120px 40px}
+  .product-stage{max-width:1140px;padding:64px;gap:80px}
+  .landing-testimonials>div:not(.landing-section-head){max-width:1240px}
+  .landing-comparison{padding:120px 40px}
+  .comparison-shell{max-width:1240px}
+  .comparison-highlights{max-width:1240px}
+  .landing-community{max-width:1280px;margin:120px auto}
+  .community-facts{grid-template-columns:repeat(5,1fr)!important}
+  .landing-bento{max-width:1400px}
+  .landing-bento>article{min-height:720px;padding:56px}
+  .landing-pricing{padding:120px 40px}
+  .pricing-shell{max-width:1320px}
+  .landing-capabilities{max-width:1400px}
+  .capability-grid{gap:20px}
+  .landing-final{max-width:1320px;margin:120px auto}
+  .landing-purpose{max-width:1400px}
+  .purpose-grid article{min-height:0}
+}
+
+/* ── Ultra-wide (≥1920px) ────────────────────────────────────────── */
+@media(min-width:1920px){
+  .landing-nav{max-width:1560px}
+  .landing-hero{max-width:1560px;gap:110px}
+  .landing-hero h1{font-size:clamp(84px,7vw,120px);max-width:720px}
+  .landing-hero-copy>p:not(.landing-kicker){max-width:680px;font-size:21px}
+  .landing-hero-media{height:760px}
+  .landing-features{max-width:1560px}
+  .landing-feature-grid{gap:28px}
+  .landing-feature{min-height:520px;padding:36px}
+  .landing-feature-top{height:380px}
+  .landing-feature-top img{height:370px}
+  .landing-feature h3{font-size:29px}
+  .landing-ai{gap:120px;padding:120px max(60px,calc((100vw - 1440px)/2))}
+  .landing-ai h2{font-size:clamp(60px,5.5vw,84px)}
+  .landing-ai-art{height:640px}
+  .landing-stages{padding:130px 50px}
+  .stage-panel{max-width:1200px;padding:70px 80px;gap:60px}
+  .stage-panel>img.stage-family-art{height:520px;max-width:800px}
+  .landing-product{padding:130px 50px}
+  .product-stage{max-width:1240px;padding:72px;gap:90px}
+  .landing-testimonials>div:not(.landing-section-head){max-width:1400px}
+  .landing-comparison{padding:130px 50px}
+  .comparison-shell{max-width:1400px}
+  .comparison-highlights{max-width:1400px}
+  .landing-community{max-width:1440px;margin:130px auto}
+  .landing-bento{max-width:1560px}
+  .landing-bento>article{min-height:780px;padding:64px}
+  .landing-pricing{padding:130px 50px}
+  .pricing-shell{max-width:1480px}
+  .landing-capabilities{max-width:1560px}
+  .capability-grid{gap:24px}
+  .landing-final{max-width:1480px;margin:130px auto}
+  .landing-purpose{max-width:1560px}
+}
+
+/* ── Ultra-wide feature pages (≥1440px) ───────────────────────────── */
+@media(min-width:1440px){
+  .features-nav{max-width:1400px}
+  .features-hero{max-width:1400px}
+  .features-hero-grid{gap:60px}
+  .features-hero-copy h1{font-size:clamp(50px,6vw,80px)}
+  .features-hero-copy .features-lede{max-width:640px;font-size:18px}
+  .features-module-hero-grid{max-width:1400px;gap:60px}
+  .features-module-hero-copy h1{font-size:clamp(42px,5.5vw,72px)}
+  .features-module-hero-copy span.lede{max-width:640px;font-size:17.5px}
+  .feature-hero-stage{max-width:480px;min-height:600px}
+  .feature-hero-phone.is-composite{width:296px;height:610px}
+  .feature-hero-phone.is-composite .feature-hero-phone-screen{height:670px}
+  .features-bullets{max-width:1400px}
+  .features-bullets-grid{grid-template-columns:repeat(4,1fr);gap:20px}
+  .features-spotlight-grid{gap:20px}
+}
+@media(min-width:1920px){
+  .features-nav{max-width:1560px}
+  .features-hero{max-width:1560px}
+  .features-hero-grid{gap:72px}
+  .features-hero-copy h1{font-size:clamp(56px,6vw,88px)}
+  .features-hero-copy .features-lede{max-width:720px;font-size:19px}
+  .features-module-hero-grid{max-width:1560px;gap:72px}
+  .features-module-hero-copy h1{font-size:clamp(48px,5.5vw,80px)}
+  .features-module-hero-copy span.lede{max-width:720px;font-size:19px}
+  .feature-hero-stage{max-width:520px;min-height:650px}
+  .feature-hero-phone.is-composite{width:320px;height:660px}
+  .feature-hero-phone.is-composite .feature-hero-phone-screen{height:724px}
+  .features-bullets{max-width:1560px}
+  .features-bullets-grid{grid-template-columns:repeat(4,1fr);gap:24px}
+}

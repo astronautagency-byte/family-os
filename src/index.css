@@ -7543,31 +7543,39 @@ input:focus, textarea:focus, select:focus {
   box-shadow:0 1px 3px rgba(16,24,40,.08);
 }
 
-/* ── Wide screen (>1440px) ─────────────────────────────────────────── */
+/* ── Wide screen (≥1440px) ─────────────────────────────────────────── */
 @media(min-width:1440px){
   .app-content{max-width:none}
   .landing-page{font-size:16px}
-  .landing-nav{max-width:1320px}
+  .landing-nav{max-width:1400px}
   .landing-hero-fullbleed .landing-hero-copy{max-width:720px;padding-left:max(60px,calc((100vw - 1240px)/2))}
   .landing-hero-fullbleed .landing-hero-copy h1{font-size:92px}
-  .landing-features{max-width:1320px}
-  .landing-feature-grid{grid-template-columns:repeat(3,1fr);gap:22px}
-  .landing-feature{min-height:420px}
-  .capability-grid{grid-template-columns:repeat(3,1fr);gap:20px}
-  .landing-devices-inner{max-width:1240px}
-  .pricing-shell{max-width:1240px}
-  .comparison-shell{max-width:1200px}
-  .comparison-highlights{grid-template-columns:repeat(3,1fr);gap:20px}
-  .landing-community{max-width:1240px}
-  .landing-bento{max-width:1320px}
+  .landing-features{max-width:1400px}
+  .landing-feature-grid{grid-template-columns:repeat(3,1fr);gap:24px}
+  .landing-feature{min-height:480px}
+  .capability-grid{grid-template-columns:repeat(3,1fr);gap:22px}
+  .landing-devices-inner{max-width:1360px}
+  .pricing-shell{max-width:1360px}
+  .comparison-shell{max-width:1280px}
+  .comparison-highlights{grid-template-columns:repeat(3,1fr);gap:22px}
+  .landing-community{max-width:1360px}
+  .landing-bento{max-width:1400px}
+  .landing-intro,.landing-steps,.landing-privacy{padding:120px 40px}
+  .landing-section-head{max-width:780px}
 }
 
-/* ── Ultra-wide (>1920px) ──────────────────────────────────────────── */
+/* ── Ultra-wide (≥1920px) ────────────────────────────────────────── */
 @media(min-width:1920px){
   .landing-page{font-size:17px}
   .landing-hero-fullbleed .landing-hero-copy h1{font-size:108px}
-  .landing-feature-grid{gap:26px}
-  .landing-feature{min-height:460px;padding:32px}
+  .landing-feature-grid{gap:28px}
+  .landing-feature{min-height:520px;padding:36px}
+  .landing-devices-inner{max-width:1560px}
+  .pricing-shell{max-width:1520px}
+  .comparison-shell{max-width:1440px}
+  .landing-community{max-width:1480px}
+  .landing-bento{max-width:1560px}
+  .landing-intro,.landing-steps,.landing-privacy{padding:130px 50px}
 }
 
 /* ── Button hover/active state consistency ──────────────────────────── */
