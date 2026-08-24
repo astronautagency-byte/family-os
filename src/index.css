@@ -8523,3 +8523,30 @@ input:focus, textarea:focus, select:focus {
 .theme-dark .app-topbar,
 .theme-dark .pending-invite-actions button
 {background:var(--color-surface)!important}
+
+/* ── Force #FAFAFA page canvas on Tasks, Shopping, and all reference pages ── */
+.reference-tasks,
+.reference-groceries,
+.reference-settings,
+.reference-dashboard,
+.reference-meals,
+.reference-chat,
+.reference-kitchen,
+.reference-finance,
+.reference-coordination,
+.reference-fam-ai,
+.fam-ai-page
+{background:#FAFAFA!important}
+
+.theme-dark .reference-tasks,
+.theme-dark .reference-groceries,
+.theme-dark .reference-settings,
+.theme-dark .reference-dashboard,
+.theme-dark .reference-meals,
+.theme-dark .reference-chat,
+.theme-dark .reference-kitchen,
+.theme-dark .reference-finance,
+.theme-dark .reference-coordination,
+.theme-dark .reference-fam-ai,
+.theme-dark .fam-ai-page
+{background:var(--color-canvas)!important}
