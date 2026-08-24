@@ -1809,8 +1809,8 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
       </div>
     </PullToRefresh>
     <ShareSheet open={!!eventShare} onClose={()=>setEventShare(null)} title={eventShare?.title} text={eventShare?.text} url={eventShare?.url} image={eventShare?.image} imageAlt={eventShare?.imageAlt}/>
-    <button className="calendar-fab" onClick={openQuick} aria-label="Add event" aria-expanded={quickOpen}>
-      <Plus size={26} />
+    <button className="calendar-fab" onClick={openQuick} aria-label="Add event" aria-expanded={quickOpen} style={{background:'#2563EB',color:'#fff',border:'none',display:'grid',placeItems:'center'}}>
+      <Plus size={26} color="#fff" strokeWidth={2.5} />
     </button>
     {quickOpen && (
       <div className="calendar-quick-capture" ref={quickRef} role="dialog" aria-label="Quick add event">
