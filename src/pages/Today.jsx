@@ -190,7 +190,15 @@ export default function Today({ goTo }) {
   useEffect(() => {
     let cancelled = false;
     supabase.rpc("get_my_subscription").then(({ data, error }) => {
-      if (!cancelled && !error && data?.[0]) setSubscription(data[0]);
+      if (!cancelled) {
+        if (error) console.warn("[Today] subscription fetch error:", error);
+        if (data?.[0]) {
+          console.log("[Today] subscription:", data[0]);
+          setSubscription(data[0]);
+        } else {
+          console.log("[Today] no subscription data");
+        }
+      }
     });
     return () => { cancelled = true; };
   }, []);

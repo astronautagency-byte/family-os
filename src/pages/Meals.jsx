@@ -620,10 +620,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
 
   const chooseSavedRecipe = async (recipeToPlan) => {
     if (!editing || !recipeToPlan?.title) return;
-    if (!canPlanMeals) {
-      setMealUpgradePrompt(true);
-      return;
-    }
+    // Manual meal planning is free — only roulette/suggestions are gated
     await setMealForSlot(editing.date, editing.slot, {
       title: recipeToPlan.title,
       notes: `Saved recipe · ${recipeToPlan.cuisine || "Family favourite"}`,
@@ -634,10 +631,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
   };
 
   const save = () => {
-    if (!canPlanMeals) {
-      setMealUpgradePrompt(true);
-      return;
-    }
+    // Manual meal planning is free — only roulette/suggestions are gated
     setMealForSlot(editing.date, editing.slot, draft);
     setEditing(null);
   };
@@ -813,10 +807,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
   };
   const handleInlineAdd = (date, slot, e) => {
     if (e.key === "Enter" && inlineInputs[`${date}-${slot}`]?.trim()) {
-      if (!canPlanMeals) {
-        setMealUpgradePrompt(true);
-        return;
-      }
+      // Manual meal planning is free — only roulette/suggestions are gated
       const title = inlineInputs[`${date}-${slot}`].trim();
       setInlineInputs((prev) => ({ ...prev, [`${date}-${slot}`]: "" }));
       setMealForSlot(date, slot, { title, notes: "", cookIds: [], source: "manual" });
@@ -1518,12 +1509,12 @@ export default function Meals({ entitlements = null, goTo } = {}) {
         </div>
       </Modal>
 
-      {/* Upgrade prompt for meal planning (requires FamOS Plus after trial) */}
-      <Modal open={mealUpgradePrompt} onClose={() => setMealUpgradePrompt(false)} title="Unlock meal planning">
+      {/* Upgrade prompt for meal suggestions (requires FamOS Plus after trial) */}
+      <Modal open={mealUpgradePrompt} onClose={() => setMealUpgradePrompt(false)} title="Unlock meal suggestions">
         <div className="roulette-upgrade-prompt">
           <Sparkles size={24} />
-          <h3>Plan meals for your family</h3>
-          <p>Meal planning is part of FamOS Plus. Start a 30-day free trial to unlock recipe ideas, Cook Mode, and meal scheduling.</p>
+          <h3>Get AI meal suggestions</h3>
+          <p>Recipe ideas and the Roulette feature are part of FamOS Plus. Start a 30-day free trial to unlock AI-powered meal suggestions.</p>
           <PrimaryButton onClick={() => { setMealUpgradePrompt(false); goTo?.("settings"); }}>
             <Sparkles size={16} /> Upgrade to FamOS Plus
           </PrimaryButton>
