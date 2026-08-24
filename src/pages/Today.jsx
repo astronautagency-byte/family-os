@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Bell, CalendarPlus, ChefHat, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, Coffee, Droplets, ExternalLink, GripVertical, LayoutGrid, ListChecks, LoaderCircle, MapPin, Megaphone, MessageCircle, Moon, PartyPopper, Refrigerator, RotateCcw, ShoppingCart, Soup, Sun, Ticket, Trash2, TriangleAlert, Wind, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Bell, CalendarPlus, ChefHat, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, Coffee, Droplets, ExternalLink, GripVertical, LayoutGrid, ListChecks, LoaderCircle, MapPin, Megaphone, MessageCircle, Moon, PartyPopper, Refrigerator, RotateCcw, ShoppingCart, Soup, Sun, Ticket, Trash2, TriangleAlert, Wind, X, Sparkles } from "lucide-react";
 // ChefHat is already imported above for the Cook button icon.
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -185,6 +185,21 @@ function BroadcastBanner({ item, sender, reactions, currentUserId, onReact, onCl
 }
 
 export default function Today({ goTo }) {
+  // ── Subscription trial state ──
+  const [subscription, setSubscription] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    supabase.rpc("get_my_subscription").then(({ data, error }) => {
+      if (!cancelled && !error && data?.[0]) setSubscription(data[0]);
+    });
+    return () => { cancelled = true; };
+  }, []);
+  const trialDaysLeft = subscription?.trial_ends_at
+    ? Math.max(0, Math.ceil((new Date(subscription.trial_ends_at).getTime() - Date.now()) / 86_400_000))
+    : null;
+  const isTrial = (subscription?.status === "trial" || subscription?.status === "trialing") && trialDaysLeft > 0;
+  const isExpired = subscription?.status === "canceled" || (subscription?.status === "trial" && trialDaysLeft === 0);
+
   const { members, memberById, events, googleEvents, feedEvents, meals, tasks, taskLists = [], groceries, messages, addGrocery, toggleTask, tabletMode, broadcasts, broadcastMessage, clearBroadcast, reactionsByMessage, reactToBroadcast, currentUserId, refreshData, syncGoogleCalendarNow, googleConnected, notificationPermission, requestNotifications } = useFamily();
   const { profile, user, household, householdProfileExtra } = useAuth();
   const { items: inventoryItems, removeItem: removeInventoryItem } = useKitchenInventory(household?.id, user?.id);
@@ -563,6 +578,27 @@ export default function Today({ goTo }) {
         illustration="home"
         action={<button type="button" className={`today-customize-trigger ${editingDashboard ? "active" : ""}`} onClick={() => setEditingDashboard((current) => !current)} aria-expanded={editingDashboard}><LayoutGrid size={16}/>{editingDashboard ? "Done" : "Customize"}</button>}
       />
+
+      {isTrial && (
+        <div className="today-trial-banner">
+          <Sparkles size={18} />
+          <div>
+            <strong>FamOS Pro trial — {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} left</strong>
+            <span>All Pro features are unlocked. Cancel anytime from Settings.</span>
+          </div>
+        </div>
+      )}
+
+      {isExpired && (
+        <div className="today-trial-expired">
+          <Sparkles size={18} />
+          <div>
+            <strong>Your FamOS Pro trial has ended</strong>
+            <span>Upgrade to keep using Pro features like calendar sync, recipes, and Fam AI.</span>
+          </div>
+          <button type="button" onClick={() => goTo("settings")}>Upgrade</button>
+        </div>
+      )}
 
       {editingDashboard && <div className="today-customize-panel mx-5"><div className="today-customize-hint"><span><GripVertical size={15}/> Choose what appears, then drag cards to rearrange them.</span><button type="button" onClick={() => { setDashboardOrder(defaultDashboardOrder); setHiddenDashboardCards([]); setCardSizes({}); }}><RotateCcw size={14}/> Reset</button></div><div className="today-card-toggles">{DASHBOARD_CARDS.map((card) => { const visible = !hiddenDashboardCards.includes(card.id); return <label key={card.id}><input type="checkbox" checked={visible} onChange={() => toggleDashboardCard(card.id)}/><span aria-hidden="true"/><strong>{card.label}</strong></label>; })}</div></div>}
 
