@@ -8582,3 +8582,281 @@ input:focus, textarea:focus, select:focus {
 .roulette-upgrade-prompt svg{color:var(--color-accent-strong)}
 .roulette-upgrade-prompt h3{font:700 18px/1.2 var(--font-sans);color:var(--color-ink);margin:0}
 .roulette-upgrade-prompt p{font:400 14px/1.5 var(--font-sans);color:var(--color-ink-soft);margin:0}
+
+/* ═══════════════════════════════════════════════════════════════════
+ * COMPREHENSIVE DARK MODE OVERRIDES
+ * These rules at the end of the file override any earlier hardcoded
+ * white/light backgrounds that break dark mode.
+ * ═══════════════════════════════════════════════════════════════════ */
+
+/* Nav sidebar / bottom bar */
+.theme-dark .primary-nav,
+.theme-dark .primary-nav.navbar-bg,
+.theme-dark .app-shell .primary-nav {
+  background: #1A1D24 !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+
+/* Nav items — no individual backgrounds in dark mode */
+.theme-dark .nav-item,
+.theme-dark .app-shell .nav-item {
+  background: transparent !important;
+  color: var(--color-ink-muted) !important;
+}
+.theme-dark .nav-item.is-active,
+.theme-dark .app-shell .nav-item.is-active {
+  background: color-mix(in srgb, var(--nav-tone, var(--color-accent)) 13%, #1A1D24) !important;
+  color: var(--color-accent) !important;
+}
+.theme-dark .nav-item.is-active .nav-icon,
+.theme-dark .app-shell .nav-item.is-active .nav-icon {
+  background: color-mix(in srgb, var(--nav-tone, var(--color-accent)) 16%, #1A1D24) !important;
+}
+.theme-dark .nav-item:hover,
+.theme-dark .app-shell .nav-item:hover {
+  background: rgba(255,255,255,0.05) !important;
+}
+
+/* Top bar */
+.theme-dark .app-topbar,
+.theme-dark .app-shell .app-topbar {
+  background: rgba(26,29,36,0.92) !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+
+/* All kinship cards */
+.theme-dark .kinship-card,
+.theme-dark .app-shell .kinship-card,
+.theme-dark .app-shell .kinship-card.m3-card {
+  background: #1A1D24 !important;
+  border-color: rgba(255,255,255,0.08) !important;
+  box-shadow: none !important;
+}
+.theme-dark .kinship-card:hover,
+.theme-dark .app-shell .kinship-card:hover {
+  border-color: rgba(255,255,255,0.14) !important;
+}
+
+/* Page headers */
+.theme-dark .page-header,
+.theme-dark .app-shell .page-header {
+  background: color-mix(in srgb, var(--header-tone, var(--color-accent)) 8%, #1A1D24) !important;
+}
+
+/* Broadcast section */
+.theme-dark .broadcast-bar,
+.theme-dark [class*="broadcast"] {
+  background: #1A1D24 !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+
+/* Weather card */
+.theme-dark .weather-card,
+.theme-dark [class*="weather"] {
+  background: #1A1D24 !important;
+}
+
+/* Activity cards / schedule cards */
+.theme-dark .today-schedule-card,
+.theme-dark .activity-card,
+.theme-dark .event-card,
+.theme-dark [class*="schedule-card"],
+.theme-dark [class*="activity-card"],
+.theme-dark [class*="event-card"] {
+  background: #1A1D24 !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+
+/* Meal cards */
+.theme-dark .meal-card,
+.theme-dark .meal-day-card,
+.theme-dark [class*="meal-card"],
+.theme-dark [class*="meal-day"] {
+  background: #1A1D24 !important;
+}
+
+/* Task cards */
+.theme-dark .task-card,
+.theme-dark .task-board-group,
+.theme-dark [class*="task-card"],
+.theme-dark [class*="task-board"] {
+  background: #1A1D24 !important;
+}
+
+/* Shopping items */
+.theme-dark .grocery-item,
+.theme-dark .shopping-item,
+.theme-dark [class*="grocery"],
+.theme-dark [class*="shopping-item"] {
+  background: #1A1D24 !important;
+}
+
+/* Kitchen watch items */
+.theme-dark .kitchen-item,
+.theme-dark [class*="kitchen-item"],
+.theme-dark [class*="expiring"] {
+  background: #1A1D24 !important;
+}
+
+/* Chat messages */
+.theme-dark .chat-message,
+.theme-dark .chat-bubble,
+.theme-dark [class*="chat-msg"],
+.theme-dark [class*="chat-bubble"] {
+  background: #1A1D24 !important;
+}
+
+/* Modals */
+.theme-dark .modal-card,
+.theme-dark .m3-dialog-layer .modal-card {
+  background: #1A1D24 !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+
+/* Settings cards */
+.theme-dark .settings-card,
+.theme-dark .settings-section,
+.theme-dark [class*="settings-"] {
+  background: #1A1D24 !important;
+}
+
+/* Form controls in dark mode */
+.theme-dark .form-control,
+.theme-dark .ui-select,
+.theme-dark .ui-textarea {
+  background: #14161B !important;
+  border-color: rgba(255,255,255,0.14) !important;
+  color: var(--color-ink) !important;
+}
+.theme-dark .form-control:focus {
+  border-color: var(--color-accent) !important;
+}
+
+/* Date popover */
+.theme-dark .date-popover {
+  background: #1A1D24 !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+
+/* Dropdowns / menus */
+.theme-dark .ui-menu-options,
+.theme-dark .ui-menu-dropdown[open] summary {
+  background: #1A1D24 !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+
+/* Buttons in dark mode */
+.theme-dark .m3-button-outlined,
+.theme-dark .m3-button-white {
+  background: #1A1D24 !important;
+  border-color: rgba(255,255,255,0.14) !important;
+  color: var(--color-ink) !important;
+}
+.theme-dark .m3-button-outlined:hover,
+.theme-dark .m3-button-white:hover {
+  background: #22262E !important;
+}
+
+/* Segmented control */
+.theme-dark .ui-segmented {
+  background: #14161B !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+.theme-dark .ui-segmented button.selected {
+  background: #1A1D24 !important;
+}
+
+/* Switch */
+.theme-dark .ui-switch {
+  background: #14161B !important;
+  border-color: rgba(255,255,255,0.14) !important;
+}
+
+/* Empty states */
+.theme-dark .flex.flex-col.items-center.justify-center.text-center {
+  background: transparent !important;
+}
+
+/* Notification feed */
+.theme-dark .notification-feed {
+  background: #1A1D24 !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+
+/* Chips / tags */
+.theme-dark .m3-chip,
+.theme-dark [class*="chip"] {
+  background: rgba(255,255,255,0.08) !important;
+}
+
+/* Invite / pending items */
+.theme-dark .pending-invite-actions button {
+  background: #22262E !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+
+/* Color scheme picker */
+.theme-dark .settings-color-scheme-option,
+.theme-dark .onboarding-color-option {
+  background: #1A1D24 !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+
+/* Avatar editor */
+.theme-dark .avatar-editor-preview {
+  border-color: #1A1D24 !important;
+}
+
+/* Family roster */
+.theme-dark .family-roster-pending {
+  border-color: rgba(255,255,255,0.08) !important;
+}
+
+/* FAB button */
+.theme-dark .calendar-fab,
+.theme-dark .reference-fab {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important;
+}
+
+/* Trial banners */
+.theme-dark .today-trial-banner,
+.theme-dark .today-trial-expired {
+  background: #22262E !important;
+  border-color: rgba(255,255,255,0.14) !important;
+}
+
+/* Feature paywall */
+.theme-dark .feature-paywall-trial-note,
+.theme-dark .feature-paywall-tagline {
+  color: var(--color-ink-muted) !important;
+}
+
+/* Chat input area */
+.theme-dark .chat-input,
+.theme-dark [class*="chat-input"] {
+  background: #14161B !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+
+/* Fam AI elements */
+.theme-dark .fam-ai-page,
+.theme-dark .fam-ai-msg,
+.theme-dark .fam-ai-suggestion,
+.theme-dark .fam-ai-review,
+.theme-dark .fam-ai-composer,
+.theme-dark .fam-ai-composer-inner {
+  background: #1A1D24 !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+
+/* Ensure all text is visible in dark mode */
+.theme-dark .text-white,
+.theme-dark [class*="text-white"] {
+  color: var(--color-ink) !important;
+}
+.theme-dark .text-gray-500,
+.theme-dark .text-gray-600,
+.theme-dark .text-gray-700,
+.theme-dark [class*="text-gray-"] {
+  color: var(--color-ink-soft) !important;
+}
