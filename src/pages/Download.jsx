@@ -16,19 +16,14 @@ export default function Download() {
             Bring FamOS to your computer for a calm, focused place to plan the day, keep everyone in sync, and stay close to home wherever you are.
           </p>
           <div className="download-hero-actions">
-            <a className="download-primary" href={DESKTOP_DOWNLOAD_URL}>
-              <ArrowDownToLine size={18} /> Download for Mac
+            <a className="download-primary" href="https://apps.apple.com/app/famos/id0000000000">
+              <ArrowDownToLine size={18} /> Download on the App Store
             </a>
             <a className="download-secondary" href="https://home.fam-os.app/sign-up">
               Try FamOS free <ArrowRight size={16} />
             </a>
           </div>
-          <p className="download-note">For Mac with Apple silicon · Free to download · Your FamOS account stays the same</p>
-          <div className="download-security-note">
-            <strong>Opening FamOS for the first time</strong>
-            <p>After moving FamOS to Applications, Control-click the app and choose <b>Open</b>. Confirm <b>Open</b> in the next dialog. This one-time step is required because this free Mac download is not notarized by Apple.</p>
-            <p>If macOS still shows the damaged message, open <b>System Settings → Privacy &amp; Security</b>, scroll down, choose <b>Open Anyway</b> beside FamOS, and confirm. Do not open it by double-clicking first.</p>
-          </div>
+          <p className="download-note">Free on the Mac App Store · Requires macOS 11.0+ · Your FamOS account stays the same</p>
         </div>
         <div className="download-hero-art" aria-hidden="true">
           <div className="download-window">
@@ -56,7 +51,7 @@ export default function Download() {
               <p className="download-option-kicker">READY NOW</p>
               <h3>Mac desktop app</h3>
               <p>Download FamOS for Mac, open the file, and move FamOS into Applications. Then Control-click FamOS, choose Open once, and sign in as usual.</p>
-              <a href={DESKTOP_DOWNLOAD_URL}>Download for Mac <ArrowDownToLine size={15} /></a>
+              <a href="https://apps.apple.com/app/famos/id0000000000">Download on the App Store <ArrowDownToLine size={15} /></a>
             </div>
           </article>
           <article className="download-option">
@@ -86,10 +81,10 @@ export default function Download() {
           <h2>From download to home base.</h2>
         </div>
         <div className="download-step-grid" id="download-steps-title">
-          <article><b>1</b><h3>Download</h3><p>Select Download for Mac above. The file will appear in your Downloads folder.</p></article>
-          <article><b>2</b><h3>Move to Applications</h3><p>Open the downloaded file and drag FamOS into your Applications folder.</p></article>
-          <article><b>3</b><h3>Open it once</h3><p>In Applications, Control-click FamOS, choose Open, and confirm Open. You only need to do this the first time.</p></article>
-          <article><b>4</b><h3>Sign in and settle in</h3><p>Sign in with your normal account and pick up right where you left off.</p></article>
+          <article><b>1</b><h3>Find FamOS</h3><p>Search for FamOS in the Mac App Store or click the download button above.</p></article>
+          <article><b>2</b><h3>Install</h3><p>Click Get and FamOS installs automatically — no extra steps, no warnings.</p></article>
+          <article><b>3</b><h3>Open and sign in</h3><p>Launch FamOS from your Applications folder or Launchpad and sign in as usual.</p></article>
+          <article><b>4</b><h3>Pick up where you left off</h3><p>Your family, schedule, and lists are right there — same FamOS, bigger screen.</p></article>
         </div>
         <div className="download-trust"><CheckCircle2 size={17} /> Your family data stays connected across every screen.</div>
       </section>

@@ -35,7 +35,13 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "macOS": {
+      "entitlements": "./FamOS.entitlements",
+      "minimumSystemVersion": "11.0",
+      "signingIdentity": null,
+      "providerShortName": null
+    }
   },
   "plugins": {
     "deep-link": {

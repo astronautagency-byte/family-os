@@ -16,6 +16,7 @@
     "preview": "vite preview",
     "desktop:dev": "tauri dev",
     "desktop:build": "tauri build",
+    "desktop:build:appstore": "bash scripts/build-appstore.sh",
     "mobile:android:init": "tauri android init",
     "mobile:android:build": "tauri android build",
     "mobile:ios:init": "tauri ios init",
