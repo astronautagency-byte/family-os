@@ -244,7 +244,7 @@ const youtubeEmbedUrl = (value = "") => {
   } catch { return ""; }
 };
 
-export default function Meals({ entitlements = null } = {}) {
+export default function Meals({ entitlements = null, goTo } = {}) {
   const { members, memberById, meals, groceries, addGrocery, setMealForSlot, removeMeal, clearMeals, refreshData } = useFamily();
   const { householdProfileExtra, household, user } = useAuth();
   const { items: inventoryItems, ingredientNames: inventoryIngredientNames, removeItem: removeInventoryItem } = useKitchenInventory(household?.id, user?.id);
@@ -1495,7 +1495,7 @@ export default function Meals({ entitlements = null } = {}) {
           <Sparkles size={24} />
           <h3>Get personalized meal ideas</h3>
           <p>Meal ideas, recipe suggestions, and Cook Mode are part of FamOS Plus. Start a 30-day free trial to unlock.</p>
-          <PrimaryButton onClick={() => { setRouletteUpgradePrompt(false); window.location.hash = "/settings"; }}>
+          <PrimaryButton onClick={() => { setRouletteUpgradePrompt(false); goTo?.("settings"); }}>
             <Sparkles size={16} /> Upgrade to FamOS Plus
           </PrimaryButton>
           <SecondaryButton onClick={() => setRouletteUpgradePrompt(false)}>Maybe later</SecondaryButton>

@@ -729,8 +729,8 @@ export default function App() {
             <Suspense fallback={<PageFallback />}>
               {upgradeFeature ? <FeaturePaywall featureId={upgradeFeature} onChoose={startFeatureCheckout} onBack={() => setUpgradeFeature("")} busy={billingBusy} error={billingError} /> : <>
               {tab === "today" && <Today goTo={setTab} />}
-              {tab === "calendar" && <CalendarPage goTo={setTab} entitlements={entitlements} />}
-              {tab === "meals" && <Meals entitlements={entitlements} />}
+              {tab === "calendar" && <CalendarPage entitlements={entitlements} goTo={setTab} />}
+              {tab === "meals" && <Meals entitlements={entitlements} goTo={setTab} />}
               {tab === "groceries" && <Groceries />}
               {tab === "kitchen" && <KitchenWatch goTo={setTab} />}
               {tab === "tasks" && <Tasks />}
