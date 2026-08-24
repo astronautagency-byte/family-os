@@ -23,7 +23,8 @@
     "mobile:ios:init": "tauri ios init",
     "mobile:ios:build": "tauri ios build",
     "mobile:ios:archive": "cd src-tauri/gen/apple && xcodebuild -workspace famos.xcworkspace -scheme famos -sdk iphoneos -configuration Release archive -archivePath build/famos.xcarchive",
-    "appstore:check": "echo 'Checking app store metadata...' && cat app-store-metadata/README.md | head -20"
+    "appstore:check": "echo 'Checking app store metadata...' && cat app-store-metadata/README.md | head -20",
+    "tauri": "tauri"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
