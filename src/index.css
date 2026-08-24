@@ -3981,7 +3981,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .calendar-manager-item-info{display:grid;min-width:0}
 .calendar-manager-item-info b{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .calendar-manager-item-info small{font-size:10.5px;color:var(--color-ink-faint);margin-top:1px}
-.calendar-manager-item-actions{display:flex;align-items:center;gap:6px}
+.calendar-manager-item-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .calendar-manager-toggle{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:var(--radius-pill);border:1px solid var(--color-border);background:var(--color-surface);font-size:10.5px;font-weight:700;color:var(--color-ink-soft);transition:all 180ms ease}
 .calendar-manager-toggle.on{border-color:var(--color-accent);background:var(--color-accent-soft);color:var(--color-accent-strong)}
 .calendar-manager-toggle-track{position:relative;width:22px;height:12px;border-radius:var(--radius-pill);background:var(--color-ink-faint);transition:background 180ms ease}
@@ -3997,16 +3997,18 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .calendar-manager-sync-full{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:42px;border-radius:var(--radius-pill);background:var(--color-accent);color:#fff;font-size:12px;font-weight:700}
 .calendar-manager-sync-full.is-busy{opacity:.65}
 .calendar-manager-sync-full:hover{background:var(--color-accent-strong)}
-@media(max-width:420px){
-  .calendar-manager{gap:14px}
-  .calendar-manager-item{grid-template-columns:12px 1fr;gap:10px;padding:12px 10px;min-height:52px}
-  .calendar-manager-item-info b{font-size:14px;white-space:normal;word-break:break-word}
-  .calendar-manager-item-actions{grid-column:1/-1;justify-self:start;margin-top:4px}
+@media(max-width:480px){
+  .calendar-manager{gap:16px}
+  .calendar-manager-item{grid-template-columns:12px 1fr;gap:10px;padding:14px 12px;min-height:auto}
+  .calendar-manager-item-info b{font-size:14px;white-space:normal;word-break:break-word;overflow:visible;text-overflow:unset}
+  .calendar-manager-item-info small{white-space:normal;word-break:break-word}
+  .calendar-manager-item-actions{grid-column:1/-1;justify-self:start;margin-top:6px;flex-wrap:wrap}
   .calendar-manager-footer{grid-template-columns:1fr}
   .calendar-manager-sync-full{order:-1}
   .calendar-manager-list{padding:8px;gap:8px}
   .calendar-manager-status{padding:14px 12px}
   .calendar-manager-status-left strong{font-size:15px}
+  .calendar-manager-help{margin-top:0}
 }
 
 /* FamOS calendar section in the calendar manager */
@@ -4698,7 +4700,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .calendar-list-delete:hover{background:var(--color-warn-soft);color:var(--color-warn)}
 
 /* FAB: floating round add button bottom-right of page area */
-.calendar-fab{position:fixed;right:18px;bottom:100px;width:54px;height:54px;border-radius:50%;background:var(--color-accent);color:#fff;border:0;display:grid;place-items:center;box-shadow:0 8px 24px color-mix(in srgb,var(--color-accent) 36%,transparent);z-index:30;cursor:pointer;transition:transform var(--motion-fast) cubic-bezier(.2,.8,.2,1),box-shadow var(--motion-fast) ease,background var(--motion-fast) ease}
+.calendar-fab{position:fixed;right:18px;bottom:100px;width:54px;height:54px;border-radius:50%;background:var(--color-accent);color:#fff;border:0;display:grid;place-items:center;box-shadow:0 8px 24px color-mix(in srgb,var(--color-accent) 36%,transparent);z-index:50;cursor:pointer;transition:transform var(--motion-fast) cubic-bezier(.2,.8,.2,1),box-shadow var(--motion-fast) ease,background var(--motion-fast) ease}
 .calendar-fab:hover{transform:translateY(-2px);background:var(--color-accent-strong);box-shadow:0 12px 28px color-mix(in srgb,var(--color-accent) 42%,transparent)}
 .calendar-fab:active{transform:translateY(0) scale(.96)}
 @media(min-width:720px){.calendar-fab{right:24px;bottom:24px}}
