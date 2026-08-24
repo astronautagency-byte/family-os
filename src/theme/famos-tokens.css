@@ -118,13 +118,13 @@
  * ───────────────────────────────────────────────────────────────────────── */
 
 .theme-dark {
-  --color-canvas: #0B0F1A;
-  --color-surface: #111722;
-  --color-surface-raised: #161D2B;
-  --color-surface-sunken: #0F141E;
-  --color-border: rgba(255, 255, 255, 0.06);
-  --color-border-strong: rgba(255, 255, 255, 0.10);
-  --color-border-focus: rgba(255, 255, 255, 0.18);
+  --color-canvas: #111318;
+  --color-surface: #1A1D24;
+  --color-surface-raised: #22262E;
+  --color-surface-sunken: #14161B;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.14);
+  --color-border-focus: rgba(255, 255, 255, 0.22);
 
   --color-ink: #F5F5F6;
   --color-ink-soft: #CECFD2;

@@ -2996,9 +2996,9 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .today-meal-cook-hint{color:var(--color-accent);opacity:.85;flex:none;margin-left:auto;transition:opacity .15s ease}
 .task-row-share{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:10px;color:var(--color-accent);background:transparent;transition:background .15s ease,color .15s ease}.task-row-share:hover{background:var(--color-accent-soft);color:var(--color-accent-strong)}
 .event-share-button{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:var(--radius-pill);background:var(--color-accent-soft);color:var(--color-accent-strong);font-weight:700;font-size:12.5px;white-space:nowrap;transition:transform .12s ease,background .15s ease}.event-share-button:hover{background:color-mix(in srgb,var(--color-accent) 22%,var(--color-accent-soft))}.event-share-button:active{transform:scale(.97)}
-.theme-dark,.theme-dark .app-shell{color:var(--color-ink);background:#0f1020}
-.theme-dark .app-content{background:linear-gradient(180deg,#151628 0,var(--color-canvas) 280px);color:var(--color-ink)}
-.theme-dark .app-topbar,.theme-dark .primary-nav{background:rgba(18,19,34,.84);backdrop-filter:blur(18px);color:var(--color-ink)}
+.theme-dark,.theme-dark .app-shell{color:var(--color-ink);background:var(--color-canvas)}
+.theme-dark .app-content{background:var(--color-canvas);color:var(--color-ink)}
+.theme-dark .app-topbar,.theme-dark .primary-nav{background:color-mix(in srgb,var(--color-surface) 92%,transparent);backdrop-filter:blur(18px);color:var(--color-ink)}
 .theme-dark .topbar-wordmark strong,.theme-dark .nav-brand strong{color:#fff}
 .theme-dark .topbar-wordmark img,.theme-dark .nav-brand img{background:#25213a}
 .theme-dark .topbar-avatar:not(:has(img)){background:#302b58;color:#ddd6ff}
@@ -3114,28 +3114,28 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 /* ── Dark mode: remaining page surfaces ── */
 
 /* Today dashboard cards */
-.theme-dark .today-metric-card{background:#FFFFFF!important}
-.theme-dark .today-command-card{background:#FFFFFF!important}
-.theme-dark .today-pulse-card{background:#FFFFFF!important}
-.theme-dark .today-flow-card{background:#FFFFFF!important}
-.theme-dark .today-load-card{background:#FFFFFF!important}
+.theme-dark .today-metric-card{background:var(--color-surface)!important}
+.theme-dark .today-command-card{background:var(--color-surface)!important}
+.theme-dark .today-pulse-card{background:var(--color-surface)!important}
+.theme-dark .today-flow-card{background:var(--color-surface)!important}
+.theme-dark .today-load-card{background:var(--color-surface)!important}
 .theme-dark .weather-now-card{background:linear-gradient(135deg,#1e2040,#1e2032)!important}
-.theme-dark .broadcast-compose{border-color:var(--color-border)!important;background:#FFFFFF!important}
+.theme-dark .broadcast-compose{border-color:var(--color-border)!important;background:var(--color-surface)!important}
 .theme-dark .broadcast-banner{background:#1b1d38!important}
 
 /* Settings page cards, buttons, forms */
-.theme-dark .reference-settings section:nth-of-type(1)>.kinship-card{background:#FFFFFF!important}
-.theme-dark .reference-settings section:nth-of-type(2)>.kinship-card:first-of-type{background:#FFFFFF!important}
-.theme-dark .settings-household-card{background:#FFFFFF!important}
+.theme-dark .reference-settings section:nth-of-type(1)>.kinship-card{background:var(--color-surface)!important}
+.theme-dark .reference-settings section:nth-of-type(2)>.kinship-card:first-of-type{background:var(--color-surface)!important}
+.theme-dark .settings-household-card{background:var(--color-surface)!important}
 .theme-dark .reference-settings .settings-dietary-picker button{background:var(--color-surface)!important;border-color:var(--color-border)!important;color:var(--color-ink-soft)!important}
 .theme-dark .reference-settings .settings-dietary-picker button.selected{background:var(--color-accent-soft)!important;border-color:var(--color-accent)!important;color:var(--color-accent-strong)!important}
 
 /* Meals page day cards */
 .theme-dark .reference-meals{background:transparent!important}
-.theme-dark .reference-meals .kinship-card:nth-child(3n+1){background:#FFFFFF!important}
-.theme-dark .reference-meals .kinship-card:nth-child(3n+2){background:#FFFFFF!important}
-.theme-dark .reference-meals .kinship-card:nth-child(3n){background:#FFFFFF!important}
-.theme-dark .meal-day-card{background:#FFFFFF!important}
+.theme-dark .reference-meals .kinship-card:nth-child(3n+1){background:var(--color-surface)!important}
+.theme-dark .reference-meals .kinship-card:nth-child(3n+2){background:var(--color-surface)!important}
+.theme-dark .reference-meals .kinship-card:nth-child(3n){background:var(--color-surface)!important}
+.theme-dark .meal-day-card{background:var(--color-surface)!important}
 .theme-dark .meal-slot-row.is-dinner .meal-slot-button{background:color-mix(in srgb,var(--pastel-peach) 10%,var(--color-surface-sunken))!important}
 .theme-dark .meal-slot-label{color:var(--color-ink-faint)!important}
 
@@ -3147,20 +3147,20 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 
 /* Modal backgrounds */
 .theme-dark .m3-dialog-layer{background:rgba(10,11,22,.82)!important}
-.theme-dark .modal-card{background:#FFFFFF!important}
+.theme-dark .modal-card{background:var(--color-surface)!important}
 .theme-dark .modal-card .modal-close-button{color:var(--color-ink-soft)!important;background:#20223a!important}
 
 /* Page header + card backgrounds */
 .theme-dark .page-header{background:transparent!important;border-color:var(--color-border)!important}
 .theme-dark .reference-tasks .page-header{background:transparent!important}
-.theme-dark .reference-dashboard .kinship-card{background:#FFFFFF!important}
-.theme-dark .kinship-card{background:#FFFFFF!important}
-.theme-dark .family-roster-card{background:#FFFFFF!important}
+.theme-dark .reference-dashboard .kinship-card{background:var(--color-surface)!important}
+.theme-dark .kinship-card{background:var(--color-surface)!important}
+.theme-dark .family-roster-card{background:var(--color-surface)!important}
 .theme-dark .kinship-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.2)!important}
 
 /* Task groups */
-.theme-dark .task-board-group{background:#FFFFFF!important;border-color:var(--color-border-strong)!important}
-.theme-dark .task-board-row{background:#FFFFFF!important}
+.theme-dark .task-board-group{background:var(--color-surface)!important;border-color:var(--color-border-strong)!important}
+.theme-dark .task-board-row{background:var(--color-surface)!important}
 .theme-dark .task-group-title h2{color:var(--color-accent-strong)!important}
 .theme-dark .task-group-title>span{background:var(--color-accent-soft)!important;color:var(--color-accent-strong)!important}
 .theme-dark .task-board-group.green .task-group-title h2{color:var(--color-good)!important}
@@ -3169,7 +3169,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .theme-dark .task-board-group.slate .task-group-title>span{background:var(--color-accent-soft)!important;color:var(--color-accent-strong)!important}
 
 /* Onboarding + invite cards */
-.theme-dark .onboarding-channel-card{background:#FFFFFF!important}
+.theme-dark .onboarding-channel-card{background:var(--color-surface)!important}
 .theme-dark .partner-consent{background:#1b1d38!important;border-color:var(--color-border)!important}
 .theme-dark .partner-consent strong{color:var(--color-ink)!important}
 .theme-dark .partner-consent small{color:var(--color-ink-soft)!important}
@@ -3192,12 +3192,12 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .theme-dark .avatar-editor-actions label{color:var(--color-accent-strong)!important;background:var(--color-accent-soft)!important}
 
 /* Calendar card overrides */
-.theme-dark .calendar-event{background:#FFFFFF!important}
-.theme-dark .calendar-hero-action{background:#FFFFFF!important}
+.theme-dark .calendar-event{background:var(--color-surface)!important}
+.theme-dark .calendar-hero-action{background:var(--color-surface)!important}
 .theme-dark .calendar-select-label select{background:var(--color-surface-sunken)!important;color:var(--color-ink)!important}
 
 /* Meal preferences */
-.theme-dark .meal-preferences-card{background:#FFFFFF!important;border-color:transparent!important}
+.theme-dark .meal-preferences-card{background:var(--color-surface)!important;border-color:transparent!important}
 
 /* Meal preferences + saved recipe library */
 .meal-preferences-card {
@@ -3975,11 +3975,11 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .calendar-manager-list-heading span{font-size:11px;font-weight:600;color:var(--color-ink-faint)}
 .calendar-manager-help{font-size:11.5px;color:var(--color-ink-soft);line-height:1.5;margin:-10px 4px 0;padding:0}
 .calendar-manager-list{display:grid;gap:6px;border:1px solid var(--color-border);border-radius:var(--radius-control);padding:6px;background:var(--color-surface);max-height:50vh;overflow-y:auto}
-.calendar-manager-item{display:grid;grid-template-columns:12px 1fr auto;align-items:center;gap:10px;padding:10px 10px;border-radius:var(--radius-pill-sm);background:var(--color-surface);min-height:48px;position:relative}
+.calendar-manager-item{display:grid;grid-template-columns:12px 1fr auto;align-items:center;gap:12px;padding:12px 12px;border-radius:var(--radius-control);background:var(--color-surface);min-height:52px;position:relative}
 .calendar-manager-item.is-connected{background:var(--color-surface-sunken)}
 .calendar-manager-item>i{width:12px;height:12px;border-radius:50%;flex:0 0 auto}
 .calendar-manager-item-info{display:grid;min-width:0}
-.calendar-manager-item-info b{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.calendar-manager-item-info b{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .calendar-manager-item-info small{font-size:10.5px;color:var(--color-ink-faint);margin-top:1px}
 .calendar-manager-item-actions{display:flex;align-items:center;gap:6px}
 .calendar-manager-toggle{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:var(--radius-pill);border:1px solid var(--color-border);background:var(--color-surface);font-size:10.5px;font-weight:700;color:var(--color-ink-soft);transition:all 180ms ease}
@@ -3998,10 +3998,15 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .calendar-manager-sync-full.is-busy{opacity:.65}
 .calendar-manager-sync-full:hover{background:var(--color-accent-strong)}
 @media(max-width:420px){
-  .calendar-manager-item{grid-template-columns:12px 1fr;gap:8px}
-  .calendar-manager-item-actions{grid-column:1/-1;justify-self:start}
+  .calendar-manager{gap:14px}
+  .calendar-manager-item{grid-template-columns:12px 1fr;gap:10px;padding:12px 10px;min-height:52px}
+  .calendar-manager-item-info b{font-size:14px;white-space:normal;word-break:break-word}
+  .calendar-manager-item-actions{grid-column:1/-1;justify-self:start;margin-top:4px}
   .calendar-manager-footer{grid-template-columns:1fr}
   .calendar-manager-sync-full{order:-1}
+  .calendar-manager-list{padding:8px;gap:8px}
+  .calendar-manager-status{padding:14px 12px}
+  .calendar-manager-status-left strong{font-size:15px}
 }
 
 /* FamOS calendar section in the calendar manager */
