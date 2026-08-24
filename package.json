@@ -1,7 +1,7 @@
 {
   "name": "family-os",
   "private": true,
-  "version": "0.36.1",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -19,8 +19,11 @@
     "desktop:build:appstore": "bash scripts/build-appstore.sh",
     "mobile:android:init": "tauri android init",
     "mobile:android:build": "tauri android build",
+    "mobile:android:bundle": "cd src-tauri/gen/android && ./gradlew bundleRelease",
     "mobile:ios:init": "tauri ios init",
-    "mobile:ios:build": "tauri ios build"
+    "mobile:ios:build": "tauri ios build",
+    "mobile:ios:archive": "cd src-tauri/gen/apple && xcodebuild -workspace famos.xcworkspace -scheme famos -sdk iphoneos -configuration Release archive -archivePath build/famos.xcarchive",
+    "appstore:check": "echo 'Checking app store metadata...' && cat app-store-metadata/README.md | head -20"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
