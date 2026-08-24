@@ -8228,10 +8228,6 @@ input:focus, textarea:focus, select:focus {
  * so it pops off the #FAFAFA canvas.
  * ────────────────────────────────────────────────────────────────────── */
 
-/* Base app content background */
-/* Mobile: app-content IS the full page, so canvas background */
-.app-content{background:#FAFAFA!important}
-
 /* All cards and containers with borders or borders + hover */
 .kinship-card,
 .task-board-group,
