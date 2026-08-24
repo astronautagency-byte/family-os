@@ -17,9 +17,24 @@ export default function AppTopBar({ onOpenSettings, onNavigate, onOpenFamAI, dar
   const currentMember = members.find((member) => member.id === user?.id);
   const name = currentMember?.name || profile?.display_name || user?.user_metadata?.name || user?.email?.split("@")[0] || "Family";
   const avatar = currentMember?.avatarUrl || profile?.avatar_url || user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
-  const due=tasks.filter(task=>!task.done&&task.due===today); const todaysEvents=[...events,...googleEvents,...feedEvents].filter(event=>event.start?.slice(0,10)===today); const remaining=groceries.filter(item=>!item.checked).length;
+  // Only show notifications for items assigned to the current user
+  const currentUserId = user?.id;
+  const isAssignedToMe = (item) => {
+    if (!currentUserId) return true; // If no user, show all (shouldn't happen)
+    // Check task assigneeIds array or single assigneeId
+    const assigneeIds = item.assigneeIds || (item.assigneeId ? [item.assigneeId] : []);
+    if (assigneeIds.length > 0) return assigneeIds.includes(currentUserId);
+    // Check event memberIds array
+    const memberIds = item.memberIds || [];
+    if (memberIds.length > 0) return memberIds.includes(currentUserId);
+    // If no assignee/member specified, don't notify (it's not assigned to anyone specifically)
+    return false;
+  };
+  const due=tasks.filter(task=>!task.done&&task.due===today&&isAssignedToMe(task)); 
+  const todaysEvents=[...events,...googleEvents,...feedEvents].filter(event=>event.start?.slice(0,10)===today&&isAssignedToMe(event)); 
+  const remaining=groceries.filter(item=>!item.checked).length;
   const kitchenAttention=kitchenItems.filter(item=>["Produce","Deli & Prepared Foods","Dairy & Eggs","Meat & Seafood","Bakery"].includes(item.category)&&inventoryExpiryStatus(item));
-  const notices=useMemo(()=>[...(due.length?[{id:`tasks:${today}:${due.map(item=>item.id).join(",")}`,title:`${due.length} task${due.length===1?"":"s"} due today`,detail:due[0].title,Icon:CheckSquare,tab:"tasks",tone:"peach"}]:[]),...(todaysEvents.length?[{id:`calendar:${today}:${todaysEvents.map(item=>item.id).join(",")}`,title:`${todaysEvents.length} event${todaysEvents.length===1?"":"s"} today`,detail:todaysEvents[0].title,Icon:CalendarDays,tab:"calendar",tone:"blue"}]:[]),...(remaining?[{id:`groceries:${remaining}`,title:`${remaining} groceries remaining`,detail:"Your shared list is ready",Icon:ShoppingCart,tab:"groceries",tone:"mint"}]:[]),...(kitchenAttention.length?[{id:`kitchen:${kitchenAttention.map(item=>item.id).join(",")}`,title:`${kitchenAttention.length} fresh item${kitchenAttention.length===1?" needs":"s need"} attention`,detail:"Use it soon or add a replacement",Icon:Refrigerator,tab:"kitchen",tone:"mint"}]:[])],[due,today,todaysEvents,remaining,kitchenAttention]);
+  const notices=useMemo(()=>[...(due.length?[{id:`tasks:${today}:${due.map(item=>item.id).join(",")}`,title:`${due.length} task${due.length===1?"":"s"} assigned to you`,detail:due[0].title,Icon:CheckSquare,tab:"tasks",tone:"peach"}]:[]),...(todaysEvents.length?[{id:`calendar:${today}:${todaysEvents.map(item=>item.id).join(",")}`,title:`${todaysEvents.length} event${todaysEvents.length===1?"":"s"} today`,detail:todaysEvents[0].title,Icon:CalendarDays,tab:"calendar",tone:"blue"}]:[]),...(remaining?[{id:`groceries:${remaining}`,title:`${remaining} groceries remaining`,detail:"Your shared list is ready",Icon:ShoppingCart,tab:"groceries",tone:"mint"}]:[]),...(kitchenAttention.length?[{id:`kitchen:${kitchenAttention.map(item=>item.id).join(",")}`,title:`${kitchenAttention.length} fresh item${kitchenAttention.length===1?" needs":"s need"} attention`,detail:"Use it soon or add a replacement",Icon:Refrigerator,tab:"kitchen",tone:"mint"}]:[])],[due,today,todaysEvents,remaining,kitchenAttention]);
   const unread=notices.filter(notice=>!readIds.includes(notice.id));
   const markRead=(ids)=>{const next=[...new Set([...readIds,...ids])].slice(-60);setReadIds(next);localStorage.setItem("familyos:read-notifications",JSON.stringify(next));};
   // New chat messages get their own live notice, tracked by chat read-state
