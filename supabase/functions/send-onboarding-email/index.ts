@@ -20,6 +20,28 @@ const escapeHtml = (value = "") =>
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 
+// ─── Tracking injection ────────────────────────────────────────────
+
+function injectTracking(html: string, emailId: string, trackingBase: string): string {
+  // 1. Inject open-tracking pixel before </body>
+  const pixelUrl = `${trackingBase}/open/${emailId}`;
+  const pixelTag = `<img src="${escapeHtml(pixelUrl)}" width="1" height="1" alt="" style="display:block;position:absolute;overflow:hidden;opacity:0;pointer-events:none" />`;
+  let tracked = html.replace(/<\/body>/i, `${pixelTag}</body>`);
+
+  // 2. Rewrite <a href="..."> links to go through the click tracker.
+  //    Only rewrite links that point to the app origin (fam-os.app / home.fam-os.app).
+  tracked = tracked.replace(
+    /<a\s+[^>]*href="(https?:\/\/(?:home\.)?fam-os\.app[^"|\s]*)"/gi,
+    (match, url) => {
+      const encoded = encodeURIComponent(url);
+      const trackUrl = `${trackingBase}/click/${emailId}?url=${encoded}`;
+      return match.replace(url, trackUrl);
+    }
+  );
+
+  return tracked;
+}
+
 // ─── Email templates ────────────────────────────────────────────────
 
 const EMAIL_TEMPLATES: Record<
@@ -438,7 +460,7 @@ Deno.serve(async (request) => {
 
     const template = EMAIL_TEMPLATES[email_type]({ firstName, householdName, appOrigin });
 
-    // Upsert tracking row
+    // Upsert tracking row — must happen BEFORE tracking injection
     const trackingPayload = {
       household_id,
       user_id,
@@ -463,6 +485,10 @@ Deno.serve(async (request) => {
       trackingId = inserted?.id;
     }
 
+    // Inject open/click tracking into the HTML (needs the tracking row ID)
+    const trackingBase = `${Deno.env.get("SUPABASE_URL")}/functions/v1/track-email-event`;
+    const trackedHtml = injectTracking(template.html, trackingId || "unknown", trackingBase);
+
     // Send via Resend
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -474,7 +500,7 @@ Deno.serve(async (request) => {
         from: fromEmail,
         to: [userEmail],
         subject: template.subject,
-        html: template.html,
+        html: trackedHtml,
         text: template.text,
         tags: [{ name: "category", value: `onboarding-${email_type}` }],
       }),

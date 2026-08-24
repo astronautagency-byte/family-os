@@ -398,6 +398,78 @@ function SupportMessageDetail({ id, onClose, onChanged, onDeleted }) {
   </div>;
 }
 
+function EmailAnalytics() {
+  const [stats, setStats] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [recentEvents, setRecentEvents] = useState([]);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      const [statsResult, eventsResult] = await Promise.all([
+        supabase.from("onboarding_email_stats").select("*"),
+        supabase.from("onboarding_email_events")
+          .select("*, onboarding_emails(email_type)")
+          .order("created_at", { ascending: false })
+          .limit(50),
+      ]);
+      setStats(statsResult.data || []);
+      setRecentEvents(eventsResult.data || []);
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  const emailTypeLabels = {
+    welcome: "Welcome",
+    day1_quick_wins: "Day 1 — Quick Wins",
+    day3_tips: "Day 3 — Tips",
+    day7_recap: "Day 7 — Recap",
+    day14_missing: "Day 14 — What You're Missing",
+    day21_nudge: "Day 21 — Trial Nudge",
+    day28_final: "Day 28 — Final Notice",
+  };
+
+  if (loading) return <Card className="admin-panel"><PanelHead eyebrow="Email marketing" title="Email analytics" icon={Mail} /><p className="admin-empty">Loading email analytics…</p></Card>;
+
+  return (
+    <>
+      <section className="admin-metrics-grid">
+        {stats.map((row) => (
+          <Metric
+            key={row.email_type}
+            icon={Mail}
+            label={emailTypeLabels[row.email_type] || row.email_type}
+            value={`${row.open_rate_pct || 0}%`}
+            detail={`${row.total_sent} sent · ${row.unique_clicks} clicked`}
+            tone="fam"
+          />
+        ))}
+        {!stats.length && <Card className="admin-panel"><PanelHead eyebrow="Email marketing" title="Email analytics" icon={Mail} /><p className="admin-empty">No lifecycle emails sent yet. Analytics will appear after the first onboarding completes.</p></Card>}
+      </section>
+      <Card className="admin-table-card">
+        <div className="admin-table-tools">
+          <div><small>Email marketing</small><h2>Recent email events</h2></div>
+        </div>
+        <table>
+          <thead><tr><th>Email type</th><th>Event</th><th>Link</th><th>Timestamp</th></tr></thead>
+          <tbody>
+            {recentEvents.map((event) => (
+              <tr key={event.id}>
+                <td><strong>{emailTypeLabels[event.email_type] || event.email_type}</strong></td>
+                <td><span className={`admin-support-status ss-${event.event_type === "open" ? "read" : "replied"}`}>{event.event_type}</span></td>
+                <td>{event.link_url ? <small style={{wordBreak:"break-all"}}>{event.link_url}</small> : <small style={{color:"var(--text-muted)"}}>—</small>}</td>
+                <td><time>{new Date(event.created_at).toLocaleString()}</time></td>
+              </tr>
+            ))}
+            {!recentEvents.length && <tr><td colSpan={4} className="admin-empty">No events recorded yet.</td></tr>}
+          </tbody>
+        </table>
+      </Card>
+    </>
+  );
+}
+
 export default function Admin() {
   const [checking, setChecking] = useState(true); const [session, setSession] = useState(null); const [allowed, setAllowed] = useState(false);
   const [section, setSection] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("recovery") === "1" ? "account" : "overview"); const [overview, setOverview] = useState({}); const [analytics, setAnalytics] = useState({});
@@ -469,7 +541,7 @@ export default function Admin() {
   if (!allowed) return <main className={`admin-denied ${themeClass}`} data-color-scheme={colorScheme}><XCircle /><h1>Admin access required</h1><p>{error}</p><button onClick={async () => { await supabase.auth.signOut(); setSession(null); }}>Use another account</button></main>;
   if (supportSelected) return <main className={`admin-shell admin-detail-shell ${themeClass}`} data-color-scheme={colorScheme}><SupportMessageDetail id={supportSelected} onClose={() => setSupportSelected(null)} onChanged={() => setSupportRefreshKey((prev) => prev + 1)} onDeleted={() => { setSupportSelected(null); setSupportRefreshKey((prev) => prev + 1); }} /></main>;
   if (selected) return <main className={`admin-shell admin-detail-shell ${themeClass}`} data-color-scheme={colorScheme}><HouseholdDetail id={selected} onClose={() => setSelected(null)} onChanged={load} onDelete={setDeleteTarget} /><ConfirmDelete target={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={confirmDelete} busy={deleteBusy} error={deleteError} /></main>;
-  const nav = [["overview", "Overview", LayoutDashboard], ["operations", "Operations", Gauge], ["families", "Families", Building2], ["users", "Users", Users], ["revenue", "Revenue", BadgeDollarSign], ["promotions", "Promotions", Tag], ["support", "Support", MessageCircle, supportCounts.new], ["flags", "Feature flags", Flag], ["audit", "Audit log", ShieldCheck], ["account", "Admin account", Settings2]];
+  const nav = [["overview", "Overview", LayoutDashboard], ["operations", "Operations", Gauge], ["families", "Families", Building2], ["users", "Users", Users], ["revenue", "Revenue", BadgeDollarSign], ["promotions", "Promotions", Tag], ["emails", "Email analytics", Mail], ["support", "Support", MessageCircle, supportCounts.new], ["flags", "Feature flags", Flag], ["audit", "Audit log", ShieldCheck], ["account", "Admin account", Settings2]];
   const activePercent = overview.households ? Math.round(Number(analytics.activeHouseholds30d || 0) / Number(overview.households) * 100) : 0;
   return <div className={`admin-shell ${themeClass}`} data-color-scheme={colorScheme}>    <aside><div className="admin-brand"><span className="admin-brand-icon"><img src="/brand/famos-icon.png" alt="FamOS" /></span><strong>Fam<span>OS</span></strong><small>Admin</small></div><nav>{nav.map(([key, label, Icon, badge]) => <button key={key} className={section === key ? "active" : ""} onClick={() => setSection(key)}><Icon size={18} />{badge ? <span className="admin-dot" /> : null}{label}{badge ? <span className="admin-badge">{badge}</span> : null}</button>)}</nav><button className="admin-signout" onClick={async () => { await supabase.auth.signOut(); setSession(null); }}><LogOut size={17} /> Sign out</button></aside>
     <main><header className="admin-topbar"><div><span className="admin-kicker"><ShieldCheck size={13} /> Operations center</span><h1>{nav.find(([key]) => key === section)?.[1]}</h1></div><div className="admin-topbar-actions">{["overview", "revenue"].includes(section) && <select aria-label="Statistics period" value={range} onChange={(event) => setRange(Number(event.target.value))}><option value="7">7 days</option><option value="14">14 days</option><option value="30">30 days</option><option value="90">90 days</option><option value="180">6 months</option><option value="365">12 months</option><option value="730">24 months</option></select>}<div className="admin-operator"><span>{session.user.email?.[0]?.toUpperCase()}</span><small>{session.user.email}</small></div></div></header>
@@ -502,6 +574,7 @@ export default function Admin() {
         <section className="admin-revenue-grid"><Card className="admin-panel admin-main-chart"><PanelHead eyebrow="Cash intelligence" title="Net revenue collected" icon={BadgeDollarSign} /><div className="admin-chart-summary"><strong>{money(analytics.revenueCollectedCents, overview.currency)}</strong><span>payments less refunds</span></div><TrendChart series={analytics.series} valueKey="revenueCents" currency /></Card><Card className="admin-panel admin-plan-mix"><PanelHead eyebrow="Subscriptions" title="Plan mix" icon={CreditCard} /><div>{(analytics.plans || []).map((plan) => <article key={`${plan.plan}-${plan.status}`}><span><i className={`status-${plan.status}`} />{plan.plan}</span><strong>{plan.accounts}</strong><small>{plan.status} · {money(plan.mrrCents)} MRR</small></article>)}{!analytics.plans?.length && <p className="admin-empty">No subscriptions recorded yet.</p>}</div></Card></section>
         <TopFamilies families={analytics.topFamilies} onOpen={setSelected} /><HouseholdTable households={households} onOpen={setSelected} search={search} setSearch={setSearch} title="Revenue by family" /></>}
       {section === "promotions" && <Promotions />}
+      {section === "emails" && <EmailAnalytics />}
       {section === "support" && <SupportMessagesTable messages={supportMessages} onOpen={(id) => { setSupportSelected(id); setSupportRefreshKey((prev) => prev + 1); }} categoryFilter={supportCategoryFilter} setCategoryFilter={setSupportCategoryFilter} statusFilter={supportStatusFilter} setStatusFilter={setSupportStatusFilter} archiveFilter={supportArchiveFilter} setArchiveFilter={setSupportArchiveFilter} search={supportSearch} setSearch={setSupportSearch} />}
       {section === "flags" && <Card className="admin-panel"><PanelHead eyebrow="Per-family controls" title="Feature management" icon={Settings2} /><p className="admin-section-copy">Open a family to configure calendars, meals, groceries, tasks, chat, Fam AI, finance, and communication entitlements.</p><HouseholdTable households={households} onOpen={setSelected} search={search} setSearch={setSearch} /></Card>}
       {section === "audit" && <Card className="admin-table-card"><div className="admin-table-tools"><div><small>Security</small><h2>Admin activity</h2></div></div><div className="admin-audit-list">{audit.map((entry) => <article key={entry.id}><span><ShieldCheck size={15} /></span><div><strong>{entry.action.replaceAll("_", " ")}</strong><small>{entry.admin_email} · {entry.target_type} {entry.target_id}</small></div><time>{date(entry.created_at)}</time></article>)}{!audit.length && <div className="admin-empty">No admin actions yet.</div>}</div></Card>}
