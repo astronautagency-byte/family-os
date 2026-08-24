@@ -459,7 +459,7 @@
 
 .feature-hero-phone{position:relative;width:min(420px,90%);padding:0;z-index:1}
 .feature-hero-phone-screen{display:block;width:100%;height:auto;background:transparent;position:relative;z-index:1;border-radius:24px;box-shadow:0 20px 50px rgba(23,23,31,.15)}
-.feature-hero-phone-css{width:100%;aspect-ratio:9/16;max-height:480px;border-radius:28px;background:#fff;border:1px solid rgba(23,23,31,.08);box-shadow:0 18px 42px rgba(23,23,31,.1);overflow:hidden;display:flex;flex-direction:column}
+.feature-hero-phone-css{width:100%;aspect-ratio:9/16;max-height:480px;border-radius:24px;background:#fff;border:1px solid rgba(23,23,31,.08);box-shadow:0 18px 42px rgba(23,23,31,.1);overflow:hidden;display:flex;flex-direction:column}
 .feature-hero-phone-header{height:28px;display:flex;align-items:center;justify-content:center;background:#f9fafb}
 .feature-hero-phone-notch{width:80px;height:6px;border-radius:3px;background:rgba(23,23,31,.08)}
 .feature-hero-phone-content{flex:1;padding:20px 16px;display:flex;flex-direction:column;gap:8px;font-family:var(--font-sans);font-size:12px;color:#374151}
@@ -585,7 +585,7 @@
 }
 .feature-hero-stage-tablet .feature-hero-phone-screen{
   width:100%;
-  border-radius:22px;
+  border-radius:24px;
   filter:drop-shadow(0 24px 34px rgba(23,23,31,.16));
 }
 @media(max-width:900px){
@@ -612,7 +612,8 @@
 
 @media(max-width:600px){
   /* Feature-page mockups are wide banners on mobile, so keep their edges soft. */
-  .feature-hero-phone-screen{border-radius:20px}
+  .feature-hero-phone-screen{border-radius:16px}
+  .feature-hero-stage-tablet .feature-hero-phone-screen{border-radius:16px}
 }
 
 @media(prefers-reduced-motion:reduce){
