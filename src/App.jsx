@@ -571,30 +571,37 @@ export default function App() {
   }, [configured, session, household?.id]);
 
   const startFeatureCheckout = async (feature) => {
+    console.log("[billing] startFeatureCheckout called:", feature);
     setBillingBusy(true);
     setBillingError("");
     try {
+      console.log("[billing] invoking create-checkout-session...");
       const result = await supabase.functions.invoke("create-checkout-session", { body: { feature, billing: "monthly" } });
+      console.log("[billing] edge function result:", JSON.stringify({ hasData: !!result.data, hasError: !!result.error, dataKeys: result.data ? Object.keys(result.data) : null }));
       const { data, error } = result;
       if (error) {
         let message = data?.error || error.message || "Could not start checkout.";
+        console.log("[billing] edge error:", message);
         try {
           const resp = error?.context;
           if (resp && typeof resp.json === "function") {
             const body = await resp.json();
+            console.log("[billing] error body:", JSON.stringify(body));
             if (body?.error) message = body.error;
-            if (body?.url) { window.location.assign(body.url); return; }
+            if (body?.url) { setBillingBusy(false); window.location.href = body.url; return; }
           } else if (resp?.error) { message = resp.error; }
-          else if (resp?.url) { window.location.assign(resp.url); return; }
+          else if (resp?.url) { setBillingBusy(false); window.location.href = resp.url; return; }
         } catch { /* fall through */ }
         throw new Error(message);
       }
-      if (!data?.url) throw new Error("Secure checkout could not be opened.");
-      window.location.assign(data.url);
-    } catch (err) {
-      console.error("Feature checkout error:", err);
+      if (!data?.url) { throw new Error("Checkout returned no URL."); }
+      console.log("[billing] navigating to:", data.url);
       setBillingBusy(false);
-      setBillingError(err?.message || "Could not open secure checkout. Please try again.");
+      window.location.href = data.url;
+    } catch (err) {
+      console.error("[billing] FAILED:", err);
+      setBillingBusy(false);
+      setBillingError(err?.message || "Could not open secure checkout.");
     }
   };
 

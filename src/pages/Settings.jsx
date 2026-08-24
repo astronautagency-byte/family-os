@@ -795,29 +795,46 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
   };
 
   const addPaidFeature = async (feature, billing = "monthly") => {
+    console.log("[billing] addPaidFeature called:", { feature, billing });
     setBillingError("");
     setBillingBusy(feature);
     try {
+      console.log("[billing] invoking create-checkout-session...");
       const result = await supabase.functions.invoke("create-checkout-session", { body: { feature, billing } });
+      console.log("[billing] edge function returned:", JSON.stringify({ hasData: !!result.data, hasError: !!result.error, dataKeys: result.data ? Object.keys(result.data) : null, errorMessage: result.error?.message }));
       const { data, error } = result;
       if (error) {
         let message = data?.error || error.message || "Could not start checkout.";
-        // Try to extract the server-side error from the response body
+        console.log("[billing] edge error:", message);
         try {
           const resp = error?.context;
           if (resp && typeof resp.json === "function") {
             const body = await resp.json();
+            console.log("[billing] error body:", JSON.stringify(body));
             if (body?.error) message = body.error;
+            if (body?.url) {
+              console.log("[billing] redirecting to portal URL from error body");
+              window.location.href = body.url;
+              return;
+            }
           } else if (resp && typeof resp === "object") {
             if (resp.error) message = resp.error;
+            if (resp.url) {
+              console.log("[billing] redirecting to portal URL from resp");
+              window.location.href = resp.url;
+              return;
+            }
           }
-        } catch { /* fall through to client message */ }
+        } catch (parseErr) { console.log("[billing] error parse failed:", parseErr); }
         throw new Error(message);
       }
-      if (!data?.url) throw new Error("Checkout session was created but no URL was returned. Please try again.");
-      window.location.assign(data.url);
+      if (!data?.url) throw new Error("Checkout session was created but no URL was returned.");
+      console.log("[billing] navigating to:", data.url);
+      // Use assignment with a small delay to ensure state is visible before nav
+      setBillingBusy(null);
+      window.location.href = data.url;
     } catch (err) {
-      console.error("Billing checkout error:", err);
+      console.error("[billing] FAILED:", err);
       setBillingError(err?.message || "Could not open secure checkout. Please try again.");
       setBillingBusy(null);
     }
