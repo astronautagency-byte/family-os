@@ -574,13 +574,27 @@ export default function App() {
     setBillingBusy(true);
     setBillingError("");
     try {
-      const { data, error } = await supabase.functions.invoke("create-checkout-session", { body: { feature, billing: "monthly" } });
-      if (error) throw error;
+      const result = await supabase.functions.invoke("create-checkout-session", { body: { feature, billing: "monthly" } });
+      const { data, error } = result;
+      if (error) {
+        let message = data?.error || error.message || "Could not start checkout.";
+        try {
+          const resp = error?.context;
+          if (resp && typeof resp.json === "function") {
+            const body = await resp.json();
+            if (body?.error) message = body.error;
+            if (body?.url) { window.location.assign(body.url); return; }
+          } else if (resp?.error) { message = resp.error; }
+          else if (resp?.url) { window.location.assign(resp.url); return; }
+        } catch { /* fall through */ }
+        throw new Error(message);
+      }
       if (!data?.url) throw new Error("Secure checkout could not be opened.");
       window.location.assign(data.url);
-    } catch (error) {
+    } catch (err) {
+      console.error("Feature checkout error:", err);
       setBillingBusy(false);
-      setBillingError(error?.message || "Could not open secure checkout.");
+      setBillingError(err?.message || "Could not open secure checkout. Please try again.");
     }
   };
 

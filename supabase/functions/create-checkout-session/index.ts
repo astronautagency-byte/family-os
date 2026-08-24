@@ -68,6 +68,15 @@ Deno.serve(async (req) => {
       .eq("household_id", membership.household_id)
       .maybeSingle();
     if (current?.stripe_subscription_id && ["active", "trial", "trialing", "past_due"].includes(current.status)) {
+      // Already subscribed — redirect to the billing portal so the user can upgrade from there
+      if (current.stripe_customer_id) {
+        const stripePortal = new Stripe(stripeKey, { apiVersion: "2024-06-20" });
+        const portalSession = await stripePortal.billingPortal.sessions.create({
+          customer: current.stripe_customer_id,
+          return_url: `${frontend}/settings`,
+        });
+        return respond({ url: portalSession.url, message: "Redirecting to billing portal to manage your subscription." });
+      }
       return respond({ error: "This household already has a Stripe subscription. Use Manage billing to change it." }, 409);
     }
 
