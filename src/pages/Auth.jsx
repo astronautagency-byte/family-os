@@ -539,6 +539,14 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
       avatarUrl,
     });
     if (draftKey) localStorage.removeItem(draftKey);
+    // Send invites to family members with contact info (background, non-blocking)
+    const membersWithContact = onboardingFamilyMembers.filter((m) => m.firstName.trim() && (m.email?.trim() || m.phone?.trim()));
+    if (membersWithContact.length && household?.id) {
+      const deliveryChannel = memberDeliveryChannel || "both";
+      for (const member of membersWithContact) {
+        invitePartner(member.email?.trim() || "", member.phone?.trim() || "", member.firstName.trim(), deliveryChannel).catch(() => {});
+      }
+    }
     if (promoApplied) {
       markOnboardingComplete();
       localStorage.setItem(`family-os:onboarding-trial-confirmation:${session.user.id}`, "promo");
@@ -728,7 +736,7 @@ const REVISED_SCHEDULE_SOURCES = [
 function RevisedOwnerProfileStep({ familyMembers, setFamilyMembers, interests, toggleInterest, scheduleSources, toggleScheduleSource, scheduleFeedUrl, setScheduleFeedUrl, busy, onSave, promoCode, setPromoCode, promoBusy, setPromoBusy, promoResult, setPromoResult, promoApplied, setPromoApplied, step, setStep, trialConfirmation, onComplete, signInWithGoogle, googleProviderToken }) {
   const steps = ["Your family", "What keeps you busy?", "Bring in your schedule", "Your family is ready", "Unlock FamOS"];
   const updateMember = (index, key, value) => setFamilyMembers((current) => current.map((member, memberIndex) => memberIndex === index ? { ...member, [key]: value } : member));
-  const addMember = () => setFamilyMembers((current) => [...current, { firstName: "", relationship: "", birthday: "" }]);
+  const addMember = () => setFamilyMembers((current) => [...current, { firstName: "", relationship: "", birthday: "", email: "", phone: "" }]);
   const removeMember = (index) => setFamilyMembers((current) => current.length === 1 ? current : current.filter((_, memberIndex) => memberIndex !== index));
   const canContinue = step === 0 ? familyMembers.some((member) => member.firstName.trim()) : true;
 
@@ -739,15 +747,20 @@ function RevisedOwnerProfileStep({ familyMembers, setFamilyMembers, interests, t
       <OnboardingProgress steps={steps} current={step} />
       <div className="guided-onboarding-panel">
         {step === 0 && <>
-          <div className="onboarding-value-heading"><UsersRound size={19} /><div><strong>Add your family</strong><span>Add the people you plan around. You can add or edit members later.</span></div></div>
-          <div className="revised-family-list">
+          <div className="onboarding-value-heading"><UsersRound size={19} /><div><strong>Add your family</strong><span>Add the people you plan around. You can add or edit members later.</span></div></div>          <div className="revised-family-list">
             {familyMembers.map((member, index) => <div className="revised-family-row" key={index}>
-              <TextField label="First name" placeholder="e.g. Leo" value={member.firstName} onChange={(event) => updateMember(index, "firstName", event.target.value)} />
-              <TextField label="Relationship" placeholder="e.g. child" value={member.relationship} onChange={(event) => updateMember(index, "relationship", event.target.value)} />
-              <TextField type="date" label="Birthday" value={member.birthday} onChange={(event) => updateMember(index, "birthday", event.target.value)} />
-              {familyMembers.length > 1 && <button type="button" className="revised-remove-member" onClick={() => removeMember(index)} aria-label={`Remove ${member.firstName || `family member ${index + 1}`}`}><Trash2 size={15} /></button>}
-            </div>)}
-          </div>
+              <div className="revised-family-row-main">
+                <TextField label="First name" placeholder="e.g. Leo" value={member.firstName} onChange={(event) => updateMember(index, "firstName", event.target.value)} />
+                <TextField label="Relationship" placeholder="e.g. child" value={member.relationship} onChange={(event) => updateMember(index, "relationship", event.target.value)} />
+                <TextField type="date" label="Birthday" value={member.birthday} onChange={(event) => updateMember(index, "birthday", event.target.value)} />
+                {familyMembers.length > 1 && <button type="button" className="revised-remove-member" onClick={() => removeMember(index)} aria-label={`Remove ${member.firstName || `family member ${index + 1}`}`}><Trash2 size={15} /></button>}
+              </div>
+              <div className="revised-family-row-invite">
+                <span className="revised-invite-label"><Mail size={13} /> Invite (optional)</span>
+                <TextField type="email" label="Email" placeholder="sam@example.com" value={member.email || ""} onChange={(event) => updateMember(index, "email", event.target.value)} autoComplete="email" />
+                <TextField type="tel" label="Mobile" placeholder="+1 (416) 555-0123" value={member.phone || ""} onChange={(event) => updateMember(index, "phone", formatPhoneInput(event.target.value))} autoComplete="tel" inputMode="tel" />
+              </div>
+            </div>)}</div>
           <button type="button" className="onboarding-add-invite" onClick={addMember}><Plus size={16} /> Add another person</button>
         </>}
         {step === 1 && <>
