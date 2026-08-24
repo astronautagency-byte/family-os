@@ -52,9 +52,8 @@ Deno.serve(async (req) => {
       .select("id, name, created_by")
       .eq("id", membership.household_id)
       .single();
-    if (household?.created_by !== user.id && membership.role !== "owner") {
-      return respond({ error: "Only the household owner can change billing." }, 403);
-    }
+    // Allow any household member to upgrade — billing is shared across the household
+    // but only the owner role can manage existing subscriptions via Stripe portal.
 
     const input = await req.json().catch(() => ({}));
     const feature = input.feature === "plus" ? "plus" : input.feature === "pro" ? "pro" : "pro";

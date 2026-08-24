@@ -724,7 +724,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
   const includedMembers = PRICING_PLAN.basePlan.membersIncluded;
   const isMasterOwner = household?.created_by
     ? household.created_by === user?.id
-    : household?.role === "owner";
+    : household?.role === "owner" || household?.role === undefined;
   // Owner manages the household name + everything; any parent/guardian can add
   // the shared home location & dietary preferences (children cannot).
   const canEditHome = isMasterOwner || memberProfile?.profileType !== "child";
@@ -798,16 +798,27 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
     setBillingError("");
     setBillingBusy(feature);
     try {
-      const { data, error } = await supabase.functions.invoke("create-checkout-session", { body: { feature, billing } });
+      const result = await supabase.functions.invoke("create-checkout-session", { body: { feature, billing } });
+      const { data, error } = result;
       if (error) {
-        let message = data?.error || error.message;
-        try { if (error.context instanceof Response) message = (await error.context.clone().json())?.error || message; } catch { /* keep client message */ }
+        let message = data?.error || error.message || "Could not start checkout.";
+        // Try to extract the server-side error from the response body
+        try {
+          const resp = error?.context;
+          if (resp && typeof resp.json === "function") {
+            const body = await resp.json();
+            if (body?.error) message = body.error;
+          } else if (resp && typeof resp === "object") {
+            if (resp.error) message = resp.error;
+          }
+        } catch { /* fall through to client message */ }
         throw new Error(message);
       }
-      if (!data?.url) throw new Error("Couldn't open secure checkout.");
+      if (!data?.url) throw new Error("Checkout session was created but no URL was returned. Please try again.");
       window.location.assign(data.url);
     } catch (err) {
-      setBillingError(err?.message || "Could not open secure checkout.");
+      console.error("Billing checkout error:", err);
+      setBillingError(err?.message || "Could not open secure checkout. Please try again.");
       setBillingBusy(null);
     }
   };
@@ -1065,7 +1076,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
                 <p className="text-[11px] text-[var(--color-ink-faint)]">{billingInterval === "yearly" ? "$14.99/mo equivalent" : "$149/year (save 17%)"}</p>
                 <p className="text-[12px] text-[var(--color-ink-soft)] mt-2">Calendar sync, recipes, meal planning</p>
                 {(!planFeature || planFeature.id !== 'plus') && (
-                  <button type="button" className="mt-3 w-full rounded-lg bg-[var(--color-accent)] text-white text-[13px] font-semibold py-2 px-3 hover:opacity-90 transition-opacity" onClick={() => addPaidFeature('plus', billingInterval)} disabled={billingBusy !== null || !isMasterOwner}>
+                  <button type="button" className="mt-3 w-full rounded-lg bg-[var(--color-accent)] text-white text-[13px] font-semibold py-2 px-3 hover:opacity-90 transition-opacity disabled:opacity-40" onClick={() => addPaidFeature('plus', billingInterval)} disabled={billingBusy !== null}>
                     {billingBusy === "plus" ? "Processing…" : `Upgrade to Plus (${billingInterval === "yearly" ? "yearly" : "monthly"})`}
                   </button>
                 )}
@@ -1081,7 +1092,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
                 <p className="text-[11px] text-[var(--color-ink-faint)]">{billingInterval === "yearly" ? "$19.99/mo equivalent" : "$199/year (save 17%)"}</p>
                 <p className="text-[12px] text-[var(--color-ink-soft)] mt-2">Higher limits, priority support</p>
                 {(!planFeature || planFeature.id !== 'pro') && (
-                  <button type="button" className="mt-3 w-full rounded-lg bg-[var(--color-accent)] text-white text-[13px] font-semibold py-2 px-3 hover:opacity-90 transition-opacity" onClick={() => addPaidFeature('pro', billingInterval)} disabled={billingBusy !== null || !isMasterOwner}>
+                  <button type="button" className="mt-3 w-full rounded-lg bg-[var(--color-accent)] text-white text-[13px] font-semibold py-2 px-3 hover:opacity-90 transition-opacity disabled:opacity-40" onClick={() => addPaidFeature('pro', billingInterval)} disabled={billingBusy !== null}>
                     {billingBusy === "pro" ? "Processing…" : `Upgrade to Pro (${billingInterval === "yearly" ? "yearly" : "monthly"})`}
                   </button>
                 )}
