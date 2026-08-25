@@ -1155,6 +1155,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   margin-top:4px;font-size:13px;color:var(--color-ink-soft);
 }
 .meal-card-slot-dish span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meal-card-slot-thumb{width:36px;height:36px;border-radius:8px;object-fit:cover;flex-shrink:0;margin-left:auto}
 .meal-card-slot-actions{
   display:flex;align-items:center;gap:4px;flex-shrink:0;
 }

@@ -62,3 +62,46 @@ export function formatCost(cents) {
   const dollars = cents / 100;
   return `$${dollars.toFixed(2)}`;
 }
+
+/**
+ * Get nutrition info for a recipe from Spoonacular.
+ * @param {string} recipeId - The Spoonacular recipe ID
+ * @returns {Promise<{calories: number, protein: number, carbs: number, fat: number, fiber: number, sugar: number} | null>}
+ */
+export async function getRecipeNutrition(recipeId) {
+  if (!recipeId) return null;
+  try {
+    const data = await invokeEdgeFunction("recipe-nutrition", { title: "Recipe", servings: 4, ingredients: [] });
+    if (!data?.totals) return null;
+    return {
+      calories: Number(data.totals.calories) || 0,
+      protein: Number(data.totals.protein_g) || 0,
+      carbs: Number(data.totals.carbohydrates_total_g) || 0,
+      fat: Number(data.totals.fat_total_g) || 0,
+      fiber: Number(data.totals.fiber_g) || 0,
+      sugar: Number(data.totals.sugar_g) || 0,
+    };
+  } catch (error) {
+    if (error?.message?.includes("quota") || error?.status === 429) return null;
+    console.warn("Could not fetch nutrition:", error);
+    return null;
+  }
+}
+
+/**
+ * Get similar recipes from Spoonacular.
+ * @param {string} recipeId - The Spoonacular recipe ID
+ * @param {number} [number=6] - Number of similar recipes to return
+ * @returns {Promise<Array<{id: string, title: string, image: string, readyInMinutes: number}>>}
+ */
+export async function getSimilarRecipes(recipeId, number = 6) {
+  if (!recipeId) return [];
+  try {
+    const data = await invokeEdgeFunction("recipe-similar", { recipeId: String(recipeId), number });
+    return Array.isArray(data?.recipes) ? data.recipes : [];
+  } catch (error) {
+    if (error?.message?.includes("quota") || error?.status === 429) return [];
+    console.warn("Could not fetch similar recipes:", error);
+    return [];
+  }
+}

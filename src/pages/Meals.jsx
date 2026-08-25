@@ -777,6 +777,8 @@ export default function Meals({ entitlements = null, goTo } = {}) {
       title: planningRecipe.title,
       notes: `Saved recipe · ${planningRecipe.cuisine || "Family favourite"}`,
       cookIds: [],
+      source: "spoonacular",
+      thumbnail: planningRecipe.thumbnail || "",
     });
     setPlanningRecipe(null);
   };
@@ -855,6 +857,9 @@ export default function Meals({ entitlements = null, goTo } = {}) {
                           </div>
                         )}
                       </div>
+                      {meal?.thumbnail ? (
+                        <img className="meal-card-slot-thumb" src={meal.thumbnail} alt="" loading="lazy" />
+                      ) : null}
                       {meal?.title ? (
                         <div className="meal-card-slot-actions">
                           {(() => {
@@ -1124,6 +1129,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
                         notes: `Spoonacular recipe${recipe.id ? ` · ${recipe.id}` : ""}`,
                         cookIds: [],
                         source: "spoonacular",
+                        thumbnail: recipe.thumbnail || "",
                       });
                       // Discovery only returns recipes already verified to have
                       // ingredients and instructions, so Cook Mode can open the
