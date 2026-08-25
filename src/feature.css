@@ -305,6 +305,7 @@
   display:flex;align-items:flex-end;justify-content:space-between;gap:28px;
   padding:4px 6px 18px
 }
+.features-dropdown-hero-copy{min-width:0;flex:1 1 0%}
 .features-dropdown-hero-eyebrow{
   margin:0 0 6px;color:var(--landing-color-primary,#7952e8);
   font-size:11px;font-weight:850;letter-spacing:.12em;text-transform:uppercase
@@ -313,7 +314,9 @@
   margin:0 0 6px;color:#17171f;font:760 23px/1.1 var(--font-display);letter-spacing:-.02em
 }
 .features-dropdown-hero-sub{
-  display:block;max-width:460px;color:#716953;font-size:12.5px;line-height:1.5
+  display:block;max-width:460px;color:#716953;font-size:12.5px;line-height:1.5;
+  overflow:hidden;text-overflow:ellipsis;display:-webkit-box;
+  -webkit-line-clamp:2;-webkit-box-orient:vertical
 }
 .features-dropdown-hero-actions{display:flex;gap:10px;flex:none}
 .features-dropdown-hero-cta{
