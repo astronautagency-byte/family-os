@@ -299,7 +299,7 @@ export default function App() {
     // Check if this tab requires a premium entitlement
     const entitlementKey = TAB_ENTITLEMENT_MAP[next];
     if (entitlementKey && entitlements && entitlements.features?.[entitlementKey] === false) {
-      setUpgradeFeature(entitlementKey === "fam_ai" ? "plus" : "plus");
+      setUpgradeFeature("pro");
       setBillingError("");
       return;
     }
@@ -721,7 +721,7 @@ export default function App() {
           <AppTopBar
             onOpenSettings={() => setTab("settings")}
             onNavigate={setTab}
-            onOpenFamAI={() => entitlements?.features?.fam_ai === false ? setUpgradeFeature("plus") : setFamAiOpen(true)}
+            onOpenFamAI={() => entitlements?.features?.fam_ai === false ? setUpgradeFeature("pro") : setFamAiOpen(true)}
             darkMode={darkMode}
             onToggleDarkMode={() => setDarkMode((value) => !value)}
             tabletMode={effectiveTabletMode}

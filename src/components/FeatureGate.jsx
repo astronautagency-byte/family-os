@@ -9,10 +9,10 @@ import FeaturePaywall from "./FeaturePaywall";
 
 // Maps feature keys from get_my_entitlements to billingCatalog plan IDs
 const FEATURE_TO_PLAN = {
-  fam_ai: "plus",
-  meals: "plus",
-  calendar_sync: "plus",
-  groceries_enriched: "plus",
+  fam_ai: "pro",
+  meals: "pro",
+  calendar_sync: "pro",
+  groceries_enriched: "pro",
 };
 
 export default function FeatureGate({ feature, entitlements, onUpgrade, busy = false, error = "", children }) {
@@ -20,7 +20,7 @@ export default function FeatureGate({ feature, entitlements, onUpgrade, busy = f
 
   if (hasAccess) return children;
 
-  const planId = FEATURE_TO_PLAN[feature] || "plus";
+  const planId = FEATURE_TO_PLAN[feature] || "pro";
 
   return (
     <FeaturePaywall

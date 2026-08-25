@@ -1054,6 +1054,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
               <div className="min-w-0 flex-1">
                 <p className="font-medium text-[14.5px] text-[var(--color-ink)]">
                   {planFeature ? planFeature.name : "FamOS Free"}
+                  {subStatusBadge && <span className="ml-2 inline-block rounded-full bg-[var(--color-accent-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--color-accent)]">{subStatusBadge.label}</span>}
                 </p>
                 <p className="text-[12.5px] text-[var(--color-ink-soft)] mt-0.5">
                   {planFeature ? planFeature.tagline : "Calendar, Tasks, Shopping, Chat and Kitchen Watch are free"}
