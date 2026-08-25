@@ -2,12 +2,12 @@
 // FamOS state (PRD §18). No LLM calls — these are pure rules over the
 // household snapshot, shown as chips/cards in the Ask Fam surface.
 
-import { todayISO, addDays } from "../dates";
+import { todayISO, addDays, eventDateLocal } from "../dates";
 
 export function getSuggestedPrompts(state = {}, screen = "") {
   const prompts = [];
   const today = todayISO();
-  const events = (state.events || []).filter((event) => event.start && event.start.slice(0, 10) === today);
+  const events = (state.events || []).filter((event) => event.start && eventDateLocal(event.start) === today);
   const openTasks = (state.tasks || []).filter((task) => !task.done);
   const groceries = (state.groceries || []).filter((item) => !item.checked);
   const meals = (state.meals || []).filter((meal) => meal.date === today);
@@ -87,7 +87,7 @@ export function getSuggestedPrompts(state = {}, screen = "") {
 export function getSuggestedActions(state = {}) {
   const actions = [];
   const today = todayISO();
-  const events = (state.events || []).filter((event) => event.start && event.start.slice(0, 10) === today);
+  const events = (state.events || []).filter((event) => event.start && eventDateLocal(event.start) === today);
   const openTasks = (state.tasks || []).filter((task) => !task.done);
   const openGroceries = (state.groceries || []).filter((item) => !item.checked);
   const meals = (state.meals || []).filter((meal) => meal.date === today);

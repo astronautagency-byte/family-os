@@ -2,7 +2,7 @@
 // The context blob sent to any LLM is built here and is deliberately small —
 // members summary + minimal scoped entities, never full household history.
 
-import { todayISO, formatDayLabel, formatTime, addDays } from "../dates";
+import { todayISO, formatDayLabel, formatTime, addDays, eventDateLocal } from "../dates";
 
 export function buildCompactContext(state = {}) {
   const members = (state.members || []).map((member) => ({
@@ -35,7 +35,7 @@ export function answerGetSchedule(route) {
 export function answerGetToday(state = {}) {
   const today = todayISO();
   const events = (state.events || [])
-    .filter((event) => event.start && event.start.slice(0, 10) === today)
+    .filter((event) => event.start && eventDateLocal(event.start) === today)
     .sort((a, b) => (a.start || "").localeCompare(b.start || ""));
   const tasks = (state.tasks || []).filter((task) => !task.done && (!task.due || task.due <= today));
   const groceries = (state.groceries || []).filter((item) => !item.checked);
@@ -110,7 +110,7 @@ export function answerGetConflicts(state = {}) {
 export function answerReadiness(state = {}) {
   const today = todayISO();
   const next7 = Array.from({ length: 7 }, (_, i) => addDays(today, i));
-  const events = (state.events || []).filter((event) => event.start && next7.includes(event.start.slice(0, 10)));
+  const events = (state.events || []).filter((event) => event.start && next7.includes(eventDateLocal(event.start)));
   const openTasks = (state.tasks || []).filter((task) => !task.done);
   const openGroceries = (state.groceries || []).filter((item) => !item.checked);
 

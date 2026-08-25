@@ -2,6 +2,15 @@ export function todayISO() {
   return dateToISO(new Date());
 }
 
+// Extract the local-date portion from an ISO datetime string.
+// slice(0,10) on a UTC timestamp gives the wrong date when the event's
+// local time crosses midnight (e.g. 8 PM EDT → next day in UTC).
+export function eventDateLocal(isoStr) {
+  if (!isoStr) return "";
+  const d = new Date(isoStr);
+  return dateToISO(d);
+}
+
 export function dateToISO(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }

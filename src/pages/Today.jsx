@@ -9,7 +9,7 @@ import { Avatar, AvatarStack, Card, Checkbox, EmptyState } from "../components/u
 import PageHeader from "../components/PageHeader";
 import PullToRefresh from "../components/PullToRefresh";
 import { supabase } from "../lib/supabase";
-import { dailyEncouragement, formatTime, fullDateLabel, greetingInfo, todayISO } from "../lib/dates";
+import { dailyEncouragement, eventDateLocal, formatTime, fullDateLabel, greetingInfo, todayISO } from "../lib/dates";
 import useKitchenInventory from "../hooks/useKitchenInventory";
 import { expiringInventory } from "../lib/inventoryExpiry";
 import NativeAdBanner from "../components/NativeAdBanner";
@@ -421,7 +421,7 @@ export default function Today({ goTo }) {
   const allEvents = [...events, ...googleEvents, ...feedEvents];
 
   const todaysEvents = allEvents
-    .filter((e) => e.start.slice(0, 10) === today)
+    .filter((e) => eventDateLocal(e.start) === today)
     .sort((a, b) => a.start.localeCompare(b.start));
 
   // Shared ingredient cache (same key/format as Meals.jsx) so the grocery

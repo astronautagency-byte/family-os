@@ -10,7 +10,7 @@ import { AvatarStack, DateField, Modal, PrimaryButton, SecondaryButton, Segmente
 import PageHeader from "../components/PageHeader";
 import PullToRefresh from "../components/PullToRefresh";
 import ConfirmAction from "../components/ConfirmAction";
-import { formatDuration, formatTime, todayISO } from "../lib/dates";
+import { formatDuration, formatTime, todayISO, eventDateLocal } from "../lib/dates";
 import { fetchGooglePlaceSuggestions, googleMapsApiKey, loadGooglePlaces } from "../lib/googleMapsPlaces";
 import { invokeEdgeFunction } from "../lib/supabase";
 import { parseQuickAdd } from "../lib/quickCapture";
@@ -141,7 +141,7 @@ function CalendarTimeGrid({ dates, events, selectedDate, onSelectDate, onSelectE
     const end = event.end ? new Date(event.end) : null;
     return event.allDay === true || (start.getHours() === 0 && start.getMinutes() === 0 && (!end || end - start >= 23 * 60 * 60 * 1000));
   };
-  const allDayEvents = events.filter((event) => dates.some((date) => event.start.slice(0, 10) === iso(date)) && isAllDay(event));
+  const allDayEvents = events.filter((event) => dates.some((date) => eventDateLocal(event.start) === iso(date)) && isAllDay(event));
 
   // ── Drag to move / resize ────────────────────────────────────────
   // 1px of vertical movement = 1 minute (hour lines sit at hour*60px).
@@ -181,7 +181,7 @@ function CalendarTimeGrid({ dates, events, selectedDate, onSelectDate, onSelectE
       origHeight: Math.max(15, (new Date(event.end || event.start).getTime() - startDate.getTime()) / 60000),
       origStartMs: startDate.getTime(),
       origEndMs: new Date(event.end || event.start).getTime(),
-      dayIndex: dates.findIndex((d) => iso(d) === event.start.slice(0, 10)),
+      dayIndex: dates.findIndex((d) => iso(d) === eventDateLocal(event.start)),
       columnWidth: dayWidth,
       live: null,
     };
@@ -297,7 +297,7 @@ function CalendarTimeGrid({ dates, events, selectedDate, onSelectDate, onSelectE
           <div className="apple-time-columns">
             {dates.map((date) => {
               const key = iso(date);
-              const dateEvents = events.filter((event) => event.start.slice(0, 10) === key && !isAllDay(event));
+              const dateEvents = events.filter((event) => eventDateLocal(event.start) === key && !isAllDay(event));
               return <div className={`apple-time-column ${key === today ? "today" : ""}`} key={key}>
                 {hours.map((hour) => <i className="apple-hour-line" key={hour} style={{ top: `${(hour - CALENDAR_START_HOUR) * 60}px` }} />)}
                 {dateEvents.map((event) => {
@@ -612,7 +612,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
   [cells]);
 
   const dayEvents = useMemo(() =>
-    visibleEvents.filter(e => e.start.slice(0, 10) === selectedDate).sort((a, b) => a.start.localeCompare(b.start)),
+    visibleEvents.filter(e => eventDateLocal(e.start) === selectedDate).sort((a, b) => a.start.localeCompare(b.start)),
   [visibleEvents, selectedDate]);
 
   const monthLabel = month.toLocaleDateString("en-CA", { month: "long", year: "numeric" });
@@ -1014,7 +1014,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
     } catch { /* private mode / quota */ }
   }, [excludedNearbyCities]);
 
-  const dayEventCount = visibleEvents.filter(e => e.start.slice(0, 10) === selectedDate).length;
+  const dayEventCount = visibleEvents.filter(e => eventDateLocal(e.start) === selectedDate).length;
 
   // Coverage transparency: when nearby-cities expansion fired, show a
   // strip under the event list letting the user see what's from their
@@ -1138,7 +1138,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
 </div>
             </div>
            )}
-           <div className="apple-date-strip" data-pull-ignore aria-label="Selected week">{dayStrip.map((date) => { const key=iso(date); return <button type="button" key={key} className={`${key===selectedDate?"selected":""} ${key===todayStr?"today":""}`} onClick={()=>{setSelectedDate(key);setMonth(new Date(date.getFullYear(),date.getMonth(),1));}}><small>{date.toLocaleDateString("en-CA",{weekday:"narrow"})}</small><strong>{date.getDate()}</strong><i>{visibleEvents.some(event=>event.start.slice(0,10)===key)?"•":""}</i></button>;})}</div>
+           <div className="apple-date-strip" data-pull-ignore aria-label="Selected week">{dayStrip.map((date) => { const key=iso(date); return <button type="button" key={key} className={`${key===selectedDate?"selected":""} ${key===todayStr?"today":""}`} onClick={()=>{setSelectedDate(key);setMonth(new Date(date.getFullYear(),date.getMonth(),1));}}><small>{date.toLocaleDateString("en-CA",{weekday:"narrow"})}</small><strong>{date.getDate()}</strong><i>{visibleEvents.some(event=>eventDateLocal(event.start)===key)?"•":""}</i></button>;})}</div>
            {/* ── Month grid (always shown — the grid IS the date picker now) ── */}
 
            {/* ── Month grid ── */}
@@ -1160,7 +1160,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
                     const key = iso(d);
                     const inMonth = d.getMonth() === month.getMonth();
                     const active = key === selectedDate;
-                    const cellEvents = visibleEvents.filter(e => e.start.slice(0, 10) === key);
+                    const cellEvents = visibleEvents.filter(e => eventDateLocal(e.start) === key);
                     return (
                       <button
                         key={key}

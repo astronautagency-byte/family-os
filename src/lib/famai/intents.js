@@ -7,6 +7,7 @@
 
 import { parseDate, parseTime, isoFromParts, parseItems, parseQuantity, findMember, stripFillers } from "./nlp";
 import { RISK } from "./guardrails";
+import { eventDateLocal } from "../dates";
 
 const ADD_GROCERY_RE = /\b(add|get|buy|put|need|grab|pick up|we(?:'|\s)re out of|out of|ran out of|run out of)\b/i;
 const LIST_TARGET_RE = /\b(to|on|in|for)\s+(the\s+)?(grocery|groceries|shopping|list|the list)\b/i;
@@ -140,7 +141,7 @@ function routeQueryDay(text, ctx) {
   if (isToday || isWeekend || (day && /\b(what|who|when)\b/i.test(text) && /\b(doing|on|up to|planned|happening|going on)\b/i.test(text))) {
     const events = (ctx.events || []).filter((event) => {
       const date = day?.date;
-      return date && event.start && event.start.slice(0, 10) === date;
+      return date && event.start && eventDateLocal(event.start) === date;
     });
     return {
       intent: "GET_SCHEDULE",
