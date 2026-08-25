@@ -68,10 +68,17 @@ export function formatCost(cents) {
  * @param {string} recipeId - The Spoonacular recipe ID
  * @returns {Promise<{calories: number, protein: number, carbs: number, fat: number, fiber: number, sugar: number} | null>}
  */
-export async function getRecipeNutrition(recipeId) {
-  if (!recipeId) return null;
+export async function getRecipeNutrition(recipeOrId, recipe = null) {
+  const selected = recipe && typeof recipe === "object" ? recipe : typeof recipeOrId === "object" ? recipeOrId : null;
+  const recipeId = selected?.id || (typeof recipeOrId === "string" || typeof recipeOrId === "number" ? recipeOrId : null);
+  const ingredients = Array.isArray(selected?.ingredients) ? selected.ingredients : [];
+  if (!recipeId || !ingredients.length) return null;
   try {
-    const data = await invokeEdgeFunction("recipe-nutrition", { title: "Recipe", servings: 4, ingredients: [] });
+    const data = await invokeEdgeFunction("recipe-nutrition", {
+      title: selected?.title || "Recipe",
+      servings: selected?.servings || 4,
+      ingredients,
+    });
     if (!data?.totals) return null;
     return {
       calories: Number(data.totals.calories) || 0,
