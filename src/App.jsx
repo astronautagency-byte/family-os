@@ -346,6 +346,16 @@ export default function App() {
     };
     applyDaypart();
 
+    // Dynamic viewport height: update --dvh on resize/orientationchange so
+    // mobile browsers (which shrink the viewport when the URL bar appears)
+    // get accurate 100dvh-like measurements without relying on dvh support.
+    const updateDvh = () => {
+      document.documentElement.style.setProperty("--dvh", `${window.innerHeight}px`);
+    };
+    updateDvh();
+    window.addEventListener("resize", updateDvh);
+    window.addEventListener("orientationchange", updateDvh);
+
     const params = new URLSearchParams(window.location.search);
     const signedOutHandoff = params.get("signed_out") === "1";
     if (signedOutHandoff && window.location.hostname === MARKETING_DOMAIN && !loading) {
@@ -367,7 +377,11 @@ export default function App() {
     }
 
     const timer = window.setInterval(applyDaypart, 60_000);
-    return () => window.clearInterval(timer);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("resize", updateDvh);
+      window.removeEventListener("orientationchange", updateDvh);
+    };
   }, [session, loading, configured]);
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 700px) and (max-width: 1100px)");

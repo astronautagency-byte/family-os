@@ -1471,7 +1471,8 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
     font-size:9.5px;
   }
 }
-.reference-groceries>div.px-5>section:first-child{display:none}.reference-groceries .kinship-card{box-shadow:none;border-color:var(--color-border);border-radius:var(--radius-lg);padding:var(--space-4);margin-bottom:var(--space-6)}.reference-groceries .kinship-card li{padding:var(--space-3) var(--space-2);border:0}.reference-groceries .kinship-card li>span:nth-child(2){display:none}.reference-groceries .px-5>div>section>p{font-size:var(--text-section)!important;text-transform:none!important;color:var(--color-ink)!important;letter-spacing:0!important;margin:0 0 var(--space-1) var(--space-4)!important;position:relative;z-index:1;background:var(--color-surface);width:max-content;padding:0 var(--space-1)}.reference-groceries .fixed.bottom-24{background:var(--color-accent)!important}.reference-settings .kinship-card{box-shadow:none;border-color:var(--color-border);padding:var(--space-5)!important}.reference-settings section>h2{font-size:var(--text-xs)!important;text-transform:uppercase;letter-spacing:.1em;color:var(--color-ink-soft);margin-bottom:var(--space-4)!important}.reference-dashboard .kinship-card{box-shadow:var(--shadow-xs);border-color:var(--color-border);border-radius:var(--radius-lg)!important}.reference-dashboard section{margin-top:var(--space-8)}.reference-dashboard section h2{font-size:var(--text-section)}.reference-dashboard .page-header{border:0}
+.reference-groceries>div.px-5>section:first-child{display:none}.reference-groceries .kinship-card{box-shadow:none;border-color:var(--color-border);border-radius:var(--radius-lg);padding:var(--space-4);margin-bottom:var(--space-6)}.reference-groceries .kinship-card li{padding:var(--space-3) var(--space-2);border:0}.reference-groceries .kinship-card li>span:nth-child(2){display:none}.reference-groceries .px-5>div>section>p{font-size:var(--text-section)!important;text-transform:none!important;color:var(--color-ink)!important;letter-spacing:0!important;margin:0 0 var(--space-1) var(--space-4)!important;position:relative;z-index:1;background:var(--color-surface);width:max-content;padding:0 var(--space-1)}.reference-groceries .fixed.bottom-24{background:var(--color-accent)!important}.reference-settings .kinship-card{box-shadow:none;border-color:var(--color-border);padding:var(--space-5)!important}
+.reference-settings{overscroll-behavior-y:contain}.reference-settings section>h2{font-size:var(--text-xs)!important;text-transform:uppercase;letter-spacing:.1em;color:var(--color-ink-soft);margin-bottom:var(--space-4)!important}.reference-dashboard .kinship-card{box-shadow:var(--shadow-xs);border-color:var(--color-border);border-radius:var(--radius-lg)!important}.reference-dashboard section{margin-top:var(--space-8)}.reference-dashboard section h2{font-size:var(--text-section)}.reference-dashboard .page-header{border:0}
 .reference-dashboard .today-metric-card,.reference-dashboard .today-command-card,.reference-dashboard .today-pulse-card,.reference-dashboard .today-flow-card,.reference-dashboard .today-load-card,.reference-dashboard .today-meals-card,.reference-dashboard .today-groceries-card,.reference-dashboard .today-tasks-card{
   border-color:color-mix(in srgb,var(--color-border) 78%,transparent)!important;
   box-shadow:none!important;
@@ -1584,6 +1585,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   min-width:0;
 }
 .famos-noscroll{
+  overflow-x:hidden;
   overflow-x:clip;
 }
 .reference-dashboard .today-metric-card .rounded-2xl.bg-white,
@@ -5569,7 +5571,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .apple-all-day-row>div{display:flex;align-items:center;gap:4px;overflow-x:auto;padding:6px;scrollbar-width:none}
 .apple-all-day-row button{flex:0 1 auto;min-width:0;max-width:280px;padding:6px 9px;border-left:3px solid var(--event-color);border-radius:5px;background:color-mix(in srgb,var(--event-color) 13%,var(--color-surface));color:color-mix(in srgb,var(--event-color) 70%,var(--color-ink));text-align:left}
 .apple-all-day-row button strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10.5px;font-weight:700}
-.apple-timegrid-scroll{overflow:auto;max-height:min(62vh,760px)}
+.apple-timegrid-scroll{overflow:auto;max-height:min(62vh,760px);overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
 .apple-timegrid{position:relative;display:grid;grid-template-columns:54px 1fr;min-width:calc(54px + var(--calendar-days,7) * 92px);height:1020px}
 .apple-time-labels{position:relative;border-right:1px solid var(--color-border)}
 .apple-time-labels span{position:absolute;right:8px;transform:translateY(-50%);color:var(--color-ink-faint);font-size:9px;font-variant-numeric:tabular-nums}
@@ -5604,7 +5606,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   .apple-month-nav-btn{width:34px;height:34px}
   .calendar-sources-primary{padding:4px 0 7px}.calendar-sources-heading{display:none}.calendar-sources-tab{min-height:30px;padding:5px 10px}
   .apple-date-strip{margin-inline:-20px;padding:2px 20px 8px}.apple-date-strip button{min-height:50px}.apple-date-strip strong{width:30px;height:30px;font-size:16px}.apple-date-strip small{font-size:9px}
-  .apple-timegrid-shell{margin:0 -20px;border:0;border-top:1px solid var(--color-border);border-radius:0;box-shadow:none}.apple-timegrid-scroll{max-height:calc(100dvh - 280px);scrollbar-width:none}
+  .apple-timegrid-shell{margin:0 -20px;border:0;border-top:1px solid var(--color-border);border-radius:0;box-shadow:none}.apple-timegrid-scroll{max-height:calc(100dvh - 280px);scrollbar-width:none;overscroll-behavior-y:contain}
   .apple-timegrid-head{display:none}
   .apple-timegrid,.apple-timegrid-head{--calendar-days:1}.apple-timegrid{min-width:100%;height:1020px;grid-template-columns:58px 1fr}.apple-timegrid-head button:nth-of-type(n+2),.apple-time-column:nth-child(n+2){display:none}
   .apple-time-labels span{right:10px;font-size:11px}.apple-time-columns{grid-template-columns:1fr}.apple-hour-line{background:color-mix(in srgb,var(--color-border) 76%,transparent)}
@@ -8536,6 +8538,27 @@ input:focus, textarea:focus, select:focus {
 /* ── Force #FAFAFA page canvas on Tasks, Shopping, and all reference pages ── */
 .reference-tasks,
 .reference-groceries,
+/* Chat page shell — replaces h-screen flex layout to avoid iOS 100vh
+   miscalculation. Uses dvh with a fallback, and accounts for the bottom
+   nav bar height via padding instead of a fragile inline style. */
+.chat-page-shell{
+  display:flex;
+  flex-direction:column;
+  height:100dvh;
+  height:100vh;
+  height:calc(var(--dvh, 100vh));
+  padding-bottom:calc(64px + env(safe-area-inset-bottom, 0px));
+  overflow:hidden;
+}
+@supports (height: 100dvh) {
+  .chat-page-shell { height: 100dvh; }
+}
+.chat-page-shell > .flex-1,
+.chat-page-shell > div:last-of-type{
+  min-height:0;
+  flex:1 1 0%;
+}
+
 .reference-settings,
 .reference-dashboard,
 .reference-meals,

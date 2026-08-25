@@ -109,8 +109,14 @@ export function usePullToRefresh({ onRefresh, threshold = PULL_THRESHOLD, horizo
     };
 
     const handleTouchMove = (event) => {
+      // Only prevent default when actively pulling down at the top of the
+      // scroll container. This preserves native scroll momentum for normal
+      // vertical scrolling while still allowing the pull-to-refresh gesture.
       if (draggingRef.current && event.cancelable) {
-        event.preventDefault();
+        const container = getScrollContainer();
+        if (container.scrollTop <= 0) {
+          event.preventDefault();
+        }
       }
     };
 
