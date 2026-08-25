@@ -591,7 +591,7 @@ export default function Today({ goTo }) {
         <div className="today-trial-banner">
           <Sparkles size={18} />
           <div>
-            <strong>FamOS {subscription?.plan_key === "plus" ? "Plus" : "Pro"} trial — {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} left</strong>
+            <strong>FamOS {(subscription?.plan || subscription?.plan_key) === "plus" ? "Plus" : "Pro"} trial — {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} left</strong>
             <span>All features are unlocked during your trial. Cancel anytime from Settings.</span>
           </div>
         </div>
@@ -601,7 +601,7 @@ export default function Today({ goTo }) {
         <div className="today-trial-expired">
           <Sparkles size={18} />
           <div>
-            <strong>Your FamOS {subscription?.plan_key === "plus" ? "Plus" : "Pro"} trial has ended</strong>
+            <strong>Your FamOS {(subscription?.plan || subscription?.plan_key) === "plus" ? "Plus" : "Pro"} trial has ended</strong>
             <span>Upgrade to keep using advanced features like calendar sync, recipes, and Fam AI.</span>
           </div>
           <button type="button" onClick={() => goTo("settings")}>Upgrade</button>

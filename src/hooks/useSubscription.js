@@ -40,7 +40,7 @@ export function useSubscription() {
     return () => { cancelled = true; };
   }, []);
 
-  const planKey = subscription?.plan_key || "core";
+  const planKey = subscription?.plan || subscription?.plan_key || "core";
   const status = subscription?.status || "none";
   const planRank = PLAN_RANK[planKey] ?? 0;
 
