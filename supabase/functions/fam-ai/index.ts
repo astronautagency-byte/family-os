@@ -79,12 +79,15 @@ Household context (compact): ${JSON.stringify(context)}`;
   // that combination with a 400. The system prompt already demands JSON and
   // the client validates it, so we rely on that instead.
   const groqModel=Deno.env.get("GROQ_MODEL")||"openai/gpt-oss-20b";
-  const providers=[...(xaiKey?[{name:"primary",url:"https://api.x.ai/v1/chat/completions",key:xaiKey,model:Deno.env.get("XAI_MODEL")||"grok-4.5"}]:[]),...(groqKey?[{name:"fallback",url:"https://api.groq.com/openai/v1/chat/completions",key:groqKey,model:groqModel}]:[])];
+  const providers=[...(xaiKey?[{name:"primary",url:"https://api.x.ai/v1/chat/completions",key:xaiKey,model:Deno.env.get("XAI_MODEL")||"grok-4.6"}]:[]),...(groqKey?[{name:"fallback",url:"https://api.groq.com/openai/v1/chat/completions",key:groqKey,model:groqModel}]:[])];
   let response:Response|null=null; let lastDetail="";
   for(const provider of providers){
-   response=await fetch(provider.url,{method:"POST",headers:{Authorization:`Bearer ${provider.key}`,"Content-Type":"application/json"},body:JSON.stringify({model:provider.model,messages:[{role:"system",content:system},...messages.slice(-MAX_CONTEXT_MESSAGES)],tools,tool_choice:"auto",parallel_tool_calls:true,temperature:.3})});
+   const body:Record<string,unknown>={model:provider.model,messages:[{role:"system",content:system},...messages.slice(-MAX_CONTEXT_MESSAGES)],temperature:.3};
+   // xAI may reject tools+parallel_tool_calls combo; Groq handles them fine
+   if(provider.name!=="primary"){body.tools=tools;body.tool_choice="auto";}
+   response=await fetch(provider.url,{method:"POST",headers:{Authorization:`Bearer ${provider.key}`,"Content-Type":"application/json"},body:JSON.stringify(body)});
    if(response.ok)break;
-   lastDetail=(await response.text()).slice(0,180);
+   lastDetail=(await response.text()).slice(0,300);
    console.error(`Fam AI ${provider.name} provider error`,response.status,lastDetail);
   }
   if(!response)throw new Error("Fam AI could not reach its assistant service. Please try again.");

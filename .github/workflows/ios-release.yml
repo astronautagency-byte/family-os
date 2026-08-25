@@ -1,0 +1,122 @@
+name: Build and submit iOS app
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "ios-v*"
+
+permissions:
+  contents: write
+
+env:
+  TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+jobs:
+  build-ios:
+    name: Build and upload iOS
+    runs-on: macos-15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
+
+      - name: Install Apple Developer certificate
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.APPLE_CERTIFICATE }}
+          p12-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+
+      - name: Install provisioning profile
+        uses: apple-actions/download-provisioning-profiles@v4
+        with:
+          bundle-id: app.famos.ios
+          issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          api-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          api-private-key: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Initialize iOS platform
+        run: npx tauri ios init
+
+      - name: Build Rust binary for iOS
+        run: |
+          cd src-tauri
+          cargo build --release --target aarch64-apple-ios
+
+      - name: Copy Rust binary for Xcode
+        run: |
+          mkdir -p src-tauri/gen/apple/Externals/arm64/Release
+          cp src-tauri/target/aarch64-apple-ios/release/libfamos_lib.a \
+             src-tauri/gen/apple/Externals/arm64/Release/libapp.a
+
+      - name: Build iOS app with xcodebuild
+        run: |
+          cd src-tauri/gen/apple
+          xcodebuild -project famos.xcodeproj \
+            -scheme famos_iOS \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -allowProvisioningUpdates \
+            -allowProvisioningDeviceRegistration \
+            -archivePath /tmp/famos-iOS.xcarchive \
+            archive
+
+      - name: Export IPA
+        run: |
+          cat > /tmp/ExportOptions.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+            <key>teamID</key>
+            <string>${{ secrets.APPLE_TEAM_ID }}</string>
+            <key>uploadSymbols</key>
+            <true/>
+            <key>compileBitcode</key>
+            <false/>
+          </dict>
+          </plist>
+          EOF
+          
+          xcodebuild -exportArchive \
+            -archivePath /tmp/famos-iOS.xcarchive \
+            -exportOptionsPlist /tmp/ExportOptions.plist \
+            -exportPath /tmp/famos-export
+
+      - name: Upload to App Store Connect
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: |
+          # Save API key
+          mkdir -p ~/private_keys
+          echo "$APP_STORE_CONNECT_PRIVATE_KEY" > ~/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8
+          
+          xcrun altool --upload-app \
+            --type ios \
+            --file /tmp/famos-export/FamOS.ipa \
+            --apiKey "$APP_STORE_CONNECT_KEY_ID" \
+            --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
+
+      - name: Clean up API key
+        if: always()
+        run: rm -rf ~/private_keys
