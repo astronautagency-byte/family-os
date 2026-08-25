@@ -39,8 +39,8 @@
     "macOS": {
       "entitlements": "./FamOS.entitlements",
       "minimumSystemVersion": "11.0",
-      "signingIdentity": "Apple Development: Alex Vorobiev (ZRDVT9WBN4)",
-      "providerShortName": "ZRDVT9WBN4"
+      "signingIdentity": "Apple Development: Alex Vorobiev (9Q99G64C47)",
+      "providerShortName": "9Q99G64C47"
     },
     "copyright": "© 2026 FamOS, Inc. All rights reserved.",
     "category": "Productivity",

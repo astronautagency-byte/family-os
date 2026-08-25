@@ -17,7 +17,7 @@ import { GROCERY_CATEGORIES } from "../data/mockData";
 import useKitchenInventory from "../hooks/useKitchenInventory";
 import { supabase } from "../lib/supabase";
 import { categorizeGroceryItem } from "../lib/groceryCategories";
-import { inventoryExpiryStatus } from "../lib/inventoryExpiry";
+import { inventoryExpiryStatus, suggestExpiryDate } from "../lib/inventoryExpiry";
 import { buildShareUrl } from "../lib/share";
 import ShareSheet from "../components/ShareSheet";
 
@@ -463,6 +463,8 @@ export default function Groceries() {
     .slice(0, 4), [kitchenWatchItems]);
   const openInventoryDraft = (item = null, location = inventoryLocation) => {
     const suggestedCategory = item ? (item.category || categorizeGroceryItem(item.name, item.category)) : INVENTORY_CATEGORIES[0];
+    const suggestion = item ? suggestExpiryDate(item.name, suggestedCategory, location) : null;
+    const suggestedExpiry = suggestion ? (() => { const d = new Date(); d.setDate(d.getDate() + suggestion.days); return d.toISOString().slice(0,10); })() : "";
     setInventoryDraft(item ? {
       ...emptyInventoryDraft,
       name: item.name,
@@ -474,16 +476,14 @@ export default function Groceries() {
       brand: item.brand || "",
       barcode: item.barcode || "",
       imageUrl: item.imageUrl || "",
+      expiresOn: item.expiresOn || suggestedExpiry,
     } : { ...emptyInventoryDraft, location });
     setInventoryError("");
     setInventoryAdding(true);
   };
   const saveInventoryItem = async () => {
     if (!inventoryDraft.name.trim() || inventorySaving) return;
-    if (!inventoryDraft.expiresOn) {
-      setInventoryError("Add a use-by or best-before date so FamOS knows when to remind you.");
-      return;
-    }
+
     setInventorySaving(true); setInventoryError("");
     try {
       await addInventoryItem({ ...inventoryDraft, name: inventoryDraft.name.trim() });
@@ -1133,11 +1133,32 @@ export default function Groceries() {
 
       <Modal open={inventoryAdding} onClose={() => { if (!inventorySaving) { setInventoryAdding(false); setInventoryError(""); } }} title="Add fresh food to Kitchen Watch">
         <p className="inventory-add-intro">Kitchen Watch is only for short-life perishables: produce, dairy and eggs, meat and seafood, deli food, and bakery items. Everything else stays on the Shopping list.</p>
-        <TextField label="Item" placeholder="e.g. Milk, chicken, or strawberries" value={inventoryDraft.name} onChange={(event) => setInventoryDraft((current) => ({ ...current, name: event.target.value }))}/>
-        <div className="inventory-add-grid"><label className="inventory-select-field"><span>Category</span><select value={inventoryDraft.category} onChange={(event) => setInventoryDraft((current) => ({ ...current, category: event.target.value }))}>{INVENTORY_CATEGORIES.map((category) => <option key={category}>{category}</option>)}</select></label><TextField label="Brand (optional)" placeholder="e.g. Compliments" value={inventoryDraft.brand} onChange={(event) => setInventoryDraft((current) => ({ ...current, brand: event.target.value }))}/></div>
+        <TextField label="Item" placeholder="e.g. Milk, chicken, or strawberries" value={inventoryDraft.name} onChange={(event) => {
+          const name = event.target.value;
+          setInventoryDraft((current) => {
+            const s = suggestExpiryDate(name, current.category, current.location);
+            const expiry = s ? (() => { const d = new Date(); d.setDate(d.getDate() + s.days); return d.toISOString().slice(0,10); })() : current.expiresOn;
+            return { ...current, name, expiresOn: expiry };
+          });
+        }}/>
+        <div className="inventory-add-grid"><label className="inventory-select-field"><span>Category</span><select value={inventoryDraft.category} onChange={(event) => {
+          const cat = event.target.value;
+          setInventoryDraft((current) => {
+            const s = suggestExpiryDate(current.name, cat, current.location);
+            const expiry = s ? (() => { const d = new Date(); d.setDate(d.getDate() + s.days); return d.toISOString().slice(0,10); })() : current.expiresOn;
+            return { ...current, category: cat, expiresOn: expiry };
+          });
+        }}>{INVENTORY_CATEGORIES.map((category) => <option key={category}>{category}</option>)}</select></label><TextField label="Brand (optional)" placeholder="e.g. Compliments" value={inventoryDraft.brand} onChange={(event) => setInventoryDraft((current) => ({ ...current, brand: event.target.value }))}/></div>
         <div className="inventory-add-grid"><TextField label="Quantity" inputMode="decimal" value={inventoryDraft.quantity} onChange={(event) => setInventoryDraft((current) => ({ ...current, quantity: Math.max(Number(event.target.value) || 1, 1) }))}/><TextField label="Unit (optional)" placeholder="bag, carton, lb" value={inventoryDraft.unit} onChange={(event) => setInventoryDraft((current) => ({ ...current, unit: event.target.value }))}/></div>
-        <label className="inventory-add-location"><span>Store in</span><div>{[["fridge","Fridge",Refrigerator],["freezer","Freezer",Snowflake],["pantry","Pantry",Package]].map(([id,label,Icon]) => <button type="button" key={id} className={inventoryDraft.location === id ? "selected" : ""} onClick={() => setInventoryDraft((current) => ({ ...current, location: id }))}><Icon size={15}/>{label}</button>)}</div></label>
+        <label className="inventory-add-location"><span>Store in</span><div>{[["fridge","Fridge",Refrigerator],["freezer","Freezer",Snowflake],["pantry","Pantry",Package]].map(([id,label,Icon]) => <button type="button" key={id} className={inventoryDraft.location === id ? "selected" : ""} onClick={() => {
+          setInventoryDraft((current) => {
+            const s = suggestExpiryDate(current.name, current.category, id);
+            const expiry = s ? (() => { const d = new Date(); d.setDate(d.getDate() + s.days); return d.toISOString().slice(0,10); })() : current.expiresOn;
+            return { ...current, location: id, expiresOn: expiry };
+          });
+        }}><Icon size={15}/>{label}</button>)}</div></label>
         <DateField label="Use by or best before" value={inventoryDraft.expiresOn} onChange={(expiresOn) => setInventoryDraft((current) => ({ ...current, expiresOn }))}/>
+        {inventoryDraft.name && (() => { const s = suggestExpiryDate(inventoryDraft.name, inventoryDraft.category, inventoryDraft.location); return s ? <p className="inventory-suggestion-hint" style={{fontSize:'0.75rem',color:'var(--accent)',marginTop:'-0.5rem',marginBottom:'0.5rem'}}>Suggested: {s.label} (from {s.source} data)</p> : null; })()}
         {inventoryError && <p className="inventory-add-error" role="alert">{inventoryError}</p>}
         <PrimaryButton onClick={saveInventoryItem} disabled={inventorySaving || !inventoryDraft.name.trim() || !inventoryDraft.expiresOn}>{inventorySaving ? "Adding…" : "Add to inventory"}</PrimaryButton>
       </Modal></>}
