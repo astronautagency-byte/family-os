@@ -155,6 +155,7 @@ export function SignIn({ initialCreating = false }) {
         </form>
       </Card>
       <p className="flex items-center justify-center gap-1.5 text-[11.5px] text-[var(--color-ink-faint)] mt-4"><LockKeyhole size={11} /> Only your household can see your data</p>
+      <p className="text-center mt-3"><a href="/contact" className="text-[11.5px] text-[var(--color-accent)] font-semibold hover:underline">Need help? Contact support</a></p>
     </Shell>
   );
 }

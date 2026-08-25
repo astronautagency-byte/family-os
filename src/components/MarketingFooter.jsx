@@ -48,6 +48,7 @@ const MarketingFooter = ({ signedIn = false }) => {
         <div>
           <h4>Company</h4>
           <ul>
+            <li><a href="/contact">Contact us</a></li>
             <li><a href="/privacy">Privacy</a></li>
             <li><a href="/terms">Terms</a></li>
             {!signedIn && <li><a href="https://home.fam-os.app/sign-in">Sign in</a></li>}

@@ -43,6 +43,7 @@ const Landing = lazy(() => import("./pages/Landing"));
 const Download = lazy(() => import("./pages/Download"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
+const Contact = lazy(() => import("./pages/Contact"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Partner = lazy(() => import("./pages/Partner"));
 const Features = lazy(() => import("./pages/Features"));
@@ -205,7 +206,7 @@ const PageErrorFallback = ({ retry, reloadLatest, goToday }) => {
   );
 };
 const VALID_TABS = ["today","calendar","meals","tasks","groceries","kitchen","chat","famai","settings"];
-const PUBLIC_ROUTES = ["privacy", "terms", "pricing", "signin", "signup", "download"];
+const PUBLIC_ROUTES = ["privacy", "terms", "contact", "pricing", "signin", "signup", "download"];
 const ROUTE_ALIASES = { "sign-in": "signin", "lsign-in": "signin", "sign-up": "signup", "partners": "partner", "app/admin": "admin" };
 const VALID_ROUTES = [...VALID_TABS, "landing", "admin", "partner", "partners", ...PUBLIC_ROUTES];
 const FEATURES_PATH_REGEX = /^\/features(?:\/([a-z-]+))?\/?$/i;
@@ -713,6 +714,7 @@ export default function App() {
   if (publicRoute === "download") return <Suspense fallback={<PageFallback />}><Download /></Suspense>;
   if (publicRoute === "privacy") return <Suspense fallback={<PageFallback />}><Privacy signedIn={!!session} /></Suspense>;
   if (publicRoute === "terms") return <Suspense fallback={<PageFallback />}><Terms signedIn={!!session} /></Suspense>;
+  if (publicRoute === "contact") return <Suspense fallback={<PageFallback />}><Contact signedIn={!!session} /></Suspense>;
   if (configured && !session && publicRoute === "signin") return <SignIn key="signin" initialCreating={false} />;
   if (configured && !session && publicRoute === "signup") return <SignIn key="signup" initialCreating />;
   if (configured && !session && isTauriRuntime()) return <DesktopAuthGate status={desktopAuth.status} error={desktopAuth.error} />;
