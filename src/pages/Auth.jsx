@@ -752,7 +752,7 @@ function RevisedOwnerProfileStep({ familyMembers, setFamilyMembers, interests, t
               <div className="revised-family-row-main">
                 <TextField label="First name" placeholder="e.g. Leo" value={member.firstName} onChange={(event) => updateMember(index, "firstName", event.target.value)} />
                 <TextField label="Relationship" placeholder="e.g. child" value={member.relationship} onChange={(event) => updateMember(index, "relationship", event.target.value)} />
-                <TextField type="date" label="Birthday" value={member.birthday} onChange={(event) => updateMember(index, "birthday", event.target.value)} />
+                <DateField label="Birthday" value={member.birthday} onChange={(date) => updateMember(index, "birthday", date)} compact max={new Date().toISOString().slice(0, 10)} />
                 {familyMembers.length > 1 && <button type="button" className="revised-remove-member" onClick={() => removeMember(index)} aria-label={`Remove ${member.firstName || `family member ${index + 1}`}`}><Trash2 size={15} /></button>}
               </div>
               <div className="revised-family-row-invite">
