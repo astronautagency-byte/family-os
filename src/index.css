@@ -2234,6 +2234,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   .nav-foot { padding:8px 5px 2px; font-size:9px; }
   .app-topbar { height:60px; padding-inline:16px; }
   .page-header { padding-left:24px; padding-right:24px; }
+  .reference-tasks .page-header { margin-bottom:16px; }
   .app-content > [class*="reference-"] > .px-5 {
     padding-left:24px;
     padding-right:24px;
@@ -4788,7 +4789,8 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .task-inline-form:focus-within{border-color:var(--color-accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--color-accent) 12%,transparent)}
 .task-header-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.task-header-actions>button{min-height:38px;padding:0 12px;border:1px solid var(--color-border);border-radius:var(--radius-pill);background:var(--color-surface);color:var(--color-ink-soft);display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:750}.task-header-actions>button:first-child{background:var(--color-accent-soft);border-color:transparent;color:var(--color-accent)}.task-header-actions svg{width:15px}.task-board-group.custom{border-color:transparent;background:color-mix(in srgb,var(--custom-list-color) 9%,var(--color-surface))}.task-board-group.custom .task-group-title h2{color:var(--custom-list-color)}.task-board-group.custom .task-group-title>span{background:color-mix(in srgb,var(--custom-list-color) 18%,white);color:var(--custom-list-color)}.task-list-empty{width:100%;padding:15px;border:1px dashed color-mix(in srgb,var(--custom-list-color,var(--color-accent)) 30%,var(--color-border));border-radius:var(--radius-md);color:var(--color-ink-soft);font-size:13px;text-align:left}.task-list-color{display:grid;gap:10px;margin:4px 0 20px;padding:13px;border:1px solid var(--color-border);border-radius:var(--radius-md)}.task-list-color>span{font-size:12px;font-weight:700;color:var(--color-ink-soft)}.task-list-swatches{display:flex;flex-wrap:wrap;gap:10px}.task-list-swatch{width:40px;height:40px;display:grid;place-items:center;flex:0 0 40px;padding:0;border:3px solid var(--color-surface);border-radius:50%;background:var(--swatch-color);color:#fff;box-shadow:0 0 0 1px color-mix(in srgb,var(--swatch-color) 34%,var(--color-border));transition:transform .15s ease,box-shadow .15s ease}.task-list-swatch:hover{transform:scale(1.06)}.task-list-swatch:focus-visible{outline:3px solid color-mix(in srgb,var(--swatch-color) 45%,transparent);outline-offset:3px}.task-list-swatch.selected{box-shadow:0 0 0 2px var(--color-surface),0 0 0 4px var(--swatch-color)}.task-list-swatch svg{width:17px;height:17px;stroke-width:3;opacity:0;filter:drop-shadow(0 1px 1px rgba(0,0,0,.24))}.task-list-swatch.selected svg{opacity:1}.task-list-color>strong{font-size:15px}
 /* ── Task toolbar (below header) ── */
-.task-toolbar{display:flex;gap:8px;padding:0 20px 12px;flex-wrap:wrap}
+.task-toolbar{display:flex;gap:8px;padding:12px 20px;flex-wrap:wrap;clear:both;position:relative;z-index:0}
+@media(max-width:767px){.reference-tasks .page-header-aside .page-spot-frame{display:none!important}.reference-tasks .page-header-aside{display:none!important}.reference-tasks .page-header{margin-bottom:12px}.reference-tasks .task-toolbar{margin-top:8px}}
 .task-toolbar-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--color-border);border-radius:var(--radius-pill);background:var(--color-surface);color:var(--color-ink-soft);font-size:13px;font-weight:600;cursor:pointer;transition:background var(--motion-fast) var(--ease-out),border-color var(--motion-fast) var(--ease-out),transform var(--motion-fast) var(--ease-out)}
 .task-toolbar-btn:first-child{background:var(--color-accent-soft);border-color:transparent;color:var(--color-accent)}
 .task-toolbar-btn:hover{background:color-mix(in srgb,var(--color-accent) 10%,var(--color-surface));transform:translateY(-1px)}
@@ -6111,7 +6113,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .today-daily-meal{display:grid;grid-template-columns:36px minmax(0,1fr) auto;align-items:center;gap:10px;padding:11px;border:1px solid var(--color-border);border-radius:10px;background:var(--color-surface)}
 .today-daily-meal.is-planned{border-color:color-mix(in srgb,var(--color-meals-strong) 20%,var(--color-border));background:color-mix(in srgb,var(--color-meals-soft) 42%,var(--color-surface))}
 .today-daily-meal-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:8px;background:var(--color-meals-soft);color:var(--color-meals-strong)}
-.today-daily-meal-copy{display:grid;min-width:0}.today-daily-meal-copy>span{color:var(--color-meals-strong);font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.today-daily-meal-copy>strong{overflow:hidden;margin-top:2px;color:var(--color-ink);font-size:13px;font-weight:650;text-overflow:ellipsis;white-space:nowrap}.today-daily-meal-copy>small{display:flex;align-items:center;gap:5px;margin-top:4px;color:var(--color-ink-faint);font-size:9.5px}
+.today-daily-meal-copy{display:grid;min-width:0}.today-daily-meal-copy>span{color:var(--color-meals-strong);font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.today-daily-meal-copy>strong{overflow:hidden;margin-top:2px;color:var(--color-ink);font-size:13px;font-weight:650;text-overflow:ellipsis;white-space:nowrap}.today-daily-meal-copy>small{display:flex;align-items:center;gap:5px;margin-top:4px;color:var(--color-ink-faint);font-size:9.5px}.today-daily-meal-thumb{width:34px;height:34px;margin-bottom:3px;border-radius:8px;object-fit:cover;box-shadow:0 2px 7px rgba(15,23,42,.12)}
 .today-daily-meal .today-meal-badge{display:inline-flex;align-items:center;gap:5px;grid-column:2;justify-self:start;min-height:24px;padding:3px 7px;border:1px solid var(--color-border);border-radius:7px;font-size:9.5px;font-weight:750}.today-daily-meal .today-meal-badge.needs{background:var(--color-shopping-soft);color:var(--color-shopping-strong)}.today-daily-meal .today-meal-badge.covered{background:var(--color-good-soft);color:var(--color-good)}
 .today-daily-meal-actions{display:flex;align-items:center;gap:5px;grid-column:3;grid-row:1/3}.today-daily-meal-actions button{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:34px;padding:0 9px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-surface);color:var(--color-ink-soft);font-size:10.5px;font-weight:700;white-space:nowrap}.today-daily-meal-actions button.ideas{border-color:color-mix(in srgb,var(--color-meals-strong) 22%,var(--color-border));background:var(--color-meals-soft);color:var(--color-meals-strong)}.today-daily-meal-actions button.cook{border-color:var(--color-accent);background:var(--color-accent);color:var(--color-on-accent)}
 @media(max-width:640px){.today-daily-meal{grid-template-columns:36px minmax(0,1fr)}.today-daily-meal-actions{grid-column:1/-1;grid-row:auto;display:grid;grid-template-columns:1fr 1fr}.today-daily-meal-actions.is-single{grid-template-columns:1fr}.today-daily-meal-actions button{min-height:38px}.today-daily-meal .today-meal-badge{grid-column:2}}
@@ -7801,16 +7803,16 @@ input:focus, textarea:focus, select:focus {
   line-height: 1.25;
 }
 .app-shell .reference-meals .meal-card-slots {
-  padding: 12px 20px 18px;
+  padding: 8px 20px 12px;
 }
 .app-shell .reference-meals .meal-card-slot + .meal-card-slot {
   margin-top: 0;
-  padding-top: 16px;
+  padding-top: 10px;
   border-top: 1px solid var(--color-border);
 }
 .app-shell .reference-meals .meal-card-slot-top {
   min-width: 0;
-  margin-bottom: 11px;
+  margin-bottom: 6px;
 }
 .app-shell .reference-meals .meal-card-slot-name {
   margin: 0;
@@ -7854,7 +7856,7 @@ input:focus, textarea:focus, select:focus {
   align-items: center;
   gap: 8px;
   min-width: 0;
-  padding-top: 1px;
+  padding-top: 0;
 }
 .app-shell .reference-meals .meal-card-btn,
 .app-shell .reference-meals .meal-card-add-slot-btn {
@@ -7940,7 +7942,7 @@ input:focus, textarea:focus, select:focus {
   }
   .app-shell .reference-meals .meal-card-slots {
     padding-inline: 16px;
-    padding-bottom: 16px;
+    padding-bottom: 12px;
   }
   .app-shell .reference-meals .meal-card-slot-buttons {
     flex-wrap: wrap;

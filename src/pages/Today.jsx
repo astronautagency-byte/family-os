@@ -759,7 +759,7 @@ export default function Today({ goTo }) {
                 </div>
               </div>
             ) : (
-              <button type="button" className="today-kitchen-empty" onClick={() => goTo("groceries")}>
+              <button type="button" className="today-kitchen-empty" onClick={() => goTo("kitchen")}>
                 <Refrigerator size={18}/><span><strong>Your kitchen tracker is ready</strong><small>Check off shopping items, then move them into the fridge, freezer, or pantry.</small></span><ChevronRight size={15}/>
               </button>
             )}
@@ -770,8 +770,8 @@ export default function Today({ goTo }) {
                 </button>
               </div>
             )}
-            <button type="button" onClick={() => goTo("groceries")} className="w-full px-4 py-3 text-left text-[12px] font-semibold text-[var(--color-accent-strong)] border-t border-[var(--color-border)]">
-              Open kitchen inventory →
+            <button type="button" onClick={() => goTo("kitchen")} className="w-full px-4 py-3 text-left text-[12px] font-semibold text-[var(--color-accent-strong)] border-t border-[var(--color-border)]">
+              Open Kitchen Watch →
             </button>
           </Card>
         </section>
@@ -849,6 +849,7 @@ export default function Today({ goTo }) {
                   <article key={slot} className={`today-daily-meal ${meal ? "is-planned" : "is-open"}`}>
                     <span className="today-daily-meal-icon"><SlotIcon size={16} /></span>
                     <div className="today-daily-meal-copy">
+                      {suggestedMeal && meal.thumbnail && <img className="today-daily-meal-thumb" src={meal.thumbnail} alt="" loading="lazy" />}
                       <span>{label}</span>
                       <strong>{meal?.title || `Nothing planned for ${label.toLowerCase()}`}</strong>
                       {adder && <small><Avatar member={adder} size="xs" /> Added by {adder.name}</small>}
