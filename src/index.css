@@ -1429,11 +1429,13 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 @media(max-width:600px){
   /* Mobile app pages use document scrolling. Keep the shell and page roots
      out of nested overflow contexts so touch and wheel scrolling remain native. */
-  html, body, #root { min-height:100%; overflow-x:hidden; overflow-y:auto; }
-  .app-shell, .app-content, .pull-to-refresh-host { min-height:100%; height:auto; overflow:visible; }
-  .app-content { padding-bottom:0; }
+  html, body { height:auto; min-height:100vh; overflow-x:hidden; overflow-y:auto; }
+  #root { min-height:100vh; overflow:visible; }
+  .app-shell { min-height:100vh; height:auto; overflow:visible; }
+  .app-content { min-height:0; height:auto; overflow:visible; padding-bottom:0; }
+  .pull-to-refresh-host { min-height:0; height:auto; overflow:visible; }
   .reference-tasks {
-    min-height:100%;
+    min-height:0;
     height:auto;
     overflow:visible;
     padding-bottom:calc(140px + env(safe-area-inset-bottom, 0px)) !important;
