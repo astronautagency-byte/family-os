@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
 import { Avatar } from "../components/ui";
 import useKitchenInventory from "../hooks/useKitchenInventory";
-import { daysUntilExpiry, toLocalDay } from "../lib/inventoryExpiry";
+import { daysUntilExpiry, toLocalDay, suggestExpiryDate, getSuggestedExpiryDate } from "../lib/inventoryExpiry";
 import { categorizeGroceryItem } from "../lib/groceryCategories";
 import { isIngredientOnList } from "../lib/mealIngredientCache";
 import PullToRefresh from "../components/PullToRefresh";
@@ -72,6 +72,24 @@ export default function KitchenWatch() {
   // Non-null when the modal is editing an existing item (e.g. "Change date")
   // rather than adding a brand-new one — so save updates instead of duplicating.
   const [editingItemId, setEditingItemId] = useState(null);
+  const [expirySuggestion, setExpirySuggestion] = useState(null);
+
+  // Auto-suggest expiry date when name, category, or location changes
+  useEffect(() => {
+    if (!adding || editingItemId) return;
+    const s = suggestExpiryDate(draft.name, draft.category, draft.location);
+    setExpirySuggestion(s);
+    // Auto-fill the date if the field is still empty and we have a suggestion
+    if (s && !draft.expiresOn) {
+      const suggested = getSuggestedExpiryDate(draft.name, draft.category, draft.location);
+      if (suggested) {
+        const yyyy = suggested.getFullYear();
+        const mm = String(suggested.getMonth() + 1).padStart(2, "0");
+        const dd = String(suggested.getDate()).padStart(2, "0");
+        setDraft((c) => ({ ...c, expiresOn: `${yyyy}-${mm}-${dd}` }));
+      }
+    }
+  }, [draft.name, draft.category, draft.location, adding, editingItemId]);
 
   const watchedItems = useMemo(() => items.filter((item) => isWatched(item.category)), [items]);
   const inventoriedSourceIds = useMemo(() => new Set(items.map((item) => item.sourceGroceryId).filter(Boolean)), [items]);
@@ -242,6 +260,9 @@ export default function KitchenWatch() {
       <div className="kw-modal-grid"><TextField label="Quantity" inputMode="decimal" value={draft.quantity} onChange={(e) => setDraft((c) => ({ ...c, quantity: Math.max(Number(e.target.value) || 1, 1) }))}/><TextField label="Unit (optional)" placeholder="bag, carton, lb" value={draft.unit} onChange={(e) => setDraft((c) => ({ ...c, unit: e.target.value }))}/></div>
       <label className="kw-location-select"><span>Store in</span><div>{[["fridge","Fridge",Refrigerator],["freezer","Freezer",Snowflake],["pantry","Pantry",Package]].map(([id,label,Icon]) => <button type="button" key={id} className={draft.location === id ? "selected" : ""} onClick={() => setDraft((c) => ({ ...c, location: id }))}><Icon size={15}/>{label}</button>)}</div></label>
       <DateField label="Use by or best before" value={draft.expiresOn} onChange={(expiresOn) => setDraft((c) => ({ ...c, expiresOn }))}/>
+      {expirySuggestion && !editingItemId && (
+        <p className="kw-suggestion-hint">💡 Suggested: {expirySuggestion.label}{draft.expiresOn ? ` (${draft.expiresOn})` : ""}</p>
+      )}
       {error && <p className="kw-error" role="alert">{error}</p>}
       <PrimaryButton onClick={saveItem} disabled={saving || !draft.name.trim() || !draft.expiresOn}>{saving ? "Saving…" : editingItemId ? "Save date" : "Start watching"}</PrimaryButton>
     </Modal>
