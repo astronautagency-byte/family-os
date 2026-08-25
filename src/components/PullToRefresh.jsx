@@ -31,7 +31,19 @@ export function usePullToRefresh({ onRefresh, threshold = PULL_THRESHOLD, horizo
     };
 
     const getScrollContainer = () => {
-      return hostRef.current || document.scrollingElement || document.documentElement;
+      // The refresh host is deliberately not a scroll container. On mobile it
+      // sits inside the document (or the app content panel), so using the host
+      // itself here always reported scrollTop=0 and caused touchmove to cancel
+      // native scrolling after the first few pixels.
+      const host = hostRef.current;
+      let parent = host?.parentElement;
+      while (parent && parent !== document.body) {
+        const style = window.getComputedStyle(parent);
+        const canScrollY = /(auto|scroll|overlay)/.test(style.overflowY);
+        if (canScrollY && parent.scrollHeight > parent.clientHeight + 1) return parent;
+        parent = parent.parentElement;
+      }
+      return document.scrollingElement || document.documentElement;
     };
 
     const down = (event) => {

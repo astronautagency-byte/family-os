@@ -1427,6 +1427,33 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .saved-recipe-picker li button{width:100%;padding:10px 11px;border:1px solid var(--color-border);border-radius:var(--radius-pill-sm);background:var(--color-surface);text-align:left}
 .saved-recipe-picker li span,.saved-recipe-picker li small{display:block}.saved-recipe-picker li span{font-size:13px;font-weight:700}.saved-recipe-picker li small{margin-top:3px;color:var(--color-ink-soft);font-size:11px}
 @media(max-width:600px){
+  /* Mobile app pages use document scrolling. Keep the shell and page roots
+     out of nested overflow contexts so touch and wheel scrolling remain native. */
+  html, body, #root { min-height:100%; overflow-x:hidden; overflow-y:auto; }
+  .app-shell, .app-content, .pull-to-refresh-host { min-height:100%; height:auto; overflow:visible; }
+  .app-content { padding-bottom:0; }
+  .reference-tasks {
+    min-height:100%;
+    height:auto;
+    overflow:visible;
+    padding-bottom:calc(112px + env(safe-area-inset-bottom, 0px)) !important;
+    transform:none !important;
+  }
+  .reference-tasks .task-list-switcher {
+    max-width:100%;
+    touch-action:pan-x;
+  }
+  .reference-tasks .task-board-row {
+    min-width:0;
+  }
+  .reference-tasks .task-row-copy {
+    min-width:0;
+    flex:1 1 auto;
+  }
+  .reference-tasks .task-row-copy strong,
+  .reference-tasks .task-row-copy small {
+    overflow-wrap:anywhere;
+  }
   .reference-meals .meal-slot-row{
     grid-template-columns:minmax(0,1fr);
     gap:0;
