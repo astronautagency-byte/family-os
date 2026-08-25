@@ -126,3 +126,66 @@ export function answerReadiness(state = {}) {
   if (!events.length) suggestions.push("Plan something fun");
   return `${head}\nSuggested next steps: ${suggestions.join(" · ")}.`;
 }
+
+// GET_MEALS — show planned meals for today or a specific date.
+export function answerGetMeals(state = {}) {
+  const today = todayISO();
+  const meals = (state.meals || []).filter((meal) => meal.date === today);
+  if (!meals.length) {
+    // Check if any meals are planned this week
+    const thisWeek = (state.meals || []).filter((meal) => meal.date >= today && meal.date <= addDays(today, 6));
+    if (thisWeek.length) {
+      const byDate = {};
+      thisWeek.forEach((meal) => { (byDate[meal.date] = byDate[meal.date] || []).push(meal); });
+      const lines = Object.entries(byDate).map(([date, dayMeals]) => `• ${formatDayLabel(date)}: ${dayMeals.map((m) => `${m.slot || 'Meal'} — ${m.title}`).join(", ")}`);
+      return `No meals planned for today, but you have ${thisWeek.length} meal${thisWeek.length === 1 ? '' : 's'} this week:\n${lines.join("\n")}`;
+    }
+    return "No meals planned yet. Want me to suggest something based on what's in the kitchen?";
+  }
+  const slots = meals.map((meal) => `${meal.slot || 'Meal'}: ${meal.title}${meal.notes ? ` (${meal.notes})` : ''}`);
+  return `Today's meals:\n${slots.map((s) => `• ${s}`).join("\n")}`;
+}
+
+// GET_KITCHEN_WATCH — show expiring or recently expired kitchen items.
+export function answerGetKitchenWatch(state = {}) {
+  const today = todayISO();
+  const inventory = state.kitchenWatch || state.inventory || [];
+  if (!inventory.length) return "Kitchen Watch has no items yet. Add items from your shopping list to track freshness.";
+  const expiring = inventory.filter((item) => {
+    if (!item.expiry_date) return false;
+    const diff = (new Date(item.expiry_date) - new Date(today)) / 86400000;
+    return diff <= 7 && diff >= -3;
+  }).sort((a, b) => (a.expiry_date || '').localeCompare(b.expiry_date || ''));
+  const expired = inventory.filter((item) => item.expiry_date && new Date(item.expiry_date) < new Date(today));
+  if (!expiring.length && !expired.length) return "Nothing expiring soon — your kitchen is looking good.";
+  const lines = [];
+  if (expired.length) lines.push(`**Expired (${expired.length}):** ${expired.map((item) => item.name).join(", ")}`);
+  if (expiring.length) lines.push(`**Expiring soon (${expiring.length}):** ${expiring.map((item) => { const days = Math.ceil((new Date(item.expiry_date) - new Date(today)) / 86400000); return `${item.name} (${days <= 0 ? 'today' : days + 'd'})`; }).join(", ")}`);
+  return lines.join("\n");
+}
+
+// GET_GROCERIES — answer grocery list queries with grouped breakdown.
+export function answerGetGroceries(state = {}) {
+  const items = (state.groceries || []).filter((item) => !item.checked);
+  if (!items.length) return "The grocery list is empty — nothing to pick up.";
+  const grouped = items.reduce((map, item) => {
+    const cat = item.category || 'Other';
+    (map[cat] = map[cat] || []).push(item);
+    return map;
+  }, {});
+  const total = items.length;
+  const catCount = Object.keys(grouped).length;
+  const lines = Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)).map(([cat, list]) => `• **${cat}**: ${list.map((item) => item.quantity > 1 ? `${item.name} ×${item.quantity}` : item.name).join(", ")}`);
+  return `${total} item${total === 1 ? '' : 's'} across ${catCount} categor${catCount === 1 ? 'y' : 'ies'}:\n${lines.join("\n")}`;
+}
+
+// GET_MEAL_PLAN — answer queries about upcoming meal plans.
+export function answerGetMealPlan(state = {}) {
+  const today = todayISO();
+  const upcoming = (state.meals || []).filter((meal) => meal.date >= today).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 14);
+  if (!upcoming.length) return "No meals planned for the coming two weeks. Want me to suggest a meal plan?";
+  const byDate = {};
+  upcoming.forEach((meal) => { (byDate[meal.date] = byDate[meal.date] || []).push(meal); });
+  const lines = Object.entries(byDate).slice(0, 7).map(([date, dayMeals]) => `• ${formatDayLabel(date)}: ${dayMeals.map((m) => m.title).join(", ")}`);
+  return `Meal plan (${upcoming.length} meals, next 7 days):\n${lines.join("\n")}`;
+}

@@ -366,6 +366,47 @@ function routeQueryList(text, ctx) {
   };
 }
 
+// "what's for dinner" / "what are we eating today" / "meal plan"
+function routeQueryMeals(text, ctx) {
+  if (!/\b(meal|dinner|lunch|breakfast|eating|food|cook|recipe|plan|menu)\b/i.test(text)) return null;
+  if (!/\b(what|how|show|plan|check|list|any|tonight|today|tomorrow|this week|coming)\b/i.test(text)) return null;
+  // Exclude write intents like "plan a meal" or "add dinner"
+  if (/\b(add|create|plan|set|make)\b/i.test(text) && /\b(a|the|for|tonight)\b/i.test(text) && !/\b(what|how)\b/i.test(text)) return null;
+  const intent = /\b(plan|menu|this week|coming|upcoming)\b/i.test(text) ? "GET_MEAL_PLAN" : "GET_MEALS";
+  return {
+    intent,
+    confidence: 0.91,
+    entities: {},
+    requires_confirmation: false,
+    missing_fields: [],
+  };
+}
+
+// "what's expiring" / "kitchen watch" / "what's going bad" / "freshness"
+function routeQueryKitchenWatch(text, ctx) {
+  if (!/\b(expir|fresh|going bad|kitchen|watch|spoil|shelf|fridge|pantry|use .*(before|soon|up))\b/i.test(text)) return null;
+  return {
+    intent: "GET_KITCHEN_WATCH",
+    confidence: 0.92,
+    entities: {},
+    requires_confirmation: false,
+    missing_fields: [],
+  };
+}
+
+// "what's on the grocery list" / "what do we need to buy" — GET_GROCERIES
+function routeQueryGroceries(text, ctx) {
+  if (!/\b(grocer|shopping|buy|pick up|store)\b/i.test(text)) return null;
+  if (!/\b(what|how|show|list|check|any|need|missing|left)\b/i.test(text)) return null;
+  return {
+    intent: "GET_GROCERIES",
+    confidence: 0.9,
+    entities: {},
+    requires_confirmation: false,
+    missing_fields: [],
+  };
+}
+
 // "what's everyone doing saturday" / "what are we doing this weekend" — handled
 // by routeQueryDay; here the umbrella router wires everything together.
 export function routeIntent(text, ctx = {}) {
@@ -388,6 +429,9 @@ export function routeIntent(text, ctx = {}) {
     routeDriverQuery,
     routeOfferDrive,
     routeQueryList,
+    routeQueryMeals,
+    routeQueryKitchenWatch,
+    routeQueryGroceries,
   ];
 
   for (const router of routers) {

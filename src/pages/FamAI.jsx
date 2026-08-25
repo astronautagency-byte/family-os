@@ -18,6 +18,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
 import { Avatar } from "../components/ui";
+import useKitchenInventory from "../hooks/useKitchenInventory";
 import { isCookableTonight } from "../lib/cookableTonight";
 import { todayISO } from "../lib/dates";
 import { supabase } from "../lib/supabase";
@@ -40,7 +41,7 @@ const INITIAL_FAM_AI_MESSAGE = {
 };
 
 export default function FamAI({ open: propOpen, onClose, screen = "" }) {
-  const { configured } = useAuth();
+  const { configured, household, user } = useAuth();
   const {
     members,
     tasks,
@@ -112,12 +113,15 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
     currentUserId,
   };
 
+  const { items: kitchenWatchItems } = useKitchenInventory(household?.id, user?.id);
+
   const stateSnapshot = () => ({
     members,
     groceries,
     tasks,
     events,
     meals,
+    kitchenWatch: kitchenWatchItems,
     today: todayISO(),
   });
 
@@ -218,6 +222,7 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
             .slice(0, 50)
             .map((item) => ({ title: item.title, start: item.start, end: item.end, location: item.location, source: item.source })),
           plannedMeals: meals.filter((item) => item.date >= todayISO()).slice(0, 42).map((item) => ({ date: item.date, slot: item.slot, title: item.title, notes: item.notes })),
+          kitchenWatch: (kitchenWatchItems || []).slice(0, 30).map((item) => ({ name: item.name, category: item.category, expiry_date: item.expiresOn, quantity: item.quantity, location: item.location })),
           pendingActions: pending.map((action) => ({ type: action.type, args: action.args })),
         },
       },

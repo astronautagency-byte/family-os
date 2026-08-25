@@ -15,7 +15,7 @@
 import { classifyRequest, isGeneralKnowledge, RISK, RED_RESPONSE, YELLOW_RESPONSE, OUT_OF_SCOPE_RESPONSE } from "./guardrails";
 import { routeIntent, riskForIntent, shouldPreview } from "./intents";
 import { executeAction } from "./actions";
-import { answerGetSchedule, answerGetToday, answerGetList, answerGetDriver, answerGetConflicts, answerReadiness } from "./context";
+import { answerGetSchedule, answerGetToday, answerGetList, answerGetDriver, answerGetConflicts, answerReadiness, answerGetMeals, answerGetKitchenWatch, answerGetGroceries, answerGetMealPlan } from "./context";
 import { getSuggestedPrompts, getSuggestedActions } from "./suggestions";
 import { buildCompactContext } from "./context";
 
@@ -64,6 +64,14 @@ export async function handleAskFam(text, { state = {}, api = {} }) {
         return { kind: "answer", text: answerGetConflicts(state) };
       case "GET_READINESS":
         return { kind: "answer", text: answerReadiness(state) };
+      case "GET_MEALS":
+        return { kind: "answer", text: answerGetMeals(state) };
+      case "GET_MEAL_PLAN":
+        return { kind: "answer", text: answerGetMealPlan(state) };
+      case "GET_KITCHEN_WATCH":
+        return { kind: "answer", text: answerGetKitchenWatch(state) };
+      case "GET_GROCERIES":
+        return { kind: "answer", text: answerGetGroceries(state) };
       default:
         return { kind: "needsAi" };
     }
