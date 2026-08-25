@@ -16,7 +16,11 @@ const GROUPS={home:{label:"Housework",Icon:House,tone:"violet",color:"#6b5ce7"},
 const LIST_COLORS=[{value:"#6b5ce7",label:"Violet"},{value:"#d66b83",label:"Rose"},{value:"#b95f3b",label:"Coral"},{value:"#c98232",label:"Amber"},{value:"#3b8c75",label:"Green"},{value:"#2f8b9d",label:"Teal"},{value:"#4b7ec5",label:"Blue"},{value:"#756d8d",label:"Slate"}];
 
 export default function Tasks(){
- const {members,memberById,tasks,taskLists=[],addTaskList,removeTaskList,addTask,toggleTask,updateTask,removeTask,clearTasks,refreshData}=useFamily();
+ const {members:rawMembers,memberById:rawMemberById,tasks:rawTasks,taskLists:rawTaskLists,addTaskList,removeTaskList,addTask,toggleTask,updateTask,removeTask,clearTasks,refreshData}=useFamily();
+ const members=Array.isArray(rawMembers)?rawMembers:[];
+ const memberById=rawMemberById&&typeof rawMemberById==="object"?rawMemberById:{};
+ const tasks=Array.isArray(rawTasks)?rawTasks:[];
+ const taskLists=Array.isArray(rawTaskLists)?rawTaskLists:[];
  const [clearing,setClearing]=useState(false);
  const [editingId,setEditingId]=useState(null);
  const [draft,setDraft]=useState({title:"",notes:"",assigneeIds:members[0]?.id?[members[0].id]:[],due:todayISO(),taskType:"home",listId:null});
@@ -33,8 +37,20 @@ export default function Tasks(){
 
  const open=tasks.filter(t=>!t.done);
  const grouped=useMemo(()=>open.reduce((a,t)=>{const k=t.listId?`list:${t.listId}`:t.taskType||"home";(a[k]??=[]).push(t);return a;},{}),[open]);
- const groupEntries=useMemo(()=>{const entries=Object.entries(grouped);for(const list of taskLists){const key=`list:${list.id}`;if(!entries.some(([id])=>id===key))entries.push([key,[]]);}return entries;},[grouped,taskLists]);
- const listOptions=useMemo(()=>[{id:"all",label:"All tasks",Icon:Layers3,color:"var(--color-tasks)",count:open.length},...Object.entries(GROUPS).map(([id,meta])=>({id,label:meta.label,Icon:meta.Icon,color:meta.color,count:grouped[id]?.length||0})),...taskLists.map(list=>({id:`list:${list.id}`,label:list.name,Icon:ListTodo,color:list.color,count:grouped[`list:${list.id}`]?.length||0}))],[open.length,grouped,taskLists]);
+ const groupEntries=useMemo(()=>{
+   const entries=Object.entries(grouped);
+   for(const list of taskLists){
+     if(!list?.id)continue;
+     const key=`list:${list.id}`;
+     if(!entries.some(([id])=>id===key))entries.push([key,[]]);
+   }
+   return entries;
+ },[grouped,taskLists]);
+ const listOptions=useMemo(()=>[
+   {id:"all",label:"All tasks",Icon:Layers3,color:"var(--color-tasks)",count:open.length},
+   ...Object.entries(GROUPS).map(([id,meta])=>({id,label:meta.label,Icon:meta.Icon,color:meta.color,count:grouped[id]?.length||0})),
+   ...taskLists.filter((list)=>list?.id).map(list=>({id:`list:${list.id}`,label:list.name||"Untitled list",Icon:ListTodo,color:list.color||"var(--color-tasks)",count:grouped[`list:${list.id}`]?.length||0}))
+ ],[open.length,grouped,taskLists]);
  const visibleGroupEntries=useMemo(()=>activeList==="all"?groupEntries:[[activeList,grouped[activeList]||[]]],[activeList,groupEntries,grouped]);
  const done=tasks.filter(t=>t.done).length, pct=tasks.length?Math.round(done/tasks.length*100):0;
 
@@ -62,7 +78,7 @@ export default function Tasks(){
     {listOptions.map(({id,label,Icon,color,count})=>id.startsWith("list:")?<div className={`task-list-tab ${activeList===id?"selected":""}`} style={{"--list-tone":color}} key={id}><button type="button" role="tab" aria-selected={activeList===id} onClick={()=>setActiveList(id)}><Icon size={15}/><span>{label}</span><em>{count}</em></button><button type="button" className="task-list-delete" onClick={()=>setDeletingList(taskLists.find(list=>`list:${list.id}`===id))} aria-label={`Delete ${label}`}><Trash2 size={13}/></button></div>:<button type="button" role="tab" aria-selected={activeList===id} className={activeList===id?"selected":""} style={{"--list-tone":color}} onClick={()=>setActiveList(id)} key={id}><Icon size={15}/><span>{label}</span><em>{count}</em></button>)}
   </div>
 
-  {visibleGroupEntries.map(([key,items])=>{const custom=key.startsWith("list:")?taskLists.find(list=>list.id===key.slice(5)):null;const meta=custom?{label:custom.name,Icon:ListTodo,tone:"custom",color:custom.color}:GROUPS[key]||GROUPS.home;const Icon=meta.Icon;return <section className={`task-board-group ${meta.tone}`} style={custom?{"--custom-list-color":custom.color}:undefined} key={key}><div className="task-group-title"><h2><Icon/>{meta.label}</h2><Badge tone="accent">{items.length} Task{items.length===1?"":"s"}</Badge><button className="task-list-share" onClick={()=>shareList(key,items)} aria-label={`Share ${meta.label}`} title="Share this list"><Share2 size={14}/></button></div><div className="task-board-list">{items.length?items.map(t=>{const people=(t.assigneeIds?.length?t.assigneeIds:t.assigneeId?[t.assigneeId]:[]).map(id=>memberById[id]).filter(Boolean);const dueLabel=t.due===todayISO()?"Today":t.due?new Date(`${t.due}T12:00`).toLocaleDateString("en-CA",{weekday:"short"}):null;const categoryLabel=custom?.name||(t.taskType?GROUPS[t.taskType]?.label||t.taskType:null);return <div className="task-board-row" key={t.id}><Checkbox checked={t.done} onChange={()=>toggleTask(t.id)}/><button className="task-row-copy" onClick={()=>openEdit(t)}><strong>{t.title}</strong><small>{[dueLabel,categoryLabel].filter(Boolean).join(" · ")}</small></button>{people.length>0&&<AvatarStack members={people} size="sm" max={3} label={`Assigned to ${people.map(person=>person.name).join(", ")}`}/>}<button className="task-row-share" onClick={()=>shareTask(t)} aria-label={`Share ${t.title}`} title="Share with the family"><Share2 size={15}/></button><button className="task-row-delete" onClick={()=>removeTask(t.id)} aria-label={`Delete ${t.title}`}><Trash2/></button></div>}):<button className="task-list-empty" onClick={()=>setInlineText("")}>Nothing open here. Add one above when inspiration strikes.</button>}</div></section>})}
+  {visibleGroupEntries.map(([key,items])=>{const custom=key.startsWith("list:")?taskLists.find(list=>list.id===key.slice(5)):null;const meta=custom?{label:custom.name||"Untitled list",Icon:ListTodo,tone:"custom",color:custom.color||"var(--color-tasks)"}:GROUPS[key]||GROUPS.home;const Icon=meta.Icon;return <section className={`task-board-group ${meta.tone}`} style={custom?{"--custom-list-color":custom.color||"var(--color-tasks)"}:undefined} key={key}><div className="task-group-title"><h2><Icon/><span className="task-group-name">{meta.label}</span></h2><Badge tone="accent">{items.length} Task{items.length===1?"":"s"}</Badge><button className="task-list-share" onClick={()=>shareList(key,items)} aria-label={`Share ${meta.label}`} title="Share this list"><Share2 size={14}/></button></div><div className="task-board-list">{items.length?items.map(t=>{const people=(t.assigneeIds?.length?t.assigneeIds:t.assigneeId?[t.assigneeId]:[]).map(id=>memberById[id]).filter(Boolean);const dueLabel=t.due===todayISO()?"Today":t.due?new Date(`${t.due}T12:00`).toLocaleDateString("en-CA",{weekday:"short"}):null;const categoryLabel=custom?.name||(t.taskType?GROUPS[t.taskType]?.label||t.taskType:null);return <div className="task-board-row" key={t.id}><Checkbox checked={t.done} onChange={()=>toggleTask(t.id)}/><button className="task-row-copy" onClick={()=>openEdit(t)}><strong>{t.title||"Untitled task"}</strong><small>{[dueLabel,categoryLabel].filter(Boolean).join(" · ")}</small></button>{people.length>0&&<AvatarStack members={people} size="sm" max={3} label={`Assigned to ${people.map(person=>person.name).join(", ")}`}/>}<div className="task-row-actions"><button className="task-row-share" onClick={()=>shareTask(t)} aria-label={`Share ${t.title||"task"}`} title="Share with the family"><Share2 size={15}/></button><button className="task-row-delete" onClick={()=>removeTask(t.id)} aria-label={`Delete ${t.title||"task"}`}><Trash2/></button></div></div>}):<button className="task-list-empty" onClick={()=>setInlineText("")}>Nothing open here. Add one above when inspiration strikes.</button>}</div></section>})}
   {activeList==="all"&&open.length===0&&<section className="task-board-group violet"><div className="task-board-row"><strong>All clear. Suspiciously efficient.</strong></div></section>}
   <section className="weekly-progress"><h2>This week’s wins</h2><p>Your family has knocked out {pct}% of the list this week.</p><ProgressBar value={done} max={tasks.length || 1} color="var(--color-accent)" size="lg"/><small>{done} tasks done <b>{open.length} left</b></small></section>
   </div>

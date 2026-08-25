@@ -389,13 +389,22 @@ export function FamilyProvider({ children, tabletMode = false }) {
       setMembers(membersResult.data.filter((item) => item.profiles).map((item) => mapProfile(item.profiles, item.role)));
       setTasks(tasksResult.data.map(mapTask)); setGroceries(groceriesResult.data.map(mapGrocery));
       setEvents(eventsResult.data.map(mapEvent)); setMeals(mealsResult.data.map(mapMeal)); setMessages(messagesResult.data.map(mapMessage));
-      const taskListsResult = await supabase.from("task_lists").select("*").eq("household_id", household.id).order("created_at");
-      if (!taskListsResult.error) {
-        const remoteLists = taskListsResult.data.map(mapTaskList);
+      // Task lists are optional for older households and older schema caches.
+      // Never let a list query failure hide the Tasks page or discard local
+      // lists that were created while the migration was rolling out.
+      try {
+        const taskListsResult = await supabase.from("task_lists").select("*").eq("household_id", household.id).order("created_at");
         const fallbackLists = readFallbackTaskLists(household.id);
-        setTaskLists([...remoteLists, ...fallbackLists.filter((local) => !remoteLists.some((saved) => saved.id === local.id))]);
-      } else if (isMissingTaskListsSchema(taskListsResult.error)) {
+        const remoteLists = Array.isArray(taskListsResult.data) && !taskListsResult.error
+          ? taskListsResult.data.filter(Boolean).map(mapTaskList)
+          : [];
+        setTaskLists([...remoteLists, ...fallbackLists.filter((local) => local && !remoteLists.some((saved) => saved.id === local.id))]);
+        if (taskListsResult.error && !isMissingTaskListsSchema(taskListsResult.error)) {
+          console.warn("Could not load shared task lists; keeping available local lists.", taskListsResult.error.message);
+        }
+      } catch (taskListError) {
         setTaskLists(readFallbackTaskLists(household.id));
+        console.warn("Could not load shared task lists; keeping available local lists.", taskListError);
       }
       const groceryListsResult = await supabase.from("grocery_lists").select("*").eq("household_id", household.id).order("created_at");
       if (!groceryListsResult.error) setGroceryLists(groceryListsResult.data.map(mapGroceryList));

@@ -8945,3 +8945,113 @@ input:focus, textarea:focus, select:focus {
 .theme-dark [class*="text-gray-"] {
   color: var(--color-ink-soft) !important;
 }
+
+/* Tasks stay readable when a household has many custom lists or long names.
+   The selector strip may scroll horizontally, but each task row itself must
+   always fit the viewport and keep its actions reachable. */
+.app-shell .reference-tasks .task-list-switcher {
+  min-width: 0;
+  max-width: 100%;
+  overscroll-behavior-x: contain;
+}
+.app-shell .reference-tasks .task-list-tab {
+  min-width: 0;
+  max-width: min(280px, 82vw);
+}
+.app-shell .reference-tasks .task-list-tab > button:first-child {
+  min-width: 0;
+}
+.app-shell .reference-tasks .task-list-tab > button:first-child > span,
+.app-shell .reference-tasks .task-list-switcher > button > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.app-shell .reference-tasks .task-board-group {
+  min-width: 0;
+  overflow: hidden;
+}
+.app-shell .reference-tasks .task-group-title {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+}
+.app-shell .reference-tasks .task-group-title h2 {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.app-shell .reference-tasks .task-group-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.app-shell .reference-tasks .task-board-row {
+  min-width: 0;
+}
+.app-shell .reference-tasks .task-row-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+  text-align: left;
+}
+.app-shell .reference-tasks .task-row-copy strong,
+.app-shell .reference-tasks .task-row-copy small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.app-shell .reference-tasks .task-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+@media (max-width: 640px) {
+  .app-shell .reference-tasks .task-list-switcher {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    overflow-y: visible;
+    gap: 7px;
+    padding-bottom: 2px;
+    touch-action: auto;
+  }
+  .app-shell .reference-tasks .task-list-tab,
+  .app-shell .reference-tasks .task-list-switcher > button {
+    max-width: 100%;
+  }
+  .app-shell .reference-tasks .task-board-group {
+    padding: 14px;
+  }
+  .app-shell .reference-tasks .task-group-title {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .app-shell .reference-tasks .task-group-title .ui-badge {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .app-shell .reference-tasks .task-list-share {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: start;
+  }
+  .app-shell .reference-tasks .task-board-row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px;
+  }
+  .app-shell .reference-tasks .task-row-copy {
+    flex-basis: calc(100% - 36px);
+    padding-top: 2px;
+  }
+  .app-shell .reference-tasks .task-board-row > .avatar-circles {
+    order: 3;
+    margin-left: 28px;
+  }
+  .app-shell .reference-tasks .task-row-actions {
+    order: 4;
+    margin-left: auto;
+  }
+}
