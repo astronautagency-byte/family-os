@@ -740,6 +740,11 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
   // Track the specific billing action so only the clicked control shows progress.
   const [billingBusy, setBillingBusy] = useState(null);
   const [billingError, setBillingError] = useState("");
+  // Promo code for unlocking FamOS Pro for free
+  const [promoCode, setPromoCode] = useState("");
+  const [promoBusy, setPromoBusy] = useState(false);
+  const [promoResult, setPromoResult] = useState("");
+  const [promoApplied, setPromoApplied] = useState(false);
   // Billing cadence offered on checkout — monthly is default; yearly pre-pays
   // the full year through Stripe's yearly price.
   const [billingInterval, setBillingInterval] = useState("monthly");
@@ -1230,6 +1235,73 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
             </SecondaryButton>
             {billingError && <div className="text-[12px] text-[var(--color-warn)] mt-2">{billingError}</div>}
           </Card>
+
+          {/* Promo code card */}
+          {!promoApplied && (
+            <Card className="p-4 mt-3">
+              <div className="flex items-start gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0">
+                  <Ticket size={18} color="var(--color-accent)" />
+                </div>
+                <div>
+                  <p className="font-semibold text-[14px] text-[var(--color-ink)]">Have a promo code?</p>
+                  <p className="text-[12.5px] text-[var(--color-ink-soft)]">Enter a code to unlock FamOS Pro features for free.</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={promoCode}
+                  onChange={(e) => { setPromoCode(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, "")); setPromoResult(""); }}
+                  placeholder="Enter promo code"
+                  disabled={promoBusy}
+                  maxLength={32}
+                  className="flex-1 min-h-[44px] px-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-ink)] text-[14px] outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent-soft)] transition-all"
+                />
+                <button
+                  type="button"
+                  disabled={promoBusy || promoCode.trim().length < 3}
+                  onClick={async () => {
+                    setPromoBusy(true);
+                    setPromoResult("");
+                    try {
+                      const { data, error } = await supabase.rpc("apply_my_promo_code", { promo_code: promoCode.trim() });
+                      if (error) throw error;
+                      setPromoApplied(true);
+                      setPromoResult(data || "Promo code applied! FamOS Pro is now unlocked.");
+                    } catch (err) {
+                      setPromoApplied(false);
+                      setPromoResult(err.message || "Invalid promo code.");
+                    } finally {
+                      setPromoBusy(false);
+                    }
+                  }}
+                  className="shrink-0 min-h-[44px] px-5 rounded-xl bg-[var(--color-accent)] text-white text-[13px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-40"
+                >
+                  {promoBusy ? "Applying…" : "Apply"}
+                </button>
+              </div>
+              {promoResult && (
+                <div className={`mt-2 text-[12.5px] px-3 py-2 rounded-lg ${promoApplied ? "bg-[var(--color-good-soft)] text-[var(--color-good)]" : "bg-[var(--color-warn-soft)] text-[var(--color-warn)]"}`}>
+                  {promoResult}
+                </div>
+              )}
+            </Card>
+          )}
+
+          {promoApplied && (
+            <Card className="p-4 mt-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[var(--color-good-soft)] flex items-center justify-center shrink-0">
+                  <CheckCircle2 size={18} color="var(--color-good)" />
+                </div>
+                <div>
+                  <p className="font-semibold text-[14px] text-[var(--color-good)]">Promo code applied!</p>
+                  <p className="text-[12.5px] text-[var(--color-ink-soft)]">{promoResult || "FamOS Pro is now unlocked for free."}</p>
+                </div>
+              </div>
+            </Card>
+          )}
         </section>
 
         <section data-tab="integrations">
