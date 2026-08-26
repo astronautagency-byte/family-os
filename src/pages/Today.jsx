@@ -188,25 +188,36 @@ function BroadcastBanner({ item, sender, reactions, currentUserId, onReact, onCl
 export default function Today({ goTo }) {
   // ── Subscription trial state ──
   const [subscription, setSubscription] = useState(null);
+  const [promoUnlocked, setPromoUnlocked] = useState(false);
   useEffect(() => {
     let cancelled = false;
-    supabase.rpc("get_my_subscription").then(({ data, error }) => {
-      if (!cancelled) {
-        if (error) console.warn("[Today] subscription fetch error:", error);
-        if (data?.[0]) {
-          console.log("[Today] subscription:", data[0]);
-          setSubscription(data[0]);
-        } else {
-          console.log("[Today] no subscription data");
+    (async () => {
+      try {
+        const [subRes, promoRes] = await Promise.allSettled([
+          supabase.rpc("get_my_subscription"),
+          supabase.rpc("has_unlock_all_promo"),
+        ]);
+        if (!cancelled) {
+          if (subRes.status === "fulfilled" && !subRes.value.error && subRes.value.data?.[0]) {
+            console.log("[Today] subscription:", subRes.value.data[0]);
+            setSubscription(subRes.value.data[0]);
+          } else {
+            console.log("[Today] no subscription data");
+          }
+          if (promoRes.status === "fulfilled" && !promoRes.value.error) {
+            setPromoUnlocked(!!promoRes.value.data);
+          }
         }
+      } catch {
+        if (!cancelled) { /* subscription is optional */ }
       }
-    });
+    })();
     return () => { cancelled = true; };
   }, []);
   const trialDaysLeft = subscription?.trial_ends_at
     ? Math.max(0, Math.ceil((new Date(subscription.trial_ends_at).getTime() - Date.now()) / 86_400_000))
     : null;
-  const isTrial = (subscription?.status === "trial" || subscription?.status === "trialing") && trialDaysLeft > 0;
+  const isTrial = (subscription?.status === "trial" || subscription?.status === "trialing") && trialDaysLeft > 0 && !promoUnlocked;
   const isExpired = subscription?.status === "canceled" || (subscription?.status === "trial" && trialDaysLeft === 0);
 
   const { members, memberById, events, googleEvents, feedEvents, meals, tasks, taskLists = [], groceries, messages, addGrocery, toggleTask, tabletMode, broadcasts, broadcastMessage, clearBroadcast, reactionsByMessage, reactToBroadcast, currentUserId, refreshData, syncGoogleCalendarNow, googleConnected, notificationPermission, requestNotifications } = useFamily();

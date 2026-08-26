@@ -25,18 +25,30 @@ const PLAN_RANK = { core: 0, free: 0, plus: 1, pro: 2 };
 
 export function useSubscription() {
   const [subscription, setSubscription] = useState(null);
+  const [promoUnlocked, setPromoUnlocked] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    supabase.rpc("get_my_subscription").then(({ data, error }) => {
-      if (!cancelled) {
-        setSubscription(!error && data?.[0] ? data[0] : null);
-        setLoading(false);
+    (async () => {
+      try {
+        const [subResult, promoResult] = await Promise.allSettled([
+          supabase.rpc("get_my_subscription"),
+          supabase.rpc("has_unlock_all_promo"),
+        ]);
+        if (!cancelled) {
+          if (subResult.status === "fulfilled" && !subResult.value.error && subResult.value.data?.[0]) {
+            setSubscription(subResult.value.data[0]);
+          }
+          if (promoResult.status === "fulfilled" && !promoResult.value.error) {
+            setPromoUnlocked(!!promoResult.value.data);
+          }
+          setLoading(false);
+        }
+      } catch {
+        if (!cancelled) setLoading(false);
       }
-    }).catch(() => {
-      if (!cancelled) setLoading(false);
-    });
+    })();
     return () => { cancelled = true; };
   }, []);
 
@@ -44,8 +56,8 @@ export function useSubscription() {
   const status = subscription?.status || "none";
   const planRank = PLAN_RANK[planKey] ?? 0;
 
-  const isTrial = status === "trial" || status === "trialing";
-  const isActive = status === "active" || isTrial;
+  const isTrial = (status === "trial" || status === "trialing") && !promoUnlocked;
+  const isActive = status === "active" || isTrial || promoUnlocked;
   const isPlus = planRank >= 1 && isActive;
   const isPro = planRank >= 2 && isActive;
 
@@ -79,6 +91,7 @@ export function useSubscription() {
     isTrialExpired,
     hasFeature,
     PAID_FEATURES,
+    promoUnlocked,
   };
 }
 
