@@ -1432,12 +1432,12 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   html, body { height:auto; min-height:100vh; overflow-x:hidden; overflow-y:auto; }
   #root { min-height:100vh; overflow:visible; }
   .app-shell { min-height:100vh; height:auto; overflow:visible; }
-  .app-content { min-height:0; height:auto; overflow:visible; padding-bottom:0; }
-  .pull-to-refresh-host { min-height:0; height:auto; overflow:visible; }
-  .reference-tasks {
-    min-height:0;
-    height:auto;
-    overflow:visible;
+  .app-content, .app-shell .app-content { min-height:0 !important; height:auto !important; overflow:visible !important; padding-bottom:0 !important; }
+  .pull-to-refresh-host, .app-content .pull-to-refresh-host { min-height:0 !important; height:auto !important; overflow:visible !important; }
+  .reference-tasks, .app-content .reference-tasks {
+    min-height:0 !important;
+    height:auto !important;
+    overflow:visible !important;
     padding-bottom:calc(140px + env(safe-area-inset-bottom, 0px)) !important;
     transform:none !important;
   }
