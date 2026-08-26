@@ -200,5 +200,27 @@
     </div>
 
   <script type="module" src="/src/main.jsx"></script>
+  <script>
+    /* Force PWA service worker cache bust on every deploy.
+       Checks for a new SW and reloads once to pick up the fresh bundle.
+       Runs once per session to avoid reload loops. */
+    if ('serviceWorker' in navigator) {
+      const version = 'famos-v2-20260825';
+      const seen = sessionStorage.getItem('_sw_version');
+      if (seen !== version) {
+        sessionStorage.setItem('_sw_version', version);
+        navigator.serviceWorker.getRegistration().then(reg => {
+          if (reg) reg.update().then(() => {
+            if (reg.waiting) reg.waiting.postMessage('skipWaiting');
+          });
+        });
+        /* Also nuke the workbox caches from a previous build */
+        caches.keys().then(keys => {
+          const old = keys.filter(k => !k.includes(version));
+          old.forEach(k => caches.delete(k));
+        });
+      }
+    }
+  </script>
   </body>
 </html>
