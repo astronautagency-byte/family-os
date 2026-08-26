@@ -72,10 +72,26 @@ export default defineConfig({
         // Precache only the app shell — NOT png/jpg. The marketing images and
         // illustrations were ~38MB of precache, blowing up first-load/install.
         // Images are cached at runtime on first use instead (below).
-        globPatterns: ['**/*.{js,css,svg,ico,woff,woff2}'],
+        globPatterns: [],
         globIgnores: ['**/marketing/ads/**'],
         importScripts: ['/notification-sw.js'],
         runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.destination === 'document',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'famos-pages',
+              expiration: { maxEntries: 20, maxAgeSeconds: 3600 }
+            }
+          },
+          {
+            urlPattern: ({ request }) => request.destination === 'script' || request.destination === 'style',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'famos-assets',
+              expiration: { maxEntries: 100, maxAgeSeconds: 3600 }
+            }
+          },
           {
             urlPattern: ({ request }) => request.destination === 'image',
             handler: 'CacheFirst',
