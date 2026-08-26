@@ -523,6 +523,9 @@
     padding: 44px var(--landing-phone-gutter) 52px !important;
     gap: 24px;
   }
+  .landing-hero-fullbleed {
+    padding: 0 !important;
+  }
   .landing-kicker {
     font-size: 11px;
     letter-spacing: .09em;
