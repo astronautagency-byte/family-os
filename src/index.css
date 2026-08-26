@@ -1586,6 +1586,12 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   .reference-dashboard .today-bento-grid>:not(.today-bento-meal-grid),.reference-dashboard .today-bento-grid .today-meals-card,.reference-dashboard .today-bento-grid .today-groceries-card{grid-column:1!important}
   .reference-dashboard .today-bento-grid>.today-bento-meal-grid{display:contents}
   .reference-dashboard .today-bento-grid .kinship-card:hover{transform:none}
+  /* On mobile, show Kitchen Watch before Shopping to avoid confusion */
+  .reference-dashboard .today-bento-grid>.today-bento-kitchen{order:3}
+  .reference-dashboard .today-bento-grid .today-meals-card{order:4}
+  .reference-dashboard .today-bento-grid .today-groceries-card{order:5}
+  .reference-dashboard .today-bento-grid>.today-bento-messages{order:6}
+  .reference-dashboard .today-bento-grid>.today-bento-tasks{order:7}
 }
 .reference-dashboard .today-metric-accent,.reference-dashboard .today-flow-card{
   background:color-mix(in srgb,var(--pastel-lilac) 18%,var(--color-surface))!important;
@@ -4149,7 +4155,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .nav-item{min-height:48px}.topbar-actions button{display:grid;place-items:center;min-width:40px;min-height:40px;border-radius:50%}.topbar-actions button:hover{background:var(--m3-primary-container)}
 
 @media(min-width:640px){.modal-card.m3-dialog{border-radius:var(--m3-shape-xl)!important}}
-@media(max-width:520px){.form-control{min-height:46px}.m3-button{min-height:46px}.kinship-card.m3-card{border-radius:var(--m3-shape-lg)!important}}
+@media(max-width:520px){.form-control{min-height:46px}.m3-button{min-height:46px}.kinship-card.m3-card{border-radius:var(--m3-shape-lg)!important}.address-autocomplete-results{z-index:100;max-height:260px;overflow-y:auto;-webkit-overflow-scrolling:touch}.address-autocomplete-results button{min-height:48px;padding:12px 14px;font-size:14px}.address-autocomplete{z-index:100}.date-native-input{-webkit-appearance:none;appearance:none;cursor:pointer}.date-native-input::-webkit-calendar-picker-indicator{opacity:.6;cursor:pointer}}
 @media(min-width:700px){
   :root{--m3-page-gutter:28px;--m3-grid-gap:20px}
   .m3-navigation-item{min-height:52px;flex-direction:row;justify-content:flex-start;padding-inline:var(--m3-space-3);gap:var(--m3-space-3);border-radius:var(--m3-shape-xl)}

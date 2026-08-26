@@ -335,11 +335,24 @@ const parseDate = (value) => {
 };
 const sameDay = (left, right) => left.getFullYear() === right.getFullYear() && left.getMonth() === right.getMonth() && left.getDate() === right.getDate();
 
+function useIsMobile(breakpoint = 600) {
+  const [mobile, setMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= breakpoint);
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width:${breakpoint}px)`);
+    const handler = (e) => setMobile(e.matches);
+    mq.addEventListener('change', handler);
+    setMobile(mq.matches);
+    return () => mq.removeEventListener('change', handler);
+  }, [breakpoint]);
+  return mobile;
+}
+
 export function DateField({ label, value, onChange, min, max, disabled = false, className = "", compact = false }) {
   const rootRef = useRef(null);
   const selectedDate = useMemo(() => parseDate(value), [value]);
   const [open, setOpen] = useState(false);
   const [visibleMonth, setVisibleMonth] = useState(() => new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!open) return undefined;
@@ -376,6 +389,27 @@ export function DateField({ label, value, onChange, min, max, disabled = false, 
     onChange(dateIso(day));
     setOpen(false);
   };
+
+  if (isMobile) {
+    return (
+      <div className={`form-field date-field ${compact ? "date-field-compact" : ""} ${className}`} ref={rootRef}>
+        {label && <span className="form-label">{label}</span>}
+        <span className="date-trigger" style={{display:'grid',gridTemplateColumns:'20px minmax(0,1fr) 16px',alignItems:'center',gap:'9px'}}>
+          <CalendarDays size={17} style={{color:'var(--color-accent)'}} />
+          <input
+            type="date"
+            className="form-control date-native-input"
+            value={value || ''}
+            min={min || undefined}
+            max={max || undefined}
+            disabled={disabled}
+            onChange={(e) => onChange(e.target.value)}
+            style={{border:'none',background:'transparent',padding:0,minHeight:'auto',fontSize: compact ? '13px' : '14px',color:'var(--color-ink)',cursor:'pointer'}}
+          />
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className={`form-field date-field ${compact ? "date-field-compact" : ""} ${className}`} ref={rootRef}>

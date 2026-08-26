@@ -80,13 +80,19 @@ export default function AddressAutocomplete({ label = "Home address", value = ""
     await resolveAddress(description, prediction?.placeId || prediction?.legacyPrediction?.place_id, prediction);
   };
 
+  const blurTimeoutRef = useRef(null);
   const handleBlur = () => {
-    window.setTimeout(() => setSuggestions([]), 150);
+    // Use a longer timeout on touch devices so taps on suggestions register
+    // before the list disappears.
+    const isTouchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    const delay = isTouchDevice ? 300 : 150;
+    blurTimeoutRef.current = window.setTimeout(() => setSuggestions([]), delay);
     const address = value.trim();
     if (maps && address.length >= 3 && address !== resolvedAddressRef.current) {
       resolveAddress(address);
     }
   };
+  const cancelBlur = () => { if (blurTimeoutRef.current) window.clearTimeout(blurTimeoutRef.current); };
 
   return (
     <label className="form-field address-autocomplete">
@@ -113,11 +119,11 @@ export default function AddressAutocomplete({ label = "Home address", value = ""
           onBlur={handleBlur}
         />
       </span>
-      {suggestions.length > 0 && <span className="address-autocomplete-results">
+      {suggestions.length > 0 && <span className="address-autocomplete-results" role="listbox">
         {suggestions.map((suggestion, index) => {
           const prediction = suggestion.placePrediction;
           const text = googlePredictionText(prediction);
-          return <button type="button" key={prediction?.placeId || prediction?.legacyPrediction?.place_id || `${text}-${index}`} onMouseDown={(event) => event.preventDefault()} onClick={() => select(suggestion)}><MapPin size={15} /><span>{text}</span></button>;
+          return <button type="button" role="option" key={prediction?.placeId || prediction?.legacyPrediction?.place_id || `${text}-${index}`} onMouseDown={(event) => event.preventDefault()} onTouchStart={cancelBlur} onClick={() => select(suggestion)}><MapPin size={15} /><span>{text}</span></button>;
         })}
       </span>}
       {!googleMapsApiKey && <small className="address-autocomplete-warning">Google Maps is not configured for this deployment.</small>}
