@@ -69,7 +69,7 @@ export function FocusShoppingItem({ item, memberById, onToggle, onUpdateExpiry }
         ) : (
           <button
             type="button"
-            className={`focus-expiry-toggle ${item.expiresOn ? "has-date" : ""}`}
+            className={`focus-expiry-btn ${item.expiresOn ? "has-date" : ""}`}
             onClick={(e) => { e.stopPropagation(); setEditingExpiry(true); setExpiryDraft(item.expiresOn || ""); }}
             aria-label={item.expiresOn ? `Edit expiry: ${item.expiresOn}` : "Add expiry date"}
           >
