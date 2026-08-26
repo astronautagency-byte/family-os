@@ -311,7 +311,7 @@ export default function App() {
     }
   };
   const shellRef = useRef(null);
-  const { configured, session, household, householdProfile, loading, passwordRecovery, onboardingRequired } = useAuth();
+  const { configured, session, household, householdProfile, loading, passwordRecovery, onboardingRequired, accountReady } = useAuth();
   const publicRoute = route;
   const featureTourSteps = useMemo(() => TOUR_FEATURES.filter((feature) => {
     if (feature.id === "today" || feature.id === "settings") return true;
@@ -719,7 +719,7 @@ export default function App() {
   if (configured && !session && publicRoute === "signup") return <SignIn key="signup" initialCreating />;
   if (configured && !session && isTauriRuntime()) return <DesktopAuthGate status={desktopAuth.status} error={desktopAuth.error} />;
   if (configured && !session) return <Suspense fallback={<PageFallback />}><Landing /></Suspense>;
-  if (configured && (!household || onboardingRequired)) return <HouseholdOnboarding colorScheme={colorScheme} onColorSchemeChange={setColorScheme} />;
+  if (configured && accountReady && (!household || onboardingRequired)) return <HouseholdOnboarding colorScheme={colorScheme} onColorSchemeChange={setColorScheme} />;
   if (["suspended", "disabled"].includes(runtimeConfig.status)) return (
     <main className="admin-denied">
       <ShieldCheck />

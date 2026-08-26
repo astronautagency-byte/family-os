@@ -13,6 +13,7 @@ import { dailyEncouragement, eventDateLocal, formatTime, fullDateLabel, greeting
 import useKitchenInventory from "../hooks/useKitchenInventory";
 import { expiringInventory } from "../lib/inventoryExpiry";
 import NativeAdBanner from "../components/NativeAdBanner";
+import ProductUpdateBanner from "../components/ProductUpdateBanner";
 import { AD_PLACEMENTS } from "../lib/adNetwork";
 
 // Map a normalised weather "kind" (+ day/night) to a lucide icon and label.
@@ -586,6 +587,8 @@ export default function Today({ goTo }) {
         illustration="home"
         action={<button type="button" className={`today-customize-trigger ${editingDashboard ? "active" : ""}`} onClick={() => setEditingDashboard((current) => !current)} aria-expanded={editingDashboard}><LayoutGrid size={16}/>{editingDashboard ? "Done" : "Customize"}</button>}
       />
+
+      <div className="px-5"><ProductUpdateBanner /></div>
 
       {isTrial && (
         <div className="today-trial-banner">

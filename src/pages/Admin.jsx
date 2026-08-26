@@ -3,7 +3,7 @@ import {
   Activity, Archive, ArrowLeft, BadgeDollarSign, Bug, Building2, CalendarDays, CheckCircle2, ChevronRight,
   CircleDollarSign, CreditCard, Flag, LayoutDashboard, Lightbulb, ListChecks, LogOut, Mail, MessageCircle,
   Search, Send, Settings2, ShieldCheck, ShoppingCart, Tag, Ticket, Trash2, TrendingUp, UserPlus, Users, Utensils, Gauge, AlertTriangle, Clock3,
-  WalletCards, XCircle, RefreshCw, ExternalLink, ReceiptText,
+  WalletCards, XCircle, RefreshCw, ExternalLink, ReceiptText, Megaphone,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { Badge, Card, Modal, PrimaryButton, SecondaryButton, SelectField, TextField } from "../components/ui";
@@ -470,6 +470,92 @@ function EmailAnalytics() {
   );
 }
 
+function ProductUpdates() {
+  const [updates, setUpdates] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({ title: "", summary: "", body: "", category: "update", icon: "sparkles", linkUrl: "", linkLabel: "" });
+  const [sending, setSending] = useState(null);
+
+  const load = async () => {
+    const { data } = await supabase.from("product_updates").select("*").order("created_at", { ascending: false });
+    setUpdates(data || []);
+  };
+  useEffect(() => { load(); }, []);
+
+  const createAndSend = async () => {
+    if (!form.title.trim() || !form.summary.trim() || busy) return;
+    setBusy(true); setError("");
+    try {
+      const { data: inserted, error: insertError } = await supabase.from("product_updates").insert({
+        title: form.title.trim(),
+        summary: form.summary.trim(),
+        body: form.body.trim(),
+        category: form.category,
+        icon: form.icon,
+        link_url: form.linkUrl.trim() || null,
+        link_label: form.linkLabel.trim() || null,
+        is_active: true,
+        published_at: new Date().toISOString(),
+      }).select().single();
+      if (insertError) throw insertError;
+
+      // Send emails
+      const { data: sendResult, error: sendError } = await supabase.functions.invoke("send-product-update", { body: { updateId: inserted.id } });
+      if (sendError) throw sendError;
+
+      setForm({ title: "", summary: "", body: "", category: "update", icon: "sparkles", linkUrl: "", linkLabel: "" });
+      await load();
+      setSending({ sent: sendResult?.sent || 0, total: sendResult?.total || 0 });
+      setTimeout(() => setSending(null), 5000);
+    } catch (e) {
+      setError(e?.message || "Failed to send update");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleActive = async (id, isActive) => {
+    await supabase.from("product_updates").update({ is_active: isActive }).eq("id", id);
+    await load();
+  };
+
+  return (
+    <div className="admin-promotions">
+      <Card className="admin-panel">
+        <PanelHead eyebrow="User communication" title="Send product update" icon={Megaphone} />
+        <p className="admin-section-copy">Compose an update and send it as an email to all FamOS users. It will also appear as an in-app banner on the Today page.</p>
+        <div className="admin-promo-form">
+          <label>Title<input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="What's new in FamOS" /></label>
+          <label>Summary<textarea value={form.summary} onChange={(e) => setForm({ ...form, summary: e.target.value })} placeholder="A short description of the update" rows={2} /></label>
+          <label>Details (optional)<textarea value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} placeholder="Additional details or changelog" rows={3} /></label>
+          <label>Category<select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}><option value="update">Product update</option><option value="feature">New feature</option><option value="fix">Bug fix</option></select></label>
+          <label>Link URL (optional)<input value={form.linkUrl} onChange={(e) => setForm({ ...form, linkUrl: e.target.value })} placeholder="https://..." /></label>
+          <label>Link label (optional)<input value={form.linkLabel} onChange={(e) => setForm({ ...form, linkLabel: e.target.value })} placeholder="Learn more" /></label>
+          <button disabled={busy || !form.title.trim() || !form.summary.trim()} onClick={createAndSend}><Megaphone size={16} /> {busy ? "Sending…" : "Send to all users"}</button>
+        </div>
+        {error && <div className="admin-error">{error}</div>}
+        {sending && <div className="admin-success">Update sent to {sending.sent} of {sending.total} users. It will appear on the Today page.</div>}
+      </Card>
+      <Card className="admin-table-card">
+        <div className="admin-table-tools"><div><small>History</small><h2>Product updates</h2></div></div>
+        <div className="admin-table-scroll">
+          <table><thead><tr><th>Title</th><th>Category</th><th>Sent</th><th>Status</th><th /></tr></thead>
+            <tbody>{updates.map((u) => (
+              <tr key={u.id}><td><strong>{u.title}</strong><small>{u.summary?.slice(0, 80)}</small></td>
+                <td>{u.category === "feature" ? "Feature" : u.category === "fix" ? "Fix" : "Update"}</td>
+                <td>{u.published_at ? date(u.published_at) : "Draft"}</td>
+                <td><span className={`admin-status ${u.is_active ? "status-active" : "status-disabled"}`}>{u.is_active ? "active" : "hidden"}</span></td>
+                <td><button className="admin-promo-toggle" disabled={busy} onClick={() => toggleActive(u.id, !u.is_active)}>{u.is_active ? "Hide" : "Show"}</button></td>
+              </tr>
+            ))}{!updates.length && <tr><td colSpan="5" className="admin-empty">No product updates yet.</td></tr>}</tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 export default function Admin() {
   const [checking, setChecking] = useState(true); const [session, setSession] = useState(null); const [allowed, setAllowed] = useState(false);
   const [section, setSection] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("recovery") === "1" ? "account" : "overview"); const [overview, setOverview] = useState({}); const [analytics, setAnalytics] = useState({});
@@ -541,7 +627,7 @@ export default function Admin() {
   if (!allowed) return <main className={`admin-denied ${themeClass}`} data-color-scheme={colorScheme}><XCircle /><h1>Admin access required</h1><p>{error}</p><button onClick={async () => { await supabase.auth.signOut(); setSession(null); }}>Use another account</button></main>;
   if (supportSelected) return <main className={`admin-shell admin-detail-shell ${themeClass}`} data-color-scheme={colorScheme}><SupportMessageDetail id={supportSelected} onClose={() => setSupportSelected(null)} onChanged={() => setSupportRefreshKey((prev) => prev + 1)} onDeleted={() => { setSupportSelected(null); setSupportRefreshKey((prev) => prev + 1); }} /></main>;
   if (selected) return <main className={`admin-shell admin-detail-shell ${themeClass}`} data-color-scheme={colorScheme}><HouseholdDetail id={selected} onClose={() => setSelected(null)} onChanged={load} onDelete={setDeleteTarget} /><ConfirmDelete target={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={confirmDelete} busy={deleteBusy} error={deleteError} /></main>;
-  const nav = [["overview", "Overview", LayoutDashboard], ["operations", "Operations", Gauge], ["families", "Families", Building2], ["users", "Users", Users], ["revenue", "Revenue", BadgeDollarSign], ["promotions", "Promotions", Tag], ["emails", "Email analytics", Mail], ["support", "Support", MessageCircle, supportCounts.new], ["flags", "Feature flags", Flag], ["audit", "Audit log", ShieldCheck], ["account", "Admin account", Settings2]];
+  const nav = [["overview", "Overview", LayoutDashboard], ["operations", "Operations", Gauge], ["families", "Families", Building2], ["users", "Users", Users], ["revenue", "Revenue", BadgeDollarSign], ["promotions", "Promotions", Tag], ["updates", "Product updates", Megaphone], ["emails", "Email analytics", Mail], ["support", "Support", MessageCircle, supportCounts.new], ["flags", "Feature flags", Flag], ["audit", "Audit log", ShieldCheck], ["account", "Admin account", Settings2]];
   const activePercent = overview.households ? Math.round(Number(analytics.activeHouseholds30d || 0) / Number(overview.households) * 100) : 0;
   return <div className={`admin-shell ${themeClass}`} data-color-scheme={colorScheme}>    <aside><div className="admin-brand"><span className="admin-brand-icon"><img src="/brand/famos-icon.png" alt="FamOS" /></span><strong>Fam<span>OS</span></strong><small>Admin</small></div><nav>{nav.map(([key, label, Icon, badge]) => <button key={key} className={section === key ? "active" : ""} onClick={() => setSection(key)}><Icon size={18} />{badge ? <span className="admin-dot" /> : null}{label}{badge ? <span className="admin-badge">{badge}</span> : null}</button>)}</nav><button className="admin-signout" onClick={async () => { await supabase.auth.signOut(); setSession(null); }}><LogOut size={17} /> Sign out</button></aside>
     <main><header className="admin-topbar"><div><span className="admin-kicker"><ShieldCheck size={13} /> Operations center</span><h1>{nav.find(([key]) => key === section)?.[1]}</h1></div><div className="admin-topbar-actions">{["overview", "revenue"].includes(section) && <select aria-label="Statistics period" value={range} onChange={(event) => setRange(Number(event.target.value))}><option value="7">7 days</option><option value="14">14 days</option><option value="30">30 days</option><option value="90">90 days</option><option value="180">6 months</option><option value="365">12 months</option><option value="730">24 months</option></select>}<div className="admin-operator"><span>{session.user.email?.[0]?.toUpperCase()}</span><small>{session.user.email}</small></div></div></header>
@@ -574,6 +660,7 @@ export default function Admin() {
         <section className="admin-revenue-grid"><Card className="admin-panel admin-main-chart"><PanelHead eyebrow="Cash intelligence" title="Net revenue collected" icon={BadgeDollarSign} /><div className="admin-chart-summary"><strong>{money(analytics.revenueCollectedCents, overview.currency)}</strong><span>payments less refunds</span></div><TrendChart series={analytics.series} valueKey="revenueCents" currency /></Card><Card className="admin-panel admin-plan-mix"><PanelHead eyebrow="Subscriptions" title="Plan mix" icon={CreditCard} /><div>{(analytics.plans || []).map((plan) => <article key={`${plan.plan}-${plan.status}`}><span><i className={`status-${plan.status}`} />{plan.plan}</span><strong>{plan.accounts}</strong><small>{plan.status} · {money(plan.mrrCents)} MRR</small></article>)}{!analytics.plans?.length && <p className="admin-empty">No subscriptions recorded yet.</p>}</div></Card></section>
         <TopFamilies families={analytics.topFamilies} onOpen={setSelected} /><HouseholdTable households={households} onOpen={setSelected} search={search} setSearch={setSearch} title="Revenue by family" /></>}
       {section === "promotions" && <Promotions />}
+      {section === "updates" && <ProductUpdates />}
       {section === "emails" && <EmailAnalytics />}
       {section === "support" && <SupportMessagesTable messages={supportMessages} onOpen={(id) => { setSupportSelected(id); setSupportRefreshKey((prev) => prev + 1); }} categoryFilter={supportCategoryFilter} setCategoryFilter={setSupportCategoryFilter} statusFilter={supportStatusFilter} setStatusFilter={setSupportStatusFilter} archiveFilter={supportArchiveFilter} setArchiveFilter={setSupportArchiveFilter} search={supportSearch} setSearch={setSupportSearch} />}
       {section === "flags" && <Card className="admin-panel"><PanelHead eyebrow="Per-family controls" title="Feature management" icon={Settings2} /><p className="admin-section-copy">Open a family to configure calendars, meals, groceries, tasks, chat, Fam AI, finance, and communication entitlements.</p><HouseholdTable households={households} onOpen={setSelected} search={search} setSearch={setSearch} /></Card>}

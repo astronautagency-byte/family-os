@@ -199,6 +199,7 @@ export function AuthProvider({ children }) {
     return authHash.get("type") === "invite" || authQuery.get("type") === "invite" || authQuery.get("invite") === "1";
   });
   const [onboardingRequired, setOnboardingRequired] = useState(false);
+  const [accountReady, setAccountReady] = useState(false);
   const [googleProviderToken, setGoogleProviderToken] = useState(() => localStorage.getItem("family-os:google-provider-token"));
   const loadedAccountUserIdRef = useRef(null);
 
@@ -458,6 +459,7 @@ export function AuthProvider({ children }) {
     } finally {
       setLoading(false);
       hasLoadedOnce.current = true;
+      setAccountReady(true);
     }
   }, []);
 
@@ -1253,6 +1255,7 @@ export function AuthProvider({ children }) {
     error,
     passwordRecovery,
     onboardingRequired,
+    accountReady,
     signIn,
     signUp,
     updatePassword,
