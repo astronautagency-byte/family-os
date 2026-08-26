@@ -44,6 +44,8 @@ const Download = lazy(() => import("./pages/Download"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Contact = lazy(() => import("./pages/Contact"));
+const SeoLanding = lazy(() => import("./pages/SeoLanding"));
+import SEO_PAGES from "./data/seoPages";
 const Admin = lazy(() => import("./pages/Admin"));
 const Partner = lazy(() => import("./pages/Partner"));
 const Features = lazy(() => import("./pages/Features"));
@@ -715,6 +717,8 @@ export default function App() {
   if (publicRoute === "privacy") return <Suspense fallback={<PageFallback />}><Privacy signedIn={!!session} /></Suspense>;
   if (publicRoute === "terms") return <Suspense fallback={<PageFallback />}><Terms signedIn={!!session} /></Suspense>;
   if (publicRoute === "contact") return <Suspense fallback={<PageFallback />}><Contact signedIn={!!session} /></Suspense>;
+  // SEO landing pages
+  if (seoPageConfig) return <Suspense fallback={<PageFallback />}><SeoLanding config={seoPageConfig} signedIn={!!session} /></Suspense>;
   if (configured && !session && publicRoute === "signin") return <SignIn key="signin" initialCreating={false} />;
   if (configured && !session && publicRoute === "signup") return <SignIn key="signup" initialCreating />;
   if (configured && !session && isTauriRuntime()) return <DesktopAuthGate status={desktopAuth.status} error={desktopAuth.error} />;

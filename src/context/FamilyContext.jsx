@@ -198,6 +198,9 @@ export function FamilyProvider({ children, tabletMode = false }) {
   const [feedEvents, setFeedEvents] = useState(savedCalendarFeeds.events || []);
   const [calendarFeedStatus, setCalendarFeedStatus] = useState("idle");
   const [calendarFeedError, setCalendarFeedError] = useState(null);
+  // Shared calendar metadata from OTHER household members — so Member B
+  // can see and filter by calendars that Member A connected and shared.
+  const [householdSharedCalendars, setHouseholdSharedCalendars] = useState([]);
 
   useEffect(() => {
     try {
@@ -439,6 +442,28 @@ export function FamilyProvider({ children, tabletMode = false }) {
             ...(row.calendar_color ? { color: row.calendar_color } : {}),
           }));
         }
+      }
+      // Load shared Google Calendar metadata from OTHER household members
+      // so Member B can see and filter by calendars that Member A shared.
+      const sharedPrefsResult = await supabase.from("calendar_sharing_preferences")
+        .select("external_calendar_id,calendar_name,calendar_color,user_id")
+        .eq("household_id", household.id)
+        .eq("provider", "google")
+        .eq("shared_with_household", true);
+      if (!sharedPrefsResult.error && sharedPrefsResult.data?.length) {
+        const otherMembersShared = sharedPrefsResult.data
+          .filter((p) => p.user_id !== user.id)
+          .reduce((acc, p) => {
+            if (!acc.some((c) => c.calendarId === p.external_calendar_id)) {
+              acc.push({
+                calendarId: p.external_calendar_id,
+                name: p.calendar_name || "Google Calendar",
+                color: p.calendar_color || "#34A853",
+              });
+            }
+            return acc;
+          }, []);
+        setHouseholdSharedCalendars(otherMembersShared);
       }
     } catch (e) { setDataError(e.message || "Could not load household data."); }
     finally { setDataLoading(false); }
@@ -2045,6 +2070,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
     googleClientId, setGoogleClientId,
     googleConnected, googleEvents: tabletMode ? [] : googleEvents, googleCalendars: tabletMode ? [] : googleCalendars, googleCalendarAliases, googleCalendarColors, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleStatus, googleError, googleLastSynced,
     googleUsesAccount: configured,
+    householdSharedCalendars: tabletMode ? [] : householdSharedCalendars,
     connectGoogleCalendar, reconnectGoogleCalendar, syncGoogleCalendarNow, disconnectGoogleCalendar, addGoogleCalendarEvent, updateGoogleCalendarEvent, deleteGoogleCalendarEvent, toggleGoogleCalendar, toggleGoogleCalendarSharing, renameGoogleCalendar, setGoogleCalendarColor,
     // Other calendar providers via published iCal feeds
     calendarFeeds: tabletMode ? [] : calendarFeeds, feedEvents: tabletMode ? [] : feedEvents, calendarFeedStatus, calendarFeedError,

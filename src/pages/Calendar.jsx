@@ -303,7 +303,7 @@ function CalendarTimeGrid({ dates, events, selectedDate, onSelectDate, onSelectE
                 {dateEvents.map((event) => {
                   const start = Math.max(0, minutesFromStart(event.start));
                   const rawDuration = event.end ? (new Date(event.end) - new Date(event.start)) / 60000 : 60;
-                  const height = Math.max(34, Math.min(180, rawDuration || 60));
+                  const height = Math.max(34, rawDuration || 60);
                   const editable = canEditEvent && canEditEvent(event) && !event.isRecurringOccurrence && !event.seriesId;
                   return <button
                     type="button"
@@ -448,7 +448,7 @@ function LocationAutocompleteField({ value, onChange }) {
 }
 
 export default function CalendarPage({ entitlements = null, goTo } = {}) {
-  const { members, memberById, events, googleEvents, feedEvents, calendarFeeds, googleConnected, googleCalendars, googleCalendarAliases, googleCalendarColors, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleStatus, googleError, googleLastSynced, addEvent, updateEvent, addGoogleCalendarEvent, updateGoogleCalendarEvent, deleteGoogleCalendarEvent, removeEvent, clearEvents, refreshData, syncGoogleCalendarNow, connectGoogleCalendar, reconnectGoogleCalendar, disconnectGoogleCalendar, toggleGoogleCalendar, toggleGoogleCalendarSharing, renameGoogleCalendar, setGoogleCalendarColor, famosCalendar, setFamosCalendar } = useFamily();
+  const { members, memberById, events, googleEvents, feedEvents, calendarFeeds, googleConnected, googleCalendars, googleCalendarAliases, googleCalendarColors, selectedGoogleCalendarIds, sharedGoogleCalendarIds, householdSharedCalendars, googleStatus, googleError, googleLastSynced, addEvent, updateEvent, addGoogleCalendarEvent, updateGoogleCalendarEvent, deleteGoogleCalendarEvent, removeEvent, clearEvents, refreshData, syncGoogleCalendarNow, connectGoogleCalendar, reconnectGoogleCalendar, disconnectGoogleCalendar, toggleGoogleCalendar, toggleGoogleCalendarSharing, renameGoogleCalendar, setGoogleCalendarColor, famosCalendar, setFamosCalendar } = useFamily();
   const { householdProfileExtra } = useAuth();
   const todayStr = todayISO();
   const [selectedDate, setSelectedDate] = useState(todayStr);
@@ -593,11 +593,34 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
     sourceFilter === "all" ? expandedEvents : expandedEvents.filter((event) => sourceId(event) === sourceFilter),
   [expandedEvents, sourceFilter]);
 
-  const sources = useMemo(() => [
-    { id: "all", label: "All calendars", color: "var(--color-calendar)" }, { id: "family", label: famosCalendar?.name || "FamOS Calendar", color: famosCalendar?.color || "var(--color-family)" },
-    ...(googleConnected ? googleCalendars.filter(calendar => selectedGoogleCalendarIds.includes(calendar.id)).map(calendar => ({ id: `google:${calendar.id}`, label: calendar.displayName || calendar.summary, color: googleCalendarColors[calendar.id] || calendar.backgroundColor })) : []),
-    ...calendarFeeds.map((feed) => ({ id: `feed:${feed.id}`, label: feed.source === "file" ? feed.name : `${feed.name} · iCal`, color: "var(--color-meals)" })),
-  ], [calendarFeeds, googleConnected, googleCalendars, googleCalendarColors, selectedGoogleCalendarIds, famosCalendar]);
+  const sources = useMemo(() => {
+    const connectedIds = new Set(googleConnected ? selectedGoogleCalendarIds : []);
+    const connectedSources = googleConnected
+      ? googleCalendars.filter(calendar => connectedIds.has(calendar.id)).map(calendar => ({
+          id: `google:${calendar.id}`,
+          label: calendar.displayName || calendar.summary,
+          color: googleCalendarColors[calendar.id] || calendar.backgroundColor,
+        }))
+      : [];
+    // Add shared calendars from other household members that the current
+    // user hasn't connected themselves — so they can see and filter them.
+    const existingGoogleIds = new Set(connectedSources.map(s => s.id));
+    const otherSharedSources = (householdSharedCalendars || [])
+      .filter(sc => !existingGoogleIds.has(`google:${sc.calendarId}`))
+      .map(sc => ({
+        id: `google:${sc.calendarId}`,
+        label: sc.name,
+        color: sc.color || "#34A853",
+        sharedByOther: true,
+      }));
+    return [
+      { id: "all", label: "All calendars", color: "var(--color-calendar)" },
+      { id: "family", label: famosCalendar?.name || "FamOS Calendar", color: famosCalendar?.color || "var(--color-family)" },
+      ...connectedSources,
+      ...otherSharedSources,
+      ...calendarFeeds.map((feed) => ({ id: `feed:${feed.id}`, label: feed.source === "file" ? feed.name : `${feed.name} · iCal`, color: "var(--color-meals)" })),
+    ];
+  }, [calendarFeeds, googleConnected, googleCalendars, googleCalendarColors, selectedGoogleCalendarIds, famosCalendar, householdSharedCalendars]);
 
   const cells = useMemo(() => {
     const first = new Date(month.getFullYear(), month.getMonth(), 1);
