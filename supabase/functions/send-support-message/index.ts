@@ -44,6 +44,7 @@ Deno.serve(async (request) => {
       senderEmail = "",
       priority = "normal",
       steps = "",
+      screenshots = [],
       userId = null,
       householdId = null,
       householdName = "",
@@ -81,6 +82,7 @@ Deno.serve(async (request) => {
             sender_email: senderEmail,
             priority,
             steps: steps.trim(),
+            screenshots: screenshots.length ? screenshots : [],
             status: "new",
             user_id: userId,
             household_id: householdId,
@@ -113,6 +115,12 @@ Deno.serve(async (request) => {
       emailBody = `What happened:\n${message.trim()}`;
       if (steps.trim()) {
         emailBody += `\n\nSteps to reproduce:\n${steps.trim()}`;
+      }
+      if (screenshots.length > 0) {
+        emailBody += `\n\nScreenshots (${screenshots.length}):`;
+        screenshots.forEach((url: string, i: number) => {
+          emailBody += `\n  ${i + 1}. ${url}`;
+        });
       }
       emailBody += `\n\n---\nCategory: Bug Report`;
     } else if (category === "ticket") {

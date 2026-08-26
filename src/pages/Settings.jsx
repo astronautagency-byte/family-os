@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { AlertCircle, Bell, Bug, CalendarDays, Check, CheckCircle2, ChevronRight, Clipboard, Eye, EyeOff, ExternalLink, ImagePlus, Info, Lightbulb, Link2, Mail, MapPin, Megaphone, Palette, Pencil, Phone, Plus, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Ticket, Trash2, Upload, Users, Utensils, X } from "lucide-react";
+import { AlertCircle, Bell, Bug, Camera, CalendarDays, Check, CheckCircle2, ChevronRight, Clipboard, Eye, EyeOff, ExternalLink, ImagePlus, Info, Lightbulb, Link2, LoaderCircle, Mail, MapPin, Megaphone, Palette, Pencil, Phone, Plus, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Ticket, Trash2, Upload, Users, Utensils, X } from "lucide-react";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Alert, Avatar, Card, Modal, PrimaryButton, SecondaryButton, TextAreaField, TextField } from "../components/ui";
@@ -461,6 +461,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
   const [supportEmail, setSupportEmail] = useState(user?.email || "");
   const [supportPriority, setSupportPriority] = useState("normal");
   const [supportSteps, setSupportSteps] = useState("");
+  const [supportScreenshots, setSupportScreenshots] = useState([]); // [{url, name, uploading}]
   const [supportSending, setSupportSending] = useState(false);
   const [supportSent, setSupportSent] = useState(false);
   const [supportError, setSupportError] = useState("");
@@ -1751,6 +1752,51 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
             className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 text-[14px] resize-none focus:outline-none focus:border-[var(--color-accent)]"
           />
         </div>
+        {/* Screenshot attachments */}
+        <div className="mb-4">
+          <label className="block text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-1.5">Screenshots (optional)</label>
+          <div className="flex flex-wrap gap-2">
+            {supportScreenshots.map((s, i) => (
+              <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)]">
+                <img src={s.url} alt={s.name} className="w-full h-full object-cover" />
+                {s.uploading && <div className="absolute inset-0 bg-black/40 flex items-center justify-center"><LoaderCircle size={16} className="text-white animate-spin" /></div>}
+                {!s.uploading && <button type="button" onClick={() => setSupportScreenshots((prev) => prev.filter((_, j) => j !== i))} className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/50 flex items-center justify-center text-white"><X size={10} /></button>}
+              </div>
+            ))}
+            {supportScreenshots.length < 4 && (
+              <label className="w-20 h-20 rounded-lg border-2 border-dashed border-[var(--color-border)] flex flex-col items-center justify-center cursor-pointer hover:border-[var(--color-accent)] transition-colors">
+                <Camera size={18} className="text-[var(--color-ink-faint)]" />
+                <span className="text-[9px] text-[var(--color-ink-faint)] mt-0.5">Add</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={async (e) => {
+                    const files = Array.from(e.target.files || []);
+                    for (const file of files.slice(0, 4 - supportScreenshots.length)) {
+                      const tempUrl = URL.createObjectURL(file);
+                      setSupportScreenshots((prev) => [...prev, { url: tempUrl, name: file.name, uploading: true, file }]);
+                      try {
+                        const ext = file.name.split('.').pop() || 'png';
+                        const path = `${user?.id || 'anon'}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+                        const { error } = await supabase.storage.from('support-screenshots').upload(path, file, { upsert: false });
+                        if (error) throw error;
+                        const { data: urlData } = supabase.storage.from('support-screenshots').getPublicUrl(path);
+                        setSupportScreenshots((prev) => prev.map((s) => s.file === file ? { url: urlData.publicUrl, name: file.name, uploading: false } : s));
+                      } catch (err) {
+                        console.warn('Screenshot upload failed:', err);
+                        setSupportScreenshots((prev) => prev.filter((s) => s.file !== file));
+                      }
+                    }
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+            )}
+          </div>
+          <p className="text-[10.5px] text-[var(--color-ink-faint)] mt-1.5">Attach up to 4 screenshots (PNG, JPG). Max 10 MB each.</p>
+        </div>
         {supportSent ? (
           <div className="rounded-xl bg-[var(--color-good-soft)] px-3 py-3 mb-4 text-[13px] text-[var(--color-good)] leading-snug">
             <CheckCircle2 size={16} className="inline-block mr-1.5 -mt-0.5" />
@@ -1768,13 +1814,14 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
             disabled={supportSending || !supportSubject.trim() || !supportMessage.trim()}
             onClick={async () => {
               setSupportSending(true);
-              try {
-                const { error } = await supabase.functions.invoke("send-support-message", {
+              try {                  const screenshotUrls = supportScreenshots.filter((s) => !s.uploading && s.url).map((s) => s.url);
+                  const { error } = await supabase.functions.invoke("send-support-message", {
                   body: {
                     category: "bug",
                     subject: supportSubject.trim(),
                     message: supportMessage.trim(),
                     steps: supportSteps.trim(),
+                    screenshots: screenshotUrls,
                     senderEmail: user?.email || "",
                     userId: user?.id || null,
                     householdId: household?.id || null,
