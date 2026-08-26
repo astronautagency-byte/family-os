@@ -66,6 +66,14 @@ export function AuthLoading() {
 }
 
 export function SignIn({ initialCreating = false }) {
+  // Prevent search engines from indexing authentication pages
+  useEffect(() => {
+    const meta = document.createElement("meta");
+    meta.name = "robots";
+    meta.content = "noindex, follow";
+    document.head.appendChild(meta);
+    return () => meta.remove();
+  }, []);
   const { signIn, signUp, requestPasswordReset, requestInvitePasswordCode, completeInvitePasswordSetup, error } = useAuth();
   const inviteParams = useMemo(() => new URLSearchParams(window.location.search), []);
   const openedInvitation = inviteParams.get("invited") === "1";

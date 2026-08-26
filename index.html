@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
     <meta name="theme-color" content="#B8D8FF" />
-    <meta name="description" content="Families run better on FamOS—the smart home hub for organizing your family’s days, tasks, meals, groceries, calendars, and more. Plans visible. Days smoother. Families stronger." />
+    <meta name="description" content="FamOS is the shared family organizer for calendars, tasks, meals, groceries, chat, and AI-powered household planning. Works on any device—no special hardware required. Start free." />
     <meta name="robots" content="index, follow, max-image-preview:large" />
     <meta name="application-name" content="FamOS - Families Run Better on FamOS" />
     <meta name="apple-mobile-web-app-title" content="FamOS - Families Run Better on FamOS" />
@@ -21,8 +21,8 @@
     <meta property="og:locale" content="en_US" />
     <meta property="og:site_name" content="FamOS" />
     <meta property="og:url" content="https://fam-os.app/" />
-    <meta property="og:title" content="Families Run Better on FamOS" />
-    <meta property="og:description" content="The smart home hub for organizing your family’s days, tasks, meals, groceries, calendars, and more. Plans visible. Days smoother. Families stronger." />
+    <meta property="og:title" content="Family Organizer App — Calendars, Tasks, Meals & More | FamOS" />
+    <meta property="og:description" content="FamOS is the shared family organizer for calendars, tasks, meals, groceries, chat, and AI-powered household planning. Works on any device—no special hardware required." />
     <meta property="og:image" content="https://fam-os.app/marketing/famos-thumbnail.jpeg" />
     <meta property="og:image:secure_url" content="https://fam-os.app/marketing/famos-thumbnail.jpeg" />
     <meta property="og:image:type" content="image/jpeg" />
@@ -30,8 +30,8 @@
     <meta property="og:image:height" content="1024" />
     <meta property="og:image:alt" content="FamOS — Families Run Better on FamOS. One smart home hub to organize your family’s days, tasks, meals, and more." />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Families Run Better on FamOS" />
-    <meta name="twitter:description" content="The smart home hub for organizing your family’s days, tasks, meals, groceries, calendars, and more." />
+    <meta name="twitter:title" content="Family Organizer App — Calendars, Tasks, Meals & More | FamOS" />
+    <meta name="twitter:description" content="FamOS is the shared family organizer for calendars, tasks, meals, groceries, chat, and AI-powered household planning. Works on any device." />
     <meta name="twitter:image" content="https://fam-os.app/marketing/famos-thumbnail.jpeg" />
     <meta name="twitter:image:alt" content="FamOS — Families Run Better on FamOS. One smart home hub to organize your family’s days, tasks, meals, and more." />
 
@@ -106,7 +106,7 @@
       }
     </script>
 
-    <title>FamOS - Families Run Better on FamOS</title>
+    <title>Family Organizer App — Calendars, Tasks, Meals & More | FamOS</title>
 
     <!-- Force PWA service worker update on stale cache. This inline script runs
          before any external module loads, so it can unregister a stale service
@@ -145,53 +145,57 @@
   </head>
   <body>
     <div id="root">
-      <div id="app-loading">
-        <style>
-          #app-loading {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 24px;
-            font-family: Inter, Arial, sans-serif;
-            background: #fdfcfa;
-          }
-          #app-loading img {
-            width: 60px;
-            height: 60px;
-            object-fit: contain;
-            border-radius: 16px;
-            background: #fff5e9;
-            padding: 5px;
-            box-shadow: 0 4px 12px rgba(23,23,31,.06);
-            margin-bottom: 18px;
-          }
-          #app-loading strong {
-            font-size: 22px;
-            letter-spacing: -.06em;
-            color: #17172f;
-          }
-          #app-loading strong span { color: #7952e8; }
-          #app-loading .load-spinner {
-            width: 20px;
-            height: 20px;
-            margin-top: 22px;
-            border: 2px solid #e5e0f2;
-            border-top-color: #7952e8;
-            border-radius: 50%;
-            animation: loadSpin .8s linear infinite;
-          }
-          @keyframes loadSpin {
-            to { transform: rotate(360deg); }
-          }
-          @media (prefers-reduced-motion: reduce) {
-            #app-loading .load-spinner { animation: none; opacity: .35; }
-          }
-        </style>
-        <img src="/icons/famos-app-icon.png" alt="" width="60" height="60" />
-        <strong>Fam<span>OS</span></strong>
-        <div class="load-spinner" aria-hidden="true"></div>
+      <!-- Crawlable static content — React hydrates over this -->
+      <div class="landing-page" style="background:#fdfcfa;color:#17171f;min-height:100vh;overflow-x:hidden">
+        <nav style="max-width:1240px;height:88px;margin:auto;padding:0 28px;display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:9px"><img src="/brand/famos-icon.png" alt="FamOS" width="48" height="48" style="border-radius:12px;background:#fff5e9;padding:4px;object-fit:contain" /><strong style="font:800 24px/1 Inter,sans-serif;letter-spacing:-.06em">Fam<span style="color:#7952e8">OS</span></strong></div>
+          <div style="display:flex;gap:20px;font:600 14px/1 Inter,sans-serif"><a href="/features" style="color:#17171f;text-decoration:none">Features</a><a href="/pricing" style="color:#17171f;text-decoration:none">Pricing</a><a href="/contact" style="color:#17171f;text-decoration:none">Contact</a></div>
+          <div style="display:flex;gap:10px;align-items:center"><a href="/sign-in" style="font:700 14px/1 Inter,sans-serif;color:#17171f;text-decoration:none;padding:11px 17px">Sign in</a><a href="/sign-up" style="display:inline-flex;align-items:center;border-radius:9999px;background:#17171f;color:#fff;padding:13px 20px;font:750 14px/1 Inter,sans-serif;text-decoration:none">Start free trial</a></div>
+        </nav>
+
+        <main style="max-width:1240px;margin:auto;padding:42px 28px 114px;display:grid;grid-template-columns:.9fr 1.1fr;gap:70px;align-items:center">
+          <div>
+            <span style="display:inline-flex;align-items:center;gap:7px;padding:6px 14px;color:#6b49d1;font:800 12px/1 Inter,sans-serif;text-transform:uppercase;letter-spacing:.1em">The family organizer that keeps your whole household in sync.</span>
+            <h1 style="margin:20px 0 24px;font:750 clamp(48px,6vw,96px)/.84 Inter Tight,sans-serif;letter-spacing:-.075em">Your family,<br/><span style="color:#f45d9a">finally.</span></h1>
+            <p style="max-width:540px;font-size:19px;line-height:1.55;color:#55525d">FamOS brings your family's calendar, tasks, meals, groceries, messages, and daily planning together in one shared hub. No special hardware required. Works on the devices you already own.</p>
+            <div style="display:flex;align-items:center;gap:16px;margin-top:30px"><a href="/sign-up" style="display:inline-flex;align-items:center;border-radius:9999px;background:#7952e8;color:#fff;padding:16px 24px;font:750 14px/1 Inter,sans-serif;text-decoration:none">Start your 30-day free trial</a><a href="/features" style="font:700 14px/1 Inter,sans-serif;color:#17171f;text-decoration:underline;text-underline-offset:5px">See all features</a></div>
+            <div style="display:flex;gap:18px;margin-top:24px;color:#66626c;font:600 12px/1 Inter,sans-serif"><span style="display:flex;align-items:center;gap:5px">Free core plan</span><span style="display:flex;align-items:center;gap:5px">No credit card required</span><span style="display:flex;align-items:center;gap:5px">Cancel anytime</span></div>
+          </div>
+          <div style="position:relative;height:500px;border-radius:24px;overflow:hidden;background:linear-gradient(135deg,#e8e0ff,#ffd6e8)"><img src="/hero-mockups/calendar.png" alt="FamOS calendar view showing family events and schedule" style="width:100%;height:100%;object-fit:contain" /></div>
+        </main>
+
+        <section style="text-align:center;padding:110px 24px;background:#f4f0ff">
+          <p style="color:#7952e8;font:850 12px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase">Why families choose FamOS</p>
+          <h2 style="font:720 clamp(36px,4vw,64px)/.98 Inter Tight,sans-serif;letter-spacing:-.06em;margin:18px auto 36px;max-width:700px">The family command center that fits in your pocket.</h2>
+        </section>
+
+        <section style="max-width:1240px;margin:auto;padding:110px 28px">
+          <div style="text-align:center;max-width:720px;margin:0 auto 52px"><p style="color:#7952e8;font:850 12px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase">Built for real family life</p><h2 style="font:720 clamp(36px,4vw,64px)/.98 Inter Tight,sans-serif;letter-spacing:-.06em;margin:18px auto 0">Everything your family needs. Nothing it doesn't.</h2></div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
+            <article style="padding:24px;border-radius:30px;background:#eee8ff"><h3 style="font:700 23px/1.1 Inter Tight,sans-serif">One calendar for the whole family</h3><p style="margin-top:10px;color:#58545f;line-height:1.5;font-size:14px">Shared family calendar with Google Calendar sync. See everyone's events, avoid conflicts, and plan the week together.</p></article>
+            <article style="padding:24px;border-radius:30px;background:#fff0a8"><h3 style="font:700 23px/1.1 Inter Tight,sans-serif">Plan meals without the group chat</h3><p style="margin-top:10px;color:#58545f;line-height:1.5;font-size:14px">Breakfast, lunch, and dinner planning with recipe suggestions. Cook Mode walks you through each step hands-free.</p></article>
+            <article style="padding:24px;border-radius:30px;background:#ffddea"><h3 style="font:700 23px/1.1 Inter Tight,sans-serif">A grocery list everyone can update</h3><p style="margin-top:10px;color:#58545f;line-height:1.5;font-size:14px">Shared shopping lists with categories, quantities, and real-time sync. Add items from meal plans automatically.</p></article>
+            <article style="padding:24px;border-radius:30px;background:#dff5e9"><h3 style="font:700 23px/1.1 Inter Tight,sans-serif">Tasks everyone can actually see</h3><p style="margin-top:10px;color:#58545f;line-height:1.5;font-size:14px">Assign chores, track progress, and celebrate completions. Clear owners mean fewer mysterious piles.</p></article>
+            <article style="padding:24px;border-radius:30px;background:#dfeeff"><h3 style="font:700 23px/1.1 Inter Tight,sans-serif">Your family dashboard on any screen</h3><p style="margin-top:10px;color:#58545f;line-height:1.5;font-size:14px">Works on iPad, Android tablets, phones, laptops, and desktops. Dedicated tablet mode for the kitchen or living room.</p></article>
+            <article style="padding:24px;border-radius:30px;background:#ffe4d2"><h3 style="font:700 23px/1.1 Inter Tight,sans-serif">Meet Fam AI</h3><p style="margin-top:10px;color:#58545f;line-height:1.5;font-size:14px">An AI assistant that understands your household. Add groceries, check schedules, plan meals, and get suggestions—all with your approval.</p></article>
+          </div>
+        </section>
+
+        <section style="padding:100px 24px;text-align:center;background:#dff5e9">
+          <h2 style="font:720 clamp(36px,4vw,64px)/.98 Inter Tight,sans-serif;letter-spacing:-.06em;margin:20px 0 24px">Your family life stays yours.</h2>
+          <p style="max-width:700px;margin:auto;color:#4d625a;font-size:17px;line-height:1.6">FamOS is built with privacy at its core. We never sell your personal information. Your family's schedules, messages, and data stay in your household space with controls for sharing and visibility.</p>
+        </section>
+
+        <section style="max-width:1160px;margin:110px auto;min-height:340px;padding:70px 40px;border-radius:38px;background:#7952e8;color:white;text-align:center">
+          <p style="font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#e4dfff">Get started today</p>
+          <h2 style="font:720 clamp(36px,4vw,64px)/.95 Inter Tight,sans-serif;letter-spacing:-.06em;margin:16px 0 28px">Your family, finally in sync.</h2>
+          <a href="/sign-up" style="display:inline-flex;align-items:center;border-radius:9999px;background:#fff;color:#17171f;padding:16px 24px;font:750 14px/1 Inter,sans-serif;text-decoration:none">Start your free trial</a>
+        </section>
+
+        <footer style="max-width:1240px;margin:auto;padding:48px 28px;border-top:1px solid #e8e5f0;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#66626c">
+          <span>&copy; 2026 FamOS. All rights reserved.</span>
+          <div style="display:flex;gap:24px"><a href="/privacy" style="color:#66626c;text-decoration:none">Privacy</a><a href="/terms" style="color:#66626c;text-decoration:none">Terms</a><a href="/contact" style="color:#66626c;text-decoration:none">Contact</a></div>
+        </footer>
       </div>
     </div>
 
