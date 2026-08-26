@@ -164,38 +164,24 @@
 
     <title>Family Organizer App — Calendars, Tasks, Meals & More | FamOS</title>
 
-    <!-- Force PWA service worker update on stale cache. This inline script runs
-         before any external module loads, so it can unregister a stale service
-         worker from a previous deploy that might be serving cached HTML. If the
-         current SW version (derived from today's date, matching vite-plugin-pwa's
-         version option) doesn't match the cached version, the old SW is
-         unregistered and the page reloads to pick up fresh assets. -->
     <script>
       (function(){
-        var d = new Date();
-        var FAMOS_BUILD = d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
-        var swKey = "famos:sw-version";
         try {
-          var cachedVersion = localStorage.getItem(swKey);
-          if (cachedVersion && cachedVersion !== FAMOS_BUILD) {
-            if ('serviceWorker' in navigator) {
-              navigator.serviceWorker.getRegistrations().then(function(regs) {
-                return Promise.all(regs.map(function(r) { return r.unregister(); }));
-              }).then(function() {
-                localStorage.setItem(swKey, FAMOS_BUILD);
-                window.location.reload();
-              }).catch(function() {
-                localStorage.setItem(swKey, FAMOS_BUILD);
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              var old = regs.filter(function(r) {
+                var s = r.scope || '';
+                return s.indexOf('sw.js') !== -1;
               });
-            } else {
-              localStorage.setItem(swKey, FAMOS_BUILD);
-            }
-          } else if (!cachedVersion) {
-            localStorage.setItem(swKey, FAMOS_BUILD);
+              if (old.length) {
+                old.forEach(function(r) { r.unregister(); });
+                caches.keys().then(function(n) {
+                  n.forEach(function(c) { caches.delete(c); });
+                });
+              }
+            });
           }
-        } catch(e) {
-          // localStorage disabled — SW version tracking not available
-        }
+        } catch(e) {}
       })();
     </script>
   </head>
@@ -257,30 +243,14 @@
 
   <script type="module" src="/src/main.jsx"></script>
   <script>
-    /* Force PWA service worker cache bust on every deploy.
-       Nukes ALL workbox caches, forces SW update, then reloads once. */
-    (function() {
+    (function(){
       if (!('serviceWorker' in navigator)) return;
-      var version = 'famos-v3-20260825';
-      var seen = sessionStorage.getItem('_sw_v');
-      if (seen === version) return;
-      sessionStorage.setItem('_sw_v', version);
-      /* Delete every cache the old SW created */
       caches.keys().then(function(names) {
         return Promise.all(names.map(function(n) { return caches.delete(n); }));
       }).then(function() {
-        /* Force the SW to update then reload */
-        return navigator.serviceWorker.getRegistration();
-      }).then(function(reg) {
-        if (!reg) return;
-        return reg.update().then(function() {
-          if (reg.waiting) {
-            reg.waiting.postMessage('skipWaiting');
-          }
-        });
-      }).then(function() {
-        /* Give the new SW a moment to activate, then reload */
-        setTimeout(function() { location.reload(); }, 500);
+        return navigator.serviceWorker.getRegistrations();
+      }).then(function(regs) {
+        return Promise.all(regs.map(function(r) { r.unregister(); }));
       });
     })();
   </script>

@@ -502,7 +502,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
   // Inline name-editing state inside the calendar manager.
   const [editingCalendarName, setEditingCalendarName] = useState(null); // "famos" | google calendar id | feed id
   const [calendarNameDraft, setCalendarNameDraft] = useState("");
-  const [draft, setDraft] = useState({ title: "", date: selectedDate, start: "18:00", end: "19:00", location: "", memberIds: [], eventType: "family", destination: "family", recurrence: "none", recurrenceUntil: "" });
+  const [draft, setDraft] = useState({ title: "", date: selectedDate, start: "18:00", end: "19:00", location: "", memberIds: [], eventType: "family", destination: "family", recurrence: "none", recurrenceUntil: "", allDay: false });
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickText, setQuickText] = useState("");
   const quickRef = useRef(null);
@@ -707,14 +707,15 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
     setDraft({
       title: "",
       date: selectedDate,
-      start: "18:00",
-      end: "19:00",
+      start: "09:00",
+      end: "17:00",
       location: "",
       memberIds: members.map(m => m.id),
       eventType: "family",
       destination: "family",
       recurrence: "none",
       recurrenceUntil: "",
+      allDay: false,
       ...(prefill || {}),
     });
     setSaveError("");
@@ -725,7 +726,8 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
   const openEdit = (event) => {
     const start = new Date(event.start);
     const end = new Date(event.end || event.start);
-    setDraft({ title:event.title || "", date:iso(start), start:`${String(start.getHours()).padStart(2,"0")}:${String(start.getMinutes()).padStart(2,"0")}`, end:`${String(end.getHours()).padStart(2,"0")}:${String(end.getMinutes()).padStart(2,"0")}`, location:event.location || "", memberIds:event.memberIds || [], eventType:eventType(event), destination:event.source === "google" ? `google:${event.calendarId}` : "family", recurrence:event.recurrence || "none", recurrenceUntil:event.recurrenceUntil || "" });
+    const isAllDayEvent = event.allDay === true || (start.getHours() === 0 && start.getMinutes() === 0 && (!event.end || (new Date(event.end).getTime() - start.getTime()) >= 23 * 60 * 60 * 1000));
+    setDraft({ title:event.title || "", date:iso(start), start:`${String(start.getHours()).padStart(2,"0")}:${String(start.getMinutes()).padStart(2,"0")}`, end:`${String(end.getHours()).padStart(2,"0")}:${String(end.getMinutes()).padStart(2,"0")}`, location:event.location || "", memberIds:event.memberIds || [], eventType:eventType(event), destination:event.source === "google" ? `google:${event.calendarId}` : "family", recurrence:event.recurrence || "none", recurrenceUntil:event.recurrenceUntil || "", allDay: isAllDayEvent });
     setEditingEvent(event.seriesId ? { ...event, id: event.seriesId } : event);
     setSelectedEvent(null);
     setSaveError("");
@@ -944,7 +946,14 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
   const save = async (force = false) => {
     if (!draft.title.trim()) return;
     setSaving(true); setSaveError("");
-    const payload = { title: draft.title.trim(), start: new Date(`${draft.date}T${draft.start}:00`).toISOString(), end: new Date(`${draft.date}T${draft.end}:00`).toISOString(), location: draft.location, memberIds: draft.memberIds, eventType: draft.eventType, recurrence: draft.recurrence || "none", recurrenceUntil: draft.recurrence === "none" ? "" : draft.recurrenceUntil };
+    const isAllDay = draft.allDay === true;
+    const payload = {
+      title: draft.title.trim(),
+      start: isAllDay ? new Date(`${draft.date}T00:00:00`).toISOString() : new Date(`${draft.date}T${draft.start}:00`).toISOString(),
+      end: isAllDay ? new Date(`${draft.date}T23:59:59`).toISOString() : new Date(`${draft.date}T${draft.end}:00`).toISOString(),
+      allDay: isAllDay,
+      location: draft.location, memberIds: draft.memberIds, eventType: draft.eventType, recurrence: draft.recurrence || "none", recurrenceUntil: draft.recurrence === "none" ? "" : draft.recurrenceUntil
+    };
     // Surface overlaps before writing. `force` (Save anyway) skips the gate.
     if (!force && !draft.destination.startsWith("google:")) {
       const found = findConflicts(payload, editingEvent?.id);
@@ -1275,9 +1284,17 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
           <TextField label="Event" value={draft.title} onChange={e => setDraft({ ...draft, title: e.target.value })} />
           <div className="calendar-form-row">
             <DateField label="Date" value={draft.date} onChange={date => setDraft({ ...draft, date })} />
-            <TextField label="Starts" type="time" value={draft.start} onChange={e => setDraft({ ...draft, start: e.target.value })} />
-            <TextField label="Ends" type="time" value={draft.end} onChange={e => setDraft({ ...draft, end: e.target.value })} />
+            <label className="calendar-allday-toggle" style={{display:'flex',alignItems:'center',gap:'6px',fontSize:'12.5px',cursor:'pointer',whiteSpace:'nowrap',paddingTop:'10px'}}>
+              <input type="checkbox" checked={draft.allDay} onChange={e => setDraft({ ...draft, allDay: e.target.checked })} style={{width:18,height:18,accentColor:'#2563eb'}} />
+              <span style={{color:'var(--color-ink-soft, #66626c)'}}>All Day</span>
+            </label>
           </div>
+          {!draft.allDay && (
+            <div className="calendar-form-row">
+              <TextField label="Starts" type="time" value={draft.start} onChange={e => setDraft({ ...draft, start: e.target.value })} />
+              <TextField label="Ends" type="time" value={draft.end} onChange={e => setDraft({ ...draft, end: e.target.value })} />
+            </div>
+          )}
           <LocationAutocompleteField value={draft.location} onChange={(location) => setDraft((current) => ({ ...current, location }))} />
           <SelectField label="Event type" className="calendar-select-label" value={draft.eventType} onChange={e => setDraft({ ...draft, eventType: e.target.value })}>
               {Object.entries(EVENT_TYPES).map(([key, type]) => <option key={key} value={key}>{type.label}</option>)}

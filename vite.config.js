@@ -37,7 +37,7 @@ export default defineConfig({
       // service worker as a fresh registration rather than waiting for the old
       // one to detect an update. This prevents the stale-SW white screen where
       // an old SW serves cached HTML referencing old asset hashes.
-      version: '1.4.2',
+      version: '1.5.0',
       includeAssets: ['icons/famos-app-icon.png', 'icons/famos-mark.svg', 'icons/icon-192.png', 'icons/icon-512.png'],
       manifest: {
         id: 'https://home.fam-os.app/',
@@ -69,9 +69,6 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
-        // Precache only the app shell — NOT png/jpg. The marketing images and
-        // illustrations were ~38MB of precache, blowing up first-load/install.
-        // Images are cached at runtime on first use instead (below).
         globPatterns: [],
         globIgnores: ['**/marketing/ads/**'],
         importScripts: ['/notification-sw.js'],
