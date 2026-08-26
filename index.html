@@ -202,25 +202,31 @@
   <script type="module" src="/src/main.jsx"></script>
   <script>
     /* Force PWA service worker cache bust on every deploy.
-       Checks for a new SW and reloads once to pick up the fresh bundle.
-       Runs once per session to avoid reload loops. */
-    if ('serviceWorker' in navigator) {
-      const version = 'famos-v2-20260825';
-      const seen = sessionStorage.getItem('_sw_version');
-      if (seen !== version) {
-        sessionStorage.setItem('_sw_version', version);
-        navigator.serviceWorker.getRegistration().then(reg => {
-          if (reg) reg.update().then(() => {
-            if (reg.waiting) reg.waiting.postMessage('skipWaiting');
-          });
+       Nukes ALL workbox caches, forces SW update, then reloads once. */
+    (function() {
+      if (!('serviceWorker' in navigator)) return;
+      var version = 'famos-v3-20260825';
+      var seen = sessionStorage.getItem('_sw_v');
+      if (seen === version) return;
+      sessionStorage.setItem('_sw_v', version);
+      /* Delete every cache the old SW created */
+      caches.keys().then(function(names) {
+        return Promise.all(names.map(function(n) { return caches.delete(n); }));
+      }).then(function() {
+        /* Force the SW to update then reload */
+        return navigator.serviceWorker.getRegistration();
+      }).then(function(reg) {
+        if (!reg) return;
+        return reg.update().then(function() {
+          if (reg.waiting) {
+            reg.waiting.postMessage('skipWaiting');
+          }
         });
-        /* Also nuke the workbox caches from a previous build */
-        caches.keys().then(keys => {
-          const old = keys.filter(k => !k.includes(version));
-          old.forEach(k => caches.delete(k));
-        });
-      }
-    }
+      }).then(function() {
+        /* Give the new SW a moment to activate, then reload */
+        setTimeout(function() { location.reload(); }, 500);
+      });
+    })();
   </script>
   </body>
 </html>
