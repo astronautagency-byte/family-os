@@ -304,6 +304,7 @@ function CalendarTimeGrid({ dates, events, selectedDate, onSelectDate, onSelectE
                   const start = Math.max(0, minutesFromStart(event.start));
                   const rawDuration = event.end ? (new Date(event.end) - new Date(event.start)) / 60000 : 60;
                   const height = Math.max(34, rawDuration || 60);
+                  if (event.title?.includes('KPOP')) { console.log('[KPOP]', {start, height, rawDuration, evStart: event.start, evEnd: event.end, gridPxPerHr: 60, startPx: (new Date(event.start).getHours()-6)*60+new Date(event.start).getMinutes() }); }
                   const editable = canEditEvent && canEditEvent(event) && !event.isRecurringOccurrence && !event.seriesId;
                   return <button
                     type="button"
