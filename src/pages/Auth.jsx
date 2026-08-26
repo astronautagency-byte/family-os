@@ -135,7 +135,7 @@ export function SignIn({ initialCreating = false }) {
           ? "Create an account. You can connect Google Calendar during setup."
           : "Use the email and password for your FamOS account."}
       </p>
-      <Card className="minimal-auth-card">
+      <Card className="minimal-auth-card !bg-transparent !border-0 !shadow-none">
         <form onSubmit={submit}>
           {creating && <TextField label="Your name" placeholder="e.g. Kat" value={displayName} onChange={(e) => setDisplayName(e.target.value)} autoComplete="name" required />}
           <TextField type="email" label="Email address" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
@@ -213,7 +213,7 @@ function InvitedPasswordSetup({ initialEmail, requestCode, completeSetup, onBack
           ? `Enter the verification code sent to ${email}, then join your family.`
           : "Choose your password here. We’ll email a one-time code to verify the invited address—no reset link."}
       </p>
-      <Card className="minimal-auth-card">
+      <Card className="minimal-auth-card !bg-transparent !border-0 !shadow-none">
         <form onSubmit={createPassword}>
           <TextField type="email" label="Invited email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required disabled={codeSent} />
           <TextField type={showPassword ? "text" : "password"} label="Create password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" minLength={8} required />
@@ -265,7 +265,7 @@ function ForgotPassword({ onBack, requestPasswordReset, initialEmail }) {
     <Shell>
       <h1 className="minimal-auth-title">Reset your password</h1>
       <p className="recovery-intro">{sent ? "Check your inbox for a secure reset link. Tiny detour, then you’re back." : "Enter the email tied to your FamOS account and we’ll send a secure reset link."}</p>
-      <Card className="minimal-auth-card">
+      <Card className="minimal-auth-card !bg-transparent !border-0 !shadow-none">
         {sent ? (
           <>
             <div className="recovery-sent"><Mail size={18} /><strong>Email sent</strong><span>We sent a recovery link to {email}.</span></div>
@@ -310,7 +310,7 @@ export function ResetPassword() {
     <Shell>
       <h1 className="minimal-auth-title">Set your FamOS password</h1>
       <p className="recovery-intro">Create your password here, then we’ll take you directly to the family home waiting for you.</p>
-      <Card className="minimal-auth-card">
+      <Card className="minimal-auth-card !bg-transparent !border-0 !shadow-none">
         <form onSubmit={submit}>
           <TextField type={show ? "text" : "password"} label="New password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" minLength={8} required />
           <TextField type={show ? "text" : "password"} label="Confirm password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" minLength={8} required />

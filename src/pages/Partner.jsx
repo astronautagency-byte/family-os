@@ -144,7 +144,7 @@ function PartnerLogin({ onSignedIn }) {
         <p className="minimal-auth-subtitle">
           Thanks for your interest in FamOS Ad Partners. We review applications within 1–2 business days.
         </p>
-        <Card className="minimal-auth-card">
+        <Card className="minimal-auth-card !bg-transparent !border-0 !shadow-none">
           <button className="minimal-auth-btn" type="button" onClick={() => supabase.auth.signOut()}>Sign out</button>
         </Card>
       </PartnerShell>
@@ -156,7 +156,7 @@ function PartnerLogin({ onSignedIn }) {
       <PartnerShell>
         <h1 className="minimal-auth-title">Tell us about your brand</h1>
         <p className="minimal-auth-subtitle">This helps us match your ads to the right families.</p>
-        <Card className="minimal-auth-card">
+        <Card className="minimal-auth-card !bg-transparent !border-0 !shadow-none">
           <form onSubmit={handleApply}>
             <label className="pfield"><span>Company name *</span>
               <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Acme Inc." required />
@@ -197,7 +197,7 @@ function PartnerLogin({ onSignedIn }) {
     <PartnerShell>
       <h1 className="minimal-auth-title">Create partner account</h1>
       <p className="minimal-auth-subtitle">Join FamOS Ad Partners to reach families who plan their week in one place.</p>
-      <Card className="minimal-auth-card">
+      <Card className="minimal-auth-card !bg-transparent !border-0 !shadow-none">
         <form onSubmit={handleAuth}>
           <label className="pfield"><span>Email</span>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@brand.com" required />
@@ -254,7 +254,7 @@ function PartnerProfile({ onApplied }) {
       <PartnerShell>
         <h1 className="minimal-auth-title">Application submitted</h1>
         <p className="minimal-auth-subtitle">Thanks for your interest in FamOS Ad Partners. We review applications within 1–2 business days.</p>
-        <Card className="minimal-auth-card">
+        <Card className="minimal-auth-card !bg-transparent !border-0 !shadow-none">
           <button className="pbtn pbtn-ghost pbtn-full" type="button" onClick={() => supabase.auth.signOut()}>Sign out</button>
         </Card>
       </PartnerShell>
@@ -265,7 +265,7 @@ function PartnerProfile({ onApplied }) {
     <PartnerShell>
       <h1 className="minimal-auth-title">Tell us about your brand</h1>
       <p className="minimal-auth-subtitle">This helps us match your ads to the right families.</p>
-      <Card className="minimal-auth-card">
+      <Card className="minimal-auth-card !bg-transparent !border-0 !shadow-none">
         <form onSubmit={handleApply}>
           <label className="pfield"><span>Company name *</span>
             <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Acme Inc." required />
