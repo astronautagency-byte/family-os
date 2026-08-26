@@ -94,15 +94,71 @@
         "operatingSystem": "Web, iOS, Android",
         "description": "Families run better on FamOS—the smart home hub for organizing your family’s days, tasks, meals, groceries, calendars, and more.",
         "offers": {
-          "@type": "Offer",
-          "price": "6.99",
-          "priceCurrency": "USD",
-          "description": "Base family plan includes two family members, additional members are available monthly, and Fam AI is optional with a 30-day free trial."
+          "@type": "AggregateOffer",
+          "lowPrice": "0",
+          "highPrice": "12.99",
+          "priceCurrency": "CAD",
+          "offerCount": 3,
+          "offers": [
+            {
+              "@type": "Offer",
+              "name": "FamOS Core",
+              "price": "0",
+              "priceCurrency": "CAD",
+              "description": "Free family plan with shared calendar, tasks, grocery lists, chat, and kitchen watch for up to 5 members."
+            },
+            {
+              "@type": "Offer",
+              "name": "FamOS Plus",
+              "price": "7.99",
+              "priceCurrency": "CAD",
+              "description": "Family plan with meal planning, smart imports, advanced calendar integrations, and caregiver access."
+            },
+            {
+              "@type": "Offer",
+              "name": "FamOS Pro",
+              "price": "12.99",
+              "priceCurrency": "CAD",
+              "description": "Full-featured plan with Fam AI, unlimited activities, advanced transportation, conflict detection, and weekly game plans."
+            }
+          ]
         },
-        "publisher": {
-          "@type": "Organization",
-          "name": "Astronaut Digital"
+        "featureList": [
+          "Shared family calendar with Google Calendar sync",
+          "Family task management and chore assignment",
+          "Meal planning with recipe suggestions",
+          "Shared grocery lists with real-time sync",
+          "Kitchen watch with expiry tracking",
+          "Family chat built into the dashboard",
+          "AI-powered family assistant (Fam AI)",
+          "Tablet mode for kitchen and living room",
+          "Works on iPad, Android, phones, and desktops"
+        ]
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Astronaut Digital",
+        "url": "https://fam-os.app",
+        "logo": "https://fam-os.app/brand/famos-icon.png",
+        "description": "FamOS is the shared family organizer for calendars, tasks, meals, groceries, chat, and AI-powered household planning.",
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "contactType": "customer support",
+          "email": "support@fam-os.app",
+          "url": "https://fam-os.app/contact"
         }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "FamOS",
+        "url": "https://fam-os.app",
+        "description": "Families run better on FamOS—the shared family organizer for calendars, tasks, meals, groceries, and household planning."
       }
     </script>
 

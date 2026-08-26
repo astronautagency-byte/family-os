@@ -12,7 +12,30 @@ export default function SeoLanding({ config, signedIn }) {
     if (meta) meta.content = heroDescription;
     const canonicalEl = document.querySelector("link[rel=\"canonical\"]");
     if (canonicalEl) canonicalEl.href = canonical;
-  }, [title, heroDescription, canonical]);
+    // Inject FAQ structured data for AEO/SEO
+    if (faqs && faqs.length > 0) {
+      let script = document.getElementById('seo-faq-schema');
+      if (!script) {
+        script = document.createElement('script');
+        script.id = 'seo-faq-schema';
+        script.type = 'application/ld+json';
+        document.head.appendChild(script);
+      }
+      script.textContent = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: faqs.map(faq => ({
+          '@type': 'Question',
+          name: faq.q,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: faq.a
+          }
+        }))
+      });
+      return () => { script?.remove(); };
+    }
+  }, [title, heroDescription, canonical, faqs]);
 
   return (
     <div className="landing-page" style={{ background: "#fdfcfa", color: "#17171f", minHeight: "100vh", overflowX: "hidden" }}>

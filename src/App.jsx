@@ -315,6 +315,7 @@ export default function App() {
   const shellRef = useRef(null);
   const { configured, session, household, householdProfile, loading, passwordRecovery, onboardingRequired, accountReady } = useAuth();
   const publicRoute = route;
+  const seoPageConfig = SEO_PAGES[publicRoute] || null;
   const featureTourSteps = useMemo(() => TOUR_FEATURES.filter((feature) => {
     if (feature.id === "today" || feature.id === "settings") return true;
     return runtimeConfig.features?.[feature.featureKey] !== false && entitlements?.features?.[feature.featureKey] !== false;
