@@ -1,61 +1,13 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect } from "react";
 import { Check, Clock3, Plus, X } from "lucide-react";
-import { Package } from "lucide-react";
-
-const CATEGORY_ICONS = {
-  Produce: "🥬",
-  Bakery: "🍞",
-  "Deli & Prepared Foods": "🥪",
-  "Dairy & Eggs": "🥛",
-  "Meat & Seafood": "🥩",
-  "Breakfast & Cereal": "☕",
-  Pantry: "🌾",
-  "Canned & Jarred": "🥫",
-  "Pasta, Rice & Grains": "🌾",
-  "Condiments & Sauces": "🫙",
-  "Spices & Baking": "🧂",
-  "Snacks & Candy": "🍪",
-  Beverages: "🥤",
-  "International Foods": "🌍",
-  Frozen: "🧊",
-  "Beer, Wine & Spirits": "🍷",
-  "Health & Personal Care": "💊",
-  Baby: "👶",
-  "Pet Supplies": "🐾",
-  "Household & Cleaning": "🧴",
-  "Paper & Disposable": "🧻",
-  Household: "🧹",
-  Other: "📦",
-};
-
-const CATEGORY_ICON_COLORS = {
-  Produce: ['#DDF7E9', '#228766'],
-  Bakery: ['#FFF0D4', '#C76E22'],
-  'Dairy & Eggs': ['#E1F0FF', '#397BCB'],
-  'Meat & Seafood': ['#FFE2E6', '#D64C5C'],
-  Frozen: ['#E2F6FF', '#3185A8'],
-  'Snacks & Candy': ['#FFE2EF', '#C64882'],
-  Beverages: ['#EEE9FF', '#7255D9'],
-  'Household & Cleaning': ['#E7F3FF', '#356FA8'],
-  Baby: ['#FFF2B8', '#A97900'],
-  'Pet Supplies': ['#FFE8D9', '#B86332'],
-};
-
-function FocusCategoryIcon({ category, size = 20 }) {
-  const [bg, fg] = CATEGORY_ICON_COLORS[category] || ['#F0E9FF', '#7255D9'];
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: size + 12, height: size + 12, borderRadius: 10, backgroundColor: bg, flexShrink: 0 }}>
-      <span style={{ fontSize: size }}>{CATEGORY_ICONS[category] || '📦'}</span>
-    </span>
-  );
-}
+import { GroceryIcon } from "../pages/Groceries";
 
 function GroceryItemImage({ item, focus = false }) {
   const [failed, setFailed] = useState(false);
   const src = item.photoUrl || item.imageUrl || "";
   useEffect(() => setFailed(false), [src]);
   if (!src || failed) {
-    return <FocusCategoryIcon category={item.category} size={focus ? 22 : 16} />;
+    return <GroceryIcon category={item.category} size={focus ? 22 : 16} />;
   }
   const size = focus ? 48 : 34;
   const radius = focus ? 11 : 9;

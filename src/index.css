@@ -4342,22 +4342,10 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
     height: 76px !important;
   }
   body .app-content .reference-groceries .page-header-aside {
-    display: contents;
+    display: none !important;
   }
   body .app-content .reference-groceries .page-header-content {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 78px;
-    align-items: center;
-  }
-  body .app-content .reference-groceries .page-header-aside .page-spot-frame {
-    grid-column: 2;
-    grid-row: 1;
-    width: 76px !important;
-    height: 64px !important;
-  }
-  body .app-content .reference-groceries .page-header-aside .page-spot {
-    width: 76px !important;
-    height: 64px !important;
+    display: block;
   }
   body .app-content .reference-groceries .grocery-mode-actions {
     grid-column: 1 / -1;
@@ -4785,7 +4773,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .calendar-list-delete:hover{background:var(--color-warn-soft);color:var(--color-warn)}
 
 /* FAB: floating round add button bottom-right of page area */
-.calendar-fab{position:fixed;right:20px;bottom:100px;width:56px;height:56px;border-radius:50%;background:#2563EB!important;color:#fff!important;border:0;display:grid;place-items:center;box-shadow:0 8px 24px rgba(37,99,235,.4),0 2px 8px rgba(0,0,0,.15);z-index:50;cursor:pointer;transition:transform var(--motion-fast) cubic-bezier(.2,.8,.2,1),box-shadow var(--motion-fast) ease,background var(--motion-fast) ease}
+.calendar-fab{position:fixed!important;right:20px!important;bottom:100px!important;width:56px!important;height:56px!important;border-radius:50%!important;background:#2563EB!important;color:#fff!important;border:0!important;display:grid!important;place-items:center!important;box-shadow:0 8px 24px rgba(37,99,235,.4),0 2px 8px rgba(0,0,0,.15)!important;z-index:9999!important;cursor:pointer;transition:transform var(--motion-fast) cubic-bezier(.2,.8,.2,1),box-shadow var(--motion-fast) ease,background var(--motion-fast) ease}
 .calendar-fab svg{width:26px;height:26px;stroke-width:2.5}
 .calendar-fab:hover{transform:translateY(-3px);background:#1D4ED8!important;box-shadow:0 12px 28px rgba(37,99,235,.5),0 4px 12px rgba(0,0,0,.2)}
 .calendar-fab:active{transform:translateY(0) scale(.95)}

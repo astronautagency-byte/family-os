@@ -70,7 +70,7 @@ const CATEGORY_ICONS = {
   "Other": Package,
 };
 
-function GroceryIcon({ category, size = 16 }) {
+export function GroceryIcon({ category, size = 16 }) {
   const Icon = CATEGORY_ICONS[category] || Package;
   const palette = {
     "Produce": ["#DDF7E9", "#228766"], "Bakery": ["#FFF0D4", "#C76E22"],
