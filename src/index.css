@@ -1503,7 +1503,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
     font-size:9.5px;
   }
 }
-.reference-groceries .kinship-card{box-shadow:var(--shadow-xs);border-color:var(--color-border);border-radius:var(--radius-card);padding:var(--space-4);margin-bottom:var(--space-6)}.reference-groceries .kinship-card li{padding:var(--space-3) var(--space-2);border:0}.reference-groceries .kinship-card li>span:nth-child(2){display:none}.reference-groceries .px-5>div>section>p{font-size:var(--text-section)!important;text-transform:none!important;color:var(--color-ink)!important;letter-spacing:0!important;margin:0 0 var(--space-1) var(--space-4)!important;position:relative;z-index:1;background:var(--color-surface);width:max-content;padding:0 var(--space-1)}.reference-groceries .fixed.bottom-24{background:var(--color-accent)!important}.reference-settings .kinship-card{box-shadow:none;border-color:var(--color-border);padding:var(--space-5)!important}
+.reference-groceries .kinship-card{box-shadow:var(--shadow-xs);border-color:var(--color-border);border-radius:var(--radius-card);padding:var(--space-4);margin-bottom:var(--space-6)}.reference-groceries .kinship-card li{padding:var(--space-3) var(--space-2);border:0}.reference-groceries .kinship-card li>span:nth-child(2){display:none}.reference-groceries .px-5>div>section>p{font-size:var(--text-section)!important;text-transform:none!important;color:var(--color-ink)!important;letter-spacing:0!important;margin:0 0 var(--space-1) var(--space-4)!important;position:relative;z-index:1;background:transparent;width:max-content;padding:0 var(--space-1)}.reference-groceries .fixed.bottom-24{background:var(--color-accent)!important}.reference-settings .kinship-card{box-shadow:none;border-color:var(--color-border);padding:var(--space-5)!important}
 .reference-settings{overscroll-behavior-y:contain}.reference-settings section>h2{font-size:var(--text-xs)!important;text-transform:uppercase;letter-spacing:.1em;color:var(--color-ink-soft);margin-bottom:var(--space-4)!important}.reference-dashboard .kinship-card{box-shadow:var(--shadow-xs);border-color:var(--color-border);border-radius:var(--radius-lg)!important}.reference-dashboard section{margin-top:var(--space-8)}.reference-dashboard section h2{font-size:var(--text-section)}.reference-dashboard .page-header{border:0}
 .reference-dashboard .today-metric-card,.reference-dashboard .today-command-card,.reference-dashboard .today-pulse-card,.reference-dashboard .today-flow-card,.reference-dashboard .today-load-card,.reference-dashboard .today-meals-card,.reference-dashboard .today-groceries-card,.reference-dashboard .today-tasks-card{
   border-color:color-mix(in srgb,var(--color-border) 78%,transparent)!important;
@@ -8443,7 +8443,6 @@ input:focus, textarea:focus, select:focus {
 .grocery-list-card,
 .kitchen-inventory-card,
 .inventory-item,
-.grocery-category-title,
 .card,.Card
 {background:#fff!important}
 
@@ -8622,20 +8621,19 @@ input:focus, textarea:focus, select:focus {
 }
 .reference-tasks > *,
 .reference-tasks > * > *,
-.reference-groceries > *,
-.reference-groceries > * > * {
+.reference-groceries > * {
   min-height:0;
 }
-/* Shopping page: ensure scroll works and content isn't clipped */
+/* Shopping page: children take natural height, container scrolls */
 .reference-groceries .shopping-list-switcher {
-  flex: 0 0 auto;
+  flex: none;
 }
 .reference-groceries .grocery-actions-row {
-  flex: 0 0 auto;
+  flex: none;
   padding-bottom: 4px;
 }
 .reference-groceries .px-5 {
-  flex: 0 0 auto;
+  flex: none;
 }
 @supports (height: 100dvh) {
   .chat-page-shell { height: 100dvh; }
