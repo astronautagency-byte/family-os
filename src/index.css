@@ -4348,13 +4348,12 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
     display: block;
   }
   body .app-content .reference-groceries .grocery-mode-actions {
-    grid-column: 1 / -1;
-    grid-row: 2;
+    display: flex;
     justify-content: flex-start;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     gap: 6px;
     margin-top: 10px;
-    overflow-x: auto;
+    overflow: visible;
   }
   body .app-content .reference-groceries .grocery-mode-actions button {
     flex: 0 0 auto;
