@@ -25,7 +25,7 @@
     "mobile:ios:init": "tauri ios init",
     "mobile:ios:build": "tauri ios build --export-method app-store-connect",
     "mobile:ios:prepare": "bash scripts/prepare-ios-appstore.sh",
-    "mobile:ios:archive": "npm run build:ios-app-store && npm run mobile:ios:prepare && cd src-tauri/gen/apple && xcodebuild -project famos.xcodeproj -scheme famos_iOS -configuration release -destination 'generic/platform=iOS' -archivePath build/FamOS.xcarchive -allowProvisioningUpdates archive",
+    "mobile:ios:archive": "npm run mobile:ios:prepare && tauri ios build --archive-only --export-method app-store-connect --ci",
     "appstore:check": "echo 'Checking app store metadata...' && cat app-store-metadata/README.md | head -20",
     "tauri": "tauri"
   },

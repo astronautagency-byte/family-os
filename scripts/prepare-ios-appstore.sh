@@ -38,7 +38,12 @@ if ! grep -q 'CODE_SIGN_STYLE:' "$PROJECT_SPEC"; then
   perl -0pi -e 's/(VALID_ARCHS: arm64\s*\n)/$1        CODE_SIGN_STYLE: Automatic\n/' "$PROJECT_SPEC"
 fi
 
-cp "$PRIVACY_MANIFEST" "$APPLE_DIR/famos_iOS/PrivacyInfo.xcprivacy"
+# Tauri already adds the root privacy manifest as a resource through
+# bundle.resources. Remove an older generated copy so Xcode has one producer
+# for PrivacyInfo.xcprivacy instead of two competing copy phases.
+if [[ -f "$APPLE_DIR/famos_iOS/PrivacyInfo.xcprivacy" ]]; then
+  rm "$APPLE_DIR/famos_iOS/PrivacyInfo.xcprivacy"
+fi
 
 /usr/libexec/PlistBuddy -c 'Set :CFBundleShortVersionString 1.0.0' "$INFO_PLIST"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$INFO_PLIST"
