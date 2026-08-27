@@ -1503,7 +1503,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
     font-size:9.5px;
   }
 }
-.reference-groceries>div.px-5>section:first-child{display:none}.reference-groceries .kinship-card{box-shadow:var(--shadow-xs);border-color:var(--color-border);border-radius:var(--radius-card);padding:var(--space-4);margin-bottom:var(--space-6)}.reference-groceries .kinship-card li{padding:var(--space-3) var(--space-2);border:0}.reference-groceries .kinship-card li>span:nth-child(2){display:none}.reference-groceries .px-5>div>section>p{font-size:var(--text-section)!important;text-transform:none!important;color:var(--color-ink)!important;letter-spacing:0!important;margin:0 0 var(--space-1) var(--space-4)!important;position:relative;z-index:1;background:var(--color-surface);width:max-content;padding:0 var(--space-1)}.reference-groceries .fixed.bottom-24{background:var(--color-accent)!important}.reference-settings .kinship-card{box-shadow:none;border-color:var(--color-border);padding:var(--space-5)!important}
+.reference-groceries .kinship-card{box-shadow:var(--shadow-xs);border-color:var(--color-border);border-radius:var(--radius-card);padding:var(--space-4);margin-bottom:var(--space-6)}.reference-groceries .kinship-card li{padding:var(--space-3) var(--space-2);border:0}.reference-groceries .kinship-card li>span:nth-child(2){display:none}.reference-groceries .px-5>div>section>p{font-size:var(--text-section)!important;text-transform:none!important;color:var(--color-ink)!important;letter-spacing:0!important;margin:0 0 var(--space-1) var(--space-4)!important;position:relative;z-index:1;background:var(--color-surface);width:max-content;padding:0 var(--space-1)}.reference-groceries .fixed.bottom-24{background:var(--color-accent)!important}.reference-settings .kinship-card{box-shadow:none;border-color:var(--color-border);padding:var(--space-5)!important}
 .reference-settings{overscroll-behavior-y:contain}.reference-settings section>h2{font-size:var(--text-xs)!important;text-transform:uppercase;letter-spacing:.1em;color:var(--color-ink-soft);margin-bottom:var(--space-4)!important}.reference-dashboard .kinship-card{box-shadow:var(--shadow-xs);border-color:var(--color-border);border-radius:var(--radius-lg)!important}.reference-dashboard section{margin-top:var(--space-8)}.reference-dashboard section h2{font-size:var(--text-section)}.reference-dashboard .page-header{border:0}
 .reference-dashboard .today-metric-card,.reference-dashboard .today-command-card,.reference-dashboard .today-pulse-card,.reference-dashboard .today-flow-card,.reference-dashboard .today-load-card,.reference-dashboard .today-meals-card,.reference-dashboard .today-groceries-card,.reference-dashboard .today-tasks-card{
   border-color:color-mix(in srgb,var(--color-border) 78%,transparent)!important;
@@ -1786,7 +1786,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   .primary-nav { width:240px; }
 }
 
-.reference-groceries>div.px-5>section:first-child{display:block}.task-assignee-label{font-size:13px;font-weight:600;color:var(--color-ink-soft);margin:4px 0 10px}.task-assignee-picker{display:flex;gap:8px;overflow-x:auto;margin-bottom:20px}.task-assignee-picker button{display:flex;align-items:center;gap:7px;padding:7px 11px;border:1px solid var(--color-border);border-radius:var(--radius-sm);white-space:nowrap}.task-assignee-picker button.selected{border-color:#5148c8;background:#eeebff;color:#5148c8}.task-assignee-picker span{font-size:13px}.meal-ideas-launcher{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:-4px 0 18px}.meal-ideas-launcher button{display:flex;align-items:center;justify-content:center;gap:7px;border:1px solid #d8d3fa;background:#fff;color:#5148c8;border-radius:var(--radius-sm);padding:12px;font-size:13px;font-weight:600}.meal-ideas-launcher svg{width:17px}.reward-shop article{position:relative;padding-top:52px}.reward-cost{position:absolute;top:16px;right:16px;padding:6px 11px;border-radius:var(--radius-section);background:#5c54ce;color:#fff;font-size:12px}.reward-shop article>p{padding:0 18px 18px;margin-top:-48px;color:var(--color-ink-faint);font-size:13px}.reward-art{display:none}
+.task-assignee-label{font-size:13px;font-weight:600;color:var(--color-ink-soft);margin:4px 0 10px}.task-assignee-picker{display:flex;gap:8px;overflow-x:auto;margin-bottom:20px}.task-assignee-picker button{display:flex;align-items:center;gap:7px;padding:7px 11px;border:1px solid var(--color-border);border-radius:var(--radius-sm);white-space:nowrap}.task-assignee-picker button.selected{border-color:#5148c8;background:#eeebff;color:#5148c8}.task-assignee-picker span{font-size:13px}.meal-ideas-launcher{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:-4px 0 18px}.meal-ideas-launcher button{display:flex;align-items:center;justify-content:center;gap:7px;border:1px solid #d8d3fa;background:#fff;color:#5148c8;border-radius:var(--radius-sm);padding:12px;font-size:13px;font-weight:600}.meal-ideas-launcher svg{width:17px}.reward-shop article{position:relative;padding-top:52px}.reward-cost{position:absolute;top:16px;right:16px;padding:6px 11px;border-radius:var(--radius-section);background:#5c54ce;color:#fff;font-size:12px}.reward-shop article>p{padding:0 18px 18px;margin-top:-48px;color:var(--color-ink-faint);font-size:13px}.reward-art{display:none}
 
 .notification-feed{position:absolute;z-index:60;top:58px;right:14px;width:min(360px,calc(100vw - 28px));background:#fff;border:1px solid var(--color-border);border-radius:var(--radius-section);box-shadow:0 18px 50px rgba(24,22,50,.18);overflow:hidden}.notification-title{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid var(--color-border)}.notification-title>div:last-child{display:flex;align-items:center;gap:9px}.notification-title strong,.notification-title span{display:block}.notification-title strong{font-size:16px}.notification-title span{font-size:11px;color:var(--color-ink-faint);margin-top:2px}.notification-title svg{width:18px}.mark-read{font-size:10px;font-weight:700;color:var(--color-accent)}.notification-row{width:100%;display:flex;align-items:center;gap:12px;padding:14px 16px;text-align:left;border-bottom:1px solid var(--color-border);transition:background var(--motion-fast) ease}.notification-row:last-child{border-bottom:0}.notification-row.is-read{opacity:.62}.notification-row.is-unread{background:#fffcf3}.notification-row>span{width:38px;height:38px;border-radius:var(--radius-sm);display:grid;place-items:center;background:var(--pastel-lilac);color:#5148c8}.notification-row.peach>span{background:var(--pastel-peach);color:#b85e42}.notification-row.blue>span{background:var(--pastel-blue);color:#3e75ac}.notification-row.mint>span{background:var(--pastel-mint);color:#397b66}.notification-row svg{width:18px}.notification-row strong,.notification-row small{display:block}.notification-row strong{font-size:13px}.notification-row small{font-size:11px;color:var(--color-ink-faint);margin-top:3px}.notification-empty{padding:28px;text-align:center;color:var(--color-ink-faint);font-size:13px}
 .app-topbar{position:relative;z-index:80;isolation:isolate;overflow:visible}.notification-feed{z-index:100}.grocery-category-title{display:flex;align-items:center;justify-content:space-between;margin:0 var(--space-1) 10px}.grocery-category-title h2{font-size:var(--text-section);font-weight:650}.grocery-category-title span{font-size:var(--text-xs);color:var(--color-ink-faint)}.reference-groceries .grocery-category-title+div{margin-bottom:24px}.reference-groceries .px-5>div>section>.grocery-category-title{position:static;background:transparent;width:auto;padding:0}
@@ -3038,7 +3038,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .focus-shopping-copy small{display:block;margin-top:2px;color:var(--color-ink-soft);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .focus-shopping-header-actions{display:flex;align-items:center;gap:8px}
 .focus-shopping-header .focus-shopping-scan{width:auto;height:40px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;border-radius:var(--radius-pill);background:var(--color-accent-soft);color:var(--color-accent);font-size:12px;font-weight:800}
-.reference-groceries .page-header-aside{min-width:126px;flex-direction:column;overflow:hidden}.reference-groceries .page-header{margin-bottom:32px!important;padding-bottom:16px!important}.reference-groceries .page-header-content{gap:12px;align-items:flex-start}.reference-groceries .page-subtitle{max-width:38ch;line-height:1.4;overflow:hidden;margin-bottom:0!important}.reference-groceries .px-5>.section:first-child,.reference-groceries .px-5>section:first-child{margin-top:12px!important}.reference-groceries .page-header+.px-5{margin-top:24px!important}
+.reference-groceries .page-header-aside{min-width:126px;flex-direction:column;overflow:hidden}.reference-groceries .page-header{margin-bottom:0!important;padding-bottom:0!important;border-bottom:none!important}.reference-groceries .page-header-content{gap:12px;align-items:flex-start}.reference-groceries .page-subtitle{max-width:38ch;line-height:1.4;overflow:hidden;margin-bottom:0!important}
 .reference-groceries .grocery-mode-actions{justify-content:flex-end;gap:7px}
 .reference-groceries .grocery-mode-actions button{padding:8px 10px;font-size:10.5px}
 .focus-shopping-done{border-radius:var(--radius-section);background:var(--color-accent);color:#fff;font-size:16px;font-weight:800;padding:16px max(16px,env(safe-area-inset-bottom));box-shadow:0 18px 42px rgba(94,79,215,.24)}
@@ -8606,7 +8606,7 @@ input:focus, textarea:focus, select:focus {
 
 /* ── Force #FAFAFA page canvas on Tasks, Shopping, and all reference pages ── */
 .reference-tasks,
-.reference-groceries,
+.reference-tasks,
 /* Chat page shell — replaces h-screen flex layout to avoid iOS 100vh
    miscalculation. Uses dvh with a fallback, and accounts for the bottom
    nav bar height via padding instead of a fragile inline style. */
@@ -8621,8 +8621,21 @@ input:focus, textarea:focus, select:focus {
   overflow-x:hidden;
 }
 .reference-tasks > *,
-.reference-groceries > * {
+.reference-tasks > * > *,
+.reference-groceries > *,
+.reference-groceries > * > * {
   min-height:0;
+}
+/* Shopping page: ensure scroll works and content isn't clipped */
+.reference-groceries .shopping-list-switcher {
+  flex: 0 0 auto;
+}
+.reference-groceries .grocery-actions-row {
+  flex: 0 0 auto;
+  padding-bottom: 4px;
+}
+.reference-groceries .px-5 {
+  flex: 0 0 auto;
 }
 @supports (height: 100dvh) {
   .chat-page-shell { height: 100dvh; }
