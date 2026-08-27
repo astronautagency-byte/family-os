@@ -1065,8 +1065,8 @@ export default function Groceries() {
         subtitle="A shared memory for everything the fridge forgot to mention."
       />
 
-      <div className="px-5">
-        <div className="grocery-mode-actions">
+      <div className="px-5" style={{ display: 'block', width: '100%' }}>
+        <div className="grocery-mode-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '8px 0', minHeight: '40px' }}>
           {totalMissingCount > 0 && (
             <button
               type="button"
