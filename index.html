@@ -169,15 +169,12 @@
         try {
           if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(function(regs) {
-              var old = regs.filter(function(r) {
-                var s = r.scope || '';
-                return s.indexOf('sw.js') !== -1;
-              });
-              if (old.length) {
-                old.forEach(function(r) { r.unregister(); });
+              if (regs.length) {
+                regs.forEach(function(r) { r.unregister(); });
                 caches.keys().then(function(n) {
                   n.forEach(function(c) { caches.delete(c); });
                 });
+                location.reload();
               }
             });
           }

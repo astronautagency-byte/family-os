@@ -74,22 +74,6 @@ export default defineConfig({
         importScripts: ['/notification-sw.js'],
         runtimeCaching: [
           {
-            urlPattern: ({ request }) => request.destination === 'document',
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'famos-pages',
-              expiration: { maxEntries: 20, maxAgeSeconds: 3600 }
-            }
-          },
-          {
-            urlPattern: ({ request }) => request.destination === 'script' || request.destination === 'style',
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'famos-assets',
-              expiration: { maxEntries: 100, maxAgeSeconds: 3600 }
-            }
-          },
-          {
             urlPattern: ({ request }) => request.destination === 'image',
             handler: 'CacheFirst',
             options: {
