@@ -167,14 +167,15 @@
     <script>
       (function(){
         try {
-          if ('serviceWorker' in navigator) {
+          if ('serviceWorker' in navigator && !sessionStorage.getItem('_famos_sw_clean')) {
+            sessionStorage.setItem('_famos_sw_clean', '1');
             navigator.serviceWorker.getRegistrations().then(function(regs) {
               if (regs.length) {
                 regs.forEach(function(r) { r.unregister(); });
                 caches.keys().then(function(n) {
                   n.forEach(function(c) { caches.delete(c); });
+                  location.reload();
                 });
-                location.reload();
               }
             });
           }
