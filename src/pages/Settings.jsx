@@ -423,7 +423,7 @@ function TaskImportCard() {
 
 export default function Settings({ colorScheme = "famos", onColorSchemeChange = () => {} }) {
   const { members, addMember, updateMember, removeMember, resetToDemoData, notificationPermission, requestNotifications, sendTestNotification, refreshData } = useFamily();
-  const { configured, user, household, householdProfileExtra, memberProfile, updateHouseholdSettings, updateHouseholdProfile, invitePartner, updatePassword, signOut, deleteAccount } = useAuth();
+  const { configured, user, household, householdProfileExtra, memberProfile, updateHouseholdSettings, updateHouseholdProfile, invitePartner, updatePassword, updateEmail, signOut, deleteAccount } = useAuth();
   const [settingsTab, setSettingsTab] = useState("appearance");
   const [editingMember, setEditingMember] = useState(null); // member object or "new"
   const [name, setName] = useState("");
@@ -446,6 +446,9 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
   const [newPassword, setNewPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [passwordStatus, setPasswordStatus] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [emailStatus, setEmailStatus] = useState("");
+  const [emailBusy, setEmailBusy] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState(null);
   const [removingMember, setRemovingMember] = useState(false);
@@ -1354,6 +1357,16 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
             </div>
           </Card>
         </section>
+
+        {configured && <section data-tab="account">
+          <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">📧 Login email</h2>
+          <Card className="p-4">
+            <p className="text-[12.5px] text-[var(--color-ink-soft)] mb-3">Your current email is <strong>{user?.email}</strong>. We'll send a confirmation link to the new address before it becomes active.</p>
+            <TextField type="email" label="New email address" placeholder="you@example.com" value={newEmail} onChange={(e) => { setNewEmail(e.target.value); setEmailStatus(""); }} autoComplete="email" />
+            <PrimaryButton disabled={emailBusy || !newEmail.trim() || newEmail.trim().toLowerCase() === (user?.email || "").toLowerCase()} onClick={async () => { setEmailBusy(true); setEmailStatus(""); try { const result = await updateEmail(newEmail); setEmailStatus(result.message || "Check your new email to confirm the change."); setNewEmail(""); } catch (e) { setEmailStatus(e.message); } finally { setEmailBusy(false); } }}>{emailBusy ? "Sending confirmation…" : "Change email"}</PrimaryButton>
+            {emailStatus && <p className="text-[12px] text-[var(--color-ink-soft)] mt-2 whitespace-pre-line">{emailStatus}</p>}
+          </Card>
+        </section>}
 
         {configured && <section data-tab="account">
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">🔐 Account password</h2>

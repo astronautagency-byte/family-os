@@ -607,6 +607,20 @@ export function AuthProvider({ children }) {
     setPasswordRecovery(false);
   };
 
+  const updateEmail = async (newEmail) => {
+    const email = newEmail.trim().toLowerCase();
+    if (!email) throw new Error("Please enter an email address.");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Please enter a valid email address.");
+    const { error } = await supabase.auth.updateUser({ email });
+    if (error) throw error;
+    // Update email in household_members table
+    const { user } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from("household_members").update({ email }).eq("user_id", user.id);
+    }
+    return { message: "A confirmation link has been sent to your new email address. Please click the link to complete the change." };
+  };
+
   const requestPasswordReset = async (email) => {
     setError(null);
     const { data: resetData, error: resetError } = await supabase.functions.invoke("send-password-email", {
@@ -1259,6 +1273,7 @@ export function AuthProvider({ children }) {
     signIn,
     signUp,
     updatePassword,
+    updateEmail,
     requestPasswordReset,
     requestInvitePasswordCode,
     completeInvitePasswordSetup,
