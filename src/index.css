@@ -2031,7 +2031,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .hero-spark-one{left:52%;bottom:28%}
 .hero-spark-two{right:20%;top:32%;color:rgba(255,255,255,.4);font-size:20px}
 @media(max-width:900px){
-  .landing-hero-fullbleed{min-height:72vh}
+  .landing-hero-fullbleed{min-height:72vh;border-radius:28px;margin:12px;border-bottom-left-radius:0;border-bottom-right-radius:0}
   .landing-hero-fullbleed .landing-hero-copy{padding:70px 28px 110px;text-align:center;align-items:center;max-width:100%}
   .landing-hero-fullbleed .landing-hero-copy h1{max-width:100%}
   .landing-hero-fullbleed .landing-hero-copy p:not(.landing-kicker){margin:auto}
@@ -2041,7 +2041,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   .hero-squiggle,.hero-spark{display:none}
 }
 @media(max-width:600px){
-  .landing-hero-fullbleed{min-height:62vh}
+  .landing-hero-fullbleed{min-height:62vh;border-radius:24px;margin:10px;border-bottom-left-radius:0;border-bottom-right-radius:0}
   .landing-hero-fullbleed .landing-hero-copy{padding:52px 18px 92px}
   .landing-hero-fullbleed .landing-hero-copy h1{font-size:44px}
   .landing-hero-fullbleed .landing-hero-copy p:not(.landing-kicker){font-size:15px}
