@@ -3036,7 +3036,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .focus-shopping-copy small{display:block;margin-top:2px;color:var(--color-ink-soft);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .focus-shopping-header-actions{display:flex;align-items:center;gap:8px}
 .focus-shopping-header .focus-shopping-scan{width:auto;height:40px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;border-radius:var(--radius-pill);background:var(--color-accent-soft);color:var(--color-accent);font-size:12px;font-weight:800}
-.reference-groceries .page-header-aside{min-width:126px;flex-direction:column;overflow:hidden}.reference-groceries .page-header{margin-bottom:24px}.reference-groceries .page-header-content{gap:12px;align-items:flex-start}.reference-groceries .page-subtitle{max-width:38ch;line-height:1.4;overflow:hidden}.reference-groceries .px-5>.section:first-child,.reference-groceries .px-5>section:first-child{margin-top:8px!important}.reference-groceries .page-header+.px-5{margin-top:16px!important}
+.reference-groceries .page-header-aside{min-width:126px;flex-direction:column;overflow:hidden}.reference-groceries .page-header{margin-bottom:32px!important;padding-bottom:16px!important}.reference-groceries .page-header-content{gap:12px;align-items:flex-start}.reference-groceries .page-subtitle{max-width:38ch;line-height:1.4;overflow:hidden;margin-bottom:0!important}.reference-groceries .px-5>.section:first-child,.reference-groceries .px-5>section:first-child{margin-top:12px!important}.reference-groceries .page-header+.px-5{margin-top:24px!important}
 .reference-groceries .grocery-mode-actions{justify-content:flex-end;gap:7px}
 .reference-groceries .grocery-mode-actions button{padding:8px 10px;font-size:10.5px}
 .focus-shopping-done{border-radius:var(--radius-section);background:var(--color-accent);color:#fff;font-size:16px;font-weight:800;padding:16px max(16px,env(safe-area-inset-bottom));box-shadow:0 18px 42px rgba(94,79,215,.24)}
@@ -4773,11 +4773,11 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .calendar-list-delete:hover{background:var(--color-warn-soft);color:var(--color-warn)}
 
 /* FAB: floating round add button bottom-right of page area */
-.calendar-fab{position:fixed!important;right:20px!important;bottom:100px!important;width:56px!important;height:56px!important;border-radius:50%!important;background:#2563EB!important;color:#fff!important;border:0!important;display:grid!important;place-items:center!important;box-shadow:0 8px 24px rgba(37,99,235,.4),0 2px 8px rgba(0,0,0,.15)!important;z-index:9999!important;cursor:pointer;transition:transform var(--motion-fast) cubic-bezier(.2,.8,.2,1),box-shadow var(--motion-fast) ease,background var(--motion-fast) ease}
-.calendar-fab svg{width:26px;height:26px;stroke-width:2.5}
-.calendar-fab:hover{transform:translateY(-3px);background:#1D4ED8!important;box-shadow:0 12px 28px rgba(37,99,235,.5),0 4px 12px rgba(0,0,0,.2)}
-.calendar-fab:active{transform:translateY(0) scale(.95)}
-@media(min-width:720px){.calendar-fab{right:28px;bottom:28px;width:60px;height:60px}.calendar-fab svg{width:28px;height:28px}}
+.calendar-fab{position:fixed!important;right:20px!important;bottom:96px!important;width:58px!important;height:58px!important;border-radius:50%!important;background:#2563EB !important;color:#fff !important;border:none !important;outline:3px solid #fff !important;display:grid !important;place-items:center !important;box-shadow:0 6px 20px rgba(37,99,235,0.55),0 2px 8px rgba(0,0,0,0.22),0 0 0 2px rgba(37,99,235,0.25) !important;z-index:99999 !important;pointer-events:auto !important;opacity:1 !important;visibility:visible !important;cursor:pointer;transition:transform 0.18s cubic-bezier(0.2,0.8,0.2,1),box-shadow 0.18s ease,background 0.18s ease}
+.calendar-fab svg{width:28px !important;height:28px !important;stroke-width:2.5 !important;color:#fff !important;fill:none !important}
+.calendar-fab:hover{transform:translateY(-3px) scale(1.05);background:#1D4ED8 !important;box-shadow:0 10px 28px rgba(37,99,235,0.65),0 4px 12px rgba(0,0,0,0.25),0 0 0 2px rgba(37,99,235,0.35) !important}
+.calendar-fab:active{transform:translateY(0) scale(0.95)}
+@media(min-width:720px){.calendar-fab{right:28px !important;bottom:28px !important;width:60px !important;height:60px !important}.calendar-fab svg{width:30px !important;height:30px !important}}
 
 /* Quick-capture pill: springs up from the FAB press so users can type
    "dentist 3pm Wed" and prefill the add-event modal in two taps. */
@@ -8920,7 +8920,17 @@ input:focus, textarea:focus, select:focus {
 /* FAB button */
 .theme-dark .calendar-fab,
 .theme-dark .reference-fab {
-  box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important;
+  background: #3B82F6 !important;
+  color: #fff !important;
+  outline: 3px solid rgba(255,255,255,0.85) !important;
+  box-shadow: 0 6px 24px rgba(59,130,246,0.6), 0 2px 8px rgba(0,0,0,0.4) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+.theme-dark .calendar-fab svg,
+.theme-dark .reference-fab svg {
+  color: #fff !important;
+  fill: none !important;
 }
 
 /* Trial banners */
