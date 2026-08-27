@@ -8616,7 +8616,12 @@ input:focus, textarea:focus, select:focus {
   height:100vh;
   height:calc(var(--dvh, 100vh));
   padding-bottom:calc(64px + env(safe-area-inset-bottom, 0px));
-  overflow:hidden;
+  overflow-y:auto;
+  overflow-x:hidden;
+}
+.reference-tasks > *,
+.reference-groceries > * {
+  min-height:0;
 }
 @supports (height: 100dvh) {
   .chat-page-shell { height: 100dvh; }
