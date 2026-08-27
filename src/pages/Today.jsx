@@ -14,6 +14,7 @@ import useKitchenInventory from "../hooks/useKitchenInventory";
 import { expiringInventory } from "../lib/inventoryExpiry";
 import NativeAdBanner from "../components/NativeAdBanner";
 import ProductUpdateBanner from "../components/ProductUpdateBanner";
+import EmailInbox from "../components/EmailInbox";
 import { AD_PLACEMENTS } from "../lib/adNetwork";
 
 // Map a normalised weather "kind" (+ day/night) to a lucide icon and label.
@@ -600,6 +601,8 @@ export default function Today({ goTo }) {
       />
 
       <div className="px-5"><ProductUpdateBanner /></div>
+
+      <div className="px-5"><EmailInbox compact /></div>
 
       {isTrial && (
         <div className="today-trial-banner">

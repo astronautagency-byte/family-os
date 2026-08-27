@@ -7,7 +7,7 @@ FamOS - Family Sync
 Your Family, Finally in Sync
 
 ## Bundle ID
-app.famos.ios
+app.fam-os.famos
 
 ## SKU
 fam-os-ios

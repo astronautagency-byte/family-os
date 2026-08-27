@@ -9,11 +9,13 @@ set -euo pipefail
 #   ./scripts/build-appstore.sh [--profile NAME]
 #
 # Environment variables:
-#   APPLE_SIGNING_IDENTITY  — e.g. "Apple Development: Alex Vorobiev (TEAMID)"
+#   APPLE_SIGNING_IDENTITY  — e.g. "3rd Party Mac Developer Application: Alex Vorobiev (TEAMID)"
+#   APPLE_INSTALLER_IDENTITY — e.g. "3rd Party Mac Developer Installer: Alex Vorobiev (TEAMID)"
 #   APPLE_TEAM_ID           — your 10-character Apple Developer Team ID
 #   APPLE_PROVIDER_SHORT_NAME — e.g. "XXXXXXXXXX" (optional, for Xcode 15+)
 
 SIGNING_IDENTITY="${APPLE_SIGNING_IDENTITY:-}"
+INSTALLER_IDENTITY="${APPLE_INSTALLER_IDENTITY:-}"
 TEAM_ID="${APPLE_TEAM_ID:-}"
 PROVIDER="${APPLE_PROVIDER_SHORT_NAME:-}"
 PROFILE=""
@@ -38,7 +40,13 @@ if [[ -z "$SIGNING_IDENTITY" ]]; then
   echo "Find your identity:"
   echo "  security find-identity -v -p codesigning"
   echo ""
-  echo "It should look like: \"Apple Development: Name (TEAMID)\""
+  echo "It should look like: \"3rd Party Mac Developer Application: Name (TEAMID)\""
+  exit 1
+fi
+
+if [[ -z "$INSTALLER_IDENTITY" ]]; then
+  echo "❌ APPLE_INSTALLER_IDENTITY not set."
+  echo "   It should look like: \"3rd Party Mac Developer Installer: Name (TEAMID)\""
   exit 1
 fi
 
@@ -50,34 +58,41 @@ fi
 
 echo "📋 Configuration:"
 echo "   Signing:    $SIGNING_IDENTITY"
+echo "   Installer:  $INSTALLER_IDENTITY"
 echo "   Team ID:    $TEAM_ID"
 echo "   Profile:    ${PROFILE:-auto}"
 echo ""
 
 # ── Find provisioning profile ──
 if [[ -z "$PROFILE" ]]; then
-  # Look for a provisioning profile for app.famos.desktop
-  PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
-  if [[ -d "$PROFILE_DIR" ]]; then
-    for p in "$PROFILE_DIR"/*.mobileprovision; do
+  # Xcode 16+ stores profiles under Library/Developer; older Xcode releases
+  # used Library/MobileDevice. Check both locations.
+  PROFILE_DIRS=(
+    "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+    "$HOME/Library/MobileDevice/Provisioning Profiles"
+  )
+  for PROFILE_DIR in "${PROFILE_DIRS[@]}"; do
+    [[ -d "$PROFILE_DIR" ]] || continue
+    for p in "$PROFILE_DIR"/*.provisionprofile "$PROFILE_DIR"/*.mobileprovision; do
       if [[ -f "$p" ]]; then
         # Check if this profile is for our app
         PLIST=$(security cms -D -i "$p" 2>/dev/null || true)
-        if echo "$PLIST" | grep -q "app.famos.desktop"; then
+        if echo "$PLIST" | grep -q "app.fam-os.famos" && echo "$PLIST" | grep -q "Mac App Store"; then
           PROFILE="$p"
           echo "   Found profile: $(basename "$p")"
           break
         fi
       fi
     done
-  fi
+    [[ -n "$PROFILE" ]] && break
+  done
 
   if [[ -z "$PROFILE" ]]; then
-    echo "⚠️  No provisioning profile found for app.famos.desktop"
+    echo "⚠️  No Mac App Store provisioning profile found for app.fam-os.famos"
     echo ""
     echo "   To create one:"
     echo "   1. Go to https://developer.apple.com/account/resources/profiles"
-    echo "   2. Click '+' → App Store → macOS → app.famos.desktop"
+    echo "   2. Click '+' → Mac App Store → app.fam-os.famos"
     echo "   3. Download and double-click to install"
     echo "   4. Re-run this script"
     echo ""
@@ -101,7 +116,7 @@ ARCH="${ARCH:-aarch64-apple-darwin}"
 npx tauri build \
   --target "$ARCH" \
   --bundles app \
-  --config "{\"bundle\":{\"macOS\":{\"signingIdentity\":\"$SIGNING_IDENTITY\",\"providerShortName\":\"$PROVIDER\",\"entitlements\":\"./FamOS.entitlements\"}}}" \
+  --config "{\"bundle\":{\"macOS\":{\"signingIdentity\":\"$SIGNING_IDENTITY\",\"providerShortName\":\"$PROVIDER\",\"entitlements\":\"./FamOS-Release.entitlements\"}}}" \
   2>&1
 
 # ── Find the built .app ──
@@ -114,6 +129,12 @@ fi
 
 echo ""
 echo "✅ Built: $APP_PATH"
+
+# A Mac App Store app must contain its distribution provisioning profile.
+cp "$PROFILE" "$APP_PATH/Contents/embedded.provisionprofile"
+codesign --force --deep --options runtime --timestamp \
+  --entitlements "src-tauri/FamOS-Release.entitlements" \
+  --sign "$SIGNING_IDENTITY" "$APP_PATH"
 
 # ── Verify signing ──
 echo ""
@@ -138,7 +159,7 @@ PKG_FILE="$PKG_PATH/${APP_NAME}.pkg"
 
 productbuild \
   --component "$APP_PATH" /Applications \
-  --sign "3rd Party Mac Developer Installer: $SIGNING_IDENTITY" \
+  --sign "$INSTALLER_IDENTITY" \
   --timestamp \
   "$PKG_FILE" \
   2>&1
@@ -151,14 +172,13 @@ if [[ -f "$PKG_FILE" ]]; then
   echo "╚══════════════════════════════════════════════════╝"
   echo ""
   echo "   Upload via:"
-  echo "   1. Xcode → Organizer → Distribute App → App Store Connect"
-  echo "   2. Or: xcrun altool --upload-package \"$PKG_FILE\" \\"
-  echo "          --type ios --apiKey \"...\" --apiIssuer \"...\""
+  echo "   1. Open Transporter and choose $PKG_FILE"
+  echo "   2. Or upload with Apple's Transporter command-line tool and an App Store Connect API key"
   echo ""
   echo "   Or drag the .app to Transporter.app"
 else
   echo "   ⚠️  .pkg creation failed (may need installer certificate)"
-  echo "   You can still upload the .app directly via Transporter.app"
+  echo "   A signed installer package is required for the Mac App Store."
 fi
 
 echo ""

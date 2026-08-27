@@ -9,6 +9,7 @@ import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
 import PageHeader from "../components/PageHeader";
 import PullToRefresh from "../components/PullToRefresh";
 import { passwordError } from "../utils/passwordStrength";
+import EmailInbox from "../components/EmailInbox";
 import { FAMILY_COLORS } from "../data/mockData";
 
 // Settings is split into tabs so the page doesn't read like an essay. Each
@@ -1377,6 +1378,11 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
             <PrimaryButton disabled={!!passwordError(newPassword)} onClick={async () => { try { await updatePassword(newPassword); setNewPassword(""); setPasswordStatus("Password saved. You can now use it to sign in on your phone."); } catch (e) { setPasswordStatus(e.message); } }}>Save password</PrimaryButton>
             {passwordStatus && <p className="text-[12px] text-[var(--color-ink-soft)] mt-2">{passwordStatus}</p>}
           </Card>
+        </section>}
+
+        {configured && <section data-tab="account">
+          <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">📬 Email Inbox</h2>
+          <EmailInbox />
         </section>}
 
         {configured && <section data-tab="account">

@@ -1,6 +1,6 @@
 [package]
 name = "famos"
-version = "0.36.1"
+version = "1.0.0"
 description = "FamOS family organizer"
 authors = ["FamOS"]
 edition = "2021"

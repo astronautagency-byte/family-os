@@ -183,7 +183,7 @@ https://fam-os.app/privacy
 
 ### Mac App Store
 - [ ] Apple Developer account active
-- [ ] App ID created for `app.famos.desktop`
+- [x] App ID created for `app.fam-os.famos`
 - [ ] Provisioning profile created
 - [ ] Code signing configured
 - [ ] Screenshots captured
@@ -198,7 +198,7 @@ https://fam-os.app/privacy
 
 ### iOS App Store
 - [ ] Apple Developer account active
-- [ ] App ID created for `app.famos.ios`
+- [x] App ID created for `app.fam-os.famos`
 - [ ] Provisioning profile created
 - [ ] Code signing configured
 - [ ] Screenshots captured for all device sizes

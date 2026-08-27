@@ -22,7 +22,8 @@
     "mobile:android:bundle": "cd src-tauri/gen/android && ./gradlew bundleRelease",
     "mobile:ios:init": "tauri ios init",
     "mobile:ios:build": "tauri ios build",
-    "mobile:ios:archive": "cd src-tauri/gen/apple && xcodebuild -workspace famos.xcworkspace -scheme famos -sdk iphoneos -configuration Release archive -archivePath build/famos.xcarchive",
+    "mobile:ios:prepare": "bash scripts/prepare-ios-appstore.sh",
+    "mobile:ios:archive": "npm run mobile:ios:prepare && cd src-tauri/gen/apple && xcodebuild -project famos.xcodeproj -scheme famos_iOS -configuration release -destination 'generic/platform=iOS' -archivePath build/FamOS.xcarchive -allowProvisioningUpdates archive",
     "appstore:check": "echo 'Checking app store metadata...' && cat app-store-metadata/README.md | head -20",
     "tauri": "tauri"
   },
