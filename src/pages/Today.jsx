@@ -713,7 +713,7 @@ export default function Today({ goTo }) {
             {/* Kitchen Watch header */}
             <div className="px-4 pt-4 pb-2">
               <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#D94F4F] mb-1">Track what's expiring</p>
-              <h2 id="kitchen-watch-title" className="text-[22px] font-bold text-[var(--color-ink)] leading-tight">Kitchen Watch</h2>
+              <h2 id="kitchen-watch-title" className="ui-section-title">Kitchen Watch</h2>
               <p className="text-[12px] text-[var(--color-ink-soft)] mt-1">A few taps now can prevent a kitchen-table summit later.</p>
             </div>
             {/* Expiring soon banner */}

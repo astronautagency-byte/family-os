@@ -1212,7 +1212,7 @@ export default function Groceries() {
 
         <section>
           <div className="flex items-end justify-between mb-3 px-1">
-            <div><p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-accent)]">Saved staples</p><h2 className="font-[var(--font-display)] text-[17px] font-semibold">Quick add</h2></div>
+            <div><p className="page-eyebrow">Saved staples</p><h2 className="grocery-section-title">Quick add</h2></div>
             <button onClick={() => openMasterItem()} className="flex items-center gap-1 text-[11.5px] font-semibold text-[var(--color-accent)]"><Plus size={13} /> New staple</button>
           </div>
           <div className="grid grid-cols-2 gap-2">

@@ -912,7 +912,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
 
       <div className="px-5 space-y-6 mt-2" data-settings-tab={settingsTab}>
         <section data-tab="appearance">
-          <div className="flex items-end justify-between mb-3"><h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)]">🎨 Appearance</h2></div>
+          <div className="flex items-end justify-between mb-3"><h2 className="settings-section-title">🎨 Appearance</h2></div>
           <Card className="settings-color-scheme-card">
             <div className="settings-color-scheme-head"><span><Palette size={18}/></span><div><strong>App colour</strong><small>Pick a palette that feels like home. Every option is tuned for light and dark mode.</small></div></div>
             <ColorSchemePicker
@@ -924,7 +924,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
 
         <section data-tab="appearance">
           <div className="flex items-end justify-between mb-3">
-            <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)]">🏠 Home space</h2>
+            <h2 className="settings-section-title">🏠 Home space</h2>
           </div>
           <Card className="settings-household-card">
             <div className="settings-household-icon">⌂</div>
@@ -949,7 +949,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
 
         <section data-tab="family">
           <div className="flex items-end justify-between mb-3">
-            <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)]">👨‍👩‍👧‍👦 Family members</h2>
+            <h2 className="settings-section-title">👨‍👩‍👧‍👦 Family members</h2>
             <button onClick={openNew} className={`flex items-center gap-1 text-[13px] font-medium text-[var(--color-accent)] ${configured ? "hidden" : ""}`}>
               <Plus size={15} /> Add
             </button>
@@ -1055,7 +1055,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
         </section>
 
         <section data-tab="billing">
-          <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">💳 Plan & billing</h2>
+          <h2 className="settings-section-title mb-3">💳 Plan & billing</h2>
           <Card className="p-4">
             {/* Current plan header */}
             <div className="flex items-start gap-3 mb-4">
@@ -1318,14 +1318,14 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
         </section>
 
         <section data-tab="integrations">
-          <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">🔗 Integrations</h2>
+          <h2 className="settings-section-title mb-3">🔗 Integrations</h2>
           <GoogleCalendarCard />
           <CalendarFeedsCard />
           <TaskImportCard />
         </section>
 
         <section data-tab="family">
-          <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">🔔 Notifications</h2>
+          <h2 className="settings-section-title mb-3">🔔 Notifications</h2>
           <Card className="p-4">
             <div className="flex items-start gap-3 mb-4"><div className="w-10 h-10 rounded-xl bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0"><Bell size={18} color="var(--color-accent)" /></div><div><p className="font-medium text-[14.5px]">Household notifications</p><p className="text-[12.5px] text-[var(--color-ink-soft)] mt-0.5">Get notified about assigned tasks and meals, chat messages, shopping list updates, and family calendar updates on every enabled device.</p></div></div>
             <PrimaryButton onClick={requestNotifications} disabled={notificationPermission === "granted" || notificationPermission === "unsupported"}>{notificationPermission === "granted" ? "Browser notifications allowed" : notificationPermission === "denied" ? "Blocked in browser settings" : notificationPermission === "unsupported" ? "Not supported on this device" : "Enable browser notifications"}</PrimaryButton>
@@ -1338,7 +1338,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
         </section>
 
         <section data-tab="family">
-          <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">🔒 Data</h2>
+          <h2 className="settings-section-title mb-3">🔒 Data</h2>
           <Card className="p-4">
             <div className="flex items-start gap-3 mb-3">
               <Info size={17} className="mt-0.5 shrink-0" color="var(--color-ink-faint)" />
@@ -1356,7 +1356,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
         </section>
 
         <section data-tab="family">
-          <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">🛡️ Privacy</h2>
+          <h2 className="settings-section-title mb-3">🛡️ Privacy</h2>
           <Card className="p-4">
             <div className="flex items-start gap-3 mb-3">
               <ShieldCheck size={17} className="mt-0.5 shrink-0" color="var(--color-ink-faint)" />
@@ -1368,7 +1368,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
         </section>
 
         {configured && <section data-tab="account">
-          <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">📧 Login email</h2>
+          <h2 className="settings-section-title mb-3">📧 Login email</h2>
           <Card className="p-4">
             <p className="text-[12.5px] text-[var(--color-ink-soft)] mb-3">Your current email is <strong>{user?.email}</strong>. We'll send a confirmation link to the new address before it becomes active.</p>
             <TextField type="email" label="New email address" placeholder="you@example.com" value={newEmail} onChange={(e) => { setNewEmail(e.target.value); setEmailStatus(""); }} autoComplete="email" />
@@ -1378,7 +1378,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
         </section>}
 
         {configured && <section data-tab="account">
-          <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">🔐 Account password</h2>
+          <h2 className="settings-section-title mb-3">🔐 Account password</h2>
           <Card className="p-4">
             <TextField type={showNewPassword ? "text" : "password"} label="New password" placeholder="8+ characters" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} minLength={8} autoComplete="new-password" />
             <button type="button" onClick={() => setShowNewPassword((value) => !value)} className="flex items-center gap-1.5 text-[12px] text-[var(--color-ink-soft)] -mt-1 mb-3">{showNewPassword ? <EyeOff size={14} /> : <Eye size={14} />} {showNewPassword ? "Hide password" : "Show password"}</button>
@@ -1389,12 +1389,12 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
         </section>}
 
         {/* TODO: Enable when email parser is ready to deploy */false && configured && <section data-tab="account">
-          <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">📬 Email Inbox</h2>
+          <h2 className="settings-section-title mb-3">📬 Email Inbox</h2>
           <EmailInbox />
         </section>}
 
         {configured && <section data-tab="account">
-          <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-warn)] mb-3">⚠️ Danger zone</h2>
+          <h2 className="settings-section-title settings-section-title--warn mb-3">⚠️ Danger zone</h2>
           <Card className="p-4 border-[var(--color-warn)]/30">
             <div className="flex items-start gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-[var(--color-warn-soft)] flex items-center justify-center shrink-0"><AlertCircle size={18} color="var(--color-warn)" /></div>
@@ -1405,7 +1405,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
         </section>}
 
         <section data-tab="support">
-          <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">💬 Support</h2>
+          <h2 className="settings-section-title mb-3">💬 Support</h2>
           <Card className="p-4">
             <div className="space-y-2">
               <button
@@ -1465,7 +1465,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
         </section>
 
         <section data-tab="support">
-          <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">ℹ️ About</h2>
+          <h2 className="settings-section-title mb-3">ℹ️ About</h2>
           <Card className="p-4 flex items-start gap-3">
             <img src="/brand/famos-icon.png" alt="FamOS" className="w-10 h-10 rounded-xl object-cover notion-shadow shrink-0" />
             <div>

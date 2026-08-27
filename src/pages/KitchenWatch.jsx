@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, ChefHat, Croissant, Drumstick, Milk, Minus, Package, Plus, Refrigerator, Search, Snowflake, X, Carrot, Sandwich, Trash2, Clock, Leaf, CalendarClock } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
-import { Avatar } from "../components/ui";
+import { Avatar, Badge } from "../components/ui";
 import useKitchenInventory from "../hooks/useKitchenInventory";
 import { daysUntilExpiry, toLocalDay, suggestExpiryDate, getSuggestedExpiryDate } from "../lib/inventoryExpiry";
 import { categorizeGroceryItem } from "../lib/groceryCategories";
@@ -191,7 +191,7 @@ export default function KitchenWatch() {
         <div className="kw-group-header" style={{ borderColor: meta.color }}>
           <span className="kw-group-indicator" style={{ backgroundColor: meta.color }}/>
           <h3 style={{ color: meta.color }}>{meta.label}</h3>
-          <span className="kw-group-count">({items.length})</span>
+          <Badge tone="accent" size="sm">{items.length} {items.length === 1 ? 'item' : 'items'}</Badge>
         </div>
         <div className="kw-group-items">
           {items.map((item) => {
