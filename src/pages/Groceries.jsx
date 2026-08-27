@@ -1012,6 +1012,29 @@ export default function Groceries() {
     }
   };
 
+  const shareGroceryList = (list) => {
+    const listItems = groceries.filter((item) => item.listId === list.id && !item.checked);
+    const link = buildShareUrl("list", list.id);
+    if (!listItems.length) {
+      setGroceryShare({
+        title: `${list.name} · FamOS shopping list`,
+        text: "This list is empty — add an item and share it with your family.",
+        url: link,
+        image: "/banners/banner-shopping-lists.jpg",
+        imageAlt: list.name,
+      });
+      return;
+    }
+    const lines = listItems.slice(0, 25).map((item, index) => `${index + 1}. ${item.name}${item.quantity ? ` (${item.quantity}${item.unit ? ` ${item.unit}` : ""})` : ""}`).join("\n");
+    setGroceryShare({
+      title: `${list.name} · ${listItems.length} item${listItems.length === 1 ? "" : "s"}`,
+      text: lines,
+      url: link,
+      image: "/banners/banner-shopping-lists.jpg",
+      imageAlt: list.name,
+    });
+  };
+
   const shareDeliveryList = () => {
     if (!deliveryItems.length) {
       setDeliveryStatus("Your active grocery list is empty.");
@@ -1069,7 +1092,7 @@ export default function Groceries() {
 
       <div className="shopping-list-switcher" role="tablist" aria-label="Shopping lists">
         <button type="button" role="tab" aria-selected={activeGroceryListId === "all"} className={activeGroceryListId === "all" ? "selected" : ""} onClick={() => setActiveGroceryListId("all")}><ShoppingBasket size={15}/><span>All shopping</span><em>{groceries.filter((item) => !item.checked).length}</em></button>
-        {groceryLists.map((list) => <div className={`shopping-list-tab ${activeGroceryListId === list.id ? "selected" : ""}`} style={{ "--list-tone": list.color }} key={list.id}><button type="button" role="tab" aria-selected={activeGroceryListId === list.id} onClick={() => setActiveGroceryListId(list.id)}><ListChecks size={15}/><span>{list.name}</span><em>{groceries.filter((item) => item.listId === list.id && !item.checked).length}</em></button><button type="button" className="shopping-list-delete" onClick={() => setDeletingList(list)} aria-label={`Delete ${list.name}`} title={`Delete ${list.name}`}><Trash2 size={13}/></button></div>)}
+        {groceryLists.map((list) => <div className={`shopping-list-tab ${activeGroceryListId === list.id ? "selected" : ""}`} style={{ "--list-tone": list.color }} key={list.id}><button type="button" role="tab" aria-selected={activeGroceryListId === list.id} onClick={() => setActiveGroceryListId(list.id)}><ListChecks size={15}/><span>{list.name}</span><em>{groceries.filter((item) => item.listId === list.id && !item.checked).length}</em></button><button type="button" className="shopping-list-share" onClick={() => shareGroceryList(list)} aria-label={`Share ${list.name}`} title={`Share ${list.name}`}><Share2 size={13}/></button><button type="button" className="shopping-list-delete" onClick={() => setDeletingList(list)} aria-label={`Delete ${list.name}`} title={`Delete ${list.name}`}><Trash2 size={13}/></button></div>)}
         <button type="button" className="shopping-list-add" onClick={() => setNewListOpen(true)}><Plus size={15}/><span>New list</span></button>
       </div>
 

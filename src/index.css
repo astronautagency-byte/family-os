@@ -6322,7 +6322,7 @@ body .app-content .page-title{
 .grocery-category-select>div:focus-within{border-color:var(--color-accent);box-shadow:0 0 0 3px var(--color-focus-ring)}
 .grocery-category-select select{width:100%;min-width:0;appearance:none;border:0;outline:0;background:transparent;color:var(--color-ink);font:600 13.5px/1.2 var(--font-sans);cursor:pointer}
 .grocery-category-select>div>svg:last-child{position:absolute;right:12px;color:var(--color-ink-soft);pointer-events:none}
-.shopping-list-switcher .shopping-list-delete{min-height:30px;margin-right:4px;padding:0 7px;border:0;border-radius:999px;background:transparent;color:var(--color-ink-faint)}
+.shopping-list-switcher .shopping-list-share,.shopping-list-switcher .shopping-list-delete{min-height:30px;margin-right:4px;padding:0 7px;border:0;border-radius:999px;background:transparent;color:var(--color-ink-faint)}.shopping-list-switcher .shopping-list-share:hover{background:var(--color-accent-soft);color:var(--color-accent)}
 .shopping-list-switcher .shopping-list-delete:hover{background:var(--color-warn-soft);color:var(--color-warn)}
 
 /* One concise, accessible appearance selector replaces the full palette wall. */
