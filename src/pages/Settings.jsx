@@ -30,6 +30,7 @@ import AddressAutocomplete from "../components/AddressAutocomplete";
 import { formatPhoneInput, isValidPhoneNumber, normalizePhoneE164 } from "../utils/phone";
 import { parseTaskImportText } from "../utils/appleTaskImport";
 import { APP_COLOR_SCHEMES } from "../data/appColorSchemes";
+import { IS_MAC_APP_STORE } from "../lib/distribution";
 
 const HOUSEHOLD_DIETARY_OPTIONS = ["Vegetarian", "Vegan", "Gluten-free", "Dairy-free", "Nut-free", "Shellfish-free", "Low sugar"];
 
@@ -1078,7 +1079,13 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
               )}
             </div>
 
-            {/* Billing cadence — monthly checkout by default; yearly pre-pays the full year */}
+            {/* Stripe checkout is intentionally absent from the Mac App Store build. */}
+            {IS_MAC_APP_STORE ? (
+              <div className="flex items-start gap-2 rounded-xl bg-[var(--color-surface-sunken)] px-3 py-3 mb-4 text-[12.5px] text-[var(--color-ink-soft)]">
+                <ShieldCheck size={15} className="mt-0.5 shrink-0 text-[var(--color-accent)]" />
+                <span>This Mac app reflects the plan access already associated with your FamOS account.</span>
+              </div>
+            ) : <>
             <div className="flex items-center gap-2 mb-4" role="group" aria-label="Billing cadence">
               <span className="text-[12.5px] font-medium text-[var(--color-ink-soft)]">Pay</span>
               <div className="billing-cadence-toggle">
@@ -1129,6 +1136,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
                 )}
               </div>
             </div>
+            </>}
 
             {/* Feature comparison table */}
             <div className="overflow-x-auto">
@@ -1235,10 +1243,10 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
               </div>
             )}
 
-            <SecondaryButton onClick={openBillingPortal} disabled={billingBusy !== null} className="mt-3">
+            {!IS_MAC_APP_STORE && <SecondaryButton onClick={openBillingPortal} disabled={billingBusy !== null} className="mt-3">
               {billingBusy === "portal" ? "Opening billing portal…" : "Manage billing"}
-            </SecondaryButton>
-            {billingError && <div className="text-[12px] text-[var(--color-warn)] mt-2">{billingError}</div>}
+            </SecondaryButton>}
+            {!IS_MAC_APP_STORE && billingError && <div className="text-[12px] text-[var(--color-warn)] mt-2">{billingError}</div>}
           </Card>
 
           {/* Promo code card */}
@@ -1380,7 +1388,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
           </Card>
         </section>}
 
-        {configured && <section data-tab="account">
+        {/* TODO: Enable when email parser is ready to deploy */false && configured && <section data-tab="account">
           <h2 className="font-[var(--font-display)] text-[17px] font-semibold text-[var(--color-ink)] mb-3">📬 Email Inbox</h2>
           <EmailInbox />
         </section>}

@@ -603,7 +603,7 @@ export default function Today({ goTo }) {
 
       <div className="px-5"><ProductUpdateBanner /></div>
 
-      <div className="px-5"><EmailInbox compact /></div>
+      {/* TODO: Enable when email parser is ready to deploy */false && <div className="px-5"><EmailInbox compact /></div>}
 
       {isTrial && (
         <div className="today-trial-banner">
