@@ -1063,7 +1063,10 @@ export default function Groceries() {
         title="Shopping"
         illustration="groceries"
         subtitle="A shared memory for everything the fridge forgot to mention."
-        action={<div className="grocery-mode-actions">
+      />
+
+      <div className="px-5">
+        <div className="grocery-mode-actions">
           {totalMissingCount > 0 && (
             <button
               type="button"
@@ -1078,8 +1081,8 @@ export default function Groceries() {
           {groceries.length > 0 && <button onClick={() => setFocusMode(true)}><Maximize2 size={14} /> Focus shop</button>}
           {checkedCount > 0 && <button onClick={() => setClearingChecked(true)}>Clear {checkedCount} checked</button>}
           {groceries.length > 0 && <button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button>}
-        </div>}
-      />
+        </div>
+      </div>
 
       <NativeAdBanner placement={AD_PLACEMENTS.SHOPPING} />
 
