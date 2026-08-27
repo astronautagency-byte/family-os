@@ -11,11 +11,12 @@ import PullToRefresh from "../components/PullToRefresh";
 import { supabase } from "../lib/supabase";
 import { dailyEncouragement, eventDateLocal, formatTime, fullDateLabel, greetingInfo, todayISO } from "../lib/dates";
 import useKitchenInventory from "../hooks/useKitchenInventory";
-import { expiringInventory } from "../lib/inventoryExpiry";
+import { expiringInventory, inventoryExpiryStatus } from "../lib/inventoryExpiry";
 import NativeAdBanner from "../components/NativeAdBanner";
 import ProductUpdateBanner from "../components/ProductUpdateBanner";
 import EmailInbox from "../components/EmailInbox";
 import { AD_PLACEMENTS } from "../lib/adNetwork";
+import { IS_MAC_APP_STORE } from "../lib/distribution";
 
 // Map a normalised weather "kind" (+ day/night) to a lucide icon and label.
 const WEATHER_KIND = {
@@ -609,7 +610,7 @@ export default function Today({ goTo }) {
           <Sparkles size={18} />
           <div>
             <strong>FamOS {(subscription?.plan || subscription?.plan_key) === "plus" ? "Plus" : "Pro"} trial — {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} left</strong>
-            <span>All features are unlocked during your trial. Cancel anytime from Settings.</span>
+            <span>{IS_MAC_APP_STORE ? "Your current account access is active on this Mac." : "All features are unlocked during your trial. Cancel anytime from Settings."}</span>
           </div>
         </div>
       )}
@@ -619,9 +620,9 @@ export default function Today({ goTo }) {
           <Sparkles size={18} />
           <div>
             <strong>Your FamOS {(subscription?.plan || subscription?.plan_key) === "plus" ? "Plus" : "Pro"} trial has ended</strong>
-            <span>Upgrade to keep using advanced features like calendar sync, recipes, and Fam AI.</span>
+            <span>{IS_MAC_APP_STORE ? "Advanced features require active plan access on your FamOS account." : "Upgrade to keep using advanced features like calendar sync, recipes, and Fam AI."}</span>
           </div>
-          <button type="button" onClick={() => goTo("settings")}>Upgrade</button>
+          {!IS_MAC_APP_STORE && <button type="button" onClick={() => goTo("settings")}>Upgrade</button>}
         </div>
       )}
 
@@ -724,13 +725,14 @@ export default function Today({ goTo }) {
                 </span>
               </div>
             )}
-            {/* Expiry items */}
-            {expiryAlerts.length > 0 ? (
+            {/* Show all watch items with expiry status */}
+            {inventoryItems.length > 0 ? (
               <div className="px-4 pb-4 space-y-3">
-                {expiryAlerts.slice(0, 4).map((item) => {
+                {(expiryAlerts.length > 0 ? expiryAlerts : inventoryItems.slice(0, 4)).slice(0, 4).map((item) => {
                   const alreadyListed = replacementIds.has(item.id) || groceries.some((grocery) => !grocery?.checked && String(grocery?.name || "").toLowerCase() === String(item?.name || "").toLowerCase());
-                  const isExpired = item.expiry.state === 'expired';
-                  const daysLeft = item.expiry.daysLeft;
+                  const expiryStatus = item.expiry || inventoryExpiryStatus(item);
+                  const isExpired = expiryStatus?.state === 'expired';
+                  const isSoon = expiryStatus?.state === 'soon';
                   const categoryLabel = item.category || 'Uncategorised';
                   return (
                     <div key={item.id} className="kw-card">
@@ -738,9 +740,11 @@ export default function Today({ goTo }) {
                         <span className="kw-card-category">
                           <Refrigerator size={12} /> {categoryLabel}
                         </span>
-                        <span className="kw-card-date">
-                          {new Date(`${item.expiresOn || item.expiresOn}T12:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                        </span>
+                        {item.expiresOn && (
+                          <span className="kw-card-date">
+                            {new Date(`${item.expiresOn}T12:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                          </span>
+                        )}
                       </div>
                       <h3 className="kw-card-name">{item.name}</h3>
                       <div className="kw-card-bottom">
@@ -751,15 +755,15 @@ export default function Today({ goTo }) {
                             onClick={() => replaceInventoryItem(item)}
                             className={isExpired ? 'kw-card-action kw-card-action-replace' : 'kw-card-action kw-card-action-date'}
                           >
-                            {alreadyListed ? 'On list' : isExpired ? 'Replace item' : 'Change date'}
+                            {alreadyListed ? 'On list' : isExpired ? 'Replace item' : item.expiresOn ? 'Change date' : 'Set date'}
                           </button>
                           <button type="button" onClick={() => removeInventoryItem(item.id)} className="kw-card-delete" aria-label="Delete item">
                             <Trash2 size={14} />
                           </button>
                         </div>
                         <div className="kw-card-status">
-                          <span className={isExpired ? 'kw-status-text kw-status-expired' : 'kw-status-text kw-status-ok'}>
-                            {isExpired ? 'Expired' : item.expiry.label}
+                          <span className={isExpired ? 'kw-status-text kw-status-expired' : isSoon ? 'kw-status-text kw-status-ok' : 'kw-status-text'} style={(!isExpired && !isSoon) ? {color: 'var(--color-ink-soft)'} : undefined}>
+                            {isExpired ? 'Expired' : expiryStatus?.label || (item.expiresOn ? 'Fresh' : 'No expiry set')}
                           </span>
                           <span className="kw-card-location">{item.location || 'Kitchen'}</span>
                         </div>
@@ -767,13 +771,6 @@ export default function Today({ goTo }) {
                     </div>
                   );
                 })}
-              </div>
-            ) : inventoryItems.length > 0 ? (
-              <div className="px-4 pb-4">
-                <div className="text-center py-6 text-[var(--color-ink-soft)] text-[13px]">
-                  <Refrigerator size={24} className="mx-auto mb-2 opacity-50" />
-                  <p>All items are fresh!</p>
-                </div>
               </div>
             ) : (
               <button type="button" className="today-kitchen-empty" onClick={() => goTo("kitchen")}>
