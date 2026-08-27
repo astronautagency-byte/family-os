@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:mac-app-store": "VITE_DISTRIBUTION=mac-app-store vite build",
+    "build:ios-app-store": "VITE_DISTRIBUTION=ios-app-store vite build",
     "lint": "oxlint",
     "test": "node --test tests/*.test.js",
     "test:vitest": "vitest run",
@@ -21,9 +23,9 @@
     "mobile:android:build": "tauri android build",
     "mobile:android:bundle": "cd src-tauri/gen/android && ./gradlew bundleRelease",
     "mobile:ios:init": "tauri ios init",
-    "mobile:ios:build": "tauri ios build",
+    "mobile:ios:build": "tauri ios build --export-method app-store-connect",
     "mobile:ios:prepare": "bash scripts/prepare-ios-appstore.sh",
-    "mobile:ios:archive": "npm run mobile:ios:prepare && cd src-tauri/gen/apple && xcodebuild -project famos.xcodeproj -scheme famos_iOS -configuration release -destination 'generic/platform=iOS' -archivePath build/FamOS.xcarchive -allowProvisioningUpdates archive",
+    "mobile:ios:archive": "npm run build:ios-app-store && npm run mobile:ios:prepare && cd src-tauri/gen/apple && xcodebuild -project famos.xcodeproj -scheme famos_iOS -configuration release -destination 'generic/platform=iOS' -archivePath build/FamOS.xcarchive -allowProvisioningUpdates archive",
     "appstore:check": "echo 'Checking app store metadata...' && cat app-store-metadata/README.md | head -20",
     "tauri": "tauri"
   },

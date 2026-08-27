@@ -1,4 +1,5 @@
 import { MARKETING_FEATURES } from "../data/featureData";
+import { IS_MAC_APP_STORE } from "../lib/distribution";
 
 /* ── MarketingFooter ──────────────────────────────────────────────────────
  * Single canonical footer for every public marketing surface: Landing,
@@ -52,14 +53,14 @@ const MarketingFooter = ({ signedIn = false }) => {
             <li><a href="/privacy">Privacy</a></li>
             <li><a href="/terms">Terms</a></li>
             {!signedIn && <li><a href="https://home.fam-os.app/sign-in">Sign in</a></li>}
-            {!signedIn && <li><a href="https://home.fam-os.app/sign-up">Start trial</a></li>}
+            {!signedIn && !IS_MAC_APP_STORE && <li><a href="https://home.fam-os.app/sign-up">Start trial</a></li>}
             {signedIn && <li><a href="/today">Open FamOS</a></li>}
           </ul>
         </div>
       </div>
       <div className="features-footer-bottom">
         <span>© {new Date().getFullYear()} FamOS, Inc.</span>
-        <span><a href="/">Home</a> · <a href="/features">All features</a> · <a href="/#pricing">Pricing</a></span>
+        <span><a href="/">Home</a> · <a href="/features">All features</a>{!IS_MAC_APP_STORE && <> · <a href="/#pricing">Pricing</a></>}</span>
       </div>
     </footer>
   );

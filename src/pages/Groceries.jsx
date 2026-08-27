@@ -1065,32 +1065,30 @@ export default function Groceries() {
         subtitle="A shared memory for everything the fridge forgot to mention."
       />
 
-      <div className="px-5" style={{ display: 'block', width: '100%' }}>
-        <div className="grocery-mode-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '8px 0', minHeight: '40px' }}>
-          {totalMissingCount > 0 && (
-            <button
-              type="button"
-              onClick={() => setShowMissingModal(true)}
-              aria-label={`View ${totalMissingCount} missing ingredients from planned meals`}
-              title="Cross-reference planned meals against your list"
-            >
-              <ListChecks size={14} /> Missing {totalMissingCount}
-            </button>
-          )}
-          <button onClick={() => { resetBarcodeDraft(); setReturnToFocus(false); setBarcodeModal(true); }}><ScanLine size={14} /> Scan product</button>
-          {groceries.length > 0 && <button onClick={() => setFocusMode(true)}><Maximize2 size={14} /> Focus shop</button>}
-          {checkedCount > 0 && <button onClick={() => setClearingChecked(true)}>Clear {checkedCount} checked</button>}
-          {groceries.length > 0 && <button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button>}
-        </div>
-      </div>
-
       <NativeAdBanner placement={AD_PLACEMENTS.SHOPPING} />
-
 
       <div className="shopping-list-switcher" role="tablist" aria-label="Shopping lists">
         <button type="button" role="tab" aria-selected={activeGroceryListId === "all"} className={activeGroceryListId === "all" ? "selected" : ""} onClick={() => setActiveGroceryListId("all")}><ShoppingBasket size={15}/><span>All shopping</span><em>{groceries.filter((item) => !item.checked).length}</em></button>
         {groceryLists.map((list) => <div className={`shopping-list-tab ${activeGroceryListId === list.id ? "selected" : ""}`} style={{ "--list-tone": list.color }} key={list.id}><button type="button" role="tab" aria-selected={activeGroceryListId === list.id} onClick={() => setActiveGroceryListId(list.id)}><ListChecks size={15}/><span>{list.name}</span><em>{groceries.filter((item) => item.listId === list.id && !item.checked).length}</em></button><button type="button" className="shopping-list-delete" onClick={() => setDeletingList(list)} aria-label={`Delete ${list.name}`} title={`Delete ${list.name}`}><Trash2 size={13}/></button></div>)}
         <button type="button" className="shopping-list-add" onClick={() => setNewListOpen(true)}><Plus size={15}/><span>New list</span></button>
+      </div>
+
+      <div className="grocery-actions-row" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '8px 20px 12px', background: 'var(--color-surface, #fff)' }}>
+        {totalMissingCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowMissingModal(true)}
+            aria-label={`View ${totalMissingCount} missing ingredients from planned meals`}
+            title="Cross-reference planned meals against your list"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '7px 11px', border: '1px solid var(--color-border)', borderRadius: '20px', background: '#fff', color: 'var(--color-accent)', fontSize: '11px', fontWeight: 700 }}
+          >
+            <ListChecks size={14} /> Missing {totalMissingCount}
+          </button>
+        )}
+        <button onClick={() => { resetBarcodeDraft(); setReturnToFocus(false); setBarcodeModal(true); }} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '7px 11px', border: '1px solid var(--color-border)', borderRadius: '20px', background: '#fff', color: 'var(--color-accent)', fontSize: '11px', fontWeight: 700 }}><ScanLine size={14} /> Scan product</button>
+        {groceries.length > 0 && <button onClick={() => setFocusMode(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '7px 11px', border: '1px solid var(--color-border)', borderRadius: '20px', background: '#fff', color: 'var(--color-accent)', fontSize: '11px', fontWeight: 700 }}><Maximize2 size={14} /> Focus shop</button>}
+        {checkedCount > 0 && <button onClick={() => setClearingChecked(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '7px 11px', border: '1px solid var(--color-border)', borderRadius: '20px', background: '#fff', color: 'var(--color-accent)', fontSize: '11px', fontWeight: 700 }}>Clear {checkedCount} checked</button>}
+        {groceries.length > 0 && <button className="page-reset-button" onClick={()=>setClearing(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '7px 11px', border: '1px solid var(--color-border)', borderRadius: '20px', background: '#fff', color: 'var(--color-accent)', fontSize: '11px', fontWeight: 700 }}><Trash2/> Reset</button>}
       </div>
 
       {false && <><section className="kitchen-inventory-card" aria-labelledby="kitchen-inventory-title">

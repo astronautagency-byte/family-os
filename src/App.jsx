@@ -24,6 +24,7 @@ import { PREMIUM_FEATURE_IDS } from "./data/billingCatalog";
 import { PRICING_PLAN, formatMoney } from "./data/pricingPlan";
 import { clearDesktopAuthState, expectedDesktopAuthState, isTauriRuntime, listenForDesktopAuth } from "./lib/desktopRuntime";
 import { finishDesktopAuthHandoff, redeemDesktopAuthHandoff } from "./lib/desktopAuth";
+import { IS_MAC_APP_STORE } from "./lib/distribution";
 import { checkAndSendLifecycleEmails } from "./lib/onboardingEmails";
 import { checkAndSendTrialExpiryEmails } from "./lib/trialExpiryEmails";
 
@@ -710,6 +711,7 @@ export default function App() {
 
   if (configured && loading) return <AuthLoading />;
   if (configured && passwordRecovery) return <ResetPassword />;
+  if (configured && !session && IS_MAC_APP_STORE && isTauriRuntime()) return <DesktopAuthGate status={desktopAuth.status} error={desktopAuth.error} />;
   if (publicRoute === "admin") return <Suspense fallback={<PageFallback />}><Admin /></Suspense>;
   if (publicRoute === "partner") return <Suspense fallback={<PageFallback />}><Partner /></Suspense>;
   if (publicRoute === "features") return <Suspense fallback={<PageFallback />}><Features /></Suspense>;

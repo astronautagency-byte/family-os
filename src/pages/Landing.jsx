@@ -8,6 +8,7 @@ import { PRICING_PLAN, formatMoney } from "../data/pricingPlan";
 import MarketingNav from "../components/MarketingNav";
 import MarketingFooter from "../components/MarketingFooter";
 import { supabase } from "../lib/supabase";
+import { IS_MAC_APP_STORE } from "../lib/distribution";
 
 // Shared motion vocabulary. Framer Motion drives all landing animation via
 // IntersectionObserver-backed `whileInView`, which — unlike GSAP ScrollTrigger —
@@ -455,7 +456,7 @@ export default function Landing({ signedIn = false }) {
 
       <section className="landing-bento"><motion.article className="bento-dashboard" {...revealBlock}><div className="bento-copy"><p>Your week in one place</p><h2>Your weekly<br/>home base.</h2><span>Schedules, tasks, groceries, meals, and updates stay visible without digging through group texts.</span><button onClick={()=>setFeature(0)}>Explore the shared calendar <ArrowRight/></button></div><div className="bento-ui"><ProductPreview feature={0}/><span className="bento-float bento-task"><CheckSquare/> School bags packed</span><span className="bento-float bento-meal"><ChefHat/> Taco night · 6:30</span></div></motion.article><motion.article className="bento-ai" {...revealBlock}><div className="bento-copy"><p>Fam AI</p><h2>Plan faster.<br/>Review first.</h2><span>Turn a simple request into organized suggestions. You stay in control of every change.</span><button onClick={()=>go(signedIn?"famai":"signup")}>{signedIn?"Open Fam AI":"Meet your family assistant"}<ArrowRight/></button></div><div className="bento-ai-demo"><span className="ai-demo-user">Use what’s in the pantry to plan dinners.</span><div><i><Bot/></i><p>I found 3 dinner ideas and built the grocery gaps.</p></div><ul><li><ChefHat/> 3 recipes to review</li><li><ShoppingCart/> 8 grocery gaps found</li><li><Check/> Nothing changes until you approve</li></ul></div></motion.article></section>
 
-      <PricingSection signedIn={signedIn} />
+      {!IS_MAC_APP_STORE && <PricingSection signedIn={signedIn} />}
 
       <motion.section className="landing-privacy" {...revealBlock}><div><LockKeyhole/><p>Private by design</p></div><motion.h2 {...revealHeading}>Family life is personal.<br/>FamOS treats it that way.</motion.h2><p>Your household has its own protected space. FamOS asks before AI actions are applied and keeps family coordination visible to the people you invite.</p></motion.section>
 

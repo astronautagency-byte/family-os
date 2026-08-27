@@ -2,12 +2,30 @@ import { Check, LockKeyhole, Sparkles } from "lucide-react";
 import { PREMIUM_FEATURES, featureById } from "../data/billingCatalog";
 import { PRICING_PLAN } from "../data/pricingPlan";
 import { Card, PrimaryButton, SecondaryButton } from "./ui";
+import { IS_MAC_APP_STORE } from "../lib/distribution";
 
 export default function FeaturePaywall({ featureId, onChoose, onBack, busy = false, error = "" }) {
   const feature = featureById(featureId) || PREMIUM_FEATURES[0];
   const trialDays = PRICING_PLAN.trial.days;
   const price = feature.price || 14.99;
   const priceYearly = feature.priceYearly || 149;
+  if (IS_MAC_APP_STORE) {
+    return (
+      <section className="feature-paywall" aria-labelledby="feature-paywall-title">
+        <Card className="feature-paywall-card">
+          <div className="feature-paywall-icon"><LockKeyhole size={24} /></div>
+          <p className="feature-paywall-eyebrow">FamOS {feature.name.replace("FamOS ", "")}</p>
+          <h1 id="feature-paywall-title">This feature is not included in your current access</h1>
+          <p className="feature-paywall-tagline">Your Mac app uses the access already associated with your FamOS account.</p>
+          <ul>
+            <li><Check size={16} /> Calendar, Tasks, Shopping, Chat and Kitchen Watch remain available</li>
+            <li><Check size={16} /> Existing eligible account access is recognized automatically</li>
+          </ul>
+          <SecondaryButton onClick={onBack}>Back</SecondaryButton>
+        </Card>
+      </section>
+    );
+  }
   return (
     <section className="feature-paywall" aria-labelledby="feature-paywall-title">
       <Card className="feature-paywall-card">

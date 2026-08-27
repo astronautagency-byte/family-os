@@ -18,6 +18,7 @@ SIGNING_IDENTITY="${APPLE_SIGNING_IDENTITY:-}"
 INSTALLER_IDENTITY="${APPLE_INSTALLER_IDENTITY:-}"
 TEAM_ID="${APPLE_TEAM_ID:-}"
 PROVIDER="${APPLE_PROVIDER_SHORT_NAME:-}"
+BUILD_NUMBER="${APP_BUILD_NUMBER:-2}"
 PROFILE=""
 
 # Parse args
@@ -103,7 +104,8 @@ fi
 
 # ── Build the frontend ──
 echo "🔨 Building frontend..."
-npm run build
+export VITE_DISTRIBUTION=mac-app-store
+npm run build:mac-app-store
 
 # ── Build the Tauri app for App Store ──
 echo ""
@@ -116,7 +118,7 @@ ARCH="${ARCH:-aarch64-apple-darwin}"
 npx tauri build \
   --target "$ARCH" \
   --bundles app \
-  --config "{\"bundle\":{\"macOS\":{\"signingIdentity\":\"$SIGNING_IDENTITY\",\"providerShortName\":\"$PROVIDER\",\"entitlements\":\"./FamOS-Release.entitlements\"}}}" \
+  --config "{\"bundle\":{\"macOS\":{\"signingIdentity\":\"$SIGNING_IDENTITY\",\"providerShortName\":\"$PROVIDER\",\"entitlements\":\"./FamOS-AppStore.entitlements\",\"bundleVersion\":\"$BUILD_NUMBER\",\"minimumSystemVersion\":\"12.0\"}}}" \
   2>&1
 
 # ── Find the built .app ──
@@ -132,9 +134,19 @@ echo "✅ Built: $APP_PATH"
 
 # A Mac App Store app must contain its distribution provisioning profile.
 cp "$PROFILE" "$APP_PATH/Contents/embedded.provisionprofile"
-codesign --force --deep --options runtime --timestamp \
-  --entitlements "src-tauri/FamOS-Release.entitlements" \
+# Browser-downloaded profiles carry com.apple.quarantine. App Store Connect
+# rejects any quarantined file in the payload, so clear extended attributes
+# before applying the final signature.
+xattr -cr "$APP_PATH"
+codesign --force --options runtime --timestamp \
+  --requirements '=designated => anchor apple generic and identifier "app.fam-os.famos"' \
+  --entitlements "src-tauri/FamOS-AppStore.entitlements" \
   --sign "$SIGNING_IDENTITY" "$APP_PATH"
+
+if xattr -lr "$APP_PATH" | grep -q 'com.apple.quarantine'; then
+  echo "❌ Quarantine attribute remains in the app bundle"
+  exit 1
+fi
 
 # ── Verify signing ──
 echo ""

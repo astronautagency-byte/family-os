@@ -5,6 +5,7 @@ import { DESKTOP_DOWNLOAD_LABEL } from "../lib/downloads";
 import FeaturesDropdown from "./FeaturesDropdown";
 import { MARKETING_FEATURES } from "../data/featureData";
 import { lockBodyScroll } from "../lib/bodyScrollLock";
+import { IS_MAC_APP_STORE } from "../lib/distribution";
 
 /* ── MarketingNav ───────────────────────────────────────────────────
  * Single canonical marketing navigation used by Landing (home) and
@@ -180,21 +181,21 @@ const MarketingNav = ({ signedIn = false, currentId = null }) => {
           <FeaturesDropdown active label="Features" currentId={currentId} />
           <a href="/#how-it-works">How it works</a>
           <a href="/#compare">Compare</a>
-          <a href="/#pricing">Pricing</a>
+          {!IS_MAC_APP_STORE && <a href="/#pricing">Pricing</a>}
         </div>
         <div className="marketing-nav-actions">
-          <a className="marketing-nav-download" href="/download" target="_blank" rel="noreferrer">
+          {!IS_MAC_APP_STORE && <a className="marketing-nav-download" href="/download" target="_blank" rel="noreferrer">
             <Download size={15} /> <span>{DESKTOP_DOWNLOAD_LABEL}</span>
-          </a>
+          </a>}
           {!signedIn && (
             <a className="marketing-nav-signin" href="https://home.fam-os.app/sign-in">Sign in</a>
           )}
-          <a
+          {(!IS_MAC_APP_STORE || signedIn) && <a
             className="marketing-nav-join"
             href={signedIn ? "/today" : "https://home.fam-os.app/sign-up"}
           >
             {signedIn ? "Open FamOS" : (<>Get started <ArrowRight size={15} /></>)}
-          </a>
+          </a>}
         </div>
         <button
           ref={hamburgerRef}
@@ -289,27 +290,27 @@ const MarketingNav = ({ signedIn = false, currentId = null }) => {
               <BarChart3 size={20} />
               <span>Compare</span>
             </a>
-            <a href="/#pricing" className="marketing-drawer-link" onClick={closeDrawer}>
+            {!IS_MAC_APP_STORE && <a href="/#pricing" className="marketing-drawer-link" onClick={closeDrawer}>
               <Tag size={20} />
               <span>Pricing</span>
-            </a>
+            </a>}
           </nav>
           <div className="marketing-drawer-divider" />
           <div className="marketing-drawer-bottom">
-            <a className="marketing-drawer-link marketing-drawer-download" href="/download" target="_blank" rel="noreferrer" onClick={closeDrawer}>
+            {!IS_MAC_APP_STORE && <a className="marketing-drawer-link marketing-drawer-download" href="/download" target="_blank" rel="noreferrer" onClick={closeDrawer}>
               <Download size={20} />
               <span>{DESKTOP_DOWNLOAD_LABEL}</span>
-            </a>
+            </a>}
             {!signedIn && (
               <a className="marketing-drawer-link" href="https://home.fam-os.app/sign-in" onClick={closeDrawer}>
                 <Search size={20} />
                 <span>Sign in</span>
               </a>
             )}
-            <a className="marketing-drawer-link" href={signedIn ? "/today" : "https://home.fam-os.app/sign-up"} onClick={closeDrawer}>
+            {(!IS_MAC_APP_STORE || signedIn) && <a className="marketing-drawer-link" href={signedIn ? "/today" : "https://home.fam-os.app/sign-up"} onClick={closeDrawer}>
               <User size={20} />
               <span>{signedIn ? "Open FamOS" : "Get started"}</span>
-            </a>
+            </a>}
           </div>
         </div>
       </div>

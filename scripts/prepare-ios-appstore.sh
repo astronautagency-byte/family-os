@@ -12,6 +12,7 @@ EXPORT_PLIST="$APPLE_DIR/ExportOptions.plist"
 PRIVACY_MANIFEST="$ROOT_DIR/src-tauri/PrivacyInfo.xcprivacy"
 TEAM_ID="ZRDVT9WBN4"
 BUNDLE_ID="app.fam-os.famos"
+BUILD_NUMBER="${APP_BUILD_NUMBER:-1}"
 
 if [[ ! -f "$PROJECT_SPEC" ]]; then
   echo "Generating the Tauri iOS project..."
@@ -24,7 +25,11 @@ fi
 perl -0pi -e 's/bundleIdPrefix: .*$/bundleIdPrefix: app.fam-os/m' "$PROJECT_SPEC"
 perl -0pi -e 's/PRODUCT_BUNDLE_IDENTIFIER: .*$/PRODUCT_BUNDLE_IDENTIFIER: app.fam-os.famos/m' "$PROJECT_SPEC"
 perl -0pi -e 's/CFBundleShortVersionString: .*$/CFBundleShortVersionString: 1.0.0/m' "$PROJECT_SPEC"
-perl -0pi -e 's/CFBundleVersion: .*$/CFBundleVersion: "1"/m' "$PROJECT_SPEC"
+perl -0pi -e "s/CFBundleVersion: .*\$/CFBundleVersion: \"$BUILD_NUMBER\"/m" "$PROJECT_SPEC"
+
+if ! grep -q 'CFBundleURLTypes:' "$PROJECT_SPEC"; then
+  perl -0pi -e 's/(        CFBundleVersion: .*\n)/$1        CFBundleURLTypes:\n          - CFBundleURLName: app.fam-os.famos\n            CFBundleURLSchemes: [famos]\n/' "$PROJECT_SPEC"
+fi
 
 if ! grep -q 'DEVELOPMENT_TEAM:' "$PROJECT_SPEC"; then
   perl -0pi -e 's/(PRODUCT_BUNDLE_IDENTIFIER: app\.fam-os\.famos\n)/$1      DEVELOPMENT_TEAM: ZRDVT9WBN4\n/' "$PROJECT_SPEC"
@@ -36,7 +41,7 @@ fi
 cp "$PRIVACY_MANIFEST" "$APPLE_DIR/famos_iOS/PrivacyInfo.xcprivacy"
 
 /usr/libexec/PlistBuddy -c 'Set :CFBundleShortVersionString 1.0.0' "$INFO_PLIST"
-/usr/libexec/PlistBuddy -c 'Set :CFBundleVersion 1' "$INFO_PLIST"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$INFO_PLIST"
 /usr/libexec/PlistBuddy -c 'Set :ITSAppUsesNonExemptEncryption false' "$INFO_PLIST" 2>/dev/null || \
   /usr/libexec/PlistBuddy -c 'Add :ITSAppUsesNonExemptEncryption bool false' "$INFO_PLIST"
 
@@ -52,4 +57,4 @@ xcodegen generate --spec project.yml
 echo "Prepared iOS App Store project:"
 echo "  Bundle ID: $BUNDLE_ID"
 echo "  Team ID:   $TEAM_ID"
-echo "  Version:   1.0.0 (1)"
+echo "  Version:   1.0.0 ($BUILD_NUMBER)"

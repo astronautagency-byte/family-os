@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, ChevronDown, ChevronRight } from "lucide-react";
 import { MARKETING_FEATURES } from "../data/featureData";
+import { IS_MAC_APP_STORE } from "../lib/distribution";
 
 // One-line value propositions for the mega-menu grid, matching the human,
 // solution-first copy used across the landing page.
@@ -231,14 +232,14 @@ const FeaturesDropdown = ({ active = false, label = "Features", currentId = null
             >
               Browse all features <ArrowRight size={15} aria-hidden="true" />
             </a>
-            <a
+            {!IS_MAC_APP_STORE && <a
               href="/#pricing"
               className="features-dropdown-hero-cta"
               role="menuitem"
               onClick={() => { setOpen(false); onItemClick?.(); }}
             >
               See pricing
-            </a>
+            </a>}
           </div>
         </div>
         <div className="features-dropdown-divider" aria-hidden="true" />

@@ -23,6 +23,7 @@ import { SHARED_RECIPE_KEY } from "../lib/sharedContent";
 import { buildShareUrl } from "../lib/share";
 import ShareSheet from "../components/ShareSheet";
 import { lockBodyScroll } from "../lib/bodyScrollLock";
+import { IS_MAC_APP_STORE } from "../lib/distribution";
 
 function ShelfLifeRing({ progress, size = 90, strokeWidth = 7 }) {
   const radius = (size - strokeWidth) / 2;
@@ -1507,10 +1508,10 @@ export default function Meals({ entitlements = null, goTo } = {}) {
         <div className="roulette-upgrade-prompt">
           <Sparkles size={24} />
           <h3>Get personalized meal ideas</h3>
-          <p>Meal ideas, recipe suggestions, and Cook Mode are part of FamOS Plus. Start a 30-day free trial to unlock.</p>
-          <PrimaryButton onClick={() => { setRouletteUpgradePrompt(false); goTo?.("settings"); }}>
+          <p>{IS_MAC_APP_STORE ? "Meal ideas, recipe suggestions, and Cook Mode require existing FamOS Plus access on your account." : "Meal ideas, recipe suggestions, and Cook Mode are part of FamOS Plus. Start a 30-day free trial to unlock."}</p>
+          {!IS_MAC_APP_STORE && <PrimaryButton onClick={() => { setRouletteUpgradePrompt(false); goTo?.("settings"); }}>
             <Sparkles size={16} /> Upgrade to FamOS Plus
-          </PrimaryButton>
+          </PrimaryButton>}
           <SecondaryButton onClick={() => setRouletteUpgradePrompt(false)}>Maybe later</SecondaryButton>
         </div>
       </Modal>
@@ -1520,10 +1521,10 @@ export default function Meals({ entitlements = null, goTo } = {}) {
         <div className="roulette-upgrade-prompt">
           <Sparkles size={24} />
           <h3>Get AI meal suggestions</h3>
-          <p>Recipe ideas and the Roulette feature are part of FamOS Plus. Start a 30-day free trial to unlock AI-powered meal suggestions.</p>
-          <PrimaryButton onClick={() => { setMealUpgradePrompt(false); goTo?.("settings"); }}>
+          <p>{IS_MAC_APP_STORE ? "Recipe ideas and Roulette require existing FamOS Plus access on your account." : "Recipe ideas and the Roulette feature are part of FamOS Plus. Start a 30-day free trial to unlock AI-powered meal suggestions."}</p>
+          {!IS_MAC_APP_STORE && <PrimaryButton onClick={() => { setMealUpgradePrompt(false); goTo?.("settings"); }}>
             <Sparkles size={16} /> Upgrade to FamOS Plus
-          </PrimaryButton>
+          </PrimaryButton>}
           <SecondaryButton onClick={() => setMealUpgradePrompt(false)}>Maybe later</SecondaryButton>
         </div>
       </Modal>

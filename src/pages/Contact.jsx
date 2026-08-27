@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ArrowLeft, Mail, MessageCircle, Send, ShieldCheck } from "lucide-react";
 import MarketingFooter from "../components/MarketingFooter";
+import { IS_MAC_APP_STORE } from "../lib/distribution";
 
 const go = (route) => {
   const target = route === "landing" ? "/" : `/#${route}`;
@@ -112,10 +113,10 @@ export default function Contact({ signedIn = false }) {
             <h3>My Google Calendar isn't syncing</h3>
             <p>Open <strong>Settings → Calendar connections</strong> in FamOS and tap <strong>Reconnect</strong>. If the problem persists, disconnect and reconnect Google Calendar. For ongoing issues, email us the details.</p>
           </div>
-          <div className="contact-faq-item">
+          {!IS_MAC_APP_STORE && <div className="contact-faq-item">
             <h3>I want to cancel or change my plan</h3>
             <p>Open <strong>Settings → Plan &amp; billing</strong> to manage your subscription. You can upgrade, downgrade, or cancel at any time. If you need help, email <a href="mailto:support@fam-os.app">support@fam-os.app</a>.</p>
-          </div>
+          </div>}
           <div className="contact-faq-item">
             <h3>How do I add or remove family members?</h3>
             <p>Open <strong>Settings → Family</strong> to invite new members or remove existing ones. Each person gets their own account with personalized preferences.</p>
