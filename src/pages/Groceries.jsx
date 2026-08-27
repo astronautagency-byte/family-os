@@ -1073,22 +1073,21 @@ export default function Groceries() {
         <button type="button" className="shopping-list-add" onClick={() => setNewListOpen(true)}><Plus size={15}/><span>New list</span></button>
       </div>
 
-      <div className="grocery-actions-row" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '8px 20px 12px', background: 'var(--color-surface, #fff)' }}>
+      <div className="grocery-actions-row">
         {totalMissingCount > 0 && (
           <button
             type="button"
             onClick={() => setShowMissingModal(true)}
             aria-label={`View ${totalMissingCount} missing ingredients from planned meals`}
             title="Cross-reference planned meals against your list"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '7px 11px', border: '1px solid var(--color-border)', borderRadius: '20px', background: '#fff', color: 'var(--color-accent)', fontSize: '11px', fontWeight: 700 }}
           >
             <ListChecks size={14} /> Missing {totalMissingCount}
           </button>
         )}
-        <button onClick={() => { resetBarcodeDraft(); setReturnToFocus(false); setBarcodeModal(true); }} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '7px 11px', border: '1px solid var(--color-border)', borderRadius: '20px', background: '#fff', color: 'var(--color-accent)', fontSize: '11px', fontWeight: 700 }}><ScanLine size={14} /> Scan product</button>
-        {groceries.length > 0 && <button onClick={() => setFocusMode(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '7px 11px', border: '1px solid var(--color-border)', borderRadius: '20px', background: '#fff', color: 'var(--color-accent)', fontSize: '11px', fontWeight: 700 }}><Maximize2 size={14} /> Focus shop</button>}
-        {checkedCount > 0 && <button onClick={() => setClearingChecked(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '7px 11px', border: '1px solid var(--color-border)', borderRadius: '20px', background: '#fff', color: 'var(--color-accent)', fontSize: '11px', fontWeight: 700 }}>Clear {checkedCount} checked</button>}
-        {groceries.length > 0 && <button className="page-reset-button" onClick={()=>setClearing(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '7px 11px', border: '1px solid var(--color-border)', borderRadius: '20px', background: '#fff', color: 'var(--color-accent)', fontSize: '11px', fontWeight: 700 }}><Trash2/> Reset</button>}
+        <button onClick={() => { resetBarcodeDraft(); setReturnToFocus(false); setBarcodeModal(true); }}><ScanLine size={14} /> Scan product</button>
+        {groceries.length > 0 && <button onClick={() => setFocusMode(true)}><Maximize2 size={14} /> Focus shop</button>}
+        {checkedCount > 0 && <button onClick={() => setClearingChecked(true)}>Clear {checkedCount} checked</button>}
+        {groceries.length > 0 && <button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button>}
       </div>
 
       {false && <><section className="kitchen-inventory-card" aria-labelledby="kitchen-inventory-title">
