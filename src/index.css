@@ -4344,16 +4344,15 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
     height: 76px !important;
   }
   body .app-content .page-header.has-illustration .page-header-content {
-    grid-template-columns: 1fr;
+    grid-template-columns: 2fr 1fr;
     gap: var(--space-3);
   }
   body .app-content .page-header.has-illustration .page-header-aside {
     display: flex;
     justify-content: center;
-    order: 2;
   }
   body .app-content .page-header.has-illustration .page-spot-frame {
-    max-height: 120px;
+    max-height: 100px;
   }
   body .app-content .reference-groceries .page-header-aside {
     display: flex !important;
@@ -4362,7 +4361,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   }
   body .app-content .reference-groceries .page-header-content {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: 2fr 1fr;
   }
   body .app-content .reference-groceries .grocery-mode-actions {
     display: flex;
