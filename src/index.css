@@ -8650,6 +8650,14 @@ input:focus, textarea:focus, select:focus {
 .reference-groceries .px-5 {
   flex: none;
 }
+/* Staples grid — keep 2 columns on all breakpoints */
+.reference-groceries section {
+  min-height: auto !important;
+  flex: none;
+}
+.reference-groceries .grid {
+  min-height: auto !important;
+}
 @supports (height: 100dvh) {
   .chat-page-shell { height: 100dvh; }
 }
