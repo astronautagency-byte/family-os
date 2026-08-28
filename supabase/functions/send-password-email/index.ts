@@ -231,7 +231,7 @@ Deno.serve(async (request) => {
     // anything, which made the admin UI claim a reset email was on the way.
     if (purpose !== "invitation") {
       const { error: smtpError } = await admin.auth.resetPasswordForEmail(normalizedEmail, {
-        redirectTo: purpose === "admin_reset" ? `${safeOrigin}/admin?recovery=1` : safeOrigin,
+        redirectTo: purpose === "admin_reset" ? `${safeOrigin}/admin?recovery=1` : `${safeOrigin}/#type=recovery`,
       });
       if (!smtpError) {
         console.log(JSON.stringify({ event: "password_email_sent", purpose, provider: "supabase_smtp" }));

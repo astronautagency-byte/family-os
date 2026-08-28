@@ -196,7 +196,7 @@ export function AuthProvider({ children }) {
   const [passwordRecovery, setPasswordRecovery] = useState(() => {
     const authHash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
     const authQuery = new URLSearchParams(window.location.search);
-    return authHash.get("type") === "invite" || authQuery.get("type") === "invite" || authQuery.get("invite") === "1";
+    return authHash.get("type") === "invite" || authQuery.get("type") === "recovery" || authQuery.get("type") === "invite" || authQuery.get("invite") === "1";
   });
   const [onboardingRequired, setOnboardingRequired] = useState(false);
   const [accountReady, setAccountReady] = useState(false);
