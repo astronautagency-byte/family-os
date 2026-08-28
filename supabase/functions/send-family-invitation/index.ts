@@ -330,20 +330,38 @@ Deno.serve(async (request) => {
           }));
           sms.sent = Boolean(result.MessageId);
           sms.message = sms.sent ? "" : "Amazon SNS did not return a message ID";
-          console.log(JSON.stringify({ event: "family_invitation_sms", requestId, sent: sms.sent }));
+          console.log(JSON.stringify({ event: "family_invitation_sms", requestId, sent: sms.sent, provider: "aws_sns" }));
         } catch (error) {
           const awsMessage = errorMessage(error);
-          sms.message = /needs a subscription|can't determine whether.*sandbox|PinpointSmsVoiceV2/i.test(awsMessage)
-            ? `Amazon SMS onboarding is incomplete in ${awsRegion}. Activate AWS End User Messaging SMS in that region, verify a sandbox destination, and try again.`
-            : /authorization|not authorized|accessdenied/i.test(awsMessage)
-              ? "The FamOS AWS key is missing sns:Publish permission."
-              : awsMessage || "Amazon SNS did not accept the message";
-          console.error(JSON.stringify({
-            event: "family_invitation_sms_failed",
+          console.warn(JSON.stringify({
+            event: "family_invitation_sms_sns_failed",
             requestId,
-            errorName: error instanceof Error ? error.name : "Error",
-            message: sms.message,
+            error: awsMessage,
+            fallbackToTextbelt: Boolean(textbeltKey),
           }));
+          // AWS SNS failed (sandbox, permissions, etc.) — fall through to Textbelt
+        }
+      }
+
+      // If AWS SNS didn't send, try Textbelt as fallback
+      if (!sms.sent && textbeltKey) {
+        const joinUrl = `${appOrigin}/signin?invited=1&email=${encodeURIComponent(normalizedEmail)}`;
+        try {
+          const textbeltResponse = await fetch("https://textbelt.com/text", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              phone: normalizedPhone.startsWith("+") ? normalizedPhone : `+${normalizedPhone}`,
+              message: `${inviterName} invited you to ${householdName} on FamOS. Join your family home: ${joinUrl} Reply STOP to opt out.`,
+              key: textbeltKey,
+            }),
+          });
+          const textbeltResult = await textbeltResponse.json();
+          sms.sent = Boolean(textbeltResponse.ok && textbeltResult?.success);
+          sms.message = sms.sent ? "" : textbeltResult?.error || "The SMS provider did not accept the message";
+          console.log(JSON.stringify({ event: "family_invitation_sms", requestId, sent: sms.sent, provider: "textbelt" }));
+        } catch (error) {
+          sms.message = error?.message || "The SMS provider could not be reached";
         }
       }
     }

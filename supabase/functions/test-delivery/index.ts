@@ -252,8 +252,12 @@ Deno.serve(async (request) => {
             latency_ms: Date.now() - startedAt,
             region: awsRegion,
           });
+          // Fall through to Textbelt below if AWS SNS failed
         }
-      } else if (textbeltKey) {
+      }
+
+      // If AWS SNS didn't send, try Textbelt as fallback
+      if (!results.some(r => r.kind === "sms" && r.status === "sent") && textbeltKey) {
         const startedAt = Date.now();
         try {
           const response = await fetch("https://textbelt.com/text", {
@@ -297,7 +301,8 @@ Deno.serve(async (request) => {
             latency_ms: Date.now() - startedAt,
           });
         }
-      } else {
+      }
+      if (!results.some(r => r.kind === "sms")) {
         results.push({
           channel: "sms",
           provider: "none",
