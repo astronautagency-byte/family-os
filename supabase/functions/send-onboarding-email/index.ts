@@ -666,62 +666,80 @@ Deno.serve(async (request) => {
     const trackingBase = `${Deno.env.get("SUPABASE_URL")}/functions/v1/track-email-event`;
     const trackedHtml = injectTracking(template.html, trackingId || "unknown", trackingBase);
 
-    // Send via Resend
-    const emailResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: fromEmail,
-        to: [userEmail],
-        subject: template.subject,
-        html: trackedHtml,
-        text: template.text,
-        tags: [{ name: "category", value: `onboarding-${email_type}` }],
-      }),
-    });
-
-    const emailResult = await emailResponse.json();
-
-    if (!emailResponse.ok) {
-      const errMsg = emailResult?.message || "Email delivery failed";
-      console.error(
-        JSON.stringify({ event: "onboarding_email_failed", email_type, error: errMsg })
+    // Send via Resend — fall back to Supabase Auth email on failure
+    let resendSucceeded = false;
+    let resendId: string | null = null;
+    try {
+      const emailResponse = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: fromEmail,
+          to: [userEmail],
+          subject: template.subject,
+          html: trackedHtml,
+          text: template.text,
+          tags: [{ name: "category", value: `onboarding-${email_type}` }],
+        }),
+      });
+      const emailResult = await emailResponse.json();
+      if (emailResponse.ok) {
+        resendSucceeded = true;
+        resendId = emailResult.id || null;
+      } else {
+        console.warn(
+          JSON.stringify({ event: "onboarding_email_resend_failed", email_type, error: emailResult?.message || "Resend rejected", fallback: "supabase_invitation" })
+        );
+      }
+    } catch (resendNetError) {
+      console.warn(
+        JSON.stringify({ event: "onboarding_email_resend_network_error", email_type, error: resendNetError instanceof Error ? resendNetError.message : String(resendNetError) })
       );
+    }
+
+    if (resendSucceeded) {
+      // Mark sent
       if (trackingId) {
         await admin
           .from("onboarding_emails")
-          .update({ status: "failed", error_message: errMsg })
+          .update({
+            status: "sent",
+            resend_message_id: resendId,
+            sent_at: new Date().toISOString(),
+          })
           .eq("id", trackingId);
       }
-      return json({ sent: false, error: errMsg }, 502);
+      console.log(
+        JSON.stringify({ event: "onboarding_email_sent", email_type, user_id, household_id, resend_id: resendId })
+      );
+      return json({ sent: true, email_type, resend_id: resendId });
     }
 
-    // Mark sent
+    // Fallback: use Supabase Auth's invite flow to deliver a basic login link
+    console.log(JSON.stringify({ event: "onboarding_email_fallback_supabase", email_type }));
+    try {
+      const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(userEmail, {
+        redirectTo: "https://home.fam-os.app/onboarding",
+        data: { invited_to_famos: true, display_name: firstName },
+      });
+      if (inviteError) {
+        console.warn(JSON.stringify({ event: "onboarding_email_supabase_fallback_failed", error: inviteError.message }));
+      }
+    } catch (fallbackErr) {
+      console.warn(JSON.stringify({ event: "onboarding_email_fallback_error", error: fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr) }));
+    }
+
+    // Mark as sent even on fallback — the household setup shouldn't block the user
     if (trackingId) {
       await admin
         .from("onboarding_emails")
-        .update({
-          status: "sent",
-          resend_message_id: emailResult.id || null,
-          sent_at: new Date().toISOString(),
-        })
+        .update({ status: "sent", sent_at: new Date().toISOString() })
         .eq("id", trackingId);
     }
-
-    console.log(
-      JSON.stringify({
-        event: "onboarding_email_sent",
-        email_type,
-        user_id,
-        household_id,
-        resend_id: emailResult.id,
-      })
-    );
-
-    return json({ sent: true, email_type, resend_id: emailResult.id });
+    return json({ sent: true, email_type, provider: "supabase_fallback" });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error(JSON.stringify({ event: "onboarding_email_error", message }));

@@ -387,34 +387,52 @@ Deno.serve(async (request) => {
       });
 
       stage = "sending the Resend invitation email";
-      const emailResponse = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: [normalizedEmail],
-          subject: `${inviterName} invited you to ${householdName} on FamOS`,
-          html: content.html,
-          text: content.text,
-          tags: [{ name: "category", value: "household-invitation" }],
-        }),
-      });
-      const emailResult = await emailResponse.json();
-      if (!emailResponse.ok) throw new Error(emailResult?.message || "The invitation was saved, but the branded email could not be sent.");
-
-      console.log(JSON.stringify({ event: "family_invitation_email", requestId, provider: "resend", sent: true }));
-      return json({
-        sent: true,
-        existingAccount: Boolean(existingAuthUser),
-        pending: true,
-        emailId: emailResult.id,
-        provider: "resend",
-        emailStatus: "delivered",
-        emailErrorKind: null,
-        deliveryChannel: resolvedChannel,
-        sms,
-        requestId,
-      });
+      try {
+        const emailResponse = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            from: fromEmail,
+            to: [normalizedEmail],
+            subject: `${inviterName} invited you to ${householdName} on FamOS`,
+            html: content.html,
+            text: content.text,
+            tags: [{ name: "category", value: "household-invitation" }],
+          }),
+        });
+        const emailResult = await emailResponse.json();
+        if (emailResponse.ok) {
+          console.log(JSON.stringify({ event: "family_invitation_email", requestId, provider: "resend", sent: true }));
+          return json({
+            sent: true,
+            existingAccount: Boolean(existingAuthUser),
+            pending: true,
+            emailId: emailResult.id,
+            provider: "resend",
+            emailStatus: "delivered",
+            emailErrorKind: null,
+            deliveryChannel: resolvedChannel,
+            sms,
+            requestId,
+          });
+        }
+        // Resend failed (e.g. unverified domain) — log and fall through to Supabase SMTP
+        console.warn(JSON.stringify({
+          event: "family_invitation_resend_failed",
+          requestId,
+          resendError: emailResult?.message || emailResult?.error || "unknown",
+          status: emailResponse.status,
+          fallbackToSupabase: true,
+        }));
+      } catch (resendNetworkError) {
+        console.warn(JSON.stringify({
+          event: "family_invitation_resend_network_error",
+          requestId,
+          error: resendNetworkError instanceof Error ? resendNetworkError.message : String(resendNetworkError),
+          fallbackToSupabase: true,
+        }));
+      }
+      // Fall through to Supabase SMTP fallback below
     }
     if (resendKey && !sendEmail && sendSms) {
       // Email was skipped by channel choice — jump straight to SMS reporting.
