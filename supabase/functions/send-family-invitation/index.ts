@@ -526,23 +526,23 @@ Deno.serve(async (request) => {
     }
   } catch (error) {
     const detail = errorMessage(error);
-    const message = `Invitation failed during ${stage}: ${detail}`;
     console.error(JSON.stringify({
       event: "family_invitation_failed",
       requestId,
+      stage,
       errorName: error instanceof Error ? error.name : "Error",
-      message,
+      detail,
     }));
     if (invitationSaved) {
       return json({
         sent: false,
         pending: true,
-        emailError: message,
+        emailError: "The invitation could not be delivered right now. Please try again shortly.",
         deliveryChannel: resolvedChannel,
         sms: partialSms,
         requestId,
       });
     }
-    return json({ error: message, requestId }, 400);
+    return json({ error: "Something went wrong while sending the invitation. Please try again." }, 400);
   }
 });

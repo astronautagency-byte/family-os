@@ -1110,41 +1110,40 @@ export function AuthProvider({ children }) {
     if (!inviteError) {
       const sent = Boolean(inviteData?.sent);
       const provider = inviteData?.provider;
-      const providerName = provider === "resend" ? "FamOS email"
-        : provider === "aws_ses" ? "Amazon SES"
-        : provider === "supabase_fallback" ? "Supabase (fallback)"
-        : provider === "supabase" ? "Supabase"
-        : null;
       const status = inviteData?.emailStatus;
       const sms = inviteData?.sms || null;
 
-      // New structured delivery status — branches on emailStatus rather than
-      // concatenating raw emailProvider / SESError text. The legacy strings
-      // remain as the fallback for any unsigned pre-migration toolchain.
       let message;
       if (status === "delivered" || status === "supabase_fallback_delivered") {
-        const prefix = providerName ? `Invitation email delivered through ${providerName}.` : "Invitation email delivered.";
         message = sms?.sent
-          ? `${prefix} SMS invitation sent too. You’ll remain listed as Pending until they join.`
-          : `${prefix} They’ll remain listed as Pending until they join.`;
+          ? "Invitation sent by email and text. They'll appear as Pending until they join."
+          : "Invitation sent by email. They'll appear as Pending until they join.";
       } else if (status === "sandbox_blocked") {
         message = sms?.sent
-          ? "Invitation sent to your family member by SMS — the email is paused while AWS reviews production access for this app, so the SMS is doing the work for now."
-          : "Invitation saved. Branded email delivery is paused while AWS reviews this app’s production email access — your invitee will show as a pending row in your household until email is re-enabled.";
+          ? "Invitation sent by text. The email will follow shortly."
+          : "Invitation saved. Email delivery is being set up — your family member will appear as Pending until they join.";
       } else if (status === "rate_limited") {
         message = sms?.sent
-          ? "Invitation saved. Supabase’s invite email is rate-limited for ~60 seconds — SMS invitation sent successfully and you can resend the email after that window."
-          : "Invitation saved. Supabase’s invite email is rate-limited for the next ~60 seconds. Try resending after that window.";
+          ? "Invitation sent by text. You can resend the email in about a minute."
+          : "Invitation saved. Please try sending the email again in about a minute.";
       } else if (status === "no_email_provider") {
         message = sms?.sent
-          ? "Invitation saved, but the email provider isn’t fully configured yet — SMS invitation sent successfully."
-          : "Invitation saved, but no email provider is currently accepting invites for this household.";
+          ? "Invitation sent by text."
+          : "Invitation saved. Email delivery is being set up — your family member will appear as Pending until they join.";
       } else if (sent) {
-        message = `Invitation email sent${providerName ? ` through ${providerName}` : ""}.${sms?.sent ? " SMS invitation sent too." : sms?.requested ? ` SMS was not sent: ${sms.message || "provider unavailable"}.` : ""} You’ll remain listed as Pending until they join.`;
+        message = sms?.sent
+          ? "Invitation sent by email and text. They'll appear as Pending until they join."
+          : sms?.requested
+            ? "Invitation saved. Text message could not be sent — check the phone number and try again."
+            : "Invitation sent by email. They'll appear as Pending until they join.";
       } else if (inviteData?.existingAccount) {
-        message = "Invitation saved. They already have a FamOS login and will see this home when they sign in.";
+        message = "Invitation saved. They already have a FamOS account and will see this home when they sign in.";
       } else {
-        message = `Invitation saved, but email was not sent: ${inviteData?.emailError || "the email provider did not confirm delivery"}.${sms?.sent ? " SMS invitation sent successfully." : sms?.requested ? ` SMS was not sent: ${sms.message || "provider unavailable"}.` : ""}`;
+        message = sms?.sent
+          ? "Invitation sent by text. Email could not be delivered — try again later."
+          : sms?.requested
+            ? "Invitation saved but delivery had an issue. Please try again."
+            : "Invitation saved but email could not be delivered. Please try again.";
       }
 
       return {
