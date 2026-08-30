@@ -8,7 +8,7 @@ import { invokeEdgeFunction, isSupabaseConfigured, supabase } from "../lib/supab
 import * as PasswordStrength from "../utils/passwordStrength";
 
 const AuthContext = createContext(null);
-const STAPLES_KEY = "family-os:grocery-staples:v1";
+const STAPLES_KEY = "family-os:grocery-staples:all";
 
 function onboardingSkipKey(householdId, userId) {
   return `family-os:onboarding-invites-skipped:${householdId}:${userId}`;

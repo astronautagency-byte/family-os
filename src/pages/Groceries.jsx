@@ -27,21 +27,20 @@ const isKitchenWatchCategory = (category) => INVENTORY_CATEGORIES.includes(categ
 const emptyPhoto = { file: null, previewUrl: "", remoteUrl: "", uploading: false, error: "" };
 const emptyBarcodeDraft = { ...emptyDraft, code: "", brand: "", price: "", imageUrl: "" };
 const emptyInventoryDraft = { name: "", quantity: 1, unit: "", location: "fridge", expiresOn: "", sourceGroceryId: null, category: INVENTORY_CATEGORIES[0], brand: "", barcode: "", imageUrl: "" };
-const STAPLES_KEY = "family-os:grocery-staples:v1";
+const STAPLES_KEY_PREFIX = "family-os:grocery-staples:";
+const ALL_STAPLES_KEY = "family-os:grocery-staples:all";
 const PRODUCT_LOOKUP_ENDPOINT = "https://world.openfoodfacts.org/api/v2/product";
 const safeRevokeObjectUrl = (url) => {
   if (url && typeof URL !== "undefined" && typeof URL.revokeObjectURL === "function") URL.revokeObjectURL(url);
 };
-const DEFAULT_STAPLES = [
-  { id: "milk", name: "Milk", category: "Dairy & Eggs", quantity: 1, unit: "" },
-  { id: "eggs", name: "Eggs", category: "Dairy & Eggs", quantity: 1, unit: "dozen" },
-  { id: "bread", name: "Bread", category: "Pantry", quantity: 1, unit: "loaf" },
-  { id: "bananas", name: "Bananas", category: "Produce", quantity: 1, unit: "bunch" },
-];
 
-function loadStaples() {
-  try { return JSON.parse(localStorage.getItem(STAPLES_KEY)) || DEFAULT_STAPLES; }
-  catch { return DEFAULT_STAPLES; }
+function staplesKeyForList(listId) {
+  return listId && listId !== "all" ? `${STAPLES_KEY_PREFIX}${listId}` : ALL_STAPLES_KEY;
+}
+
+function loadStaples(listId) {
+  try { return JSON.parse(localStorage.getItem(staplesKeyForList(listId))) || []; }
+  catch { return []; }
 }
 
 const CATEGORY_ICONS = {
@@ -283,8 +282,16 @@ export default function Groceries() {
   const [inventoryStatus, setInventoryStatus] = useState("all");
   const [editingId, setEditingId] = useState(null); // null closed, "new" for add, or item id
   const [draft, setDraft] = useState(emptyDraft);
-  const [staples, setStaples] = useState(loadStaples);
+  const [staples, setStaples] = useState(() => loadStaples(activeGroceryListId));
+  const staplesListKeyRef = useRef(activeGroceryListId);
   const pendingStaplesRef = useRef(new Set());
+  // Reload staples when the active list tab changes
+  useEffect(() => {
+    if (staplesListKeyRef.current !== activeGroceryListId) {
+      staplesListKeyRef.current = activeGroceryListId;
+      setStaples(() => loadStaples(activeGroceryListId));
+    }
+  }, [activeGroceryListId]);
   // Latest groceries, kept in a ref so staple-add dedupe never reads a stale
   // closure after an optimistic add re-renders the page.
   const groceriesRef = useRef(groceries);
@@ -412,7 +419,7 @@ export default function Groceries() {
   const [showMissingModal, setShowMissingModal] = useState(false);
   const [missingBulkBusy, setMissingBulkBusy] = useState(false);
 
-  useEffect(() => { localStorage.setItem(STAPLES_KEY, JSON.stringify(staples)); }, [staples]);
+  useEffect(() => { localStorage.setItem(staplesKeyForList(activeGroceryListId), JSON.stringify(staples)); }, [staples, activeGroceryListId]);
 
   const activeGroceries = useMemo(() => activeGroceryListId === "all" ? groceries : groceries.filter((item) => item.listId === activeGroceryListId), [groceries, activeGroceryListId]);
   const addGrocery = useCallback((item) => addGroceryBase({ ...item, listId: activeGroceryListId === "all" ? null : activeGroceryListId }), [addGroceryBase, activeGroceryListId]);
@@ -705,7 +712,7 @@ export default function Groceries() {
   const saveAsStaple = (item) => {
     const saved = staples.find((staple) => staple.name.toLowerCase() === item.name.toLowerCase());
     if (saved) { setStaples((current) => current.filter((staple) => staple.id !== saved.id)); return; }
-    setStaples((current) => [...current, { id: `staple_${Date.now()}`, name: item.name, category: item.category, quantity: item.quantity || 1, unit: item.unit || "" }]);
+    setStaples((current) => [...current, { id: `staple_${Date.now()}`, name: item.name, category: item.category, quantity: item.quantity || 1, unit: item.unit || "", photoUrl: item.photoUrl || "", imageUrl: item.imageUrl || "" }]);
   };
 
   const dropStaple = (event) => {
@@ -1076,7 +1083,7 @@ export default function Groceries() {
   return (
     <PullToRefresh onRefresh={refreshData}><div className="pb-28 reference-groceries famos-noscroll">
       {listCelebration && (
-        <><CelebrationConfetti intensity={52} /><div className="shopping-complete-celebration" role="status" aria-live="polite">
+        <><CelebrationConfetti intensity={52} /><div className="shopping-complete-backdrop" onClick={() => { window.clearTimeout(celebrationTimerRef.current); setListCelebration(false); }} /><div className="shopping-complete-celebration" role="status" aria-live="polite">
           <span className="shopping-complete-particles" aria-hidden="true">{Array.from({ length: 8 }, (_, index) => <i key={index} />)}</span>
           <span className="shopping-complete-icon" aria-hidden="true"><CheckCircle2 size={24} /></span>
           <span><strong>Cart conquered</strong><small>Every last item. Nicely done.</small></span>
@@ -1235,13 +1242,20 @@ export default function Groceries() {
 
         <section>
           <div className="flex items-end justify-between mb-3 px-1">
-            <div><p className="page-eyebrow">Saved staples</p><h2 className="grocery-section-title">Quick add</h2></div>
+            <div><p className="page-eyebrow">{activeGroceryListId === "all" ? "All staples" : `${groceryLists.find((l) => l.id === activeGroceryListId)?.name || "List"} staples`}</p><h2 className="grocery-section-title">Quick add</h2></div>
             <button onClick={() => openMasterItem()} className="flex items-center gap-1 text-[11.5px] font-semibold text-[var(--color-accent)]"><Plus size={13} /> New staple</button>
           </div>
+          {staples.length === 0 && (
+            <p className="text-center text-[12px] text-[var(--color-ink-faint)] py-4 px-2">No staples yet. Tap <strong>New staple</strong> to save items you buy regularly.</p>
+          )}
           <div className="grid grid-cols-2 gap-2">
             {(showAllStaples ? staples : staples.slice(0, 6)).map((staple) => <div key={staple.id} draggable onDragStart={(event) => { event.dataTransfer.setData("application/json", JSON.stringify(staple)); setDragging(true); }} onDragEnd={() => setDragging(false)} className="group relative min-w-0 flex items-center rounded-2xl bg-[var(--color-surface)] notion-shadow overflow-hidden cursor-grab active:cursor-grabbing">
               <button onClick={() => addStapleToList(staple)} className="flex flex-1 min-w-0 items-center gap-2.5 p-2.5 text-left active:bg-[var(--color-accent-soft)] transition-colors" aria-label={`Add ${staple.name} to grocery list`}>
-                <GroceryIcon category={staple.category} size={15} />
+                {staple.photoUrl || staple.imageUrl ? (
+                  <span className="w-8 h-8 rounded-lg overflow-hidden shrink-0 bg-[var(--color-accent-soft)]"><img src={staple.photoUrl || staple.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = ''; }} /></span>
+                ) : (
+                  <GroceryIcon category={staple.category} size={15} />
+                )}
                 <span className="min-w-0 flex-1"><span className="block text-[13.5px] font-medium truncate">{staple.name}</span><span className="block text-[10.5px] text-[var(--color-ink-faint)] truncate">{staple.quantity}{staple.unit ? ` ${staple.unit}` : ""}</span></span>
                 <span className="w-6 h-6 rounded-full bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0"><Plus size={13} color="var(--color-accent)" strokeWidth={2.5} /></span>
               </button>
