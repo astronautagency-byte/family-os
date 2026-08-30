@@ -200,6 +200,8 @@ export function AuthProvider({ children }) {
   });
   const [onboardingRequired, setOnboardingRequired] = useState(false);
   const [accountReady, setAccountReady] = useState(false);
+  const [founderWelcomeSeen, setFounderWelcomeSeen] = useState(false);
+  const [featureTourSeen, setFeatureTourSeen] = useState(false);
   const [googleProviderToken, setGoogleProviderToken] = useState(() => localStorage.getItem("family-os:google-provider-token"));
   const loadedAccountUserIdRef = useRef(null);
 
@@ -231,7 +233,7 @@ export function AuthProvider({ children }) {
       }
       const [{ data: profileData, error: profileError }, { data: membershipData, error: membershipError }] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", nextSession.user.id).maybeSingle(),
-        supabase.from("household_members").select("household_id, role, default_delivery_channel").eq("user_id", nextSession.user.id).order("joined_at", { ascending: true }).limit(1).maybeSingle(),
+        supabase.from("household_members").select("household_id, role, default_delivery_channel, founder_welcome_seen, feature_tour_seen").eq("user_id", nextSession.user.id).order("joined_at", { ascending: true }).limit(1).maybeSingle(),
       ]);
       if (profileError && profileError.code !== "PGRST116") throw profileError;
       if (membershipError) throw membershipError;
@@ -254,6 +256,8 @@ export function AuthProvider({ children }) {
       // onboarding step committed to. Defaults to "both" so a member who
       // hasn't opened onboarding yet still gets the current behaviour.
       setMemberDeliveryChannel(membership?.default_delivery_channel || "both");
+      setFounderWelcomeSeen(membership?.founder_welcome_seen === true);
+      setFeatureTourSeen(membership?.feature_tour_seen === true);
 
       let householdData = null;
       let householdProfileData = null;
@@ -1254,6 +1258,18 @@ export function AuthProvider({ children }) {
     setOnboardingRequired(false);
   }, [household?.id, session?.user?.id]);
 
+  const markFounderWelcomeSeen = useCallback(async () => {
+    setFounderWelcomeSeen(true);
+    if (session?.user?.id) localStorage.setItem(`family-os:founder-welcome-seen:v1:${session.user.id}`, "true");
+    try { await supabase.rpc("mark_founder_welcome_seen"); } catch { /* best-effort */ }
+  }, [session?.user?.id]);
+
+  const markFeatureTourSeen = useCallback(async () => {
+    setFeatureTourSeen(true);
+    if (session?.user?.id) localStorage.setItem(`family-os:feature-tour-seen:v1:${session.user.id}`, "true");
+    try { await supabase.rpc("mark_feature_tour_seen"); } catch { /* best-effort */ }
+  }, [session?.user?.id]);
+
   const value = {
     configured: isSupabaseConfigured,
     session,
@@ -1293,6 +1309,10 @@ export function AuthProvider({ children }) {
     refreshAccount,
     memberDeliveryChannel,
     updateDeliveryChannel,
+    founderWelcomeSeen,
+    featureTourSeen,
+    markFounderWelcomeSeen,
+    markFeatureTourSeen,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -314,7 +314,7 @@ export default function App() {
     }
   };
   const shellRef = useRef(null);
-  const { configured, session, household, householdProfile, loading, passwordRecovery, onboardingRequired, accountReady } = useAuth();
+  const { configured, session, household, householdProfile, loading, passwordRecovery, onboardingRequired, accountReady, founderWelcomeSeen, featureTourSeen, markFounderWelcomeSeen, markFeatureTourSeen } = useAuth();
   const publicRoute = route;
   const seoPageConfig = SEO_PAGES[publicRoute] || null;
   const featureTourSteps = useMemo(() => TOUR_FEATURES.filter((feature) => {
@@ -535,22 +535,29 @@ export default function App() {
   useEffect(() => {
     if (!session?.user?.id || !household?.id || onboardingRequired || entitlements === null) return;
     const founderKey = `family-os:founder-welcome-seen:v1:${session.user.id}`;
-    const tourSeen = featureTourKey && localStorage.getItem(featureTourKey) === "true";
-    if (localStorage.getItem(founderKey) !== "true") {
+    const tourLocalSeen = featureTourKey && localStorage.getItem(featureTourKey) === "true";
+    // Use DB-backed flags (founderWelcomeSeen / featureTourSeen) as the source of
+    // truth.  localStorage is only a fast-path cache that prevents a flash on
+    // repeat visits within the same browser.
+    const founderDismissed = founderWelcomeSeen || localStorage.getItem(founderKey) === "true";
+    const tourDismissed = featureTourSeen || tourLocalSeen;
+    if (!founderDismissed) {
       setFounderWelcomeOpen(true);
-    } else if (!tourSeen && featureTourMode === null) {
+    } else if (!tourDismissed && featureTourMode === null) {
       setFeatureTourMode("prompt");
     }
-  }, [session?.user?.id, household?.id, onboardingRequired, entitlements, featureTourKey, featureTourMode]);
+  }, [session?.user?.id, household?.id, onboardingRequired, entitlements, featureTourKey, featureTourMode, founderWelcomeSeen, featureTourSeen]);
 
   const dismissFounderWelcome = () => {
-    if (session?.user?.id) localStorage.setItem(`family-os:founder-welcome-seen:v1:${session.user.id}`, "true");
+    markFounderWelcomeSeen();
     setFounderWelcomeOpen(false);
-    if (featureTourKey && localStorage.getItem(featureTourKey) !== "true") setFeatureTourMode("prompt");
+    // If the tour hasn't been seen yet, show the prompt
+    const tourLocalSeen = featureTourKey && localStorage.getItem(featureTourKey) === "true";
+    if (!featureTourSeen && !tourLocalSeen) setFeatureTourMode("prompt");
   };
 
   const skipFeatureTour = () => {
-    if (featureTourKey) localStorage.setItem(featureTourKey, "true");
+    markFeatureTourSeen();
     setFeatureTourMode(null);
   };
 
@@ -560,7 +567,7 @@ export default function App() {
   };
 
   const finishFeatureTour = () => {
-    if (featureTourKey) localStorage.setItem(featureTourKey, "true");
+    markFeatureTourSeen();
     setFeatureTourMode(null);
   };
 
@@ -569,12 +576,12 @@ export default function App() {
       setFeatureTourMode(null);
       return;
     }
-    if (featureTourKey) localStorage.setItem(featureTourKey, "true");
+    markFeatureTourSeen();
     setFeatureTourMode("complete");
   };
 
   const openTourFeedback = (type) => {
-    if (featureTourKey) localStorage.setItem(featureTourKey, "true");
+    markFeatureTourSeen();
     setFeatureTourMode(null);
     setTab("settings");
     const supportType = type === "feature" ? "feature" : "feedback";

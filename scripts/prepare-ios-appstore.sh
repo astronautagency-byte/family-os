@@ -76,6 +76,11 @@ perl -0pi -e 's/PRODUCT_BUNDLE_IDENTIFIER: .*$/PRODUCT_BUNDLE_IDENTIFIER: app.fa
 perl -0pi -e 's/CFBundleShortVersionString: .*$/CFBundleShortVersionString: 1.0.0/m' "$PROJECT_SPEC"
 perl -0pi -e "s/CFBundleVersion: .*\$/CFBundleVersion: \"$BUILD_NUMBER\"/m" "$PROJECT_SPEC"
 
+# XcodeGen otherwise treats static libraries discovered under Externals as
+# app resources. Exclude them from source discovery; the explicit dependency
+# below still links libapp.a normally.
+perl -0pi -e 's/(      - path: Externals\n)(?:        buildPhase: none\n)?(?!        excludes:)/$1        excludes: ["**\/*.a"]\n/' "$PROJECT_SPEC"
+
 if ! grep -q 'CFBundleURLTypes:' "$PROJECT_SPEC"; then
   perl -0pi -e 's/(        CFBundleVersion: .*\n)/$1        CFBundleURLTypes:\n          - CFBundleURLName: app.fam-os.famos\n            CFBundleURLSchemes: [famos]\n/' "$PROJECT_SPEC"
 fi
