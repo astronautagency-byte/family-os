@@ -9,15 +9,28 @@ import { parseDate, parseTime, isoFromParts, parseItems, parseQuantity, findMemb
 import { RISK } from "./guardrails";
 import { eventDateLocal } from "../dates";
 
-const ADD_GROCERY_RE = /\b(add|get|buy|put|need|grab|pick up|we(?:'|\s)re out of|out of|ran out of|run out of)\b/i;
+const ADD_GROCERY_RE = /\b(add|put|grab|pick up|we(?:'|\s)re out of|out of|ran out of|run out of)\b/i;
+// "need" and "buy" only count as add-to-list when they are NOT inside a
+// question. Questions like "what do we need" are read-only queries.
+const ADD_GROCERY_VERB_RE = /\b(add|put|grab|pick up|buy|get|need|we(?:'|\s)re out of|out of|ran out of|run out of)\b/i;
+const IS_QUESTION_RE = /^\s*(what|how|which|where|when|who|can|could|should|do|does|did|is|are|was|were|will|would|shall)\b/i;
 const LIST_TARGET_RE = /\b(to|on|in|for)\s+(the\s+)?(grocery|groceries|shopping|list|the list)\b/i;
 const EVENT_WORD_RE = /\b(event|game|practice|lesson|appointment|party|playdate|meeting|match|recital|concert|dinner|date|drop[- ]off|pick[- ]up|class|session|tournament|try[- ]out|field trip)\b/i;
 
 // "add milk" | "add milk, bananas and bread" | "we're out of milk"
+// Guardrail: questions like "what do we need" or "what should I buy"
+// are READ queries, not add-to-list commands.
 function routeAddGrocery(text, ctx) {
+  // Reject questions — "what do we need", "what should I buy", etc.
+  if (IS_QUESTION_RE.test(text)) return null;
   // Must have a real grocery signal — otherwise "add leo's soccer game" or
   // "what's on today" would be misread as list items.
   if (!ADD_GROCERY_RE.test(text) && !LIST_TARGET_RE.test(text)) return null;
+  // Soft verbs ("need", "buy", "get") require a list target to confirm
+  // intent — otherwise "we need to leave" would trigger an add.
+  const hasStrongVerb = ADD_GROCERY_RE.test(text);
+  const hasListTarget = LIST_TARGET_RE.test(text);
+  if (!hasStrongVerb && !hasListTarget) return null;
   const outOf = /\b(we(?:'|\s)re out of|out of|ran out of|run out of)\b/i;
   const body = outOf.test(text)
     ? text.replace(outOf, " ").replace(LIST_TARGET_RE, " ").trim()
@@ -61,7 +74,7 @@ function routeAddGrocery(text, ctx) {
     intent: "ADD_LIST_ITEM",
     confidence: 0.97,
     entities: { list: "groceries", items: toAdd },
-    requires_confirmation: false, // Level 1 — reversible with Undo
+    requires_confirmation: true, // Always preview grocery adds for user review
     missing_fields: [],
     skippedCount: skipped,
   };
@@ -444,12 +457,13 @@ export function routeIntent(text, ctx = {}) {
 
 export function riskForIntent(intent) {
   switch (intent) {
-    case "ADD_LIST_ITEM":
     case "REMOVE_LIST_ITEM":
     case "COMPLETE_LIST_ITEM":
     case "CREATE_TASK":
     case "COMPLETE_TASK":
       return RISK.REVERSIBLE;
+    case "ADD_LIST_ITEM":
+      return RISK.MODERATE; // Always preview grocery adds for user review
     case "CREATE_EVENT":
     case "UPDATE_EVENT":
     case "OFFER_DRIVE":
