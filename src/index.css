@@ -2482,6 +2482,114 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   color:var(--color-ink-soft);
   font-size:12.5px;
 }
+.fam-ai-header-actions{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-left:auto;
+}
+.fam-ai-header-btn{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:32px;
+  height:32px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-sm);
+  background:var(--color-surface);
+  color:var(--color-ink-soft);
+  cursor:pointer;
+  transition:all var(--motion-fast) ease;
+}
+.fam-ai-header-btn:hover,.fam-ai-header-btn.active{
+  background:var(--color-accent-soft);
+  color:var(--color-accent-strong);
+  border-color:var(--color-accent);
+}
+.fam-ai-usage-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  padding:4px 8px;
+  border-radius:var(--radius-pill);
+  background:var(--color-accent-soft);
+  color:var(--color-accent-strong);
+  font-size:11px;
+  font-weight:600;
+  white-space:nowrap;
+}
+/* Sidebar */
+.fam-ai-sidebar{
+  width:260px;
+  min-width:260px;
+  border-right:1px solid var(--color-border);
+  background:var(--color-surface);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.fam-ai-sidebar-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 14px;
+  border-bottom:1px solid var(--color-border);
+}
+.fam-ai-sidebar-header strong{
+  font-size:13px;
+}
+.fam-ai-sidebar-close{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:28px;
+  height:28px;
+  border:0;
+  border-radius:var(--radius-sm);
+  background:transparent;
+  color:var(--color-ink-soft);
+  cursor:pointer;
+}
+.fam-ai-sidebar-close:hover{background:var(--color-surface-sunken);color:var(--color-ink)}
+.fam-ai-sidebar-list{
+  flex:1;
+  overflow-y:auto;
+  padding:6px;
+}
+.fam-ai-sidebar-empty{
+  padding:20px 12px;
+  text-align:center;
+  color:var(--color-ink-faint);
+  font-size:12px;
+  line-height:1.5;
+}
+.fam-ai-sidebar-item{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  width:100%;
+  padding:10px 12px;
+  border:0;
+  border-radius:var(--radius-sm);
+  background:transparent;
+  text-align:left;
+  cursor:pointer;
+  transition:background var(--motion-fast) ease;
+}
+.fam-ai-sidebar-item:hover{background:var(--color-surface-sunken)}
+.fam-ai-sidebar-item.active{background:var(--color-accent-soft);color:var(--color-accent-strong)}
+.fam-ai-sidebar-item-title{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:12.5px;
+  font-weight:500;
+  color:var(--color-ink);
+}
+.fam-ai-sidebar-item-date{
+  font-size:10.5px;
+  color:var(--color-ink-faint);
+}
 
 /* Chat scrollable area */
 .fam-ai-chat{
@@ -5447,7 +5555,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .theme-dark .fam-ai-composer-inner{background:var(--color-surface-sunken)!important;box-shadow:0 12px 32px rgba(0,0,0,.25)}
 .theme-dark .fam-ai-msg:not(.user) .fam-ai-msg-body p{background:transparent!important}
 @media(min-width:720px){.app-shell .fam-ai-sheet{inset:6vh max(16px,calc((100vw - 1040px)/2));width:auto;height:auto;max-height:88vh;transform:none;animation:fam-ai-sheet-in-contained 320ms cubic-bezier(.34,1.56,.64,1)}@keyframes fam-ai-sheet-in-contained{from{transform:translateY(5vh);opacity:0}to{transform:translateY(0);opacity:1}}}
-@media(max-width:719px){.fam-ai-header-inner{padding-left:16px}.fam-ai-header-tagline{margin-left:35px}.fam-ai-welcome{padding-top:clamp(44px,10vh,76px)}.fam-ai-composer-tool{display:none}.fam-ai-composer-tools{gap:0}.fam-ai-workspace.is-welcome .fam-ai-suggestion-grid{display:flex}.fam-ai-workspace.is-welcome .fam-ai-suggestion{width:auto}}
+@media(max-width:719px){.fam-ai-header-inner{padding-left:16px}.fam-ai-header-tagline{margin-left:35px}.fam-ai-welcome{padding-top:clamp(44px,10vh,76px)}.fam-ai-composer-tool{display:none}.fam-ai-composer-tools{gap:0}.fam-ai-workspace.is-welcome .fam-ai-suggestion-grid{display:flex}.fam-ai-workspace.is-welcome .fam-ai-suggestion{width:auto}.fam-ai-sidebar{position:absolute;z-index:10;top:0;left:0;right:0;bottom:0;width:100%;min-width:100%}.fam-ai-header-actions{gap:4px}.fam-ai-usage-badge{font-size:10px;padding:3px 6px}}
 
 /* Preline icon library alignment. The referenced Figma sheet uses the same
    rounded, outline construction as Lucide; these optical rules make that

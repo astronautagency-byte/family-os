@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowUp,
   Bot,
@@ -7,6 +7,8 @@ import {
   CheckSquare,
   ChefHat,
   ChevronDown,
+  History,
+  MessageSquarePlus,
   RotateCcw,
   ShieldCheck,
   ShoppingBasket,
@@ -14,6 +16,7 @@ import {
   Sparkles,
   Wrench,
   X,
+  Zap,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
@@ -68,13 +71,17 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
   const [pending, setPending] = useState([]);
   const [error, setError] = useState("");
   const chatRef = useRef(null);
-  // When the router asks a clarification question, the next user message is
-  // merged back into the original request (e.g. "add soccer game at 10" +
-  // "saturday" → "add soccer game at 10 saturday") so the router can finish.
   const pendingClarifyRef = useRef(null);
   const [internalOpen, setInternalOpen] = useState(false);
   const controlled = propOpen !== undefined;
   const open = controlled ? propOpen : internalOpen;
+
+  // Chat history state
+  const [conversations, setConversations] = useState([]);
+  const [activeConversationId, setActiveConversationId] = useState(null);
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [usage, setUsage] = useState(null);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const setOpen = (next) => {
     if (controlled) {
       if (!next) onClose?.();
@@ -82,6 +89,99 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
     }
     setInternalOpen(next);
   };
+
+  // ─── Conversation history helpers ───────────────────────────────
+  const loadConversations = useCallback(async () => {
+    if (!supabase || !user) return;
+    try {
+      const { data } = await supabase
+        .from("famai_conversations")
+        .select("id, title, created_at, updated_at")
+        .eq("user_id", user.id)
+        .order("updated_at", { ascending: false })
+        .limit(50);
+      setConversations(data || []);
+    } catch {}
+  }, [supabase, user]);
+
+  const loadMessages = useCallback(async (conversationId) => {
+    if (!supabase || !conversationId) return;
+    setLoadingHistory(true);
+    try {
+      const { data } = await supabase
+        .from("famai_messages")
+        .select("role, content, intent")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: true });
+      if (data?.length) {
+        setMessages(data.map((m) => ({ role: m.role, content: m.content })));
+      }
+      setActiveConversationId(conversationId);
+    } catch {}
+    setLoadingHistory(false);
+  }, [supabase]);
+
+  const startNewChat = useCallback(() => {
+    setMessages([INITIAL_FAM_AI_MESSAGE]);
+    setActiveConversationId(null);
+    setPending([]);
+    setError("");
+  }, []);
+
+  const saveMessage = useCallback(async (conversationId, role, content, intent) => {
+    if (!supabase || !conversationId) return;
+    try {
+      await supabase.from("famai_messages").insert({
+        conversation_id: conversationId,
+        role,
+        content,
+        intent: intent || null,
+      });
+    } catch {}
+  }, [supabase]);
+
+  const ensureConversation = useCallback(async (firstUserMessage) => {
+    if (!supabase || !user || !household) return null;
+    if (activeConversationId) return activeConversationId;
+    try {
+      const title = firstUserMessage.length > 50
+        ? firstUserMessage.slice(0, 50) + "…"
+        : firstUserMessage;
+      const { data } = await supabase
+        .from("famai_conversations")
+        .insert({
+          user_id: user.id,
+          household_id: household.id,
+          title,
+        })
+        .select("id")
+        .single();
+      if (data?.id) {
+        setActiveConversationId(data.id);
+        loadConversations();
+        return data.id;
+      }
+    } catch {}
+    return null;
+  }, [supabase, user, household, activeConversationId, loadConversations]);
+
+  // Load usage credits
+  const loadUsage = useCallback(async () => {
+    if (!supabase) return;
+    try {
+      const { data } = await supabase.functions.invoke("usage-status");
+      if (!data?.error) setUsage(data);
+    } catch {}
+  }, [supabase]);
+
+  // Load conversations and usage on mount
+  useEffect(() => {
+    if (open) {
+      loadConversations();
+      loadUsage();
+    }
+  }, [open, loadConversations, loadUsage]);
+
   useEffect(() => {
     if (chatRef.current) {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
@@ -132,7 +232,6 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
   const sendText = async (text, displayText = text) => {
     if (!text || busy) return;
     setInput("");
-    // Merge clarification answers into the original request.
     const clarify = pendingClarifyRef.current;
     const effectiveText = clarify ? `${clarify.originalText} ${text}` : text;
     const effectiveDisplay = clarify ? text : displayText;
@@ -140,6 +239,10 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
     setMessages((current) => [...current, { role: "user", content: effectiveDisplay, aiContent: effectiveText }]);
     setBusy(true);
     setError("");
+
+    // Ensure a conversation exists and save user message
+    const convId = await ensureConversation(text);
+    if (convId) saveMessage(convId, "user", effectiveDisplay);
 
     try {
       const result = await handleAskFam(text, {
@@ -150,9 +253,11 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
       switch (result.kind) {
         case "answer":
           appendAssistant({ role: "assistant", content: result.text });
+          if (convId) saveMessage(convId, "assistant", result.text);
           break;
         case "refused":
           appendAssistant({ role: "assistant", content: result.text, refused: result.level });
+          if (convId) saveMessage(convId, "assistant", result.text);
           break;
         case "execute":
           appendAssistant({
@@ -163,6 +268,7 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
             canUndo: !!result.canUndo,
             action: result.action,
           });
+          if (convId) saveMessage(convId, "assistant", result.message);
           break;
         case "clarify":
           pendingClarifyRef.current = { originalText: text, intent: result.intent, entities: result.entities };
@@ -174,6 +280,7 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
             entities: result.entities,
             confidence: result.confidence,
           });
+          if (convId) saveMessage(convId, "assistant", result.question);
           break;
         case "preview":
           appendAssistant({
@@ -229,7 +336,10 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
     });
     if (invokeError) throw new Error(await getFunctionError(invokeError));
     if (data?.error) throw new Error(data.error);
-    appendAssistant({ role: "assistant", content: data?.message || "I’m ready to help." });
+    const responseText = data?.message || "I\u2019m ready to help.";
+    appendAssistant({ role: "assistant", content: responseText });
+    const convId = activeConversationId || null;
+    if (convId) saveMessage(convId, "assistant", responseText);
     setPending(Array.isArray(data?.actions) ? data.actions : []);
   };
 
@@ -361,6 +471,28 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
         <X size={18} />
       </button>
       <div className="fam-ai-page famos-noscroll">
+        {showSidebar && (
+          <aside className="fam-ai-sidebar">
+            <div className="fam-ai-sidebar-header">
+              <strong>Chat history</strong>
+              <button className="fam-ai-sidebar-close" onClick={() => setShowSidebar(false)} type="button"><X size={14} /></button>
+            </div>
+            <div className="fam-ai-sidebar-list">
+              {conversations.length === 0 && <p className="fam-ai-sidebar-empty">No conversations yet. Start chatting to build your history.</p>}
+              {conversations.map((conv) => (
+                <button
+                  key={conv.id}
+                  className={`fam-ai-sidebar-item ${conv.id === activeConversationId ? "active" : ""}`}
+                  onClick={() => { loadMessages(conv.id); setShowSidebar(false); }}
+                  type="button"
+                >
+                  <span className="fam-ai-sidebar-item-title">{conv.title}</span>
+                  <span className="fam-ai-sidebar-item-date">{new Date(conv.updated_at).toLocaleDateString()}</span>
+                </button>
+              ))}
+            </div>
+          </aside>
+        )}
         <main className={`fam-ai-workspace ${welcomeState ? "is-welcome" : ""}`}>
         <div className="fam-ai-header">
           <div className="fam-ai-header-inner">
@@ -369,7 +501,19 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
               <div className="fam-ai-brand-copy"><strong>Fam AI</strong><span><i /> Household assistant</span></div>
               <em>Beta</em>
             </div>
-            <p className="fam-ai-header-tagline">Ask naturally. Fam AI proposes changes for your review — nothing changes without you.</p>
+            <div className="fam-ai-header-actions">
+              {usage?.famai && (
+                <span className="fam-ai-usage-badge" title={`${usage.famai.remaining} of ${usage.famai.limit} queries remaining this month`}>
+                  <Zap size={12} /> {usage.famai.remaining} / {usage.famai.limit}
+                </span>
+              )}
+              <button className="fam-ai-header-btn" onClick={startNewChat} title="New conversation" type="button">
+                <MessageSquarePlus size={16} />
+              </button>
+              <button className={`fam-ai-header-btn ${showSidebar ? "active" : ""}`} onClick={() => setShowSidebar(!showSidebar)} title="Chat history" type="button">
+                <History size={16} />
+              </button>
+            </div>
           </div>
         </div>
 
