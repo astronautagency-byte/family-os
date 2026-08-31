@@ -307,7 +307,11 @@ function routeCancelEvent(text, ctx) {
 
 // "remind me to wash leo's jersey tomorrow" | "create a task to register for soccer by friday"
 function routeCreateTask(text, ctx) {
-  const remind = /\b(remind (me|us)|don't forget to|dont forget to|remember to|need to)\b/i.test(text);
+  // Reject questions — "what do I need to do", "what tasks are left", etc.
+  if (IS_QUESTION_RE.test(text)) return null;
+  // "need to" alone is too broad — "what do I need to do" would match.
+  // Only match imperative phrases: "remind me to", "don't forget to".
+  const remind = /\b(remind (me|us)|don't forget to|dont forget to|remember to)\b/i.test(text);
   const taskVerb = /\b(create|add|make|set)\b/i.test(text) && /\b(task|reminder|chore)\b/i.test(text);
   if (!remind && !taskVerb) return null;
 
@@ -328,7 +332,7 @@ function routeCreateTask(text, ctx) {
       assigneeName: member?.name || null,
       due: day?.date || null,
     },
-    requires_confirmation: false, // Level 1 — personal/household task, reversible
+    requires_confirmation: true, // Always preview task creation for user review
     missing_fields: [
       ...(title.length > 3 ? [] : ["title"]),
       ...(day ? [] : ["due"]),

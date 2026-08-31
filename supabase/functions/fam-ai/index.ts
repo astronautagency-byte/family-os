@@ -57,7 +57,7 @@ Respond with a JSON object exactly shaped as:
  "intent": "one of ADD_LIST_ITEM, CREATE_EVENT, CREATE_TASK, ADD_TASK, ADD_GROCERY, ADD_EVENT, PLAN_MEAL, GET_SCHEDULE, GET_TODAY, GET_LIST, GET_DRIVER, GENERATE_GROCERY_LIST, GENERATE_PACKING_LIST, PLAN_WEEK, HELP, OUT_OF_SCOPE, NEEDS_CLARIFICATION",
  "confidence": 0.0 to 1.0,
  "entities": { ...any fields the action needs; use the household context for member names, dates, slots },
- "requires_confirmation": true for shared-event/assignment/planning actions, false for reversible low-risk ones,
+ "requires_confirmation": true for ALL actions — every add, create, or change must show a preview card for user approval. Never set false.
  "missing_fields": ["list of entity keys still needed"],
  "message": "one or two short, calm sentences for the user. If you are preparing actions, say what you prepared and that it awaits their review. If entities are missing, ask ONE concise question.",
  "actions": [ { "type":"add_task|add_grocery|add_event|plan_meal", "args":{...} } ]
