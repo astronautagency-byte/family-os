@@ -960,13 +960,13 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 .calendar-hero-dayname{font-size:13px;font-weight:700;color:var(--color-accent-strong);text-transform:uppercase;letter-spacing:.08em}
 .calendar-hero-daynum{font-size:44px;font-weight:650;line-height:1;letter-spacing:-.05em;color:var(--color-ink)}
 .calendar-hero-month{font-size:13px;font-weight:600;color:var(--color-ink-soft);margin-top:3px}
-.calendar-hero-actions{display:flex;align-items:center;gap:6px}
-.calendar-hero-action{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;border:1px solid var(--color-border);background:var(--color-surface);color:var(--color-ink-soft);transition:background var(--motion-fast) ease,color var(--motion-fast) ease,transform var(--motion-fast) ease}
+.calendar-hero-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.calendar-hero-action{display:grid;place-items:center;width:34px;height:34px;min-width:34px;border-radius:50%;border:1px solid var(--color-border);background:var(--color-surface);color:var(--color-ink-soft);transition:background var(--motion-fast) ease,color var(--motion-fast) ease,transform var(--motion-fast) ease}
 .calendar-hero-action:hover{background:var(--color-accent-soft);color:var(--color-accent-strong)}
 .calendar-hero-action:active{transform:scale(.9)}
-.calendar-hero-action-primary{border:0;background:var(--color-accent);color:#fff;width:36px;height:36px;box-shadow:0 4px 10px rgba(81,72,200,.18)}
+.calendar-hero-action-primary{border:0;background:var(--color-accent);color:#fff;width:36px;height:36px;min-width:36px;box-shadow:0 4px 10px rgba(81,72,200,.18)}
 .calendar-hero-action-primary:hover{background:var(--color-accent)!important;color:#fff!important;transform:translateY(-2px);box-shadow:0 6px 16px rgba(81,72,200,.25)}
-.calendar-hero-action-settings{border:0;background:transparent;color:var(--color-ink-faint);width:32px;height:32px}
+.calendar-hero-action-settings{border:0;background:transparent;color:var(--color-ink-faint);width:32px;height:32px;min-width:32px}
 .calendar-hero-action-settings:hover{background:var(--color-accent-soft);color:var(--color-accent-strong)}
 
 /* Day strip — horizontal 7-day selector */
@@ -5728,8 +5728,8 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 
 /* Apple Calendar-inspired schedule structure. FamOS keeps calendar colours;
    density, hierarchy and time-based placement follow familiar conventions. */
-.apple-calendar-toolbar{min-height:auto;padding:14px 20px 12px;border-bottom:1px solid var(--color-border);background:var(--color-surface)}
-.apple-calendar-toolbar .calendar-hero-date{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:1px 10px}
+.apple-calendar-toolbar{min-height:auto;padding:14px 20px 12px;border-bottom:1px solid var(--color-border);background:var(--color-surface);overflow:visible;display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.apple-calendar-toolbar .calendar-hero-date{display:flex;align-items:center;gap:1px 10px;min-width:0;flex:1}
 .apple-calendar-toolbar .calendar-hero-dayname{font-size:20px;font-weight:600;line-height:26px;letter-spacing:-.02em;color:var(--color-ink)}
 .apple-calendar-toolbar .calendar-hero-month{grid-column:2;font-size:11px;color:var(--color-ink-faint)}
 .apple-calendar-today{grid-row:1/3;min-height:34px;padding:0 11px;border:1px solid var(--color-border-strong);border-radius:8px;background:var(--color-surface);color:var(--color-accent-strong);font-size:12px;font-weight:600;box-shadow:0 1px 2px rgba(16,24,40,.04)}
