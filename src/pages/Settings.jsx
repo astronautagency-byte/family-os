@@ -224,6 +224,200 @@ function GoogleCalendarCard() {
   );
 }
 
+function AppleCalendarCard() {
+  const [connected, setConnected] = useState(false);
+  const [appleId, setAppleId] = useState("");
+  const [appPassword, setAppPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [calendars, setCalendars] = useState([]);
+  const [showSetup, setShowSetup] = useState(false);
+  const [lastSynced, setLastSynced] = useState(null);
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+  // Check connection status on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data: { session } } = await (await import("../lib/supabase")).supabase.auth.getSession();
+        if (!session) return;
+        const res = await fetch(`${supabaseUrl}/functions/v1/caldav-sync`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${session.access_token}`, apikey: supabaseKey, "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "status" }),
+        });
+        const data = await res.json();
+        if (data.connected) {
+          setConnected(true);
+          setAppleId(data.appleId || "");
+          setLastSynced(data.lastSynced);
+          // Load calendars
+          const calRes = await fetch(`${supabaseUrl}/functions/v1/caldav-sync`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${session.access_token}`, apikey: supabaseKey, "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "list-calendars" }),
+          });
+          const calData = await calRes.json();
+          setCalendars(calData.calendars || []);
+        }
+      } catch {}
+    })();
+  }, []);
+
+  const handleConnect = async () => {
+    if (!appleId.trim() || !appPassword.trim()) return;
+    setBusy(true);
+    setError("");
+    try {
+      const { data: { session } } = await (await import("../lib/supabase")).supabase.auth.getSession();
+      if (!session) { setError("Sign in to connect."); setBusy(false); return; }
+      const res = await fetch(`${supabaseUrl}/functions/v1/caldav-sync`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}`, apikey: supabaseKey, "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "connect", appleId: appleId.trim(), appPassword: appPassword.trim() }),
+      });
+      const data = await res.json();
+      if (data.error) { setError(data.error); }
+      else {
+        setConnected(true);
+        setCalendars(data.calendars || []);
+        setShowSetup(false);
+        setAppPassword("");
+        // Trigger initial sync
+        handleSync();
+      }
+    } catch { setError("Connection failed. Please try again."); }
+    setBusy(false);
+  };
+
+  const handleDisconnect = async () => {
+    setBusy(true);
+    try {
+      const { data: { session } } = await (await import("../lib/supabase")).supabase.auth.getSession();
+      if (!session) return;
+      await fetch(`${supabaseUrl}/functions/v1/caldav-sync`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}`, apikey: supabaseKey, "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "disconnect" }),
+      });
+      setConnected(false);
+      setCalendars([]);
+      setAppleId("");
+      setLastSynced(null);
+    } catch {}
+    setBusy(false);
+  };
+
+  const handleSync = async () => {
+    setBusy(true);
+    try {
+      const { data: { session } } = await (await import("../lib/supabase")).supabase.auth.getSession();
+      if (!session) return;
+      const res = await fetch(`${supabaseUrl}/functions/v1/caldav-sync`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}`, apikey: supabaseKey, "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "sync", direction: "both" }),
+      });
+      const data = await res.json();
+      if (!data.error) setLastSynced(new Date().toISOString());
+    } catch {}
+    setBusy(false);
+  };
+
+  const toggleCalendar = async (calendarId, selected) => {
+    try {
+      const { data: { session } } = await (await import("../lib/supabase")).supabase.auth.getSession();
+      if (!session) return;
+      await fetch(`${supabaseUrl}/functions/v1/caldav-sync`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}`, apikey: supabaseKey, "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "toggle-calendar", calendarId, selected }),
+      });
+      setCalendars(prev => prev.map(c => c.id === calendarId ? { ...c, is_selected: selected } : c));
+    } catch {}
+  };
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-10 h-10 rounded-lg bg-[var(--color-surface-sunken)] border border-[var(--color-border)] flex items-center justify-center shrink-0">
+          <CalendarDays size={18} color="var(--color-ink)" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-[14.5px] text-[var(--color-ink)]">Apple Calendar</p>
+          <p className="text-[12.5px] text-[var(--color-ink-soft)]">
+            {connected
+              ? lastSynced
+                ? `Synced · ${calendars.length} calendar${calendars.length === 1 ? "" : "s"} connected`
+                : "Connected"
+              : "Not connected"}
+          </p>
+        </div>
+        {connected && <CheckCircle2 size={18} color="var(--color-good)" />}
+      </div>
+
+      {error && (
+        <div className="flex items-start gap-2 rounded-xl bg-[var(--color-warn-soft)] px-3 py-2.5 mb-3">
+          <AlertCircle size={14} color="var(--color-warn)" className="mt-0.5 shrink-0" />
+          <p className="text-[12.5px] text-[var(--color-warn)] leading-snug">{error}</p>
+        </div>
+      )}
+
+      {!connected && !showSetup && (
+        <div>
+          <p className="text-[12.5px] text-[var(--color-ink-soft)] mb-3">
+            Sync your Apple iCloud calendars with FamOS. Two-way sync keeps both sides updated.
+          </p>
+          <PrimaryButton onClick={() => setShowSetup(true)}>Connect Apple Calendar</PrimaryButton>
+        </div>
+      )}
+
+      {!connected && showSetup && (
+        <div className="space-y-3">
+          <p className="text-[12.5px] text-[var(--color-ink-soft)]">
+            You need an app-specific password from Apple. Generate one at <strong>appleid.apple.com</strong> → Sign-In and Security → App-Specific Passwords.
+          </p>
+          <TextField label="Apple ID" placeholder="yourname@icloud.com" value={appleId} onChange={(e) => setAppleId(e.target.value)} type="email" />
+          <div className="relative">
+            <TextField label="App-Specific Password" placeholder="xxxx-xxxx-xxxx-xxxx" value={appPassword} onChange={(e) => setAppPassword(e.target.value)} type={showPassword ? "text" : "password"} />
+            <button type="button" className="absolute right-2 top-[38px] p-1 text-[var(--color-ink-faint)] hover:text-[var(--color-ink)]" onClick={() => setShowPassword(!showPassword)}>
+              {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+            </button>
+          </div>
+          <div className="flex gap-2">
+            <PrimaryButton onClick={handleConnect} disabled={busy || !appleId.trim() || !appPassword.trim()}>{busy ? "Connecting…" : "Connect"}</PrimaryButton>
+            <SecondaryButton onClick={() => { setShowSetup(false); setError(""); }}>Cancel</SecondaryButton>
+          </div>
+        </div>
+      )}
+
+      {connected && (
+        <div>
+          <p className="text-[12.5px] text-[var(--color-ink-soft)] mb-2">
+            <strong>{appleId}</strong> — Two-way sync with your Apple iCloud calendars.
+          </p>
+          {calendars.length > 0 && (
+            <div className="space-y-1.5 mb-3">
+              {calendars.map((cal) => (
+                <label key={cal.id} className="flex items-center gap-2 p-2 rounded-lg border border-[var(--color-border)] hover:bg-[var(--color-surface-sunken)] cursor-pointer">
+                  <input type="checkbox" checked={cal.is_selected} onChange={(e) => toggleCalendar(cal.id, e.target.checked)} className="rounded" />
+                  <span className="text-[13px] flex-1">{cal.display_name}</span>
+                </label>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <PrimaryButton onClick={handleSync} disabled={busy}>{busy ? "Syncing…" : "Sync now"}</PrimaryButton>
+            <SecondaryButton onClick={handleDisconnect} disabled={busy}>Disconnect</SecondaryButton>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 function CalendarFeedsCard() {
   const {
     calendarFeeds, calendarFeedStatus, calendarFeedError,
@@ -1320,6 +1514,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
         <section data-tab="integrations">
           <h2 className="settings-section-title mb-3">🔗 Integrations</h2>
           <GoogleCalendarCard />
+          <AppleCalendarCard />
           <CalendarFeedsCard />
           <TaskImportCard />
         </section>
