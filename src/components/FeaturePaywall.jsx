@@ -2,24 +2,23 @@ import { Check, LockKeyhole, Sparkles } from "lucide-react";
 import { PREMIUM_FEATURES, featureById } from "../data/billingCatalog";
 import { PRICING_PLAN } from "../data/pricingPlan";
 import { Card, PrimaryButton, SecondaryButton } from "./ui";
-import { IS_MAC_APP_STORE } from "../lib/distribution";
+import { IS_APP_STORE } from "../lib/distribution";
 
 export default function FeaturePaywall({ featureId, onChoose, onBack, busy = false, error = "" }) {
   const feature = featureById(featureId) || PREMIUM_FEATURES[0];
-  const trialDays = PRICING_PLAN.trial.days;
   const price = feature.price || 14.99;
-  const priceYearly = feature.priceYearly || 149;
-  if (IS_MAC_APP_STORE) {
+  const priceYearly = feature.priceYearly || 149.99;
+  if (IS_APP_STORE) {
     return (
       <section className="feature-paywall" aria-labelledby="feature-paywall-title">
         <Card className="feature-paywall-card">
           <div className="feature-paywall-icon"><LockKeyhole size={24} /></div>
           <p className="feature-paywall-eyebrow">FamOS {feature.name.replace("FamOS ", "")}</p>
           <h1 id="feature-paywall-title">This feature is not included in your current access</h1>
-          <p className="feature-paywall-tagline">Your Mac app uses the access already associated with your FamOS account.</p>
+          <p className="feature-paywall-tagline">The App Store edition includes FamOS Core features at no charge.</p>
           <ul>
             <li><Check size={16} /> Calendar, Tasks, Shopping, Chat and Kitchen Watch remain available</li>
-            <li><Check size={16} /> Existing eligible account access is recognized automatically</li>
+            <li><Check size={16} /> No purchase or subscription is required</li>
           </ul>
           <SecondaryButton onClick={onBack}>Back</SecondaryButton>
         </Card>
@@ -34,13 +33,13 @@ export default function FeaturePaywall({ featureId, onChoose, onBack, busy = fal
         <h1 id="feature-paywall-title">Unlock {feature.name}</h1>
         <p className="feature-paywall-tagline">${price}/month or ${priceYearly}/year</p>
         <div className="feature-paywall-price"><strong>${price}</strong><span>CAD / month · for your whole household</span></div>
-        <p className="feature-paywall-trial-note">Start a {trialDays}-day free trial. No charge until the trial ends. Cancel anytime.</p>
+        <p className="feature-paywall-trial-note">Your selected plan starts immediately and is charged today.</p>
         <ul>
           <li><Check size={16} /> Calendar, Tasks, Shopping, Chat and Kitchen Watch stay free</li>
           <li><Check size={16} /> Everyone in your household gets access</li>
           <li><Check size={16} /> Change or cancel from Billing</li>
         </ul>
-        <PrimaryButton onClick={() => onChoose(feature.id)} disabled={busy}><Sparkles size={17} />{busy ? "Opening secure checkout…" : `Start ${trialDays}-day free trial`}</PrimaryButton>
+        <PrimaryButton onClick={() => onChoose(feature.id)} disabled={busy}><Sparkles size={17} />{busy ? "Opening secure checkout…" : "Subscribe now"}</PrimaryButton>
         <SecondaryButton onClick={onBack}>Not now</SecondaryButton>
         {error && <p className="feature-paywall-error" role="alert">{error}</p>}
       </Card>

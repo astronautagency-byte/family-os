@@ -112,12 +112,12 @@ const comparisonRows = [
   { label: "Plan that grows", famos: "Pricing scales with household members", display: "Hardware plus optional subscription", organizer: "Free and premium bundles" },
   { label: "Choose your extras", famos: "Add Fam AI when your family needs it", display: "Features depend on device and plan", organizer: "Premium features depend on plan" },
   { label: "Family coordination", famos: "Calendar, meals, groceries, tasks, chat, rewards, and AI", display: "Strong shared calendar and home display", organizer: "Core organizer features vary by app" },
-  { label: "Try before committing", famos: `${PRICING_PLAN.trial.days}-day free trial on Pro`, display: "Offers and trials vary", organizer: "Free tiers or trials vary" },
+  { label: "Billing", famos: "Paid plans start immediately", display: "Offers and trials vary", organizer: "Free tiers or trials vary" },
 ];
 
 function PricingSection({ signedIn }) {
   const [billing, setBilling] = useState("monthly");
-  const [selectedPlan, setSelectedPlan] = useState("pro");
+  const [selectedPlan, setSelectedPlan] = useState("plus");
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
 
@@ -127,7 +127,6 @@ function PricingSection({ signedIn }) {
   const displayPrice = billing === "annual" ? yearlyPrice : monthlyPrice;
   const displayPer = billing === "annual" ? "/yr" : "/mo";
   const yearlySavings = monthlyPrice * 12 - yearlyPrice;
-  const trialDays = PRICING_PLAN.trial.days;
   const coreFeatures = PRICING_PLAN.plans[0].featureList;
   const pulseKey = `${billing}-${selectedPlan}`;
 
@@ -191,7 +190,7 @@ function PricingSection({ signedIn }) {
             <span><Users/></span>
             <div><p>Your plan</p><motion.h3 key={pulseKey} initial={{ scale: 0.94, opacity: 0.72 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.38, ease: BACK }}><span>{formatMoney(displayPrice)}</span><small>{displayPer}</small></motion.h3></div>
           </div>
-          <p className="pricing-note">No card is required for Core. Paid plans include a {trialDays}-day free trial — cancel anytime during the trial and you won't be charged.</p>
+          <p className="pricing-note">No card is required for Core. Paid plans begin immediately and the selected amount is charged today.</p>
           <ul className="pricing-includes">
             {coreFeatures.map((feature) => <li key={feature}><Check/> {feature}</li>)}
           </ul>
@@ -202,14 +201,14 @@ function PricingSection({ signedIn }) {
           <div><span>Core plan</span><b>Free</b></div>
           <div><span>{plan.name}</span><b>{formatMoney(displayPrice)}{displayPer}</b></div>
           {billing === "annual" && yearlySavings > 0 && <div className="annual-savings"><span>Yearly savings</span><b>${yearlySavings.toFixed(2)}</b></div>}
-          <div className="pricing-total"><span>After {trialDays}-day trial</span><motion.b key={pulseKey} initial={{ y: 7, opacity: 0.55 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.34, ease: EASE }}>{formatMoney(displayPrice)}<small>{displayPer}</small></motion.b></div>
+          <div className="pricing-total"><span>Charged today</span><motion.b key={pulseKey} initial={{ y: 7, opacity: 0.55 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.34, ease: EASE }}>{formatMoney(displayPrice)}<small>{displayPer}</small></motion.b></div>
           <button onClick={startCheckout} disabled={checkoutBusy}>
             {checkoutBusy ? <LoaderCircle className="animate-spin" size={16} /> : null}
-            {checkoutBusy ? "Opening checkout…" : `Start ${trialDays}-day free trial`}
+            {checkoutBusy ? "Opening checkout…" : "Subscribe now"}
             {!checkoutBusy && <ArrowRight/>}
           </button>
           {checkoutError && <small className="pricing-checkout-error">{checkoutError}</small>}
-          <small><ShieldCheck/> Secure checkout. Card required for trial. Cancel anytime.</small>
+          <small><ShieldCheck/> Secure checkout. Charged today; cancel future renewals anytime.</small>
         </div>
       </aside>
     </motion.div>
@@ -397,7 +396,7 @@ export default function Landing({ signedIn = false }) {
           <motion.p className="landing-kicker" variants={fadeUp}><Sparkles/> Meet FamOS</motion.p>
           <motion.h1 variants={fadeUp}>Your family,<br/>finally in sync.</motion.h1>
           <motion.p variants={fadeUp}>One private home for calendars, meals, groceries, tasks, chat, and a helpful bit of AI. So the whole household is on the same page — without the chaos.</motion.p>
-          <motion.div className="landing-hero-ctas" variants={fadeUp}><button onClick={() => go(signedIn ? "today" : "signup")}>{signedIn ? "Open FamOS" : "Start free trial"}<ArrowRight/></button>{!signedIn&&<button onClick={() => go("signin")}>Sign in</button>}</motion.div>
+          <motion.div className="landing-hero-ctas" variants={fadeUp}><button onClick={() => go(signedIn ? "today" : "signup")}>{signedIn ? "Open FamOS" : "Choose a plan"}<ArrowRight/></button>{!signedIn&&<button onClick={() => go("signin")}>Sign in</button>}</motion.div>
           <motion.div className="landing-trust" variants={fadeUp}><span><Check/> Private to your household</span><span><Check/> Free to start, no card needed</span></motion.div>
         </motion.div>
         {/* Animated floating UI elements */}
@@ -412,7 +411,7 @@ export default function Landing({ signedIn = false }) {
         </div>
       </section>
 
-      <motion.section className="landing-purpose" id="app-purpose" {...revealBlock}><div><p>Meet FamOS</p><h2>Made for the way your family actually works.</h2><span>One calm, private place for the everyday stuff — schedules, meals, lists, and the little reminders that keep a household running. No learning curve. No complexity. Just clarity.</span><div className="purpose-actions"><button onClick={() => go(signedIn ? "today" : "signup")}>{signedIn ? "Open FamOS" : "Start free trial"}<ArrowRight/></button>{!signedIn&&<button onClick={() => go("signin")}>Sign in</button>}</div></div><div className="purpose-grid"><motion.article {...hoverLift}><CalendarDays/><h3>Shared calendars</h3><p>Bring in the calendars you already use and see the week together — no more “what’s happening when?”</p></motion.article><motion.article {...hoverLift}><Users/><h3>Family updates</h3><p>Share plans, chat, and give every task a clear owner, so nobody’s left guessing.</p></motion.article><motion.article {...hoverLift}><LockKeyhole/><h3>Private home</h3><p>Your household decides who sees what. Your space stays yours.</p></motion.article></div></motion.section>
+      <motion.section className="landing-purpose" id="app-purpose" {...revealBlock}><div><p>Meet FamOS</p><h2>Made for the way your family actually works.</h2><span>One calm, private place for the everyday stuff — schedules, meals, lists, and the little reminders that keep a household running. No learning curve. No complexity. Just clarity.</span><div className="purpose-actions"><button onClick={() => go(signedIn ? "today" : "signup")}>{signedIn ? "Open FamOS" : "Choose a plan"}<ArrowRight/></button>{!signedIn&&<button onClick={() => go("signin")}>Sign in</button>}</div></div><div className="purpose-grid"><motion.article {...hoverLift}><CalendarDays/><h3>Shared calendars</h3><p>Bring in the calendars you already use and see the week together — no more “what’s happening when?”</p></motion.article><motion.article {...hoverLift}><Users/><h3>Family updates</h3><p>Share plans, chat, and give every task a clear owner, so nobody’s left guessing.</p></motion.article><motion.article {...hoverLift}><LockKeyhole/><h3>Private home</h3><p>Your household decides who sees what. Your space stays yours.</p></motion.article></div></motion.section>
 
       <section className="landing-intro" id="families"><p>WHY FAMOS</p><motion.h2 {...revealHeading}>Every moving part.<br/>One calm place.</motion.h2><blockquote>The end of the family group-chat panic.</blockquote><div className="landing-family-pills"><span>New parents</span><span>Busy households</span><span>Co-parents</span><span>Multigenerational families</span><span>Families across cities</span></div></section>
 
@@ -449,7 +448,7 @@ export default function Landing({ signedIn = false }) {
 
       <section className="landing-testimonials"><SectionHead eyebrow="Made for real family life" note="See how FamOS fits the situations families coordinate every day.">One home base.<br/>Many kinds of family.</SectionHead><motion.div {...revealGroup}>{familyScenarios.map((item)=><motion.article key={item.title} variants={fadeUp}><span><Check/> {item.label}</span><h3>{item.title}</h3><p>{item.copy}</p><footer><img src={item.avatar} alt="" aria-hidden="true"/><b>Built around shared family life</b></footer></motion.article>)}</motion.div></section>
 
-      <motion.section className="landing-comparison" id="compare" {...revealBlock}><SectionHead eyebrow="Why FamOS" note="Use FamOS across the screens you already have, then add people and features as your household grows.">Your family hub,<br/>without another device.</SectionHead><motion.div className="comparison-shell" {...revealGroup}><div className="comparison-head"><span>What matters</span><strong>FamOS</strong><span>Dedicated displays</span><span>Organizer apps</span></div>{comparisonRows.map((row)=><motion.div className="comparison-row" key={row.label} variants={fadeUpSmall}><b>{row.label}</b><strong><Check/>{row.famos}</strong><span>{row.display}</span><span>{row.organizer}</span></motion.div>)}</motion.div><div className="comparison-highlights"><article><Sparkles/><h3>AI that actually knows your family</h3><p>Not a generic chatbot. Fam AI understands your meals, groceries, tasks, and schedule — and never acts without your approval.</p></article><article><Users/><h3>Built to share</h3><p>Invite family from anywhere. Assign clear owners. The same household view on every device — phone, tablet, laptop.</p></article><article><CheckSquare/><h3>Start free. Grow when you're ready.</h3><p>Calendar, tasks, shopping, chat, and kitchen watch — free forever. Add sync, recipes, and AI when your family wants more.</p></article></div><motion.div className="comparison-cta" {...revealBlock}><button onClick={() => go(signedIn ? "today" : "signup")}>{signedIn ? "Open FamOS" : `Start your ${PRICING_PLAN.trial.days}-day free trial`}<ArrowRight/></button><small><ShieldCheck/> No charge today · cancel anytime before your trial ends</small></motion.div>      <small className="comparison-note">Category comparison based on publicly available product information for dedicated displays such as Skylight Calendar and organizer apps such as Cozi and FamilyWall, reviewed July 2026. Features and offers can change.</small>
+      <motion.section className="landing-comparison" id="compare" {...revealBlock}><SectionHead eyebrow="Why FamOS" note="Use FamOS across the screens you already have, then add people and features as your household grows.">Your family hub,<br/>without another device.</SectionHead><motion.div className="comparison-shell" {...revealGroup}><div className="comparison-head"><span>What matters</span><strong>FamOS</strong><span>Dedicated displays</span><span>Organizer apps</span></div>{comparisonRows.map((row)=><motion.div className="comparison-row" key={row.label} variants={fadeUpSmall}><b>{row.label}</b><strong><Check/>{row.famos}</strong><span>{row.display}</span><span>{row.organizer}</span></motion.div>)}</motion.div><div className="comparison-highlights"><article><Sparkles/><h3>AI that actually knows your family</h3><p>Not a generic chatbot. Fam AI understands your meals, groceries, tasks, and schedule — and never acts without your approval.</p></article><article><Users/><h3>Built to share</h3><p>Invite family from anywhere. Assign clear owners. The same household view on every device — phone, tablet, laptop.</p></article><article><CheckSquare/><h3>Start free. Grow when you're ready.</h3><p>Calendar, tasks, shopping, chat, and kitchen watch — free forever. Add sync, recipes, and AI when your family wants more.</p></article></div><motion.div className="comparison-cta" {...revealBlock}><button onClick={() => go(signedIn ? "today" : "signup")}>{signedIn ? "Open FamOS" : "Choose a plan"}<ArrowRight/></button><small><ShieldCheck/> Paid plans are charged immediately · cancel future renewals anytime</small></motion.div>      <small className="comparison-note">Category comparison based on publicly available product information for dedicated displays such as Skylight Calendar and organizer apps such as Cozi and FamilyWall, reviewed July 2026. Features and offers can change.</small>
       <motion.div className="comparison-cta" {...revealBlock}><a href="/features">Browse every feature <ArrowRight/></a><small>One dedicated page per module with screenshots, use-cases, and what to try first.</small></motion.div></motion.section>
 
       <motion.section className="landing-community" {...revealBlock}><div className="community-avatars" aria-hidden="true"><img src="/marketing/testimonials/maya.png" alt=""/><img src="/marketing/testimonials/jordan.png" alt=""/><img src="/marketing/testimonials/sam.png" alt=""/></div><p>One home for everyone.</p><motion.h2 {...revealHeading}>Built for every family<br/>stage.</motion.h2><span>From first appointments to school runs, teen schedules, and extended family care — FamOS adapts to the way your family actually works.</span><button onClick={()=>go(signedIn?"today":"signup")}>{signedIn?"Open your family space":"Get started"}<ArrowRight/></button><motion.div className="community-facts" {...revealGroup}><motion.article variants={fadeUpSmall}><b>One private home</b><small>Roles and visibility for your people.</small></motion.article><motion.article variants={fadeUpSmall}><b>Meals & kitchen</b><small>Recipes, Cook Mode, and what’s in the pantry.</small></motion.article><motion.article variants={fadeUpSmall}><b>Calendars, together</b><small>Private or shared, with Google sync.</small></motion.article><motion.article variants={fadeUpSmall}><b>Tasks with owners</b><small>Custom lists, routines, and imports you approve.</small></motion.article><motion.article variants={fadeUpSmall}><b>Fam AI, review first</b><small>Helpful proposals that wait for your OK.</small></motion.article></motion.div></motion.section>
@@ -465,6 +464,6 @@ export default function Landing({ signedIn = false }) {
 
     <MarketingFooter signedIn={signedIn} />
 
-    <AnimatePresence>{!heroInView && <motion.div className="landing-sticky-cta" initial={{ y: 90 }} animate={{ y: 0 }} exit={{ y: 90 }} transition={{ duration: 0.32, ease: EASE }}><div><strong>{signedIn ? "Your family space is ready" : `Full access free for ${PRICING_PLAN.trial.days} days`}</strong><small>{signedIn ? "Pick up where you left off" : "Card required · cancel anytime"}</small></div><button onClick={() => go(signedIn ? "today" : "signup")}>{signedIn ? "Open FamOS" : "Start free trial"}<ArrowRight/></button></motion.div>}</AnimatePresence>
+    <AnimatePresence>{!heroInView && <motion.div className="landing-sticky-cta" initial={{ y: 90 }} animate={{ y: 0 }} exit={{ y: 90 }} transition={{ duration: 0.32, ease: EASE }}><div><strong>{signedIn ? "Your family space is ready" : "FamOS Pro from $14.99/month"}</strong><small>{signedIn ? "Pick up where you left off" : "Charged today · cancel future renewals anytime"}</small></div><button onClick={() => go(signedIn ? "today" : "signup")}>{signedIn ? "Open FamOS" : "Choose a plan"}<ArrowRight/></button></motion.div>}</AnimatePresence>
   </div></MotionConfig>;
 }

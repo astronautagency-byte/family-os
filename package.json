@@ -25,7 +25,7 @@
     "mobile:ios:init": "tauri ios init",
     "mobile:ios:build": "tauri ios build --export-method app-store-connect",
     "mobile:ios:prepare": "bash scripts/prepare-ios-appstore.sh",
-    "mobile:ios:archive": "npm run mobile:ios:prepare && tauri ios build --archive-only --export-method app-store-connect --ci",
+    "mobile:ios:archive": "npm run mobile:ios:prepare && VITE_DISTRIBUTION=ios-app-store tauri ios build --archive-only --export-method app-store-connect --build-number ${APP_BUILD_NUMBER:-1} --ci",
     "appstore:check": "echo 'Checking app store metadata...' && cat app-store-metadata/README.md | head -20",
     "tauri": "tauri"
   },

@@ -293,15 +293,15 @@ const ModuleNav = ({ currentId }) => {
  * days — multiple Google Calendars, two-way Google sync..." instead of
  * the across-the-board "Every module unlocked." */
 const FinalCta = ({ feature = null }) => {
-  const headline = feature?.ctaHeadline || "One month free. Every module unlocked.";
-  const copy = feature?.ctaCopy || "Start a 30-day Pro trial with every FamOS feature unlocked. A card is required for the trial, and you can cancel before it ends.";
+  const headline = feature?.ctaHeadline || "Unlock more of FamOS today.";
+  const copy = feature?.ctaCopy || "Subscribe to FamOS Pro and unlock every premium feature immediately. Your selected plan is charged today, and you can cancel future renewals anytime.";
   return (
     <section className="features-final">
       <div className="features-final-inner">
         <h2>{headline}</h2>
         <p>{copy}</p>
         <div className="features-final-actions">
-          <a href="https://home.fam-os.app/sign-up">Start free trial <ArrowRight size={14} /></a>
+          <a href="https://home.fam-os.app/sign-up">Choose a plan <ArrowRight size={14} /></a>
           <a href="/">See pricing</a>
         </div>
       </div>

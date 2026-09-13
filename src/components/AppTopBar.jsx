@@ -1,6 +1,7 @@
 import { Bell, CalendarDays, CheckSquare, Download, Home, MessageCircle, Moon, Refrigerator, Settings2, ShoppingCart, Sparkles, Sun, Tablet, X } from "lucide-react";
 import { DESKTOP_DOWNLOAD_LABEL, DESKTOP_DOWNLOAD_PAGE_URL } from "../lib/downloads";
 import { openExternalUrl } from "../lib/desktopRuntime";
+import { IS_APP_STORE } from "../lib/distribution";
 import { useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
@@ -47,7 +48,7 @@ export default function AppTopBar({ onOpenSettings, onNavigate, onOpenFamAI, dar
     <div className={`topbar-avatar ${tabletMode ? "is-household" : ""}`}>{tabletMode?<Home aria-hidden="true"/>:avatar?<img src={avatar} alt={name}/>:<span>{name.slice(0,1).toUpperCase()}</span>}</div>
     <div className="topbar-brand-group">
       <div className="topbar-wordmark"><img src="/icons/famos-app-icon.png" alt=""/><strong>Fam<span>OS</span></strong>{tabletMode&&<em>{household?.name || "Shared display"}</em>}</div>
-      {!tabletMode && <button className="topbar-download" type="button" onClick={() => openExternalUrl(DESKTOP_DOWNLOAD_PAGE_URL)} aria-label={DESKTOP_DOWNLOAD_LABEL} title={DESKTOP_DOWNLOAD_LABEL}><Download/><span>{DESKTOP_DOWNLOAD_LABEL}</span></button>}
+      {!tabletMode && !IS_APP_STORE && <button className="topbar-download" type="button" onClick={() => openExternalUrl(DESKTOP_DOWNLOAD_PAGE_URL)} aria-label={DESKTOP_DOWNLOAD_LABEL} title={DESKTOP_DOWNLOAD_LABEL}><Download/><span>{DESKTOP_DOWNLOAD_LABEL}</span></button>}
     </div>
     <div className="topbar-actions">
       <button className="m3-icon-button" aria-label={`${bellCount} unread notifications`} aria-expanded={open} onClick={()=>setOpen(v=>!v)}><Bell/>{bellCount>0&&<i>{bellCount>9?"9+":bellCount}</i>}</button>

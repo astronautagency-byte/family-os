@@ -16,7 +16,7 @@ import NativeAdBanner from "../components/NativeAdBanner";
 import ProductUpdateBanner from "../components/ProductUpdateBanner";
 import EmailInbox from "../components/EmailInbox";
 import { AD_PLACEMENTS } from "../lib/adNetwork";
-import { IS_MAC_APP_STORE } from "../lib/distribution";
+import { IS_APP_STORE } from "../lib/distribution";
 
 // Map a normalised weather "kind" (+ day/night) to a lucide icon and label.
 const WEATHER_KIND = {
@@ -605,24 +605,24 @@ export default function Today({ goTo }) {
 
       {/* TODO: Enable when email parser is ready to deploy */false && <div className="px-5"><EmailInbox compact /></div>}
 
-      {isTrial && (
+      {!IS_APP_STORE && isTrial && (
         <div className="today-trial-banner">
           <Sparkles size={18} />
           <div>
             <strong>FamOS {(subscription?.plan || subscription?.plan_key) === "plus" ? "Plus" : "Pro"} trial — {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} left</strong>
-            <span>{IS_MAC_APP_STORE ? "Your current account access is active on this Mac." : "All features are unlocked during your trial. Cancel anytime from Settings."}</span>
+            <span>All features are unlocked during your trial. Cancel anytime from Settings.</span>
           </div>
         </div>
       )}
 
-      {isExpired && (
+      {!IS_APP_STORE && isExpired && (
         <div className="today-trial-expired">
           <Sparkles size={18} />
           <div>
             <strong>Your FamOS {(subscription?.plan || subscription?.plan_key) === "plus" ? "Plus" : "Pro"} trial has ended</strong>
-            <span>{IS_MAC_APP_STORE ? "Advanced features require active plan access on your FamOS account." : "Upgrade to keep using advanced features like calendar sync, recipes, and Fam AI."}</span>
+            <span>Upgrade to keep using advanced features like calendar sync, recipes, and Fam AI.</span>
           </div>
-          {!IS_MAC_APP_STORE && <button type="button" onClick={() => goTo("settings")}>Upgrade</button>}
+          <button type="button" onClick={() => goTo("settings")}>Upgrade</button>
         </div>
       )}
 

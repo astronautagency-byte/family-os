@@ -24,7 +24,7 @@ import { PREMIUM_FEATURE_IDS } from "./data/billingCatalog";
 import { PRICING_PLAN, formatMoney } from "./data/pricingPlan";
 import { clearDesktopAuthState, expectedDesktopAuthState, isTauriRuntime, listenForDesktopAuth } from "./lib/desktopRuntime";
 import { finishDesktopAuthHandoff, redeemDesktopAuthHandoff } from "./lib/desktopAuth";
-import { IS_MAC_APP_STORE } from "./lib/distribution";
+import { IS_APP_STORE } from "./lib/distribution";
 import { checkAndSendLifecycleEmails } from "./lib/onboardingEmails";
 import { checkAndSendTrialExpiryEmails } from "./lib/trialExpiryEmails";
 
@@ -80,19 +80,18 @@ const TOUR_FEATURES = [
 ];
 
 function TrialConfirmationModal({ onClose, onManage }) {
-  const trialEnds = new Date(Date.now() + PRICING_PLAN.trial.days * 86400000).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
-  const proPlan = PRICING_PLAN.plans.find((plan) => plan.id === "pro");
+  const plusPlan = PRICING_PLAN.plans.find((plan) => plan.id === "plus");
   return (
     <div className="trial-confirmation-layer" role="presentation">
       <section className="trial-confirmation-card" role="dialog" aria-modal="true" aria-labelledby="trial-confirmation-title">
         <div className="trial-confirmation-mark"><ShieldCheck size={22} /></div>
-        <p className="feature-tour-eyebrow">FamOS Pro</p>
-        <h2 id="trial-confirmation-title">You’re on FamOS Pro.</h2>
-        <p className="trial-confirmation-copy">Your {PRICING_PLAN.trial.days}-day trial has started.</p>
+        <p className="feature-tour-eyebrow">FamOS Plus</p>
+        <h2 id="trial-confirmation-title">You’re on FamOS Plus.</h2>
+        <p className="trial-confirmation-copy">Your paid access is active now.</p>
         <div className="trial-confirmation-summary">
-          <div><span>Trial ends</span><strong>{trialEnds}</strong></div>
-          <div><span>Today</span><strong>$0</strong></div>
-          <div><span>After trial</span><strong>{formatMoney(proPlan?.price.monthly || 0)}/month</strong></div>
+          <div><span>Plan</span><strong>FamOS Plus</strong></div>
+          <div><span>Charged today</span><strong>{formatMoney(plusPlan?.price.monthly || 0)}</strong></div>
+          <div><span>Renews</span><strong>Monthly until cancelled</strong></div>
         </div>
         <button type="button" className="trial-confirmation-primary" onClick={onClose}>Start Using FamOS</button>
         <button type="button" className="trial-confirmation-secondary" onClick={onManage}>Manage Subscription</button>
@@ -291,6 +290,16 @@ export default function App() {
   const [upgradeFeature, setUpgradeFeature] = useState("");
   const [billingBusy, setBillingBusy] = useState(false);
   const [billingError, setBillingError] = useState("");
+  // Apple builds are a free Core edition. Do not carry paid web entitlements
+  // into the native apps; doing so would unlock digital services purchased
+  // outside Apple's In-App Purchase system.
+  const effectiveEntitlements = useMemo(() => {
+    if (!IS_APP_STORE) return entitlements;
+    return {
+      status: "app_store_core",
+      features: Object.fromEntries(PREMIUM_FEATURE_IDS.map((key) => [key, false])),
+    };
+  }, [entitlements]);
   // Map tab IDs to entitlement feature keys for gating
   // REMOVED: meals and calendar tabs are now free for all users
   // Only specific features within those pages are gated (Google sync, meal suggestions)
@@ -302,7 +311,7 @@ export default function App() {
   const setTab = (next) => {
     // Check if this tab requires a premium entitlement
     const entitlementKey = TAB_ENTITLEMENT_MAP[next];
-    if (entitlementKey && entitlements && entitlements.features?.[entitlementKey] === false) {
+    if (entitlementKey && effectiveEntitlements && effectiveEntitlements.features?.[entitlementKey] === false) {
       setUpgradeFeature("pro");
       setBillingError("");
       return;
@@ -319,8 +328,8 @@ export default function App() {
   const seoPageConfig = SEO_PAGES[publicRoute] || null;
   const featureTourSteps = useMemo(() => TOUR_FEATURES.filter((feature) => {
     if (feature.id === "today" || feature.id === "settings") return true;
-    return runtimeConfig.features?.[feature.featureKey] !== false && entitlements?.features?.[feature.featureKey] !== false;
-  }), [entitlements, runtimeConfig.features]);
+    return runtimeConfig.features?.[feature.featureKey] !== false && effectiveEntitlements?.features?.[feature.featureKey] !== false;
+  }), [effectiveEntitlements, runtimeConfig.features]);
   const featureTourKey = session?.user?.id ? `family-os:feature-tour-seen:v1:${session.user.id}` : "";
 
   useEffect(() => {
@@ -718,7 +727,10 @@ export default function App() {
 
   if (configured && loading) return <AuthLoading />;
   if (configured && passwordRecovery) return <ResetPassword />;
-  if (configured && !session && IS_MAC_APP_STORE && isTauriRuntime()) return <DesktopAuthGate status={desktopAuth.status} error={desktopAuth.error} />;
+  // Store-distributed native builds authenticate inside the app. This avoids
+  // relying on an external-browser handoff that can be blocked by the macOS
+  // App Sandbox while leaving the browser/PWA authentication flow unchanged.
+  if (configured && !session && IS_APP_STORE && isTauriRuntime()) return <SignIn key="native-signin" initialCreating={false} />;
   if (publicRoute === "admin") return <Suspense fallback={<PageFallback />}><Admin /></Suspense>;
   if (publicRoute === "partner") return <Suspense fallback={<PageFallback />}><Partner /></Suspense>;
   if (publicRoute === "features") return <Suspense fallback={<PageFallback />}><Features /></Suspense>;
@@ -751,7 +763,7 @@ export default function App() {
           <AppTopBar
             onOpenSettings={() => setTab("settings")}
             onNavigate={setTab}
-            onOpenFamAI={() => entitlements?.features?.fam_ai === false ? setUpgradeFeature("pro") : setFamAiOpen(true)}
+            onOpenFamAI={IS_APP_STORE ? null : () => effectiveEntitlements?.features?.fam_ai === false ? setUpgradeFeature("pro") : setFamAiOpen(true)}
             darkMode={darkMode}
             onToggleDarkMode={() => setDarkMode((value) => !value)}
             tabletMode={effectiveTabletMode}
@@ -762,8 +774,8 @@ export default function App() {
             <Suspense fallback={<PageFallback />}>
               {upgradeFeature ? <FeaturePaywall featureId={upgradeFeature} onChoose={startFeatureCheckout} onBack={() => setUpgradeFeature("")} busy={billingBusy} error={billingError} /> : <>
               {tab === "today" && <Today goTo={setTab} />}
-              {tab === "calendar" && <CalendarPage entitlements={entitlements} goTo={setTab} />}
-              {tab === "meals" && <Meals entitlements={entitlements} goTo={setTab} />}
+              {tab === "calendar" && <CalendarPage entitlements={effectiveEntitlements} goTo={setTab} />}
+              {tab === "meals" && <Meals entitlements={effectiveEntitlements} goTo={setTab} />}
               {tab === "groceries" && <Groceries />}
               {tab === "kitchen" && <KitchenWatch goTo={setTab} />}
               {tab === "tasks" && <Tasks />}
@@ -778,7 +790,7 @@ export default function App() {
             from inside the sheet simply clears the openFamAI flag. */}
         <ErrorBoundary resetKey={`famai-${famAiOpen}`} fallback={() => null}>
           <Suspense fallback={null}>
-            <FamAI open={famAiOpen} onClose={() => setFamAiOpen(false)} screen={tab} />
+            {!IS_APP_STORE && <FamAI open={famAiOpen} onClose={() => setFamAiOpen(false)} screen={tab} />}
           </Suspense>
         </ErrorBoundary>
         {trialConfirmationOpen && <TrialConfirmationModal onClose={closeTrialConfirmation} onManage={() => { closeTrialConfirmation(); setTab("settings"); }} />}

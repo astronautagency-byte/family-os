@@ -1508,7 +1508,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
         <div className="roulette-upgrade-prompt">
           <Sparkles size={24} />
           <h3>Get personalized meal ideas</h3>
-          <p>{IS_MAC_APP_STORE ? "Meal ideas, recipe suggestions, and Cook Mode require existing FamOS Plus access on your account." : "Meal ideas, recipe suggestions, and Cook Mode are part of FamOS Plus. Start a 30-day free trial to unlock."}</p>
+          <p>{IS_MAC_APP_STORE ? "Meal ideas, recipe suggestions, and Cook Mode require existing FamOS Plus access on your account." : "Meal ideas, recipe suggestions, and Cook Mode are part of FamOS Plus. Subscribe to unlock them immediately."}</p>
           {!IS_MAC_APP_STORE && <PrimaryButton onClick={() => { setRouletteUpgradePrompt(false); goTo?.("settings"); }}>
             <Sparkles size={16} /> Upgrade to FamOS Plus
           </PrimaryButton>}
@@ -1521,7 +1521,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
         <div className="roulette-upgrade-prompt">
           <Sparkles size={24} />
           <h3>Get AI meal suggestions</h3>
-          <p>{IS_MAC_APP_STORE ? "Recipe ideas and Roulette require existing FamOS Plus access on your account." : "Recipe ideas and the Roulette feature are part of FamOS Plus. Start a 30-day free trial to unlock AI-powered meal suggestions."}</p>
+          <p>{IS_MAC_APP_STORE ? "Recipe ideas and Roulette require existing FamOS Plus access on your account." : "Recipe ideas and the Roulette feature are part of FamOS Plus. Subscribe to unlock AI-powered meal suggestions immediately."}</p>
           {!IS_MAC_APP_STORE && <PrimaryButton onClick={() => { setMealUpgradePrompt(false); goTo?.("settings"); }}>
             <Sparkles size={16} /> Upgrade to FamOS Plus
           </PrimaryButton>}

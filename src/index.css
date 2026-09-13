@@ -5,7 +5,7 @@ html, body, #root { min-height:100%; }
 html{overflow-x:hidden;overflow-y:auto;scroll-padding-top:72px}
 
 body {
-  background: #FAFAFA;
+  background: var(--color-canvas);
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -669,12 +669,12 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 
 /* Premium topbar — Airbnb-style floating search bar aesthetic */
 .app-topbar{
-  height:64px;
+  height:calc(64px + env(safe-area-inset-top, 0px));
   display:grid;
   grid-template-columns:44px 1fr auto;
   align-items:center;
   gap:var(--space-4);
-  padding:0 var(--space-5);
+  padding:env(safe-area-inset-top, 0px) var(--space-5) 0;
   border-bottom:1px solid var(--color-border);
   background:rgba(255,255,255,0.92);
   backdrop-filter:blur(24px);
@@ -2247,7 +2247,11 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
   .nav-icon { position:relative; width:30px; height:30px; }
   .nav-label { font-size:12px; }
   .nav-foot { padding:8px 5px 2px; font-size:9px; }
-  .app-topbar { height:60px; padding-inline:16px; }
+  .app-topbar {
+    height:calc(60px + env(safe-area-inset-top, 0px));
+    padding-top:env(safe-area-inset-top, 0px);
+    padding-inline:16px;
+  }
   .page-header { padding-left:24px; padding-right:24px; }
   .reference-tasks .page-header { margin-bottom:16px; }
   .app-content > [class*="reference-"] > .px-5 {

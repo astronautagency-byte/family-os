@@ -11,6 +11,7 @@ import PullToRefresh from "../components/PullToRefresh";
 import { passwordError } from "../utils/passwordStrength";
 import EmailInbox from "../components/EmailInbox";
 import { FAMILY_COLORS } from "../data/mockData";
+import { IS_APP_STORE, IS_MAC_APP_STORE } from "../lib/distribution";
 
 // Settings is split into tabs so the page doesn't read like an essay. Each
 // entry is [tab id, label]; the section markup below carries matching
@@ -22,7 +23,7 @@ const SETTINGS_TABS = [
   ["account", "Account"],
   ["integrations", "Integrations"],
   ["support", "Support"],
-];
+].filter(([id]) => !IS_APP_STORE || id !== "billing");
 import { PRICING_PLAN, formatMoney } from "../data/pricingPlan";
 import { PREMIUM_FEATURES, PLAN_FEATURES, FEATURE_COMPARISON } from "../data/billingCatalog";
 import { supabase } from "../lib/supabase";
@@ -30,7 +31,6 @@ import AddressAutocomplete from "../components/AddressAutocomplete";
 import { formatPhoneInput, isValidPhoneNumber, normalizePhoneE164 } from "../utils/phone";
 import { parseTaskImportText } from "../utils/appleTaskImport";
 import { APP_COLOR_SCHEMES } from "../data/appColorSchemes";
-import { IS_MAC_APP_STORE } from "../lib/distribution";
 
 const HOUSEHOLD_DIETARY_OPTIONS = ["Vegetarian", "Vegan", "Gluten-free", "Dairy-free", "Nut-free", "Shellfish-free", "Low sugar"];
 
@@ -1248,7 +1248,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
           )}
         </section>
 
-        <section data-tab="billing">
+        {!IS_APP_STORE && <section data-tab="billing">
           <h2 className="settings-section-title mb-3">💳 Plan & billing</h2>
           <Card className="p-4">
             {/* Current plan header */}
@@ -1302,7 +1302,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
               <div className={`rounded-xl border ${planFeature?.id === 'plus' ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)]' : 'border-[var(--color-border)] bg-[var(--color-surface)]'} p-3`}>
                 <p className="font-semibold text-[14px] text-[var(--color-ink)]">FamOS Plus</p>
                 <p className="font-[var(--font-display)] text-[24px] font-bold text-[var(--color-accent)] mt-1">${billingInterval === "yearly" ? "149" : "14.99"}<span className="text-[12px] font-normal text-[var(--color-ink-faint)]">/{billingInterval === "yearly" ? "yr" : "mo"}</span></p>
-                <p className="text-[11px] text-[var(--color-ink-faint)]">{billingInterval === "yearly" ? "$14.99/mo equivalent" : "$149/year (save 17%)"}</p>
+                <p className="text-[11px] text-[var(--color-ink-faint)]">{billingInterval === "yearly" ? "$12.42/mo equivalent" : "$149/year (save 17%)"}</p>
                 <p className="text-[12px] text-[var(--color-ink-soft)] mt-2">Calendar sync, recipes, meal planning</p>
                 {(!planFeature || planFeature.id !== 'plus') && (
                   <button type="button" className="mt-3 w-full rounded-lg bg-[var(--color-accent)] text-white text-[13px] font-semibold py-2 px-3 hover:opacity-90 transition-opacity disabled:opacity-40" onClick={() => addPaidFeature('plus', billingInterval)} disabled={billingBusy !== null}>
@@ -1509,7 +1509,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
               </div>
             </Card>
           )}
-        </section>
+        </section>}
 
         <section data-tab="integrations">
           <h2 className="settings-section-title mb-3">🔗 Integrations</h2>

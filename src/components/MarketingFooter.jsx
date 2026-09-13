@@ -53,7 +53,7 @@ const MarketingFooter = ({ signedIn = false }) => {
             <li><a href="/privacy">Privacy</a></li>
             <li><a href="/terms">Terms</a></li>
             {!signedIn && <li><a href="https://home.fam-os.app/sign-in">Sign in</a></li>}
-            {!signedIn && !IS_MAC_APP_STORE && <li><a href="https://home.fam-os.app/sign-up">Start trial</a></li>}
+            {!signedIn && !IS_MAC_APP_STORE && <li><a href="https://home.fam-os.app/sign-up">Choose a plan</a></li>}
             {signedIn && <li><a href="/today">Open FamOS</a></li>}
           </ul>
         </div>

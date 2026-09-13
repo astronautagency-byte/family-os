@@ -116,7 +116,7 @@ export const FEATURES = [
       { headline: "One-tap dinner", copy: "Dinner planned? The hero CTA jumps straight into Cook Mode. One tap. No friction." },
     ],
     ctaHeadline: "Your day at a glance. Whole household, one screen.",
-    ctaCopy: "Start your free trial and try the Today dashboard — broadcasts, weather, today's schedule, every meal, tasks, and kitchen reminders on one page.",
+    ctaCopy: "Subscribe and unlock the Today dashboard immediately — broadcasts, weather, today's schedule, every meal, tasks, and kitchen reminders on one page.",
   },
   {
     id: "calendar",

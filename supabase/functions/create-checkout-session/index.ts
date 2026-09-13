@@ -61,6 +61,7 @@ Deno.serve(async (req) => {
     const priceEnv = PRICE_ENV[feature][billing];
     const priceId = Deno.env.get(priceEnv);
     if (!priceId) return respond({ error: `Stripe price is not configured (${priceEnv}).` }, 500);
+    const frontend = Deno.env.get("FRONTEND_URL") || "https://home.fam-os.app";
 
     const { data: current } = await admin
       .from("account_subscriptions")
@@ -102,7 +103,6 @@ Deno.serve(async (req) => {
       }, { onConflict: "household_id" });
     }
 
-    const frontend = Deno.env.get("FRONTEND_URL") || "https://home.fam-os.app";
     const successUrl = `${frontend}/settings?billing=success&session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${frontend}/settings?billing=cancelled`;
     const session = await stripe.checkout.sessions.create({
@@ -113,8 +113,8 @@ Deno.serve(async (req) => {
       payment_method_types: ["card"],
       payment_method_collection: "always",
       subscription_data: {
-        // Every new paid signup receives the advertised card-backed trial.
-        trial_period_days: 30,
+        // Start paid access immediately. Stripe charges the selected recurring
+        // price when checkout completes; no automatic trial is created.
         metadata: {
           famos_household_id: membership.household_id,
           famos_user_id: user.id,

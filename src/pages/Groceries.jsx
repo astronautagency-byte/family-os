@@ -27,6 +27,7 @@ const isKitchenWatchCategory = (category) => INVENTORY_CATEGORIES.includes(categ
 const emptyPhoto = { file: null, previewUrl: "", remoteUrl: "", uploading: false, error: "" };
 const emptyBarcodeDraft = { ...emptyDraft, code: "", brand: "", price: "", imageUrl: "" };
 const emptyInventoryDraft = { name: "", quantity: 1, unit: "", location: "fridge", expiresOn: "", sourceGroceryId: null, category: INVENTORY_CATEGORIES[0], brand: "", barcode: "", imageUrl: "" };
+import GroceryIllustration from "../components/GroceryIllustration";
 const STAPLES_KEY_PREFIX = "family-os:grocery-staples:";
 const ALL_STAPLES_KEY = "family-os:grocery-staples:all";
 const PRODUCT_LOOKUP_ENDPOINT = "https://world.openfoodfacts.org/api/v2/product";
@@ -86,7 +87,7 @@ function GroceryItemImage({ item, memberById, focus = false }) {
   const src = item.photoUrl || item.imageUrl || "";
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [src]);
-  if (!src || failed) return <GroceryIcon category={item.category} />;
+  if (!src || failed) return <GroceryIllustration name={item.name} category={item.category} size={focus ? 48 : 36} />;
   const uploader = item.photoUrl && item.photoUploadedBy ? memberById[item.photoUploadedBy] : null;
   const size = focus ? 48 : 34;
   const radius = focus ? 11 : 9;
@@ -1251,11 +1252,7 @@ export default function Groceries() {
           <div className="grid grid-cols-2 gap-2">
             {(showAllStaples ? staples : staples.slice(0, 6)).map((staple) => <div key={staple.id} draggable onDragStart={(event) => { event.dataTransfer.setData("application/json", JSON.stringify(staple)); setDragging(true); }} onDragEnd={() => setDragging(false)} className="group relative min-w-0 flex items-center rounded-2xl bg-[var(--color-surface)] notion-shadow overflow-hidden cursor-grab active:cursor-grabbing">
               <button onClick={() => addStapleToList(staple)} className="flex flex-1 min-w-0 items-center gap-2.5 p-2.5 text-left active:bg-[var(--color-accent-soft)] transition-colors" aria-label={`Add ${staple.name} to grocery list`}>
-                {staple.photoUrl || staple.imageUrl ? (
-                  <span className="w-8 h-8 rounded-lg overflow-hidden shrink-0 bg-[var(--color-accent-soft)]"><img src={staple.photoUrl || staple.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = ''; }} /></span>
-                ) : (
-                  <GroceryIcon category={staple.category} size={15} />
-                )}
+                <GroceryItemImage item={staple} memberById={memberById} />
                 <span className="min-w-0 flex-1"><span className="block text-[13.5px] font-medium truncate">{staple.name}</span><span className="block text-[10.5px] text-[var(--color-ink-faint)] truncate">{staple.quantity}{staple.unit ? ` ${staple.unit}` : ""}</span></span>
                 <span className="w-6 h-6 rounded-full bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0"><Plus size={13} color="var(--color-accent)" strokeWidth={2.5} /></span>
               </button>

@@ -61,6 +61,16 @@
   --color-finance-soft: #ECFDF5;
   --color-family: #2563EB;
   --color-family-soft: #EFF6FF;
+  --color-calendar-strong: #1E40AF;
+  --color-meals-strong: #92400E;
+  --color-tasks-strong: #1E40AF;
+  --color-shopping-strong: #115E59;
+  --color-chat-strong: #6B21A8;
+  --color-finance-strong: #065F46;
+  --color-family-strong: #1E40AF;
+  --control-height: 44px;
+  --control-height-sm: 36px;
+  --focus-ring: 0 0 0 3px var(--color-accent-soft);
 
   /* ── Type scale (modest weights, Airbnb-style) ────────────────── */
   --text-xs: 12px;

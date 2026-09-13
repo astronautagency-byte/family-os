@@ -53,7 +53,7 @@ export default function SeoLanding({ config, signedIn }) {
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <a href="/sign-in" style={{ font: "700 14px/1 Inter, sans-serif", color: "#17171f", textDecoration: "none", padding: "11px 17px" }}>Sign in</a>
-          {!IS_MAC_APP_STORE && <a href="/sign-up" style={{ display: "inline-flex", alignItems: "center", borderRadius: 9999, background: "#17171f", color: "#fff", padding: "13px 20px", font: "750 14px/1 Inter, sans-serif", textDecoration: "none" }}>Start free trial</a>}
+          {!IS_MAC_APP_STORE && <a href="/sign-up" style={{ display: "inline-flex", alignItems: "center", borderRadius: 9999, background: "#17171f", color: "#fff", padding: "13px 20px", font: "750 14px/1 Inter, sans-serif", textDecoration: "none" }}>Choose a plan</a>}
         </div>
       </nav>
 
@@ -65,7 +65,7 @@ export default function SeoLanding({ config, signedIn }) {
         <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 30 }}>
           {IS_MAC_APP_STORE
             ? <a href="/sign-in" style={{ display: "inline-flex", alignItems: "center", gap: 9, borderRadius: 9999, background: "#7952e8", color: "#fff", padding: "16px 24px", font: "750 14px/1 Inter, sans-serif", textDecoration: "none" }}>Sign in to FamOS <ArrowRight size={17} /></a>
-            : <a href="/sign-up" style={{ display: "inline-flex", alignItems: "center", gap: 9, borderRadius: 9999, background: "#7952e8", color: "#fff", padding: "16px 24px", font: "750 14px/1 Inter, sans-serif", textDecoration: "none" }}>Start your free trial <ArrowRight size={17} /></a>}
+            : <a href="/sign-up" style={{ display: "inline-flex", alignItems: "center", gap: 9, borderRadius: 9999, background: "#7952e8", color: "#fff", padding: "16px 24px", font: "750 14px/1 Inter, sans-serif", textDecoration: "none" }}>Choose a plan <ArrowRight size={17} /></a>}
           <a href="/features" style={{ display: "inline-flex", alignItems: "center", gap: 9, borderRadius: 9999, border: "1px solid #ded5ff", background: "transparent", color: "#17171f", padding: "16px 24px", font: "700 14px/1 Inter, sans-serif", textDecoration: "none" }}>See all features</a>
         </div>
       </main>
@@ -129,7 +129,7 @@ export default function SeoLanding({ config, signedIn }) {
       <section style={{ maxWidth: 1160, margin: "80px auto", padding: "60px 40px", borderRadius: 32, background: "#7952e8", color: "white", textAlign: "center" }}>
         <h2 style={{ font: "720 clamp(28px,4vw,48px)/1 Inter Tight, sans-serif", letterSpacing: "-.05em", marginBottom: 16 }}>{ctaTitle}</h2>
         <p style={{ fontSize: 16, color: "#e4dfff", marginBottom: 28, maxWidth: 500, margin: "0 auto 28px" }}>{ctaSubtitle}</p>
-        <a href={IS_MAC_APP_STORE ? "/sign-in" : "/sign-up"} style={{ display: "inline-flex", alignItems: "center", borderRadius: 9999, background: "#fff", color: "#17171f", padding: "16px 24px", font: "750 14px/1 Inter, sans-serif", textDecoration: "none" }}>{IS_MAC_APP_STORE ? "Sign in to FamOS" : "Start your free trial"}</a>
+        <a href={IS_MAC_APP_STORE ? "/sign-in" : "/sign-up"} style={{ display: "inline-flex", alignItems: "center", borderRadius: 9999, background: "#fff", color: "#17171f", padding: "16px 24px", font: "750 14px/1 Inter, sans-serif", textDecoration: "none" }}>{IS_MAC_APP_STORE ? "Sign in to FamOS" : "Choose a plan"}</a>
       </section>
 
       {/* Footer */}

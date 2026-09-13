@@ -1,0 +1,46 @@
+/* Shared component contracts, loaded after page styles. */
+.app-shell .page-title {
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: var(--text-page);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -.025em;
+}
+.app-shell .page-subtitle {
+  color: var(--color-ink-soft);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+.kinship-card { border-radius: var(--radius-card); }
+.m3-button, .form-control, .ui-icon-button {
+  border-radius: var(--radius-control);
+  font-family: var(--font-sans);
+}
+.m3-button { min-height: var(--control-height); font-size: var(--text-sm); }
+.m3-button-sm { min-height: var(--control-height-sm); font-size: var(--text-xs); }
+.m3-button-filled { background: var(--color-accent); color: var(--color-on-accent); }
+.m3-button-outlined { color: var(--color-ink); border-color: var(--color-border-strong); background: var(--color-surface); }
+.form-control { color: var(--color-ink); background: var(--color-surface); border-color: var(--color-border-strong); }
+:is(.m3-button,.form-control,.ui-icon-button,.ui-segmented button):focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+.grocery-illustration {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+  background: var(--color-surface-sunken);
+}
+.grocery-illustration svg { display: block; width: 100%; height: 100%; }
+.theme-dark {
+  --color-calendar-strong: #93C5FD;
+  --color-meals-strong: #FCD34D;
+  --color-tasks-strong: #93C5FD;
+  --color-shopping-strong: #5EEAD4;
+  --color-chat-strong: #D8B4FE;
+  --color-finance-strong: #6EE7B7;
+  --color-family-strong: #93C5FD;
+}

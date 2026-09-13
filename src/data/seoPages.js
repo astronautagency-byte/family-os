@@ -75,7 +75,7 @@ const PAGES = {
       { q: "What can Fam AI do?", a: "Fam AI can answer questions about your family's schedule, suggest meals based on what you have, add items to shopping lists, help plan the week, and coordinate activities. It proposes actions and waits for your approval." },
       { q: "Does Fam AI act on its own?", a: "No. Fam AI always proposes actions and requires your approval before making any changes to your calendar, tasks, or lists. You stay in control." },
       { q: "Is my family's data safe with Fam AI?", a: "Yes. Fam AI only accesses information within your household. It never shares data with third parties, and it can't act without your explicit approval." },
-      { q: "Is Fam AI included in the free plan?", a: "Fam AI is a premium feature. You can try it free for 30 days with FamOS Pro. After the trial, it's included in FamOS Plus and Pro plans." },
+      { q: "Is Fam AI included in the free plan?", a: "Fam AI is a premium feature included in FamOS Plus and Pro. Paid access begins immediately after checkout." },
     ],
     ctaTitle: "Your family, powered by AI.",
     ctaSubtitle: "Try Fam AI free for 30 days. No credit card required for the core plan.",
