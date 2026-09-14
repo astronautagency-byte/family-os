@@ -601,7 +601,7 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
         {invitation && !household ? (
           <InvitationStep invitation={invitation} busy={busy} onAccept={() => run(acceptInvitation)} />
         ) : !household ? (
-          <HouseholdNameStep name={name} setName={setName} address={address} setAddress={setAddress} onAddressChange={(place) => {
+          <HouseholdNameStep country={country} name={name} setName={setName} address={address} setAddress={setAddress} onAddressChange={(place) => {
             setAddress(place.address ?? "");
             setCity(place.city || "");
             setRegion(place.region || "");
@@ -707,12 +707,13 @@ function InvitationStep({ invitation, busy, onAccept }) {
   );
 }
 
-function HouseholdNameStep({ name, setName, address, onAddressChange, busy, refreshAccount, session, onContinue }) {
+function HouseholdNameStep({ country, name, setName, address, onAddressChange, busy, refreshAccount, session, onContinue }) {
   return (
     <>
       <TextField label="Household name" placeholder="e.g. The Miller Family" value={name} onChange={(e) => setName(e.target.value)} required />
       <AddressAutocomplete
         label="Home address"
+        country={country}
         value={address}
         placeholder="Start typing your home address"
         onChange={onAddressChange}
@@ -853,6 +854,7 @@ function OwnerProfileStep(props) {
 
         {props.step === 1 && <>
           <AddressAutocomplete
+            country={props.country}
             label="Home address (optional)"
             value={props.address}
             placeholder="Start typing and choose an address"

@@ -808,7 +808,7 @@ export default function Today({ goTo }) {
               </button>
             </div>
             {todaysEvents.length === 0 ? (
-              <EmptyState title="Nothing on the books" subtitle="Add something from the Calendar tab when real life inevitably happens." />
+              <EmptyState title="No events today" subtitle="See what’s ahead or make a plan together." actionLabel="Open calendar" onAction={() => goTo('calendar')} />
             ) : (
               <div className="event-carousel-wrapper"><div className="event-carousel today-event-carousel">
                 {todaysEvents.slice(0, 5).map((ev) => {
@@ -911,7 +911,7 @@ export default function Today({ goTo }) {
               </button>
             </div>
             {activeGroceries.length === 0 ? (
-              <EmptyState title="Grocery list is clear" subtitle="Nothing to pick up right now. Suspicious, but lovely." />
+              <EmptyState title="Shopping list is clear" subtitle="Keep your next shopping trip in one shared list." actionLabel="Open shopping" onAction={() => goTo('groceries')} />
             ) : (
               <>
                 <div className="flex flex-wrap gap-2 mb-3">

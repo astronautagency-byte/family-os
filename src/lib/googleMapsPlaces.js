@@ -1,4 +1,5 @@
 const GOOGLE_MAPS_SCRIPT_ID = "family-os-google-maps-places";
+import { countryCode } from './countries';
 
 let googleMapsPromise;
 
@@ -50,14 +51,14 @@ export function loadGooglePlaces() {
   return googleMapsPromise;
 }
 
-function legacyAutocomplete(google, input, sessionToken) {
+function legacyAutocomplete(google, input, sessionToken, country) {
   const AutocompleteService = google?.maps?.places?.AutocompleteService;
   if (!AutocompleteService) return Promise.reject(new Error("Google Maps autocomplete is unavailable."));
 
   const service = new AutocompleteService();
   return new Promise((resolve, reject) => {
     service.getPlacePredictions(
-      { input, sessionToken },
+      { input, sessionToken, componentRestrictions: { country } },
       (predictions, status) => {
         const ok = google.maps.places.PlacesServiceStatus?.OK || "OK";
         const empty = google.maps.places.PlacesServiceStatus?.ZERO_RESULTS || "ZERO_RESULTS";
@@ -74,20 +75,22 @@ function legacyAutocomplete(google, input, sessionToken) {
   });
 }
 
-export async function fetchGooglePlaceSuggestions({ google, places, input, sessionToken }) {
+export async function fetchGooglePlaceSuggestions({ google, places, input, sessionToken, country }) {
+  const code = countryCode(country);
+  if (!code) return []; // Never silently fall back to worldwide suggestions.
   if (places?.AutocompleteSuggestion?.fetchAutocompleteSuggestions) {
     try {
-      const result = await places.AutocompleteSuggestion.fetchAutocompleteSuggestions({ input, sessionToken });
+      const result = await places.AutocompleteSuggestion.fetchAutocompleteSuggestions({ input, sessionToken, includedRegionCodes: [code] });
       return result?.suggestions || [];
     } catch (newPlacesError) {
       // Projects created before Places API (New) commonly have only the legacy
       // Places endpoint enabled. Keep autocomplete working during that migration.
       try {
-        return await legacyAutocomplete(google, input, sessionToken);
+        return await legacyAutocomplete(google, input, sessionToken, code);
       } catch {
         throw newPlacesError;
       }
     }
   }
-  return legacyAutocomplete(google, input, sessionToken);
+  return legacyAutocomplete(google, input, sessionToken, code);
 }

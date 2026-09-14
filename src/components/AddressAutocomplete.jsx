@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { MapPin } from "./icons";
 import { fetchGooglePlaceSuggestions, googleMapsApiKey, loadGooglePlaces } from "../lib/googleMapsPlaces";
 import { googleAddressParts, googlePredictionText } from "../lib/googleAddress";
+import { COUNTRIES, countryCode } from '../lib/countries';
 
 function geocodeAddress(maps, request) {
   return new Promise((resolve, reject) => {
@@ -14,13 +15,17 @@ function geocodeAddress(maps, request) {
   });
 }
 
-export default function AddressAutocomplete({ label = "Home address", value = "", onChange, placeholder = "Start typing your address" }) {
+export default function AddressAutocomplete({ label = "Home address", value = "", country = '', onChange, placeholder = "Start typing your address" }) {
+  const code = countryCode(country);
   const [suggestions, setSuggestions] = useState([]);
   const [maps, setMaps] = useState(null);
   const [status, setStatus] = useState("");
   const requestRef = useRef(0);
   const sessionTokenRef = useRef(null);
   const resolvedAddressRef = useRef("");
+  const resolutionRef = useRef(0);
+  useEffect(() => { resolvedAddressRef.current=''; setStatus(''); }, [code]);
+  useEffect(() => { resolutionRef.current++; return () => {resolutionRef.current++;}; }, [code, value]);
 
   useEffect(() => {
     loadGooglePlaces()
@@ -33,24 +38,26 @@ export default function AddressAutocomplete({ label = "Home address", value = ""
 
   useEffect(() => {
     const input = value.trim();
-    if (!maps || input.length < 3) {
+    const requestId = ++requestRef.current;
+    setSuggestions([]);
+    if (!maps || !code || input.length < 3 || input === resolvedAddressRef.current) {
       setSuggestions([]);
       return undefined;
     }
-    const requestId = ++requestRef.current;
     const timer = window.setTimeout(async () => {
       try {
-        const results = await fetchGooglePlaceSuggestions({ ...maps, input, sessionToken: sessionTokenRef.current });
+        const results = await fetchGooglePlaceSuggestions({ ...maps, input, country:code, sessionToken: sessionTokenRef.current });
         if (requestId === requestRef.current) setSuggestions(results.slice(0, 6));
       } catch (error) {
         if (requestId === requestRef.current) setStatus(error.message || "Address suggestions are unavailable.");
       }
     }, 180);
-    return () => window.clearTimeout(timer);
-  }, [maps, value]);
+    return () => {window.clearTimeout(timer); requestRef.current++;};
+  }, [maps, value, code]);
 
   const resolveAddress = async (description, placeId, prediction) => {
-    if (!maps || !description?.trim()) return;
+    if (!maps || !code || !description?.trim()) return;
+    const resolutionId=++resolutionRef.current;
     try {
       let result;
       if (typeof prediction?.toPlace === "function") {
@@ -58,9 +65,13 @@ export default function AddressAutocomplete({ label = "Home address", value = ""
         await place.fetchFields({ fields: ["formattedAddress", "addressComponents", "location"] });
         result = place;
       } else {
-        result = await geocodeAddress(maps, placeId ? { placeId } : { address: description.trim() });
+        result = await geocodeAddress(maps, placeId ? { placeId } : { address: description.trim(), componentRestrictions:{country:code} });
       }
       const details = googleAddressParts(result);
+      if(resolutionId!==resolutionRef.current) return;
+      const components=result.address_components || result.addressComponents || [];
+      const region=components.find(item=>item.types?.includes('country'));
+      if(countryCode(region?.short_name || region?.shortText || details.country)!==code) throw new Error('Choose an address in the selected country.');
       if (!Number.isFinite(details.latitude) || !Number.isFinite(details.longitude)) {
         throw new Error("Google Maps did not return coordinates for this address.");
       }
@@ -68,11 +79,13 @@ export default function AddressAutocomplete({ label = "Home address", value = ""
       onChange({ ...details, address: details.address || description });
       setStatus("");
     } catch (error) {
+      if(resolutionId!==resolutionRef.current) return;
       setStatus(error?.message || "Choose an address suggestion so FamOS can find local weather.");
     }
   };
 
   const select = async (suggestion) => {
+    requestRef.current++;
     const prediction = suggestion.placePrediction;
     const description = googlePredictionText(prediction);
     setSuggestions([]);
@@ -95,7 +108,12 @@ export default function AddressAutocomplete({ label = "Home address", value = ""
   const cancelBlur = () => { if (blurTimeoutRef.current) window.clearTimeout(blurTimeoutRef.current); };
 
   return (
-    <label className="form-field address-autocomplete">
+    <div className="address-autocomplete">
+      <label className="form-field"><span className="form-label">Country</span><select className="form-control" value={code} onChange={event=>{
+        requestRef.current++; resolutionRef.current++; setSuggestions([]);
+        onChange({address:'',city:'',region:'',postalCode:'',country:COUNTRIES.find(item=>item.code===event.target.value)?.name||'',latitude:null,longitude:null});
+      }}><option value="">Choose your country</option>{COUNTRIES.map(item=><option key={item.code} value={item.code}>{item.name}</option>)}</select></label>
+    <label className="form-field">
       <span className="form-label">{label}</span>
       <span className="address-autocomplete-control">
         <MapPin size={17} />
@@ -111,7 +129,7 @@ export default function AddressAutocomplete({ label = "Home address", value = ""
               city: "",
               region: "",
               postalCode: "",
-              country: "",
+              country,
               latitude: null,
               longitude: null,
             });
@@ -119,6 +137,7 @@ export default function AddressAutocomplete({ label = "Home address", value = ""
           onBlur={handleBlur}
         />
       </span>
+    </label>
       {suggestions.length > 0 && <span className="address-autocomplete-results" role="listbox">
         {suggestions.map((suggestion, index) => {
           const prediction = suggestion.placePrediction;
@@ -128,6 +147,7 @@ export default function AddressAutocomplete({ label = "Home address", value = ""
       </span>}
       {!googleMapsApiKey && <small className="address-autocomplete-warning">Google Maps is not configured for this deployment.</small>}
       {status && googleMapsApiKey && <small className="address-autocomplete-warning">{status}</small>}
-    </label>
+      {!code && <small>Choose your country to see relevant address suggestions.</small>}
+    </div>
   );
 }

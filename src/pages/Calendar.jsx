@@ -351,7 +351,7 @@ const wmoToKind = (code) => {
   return "cloudy";
 };
 
-function LocationAutocompleteField({ value, onChange }) {
+function LocationAutocompleteField({ value, onChange, country }) {
   const inputRef = useRef(null);
   const onChangeRef = useRef(onChange);
   const googleRef = useRef(null);
@@ -382,18 +382,19 @@ function LocationAutocompleteField({ value, onChange }) {
 
   useEffect(() => {
     const input = value.trim();
-    if (!mapsReady || input.length < 2 || !placesRef.current) { setSuggestions([]); setActiveSuggestion(-1); return undefined; }
     const requestId = ++requestIdRef.current;
+    setSuggestions([]);
+    if (!mapsReady || input.length < 2 || !placesRef.current) { setSuggestions([]); setActiveSuggestion(-1); return undefined; }
     const timer = window.setTimeout(async () => {
       try {
-        const nextSuggestions = await fetchGooglePlaceSuggestions({ google: googleRef.current, places: placesRef.current, input, sessionToken: sessionTokenRef.current });
+        const nextSuggestions = await fetchGooglePlaceSuggestions({ google: googleRef.current, places: placesRef.current, input, country, sessionToken: sessionTokenRef.current });
         if (requestId !== requestIdRef.current) return;
         setSuggestions(nextSuggestions.filter((suggestion) => suggestion.placePrediction).slice(0, 6));
         setActiveSuggestion(-1); setMapsError("");
       } catch { if (requestId !== requestIdRef.current) return; setSuggestions([]); setMapsError("Location suggestions are unavailable right now."); }
     }, 220);
-    return () => window.clearTimeout(timer);
-  }, [mapsReady, value]);
+    return () => { window.clearTimeout(timer); requestIdRef.current++; };
+  }, [mapsReady, value, country]);
 
   const chooseSuggestion = async (suggestion) => {
     const prediction = suggestion?.placePrediction;
@@ -423,6 +424,7 @@ function LocationAutocompleteField({ value, onChange }) {
   return (
     <div className="location-autocomplete-field">
       <span>Location (optional)</span>
+      {!country && <small>Set your home country in Settings for local suggestions. You can still enter a location manually.</small>}
       <div className="location-autocomplete-wrap">
         <div className="location-autocomplete-input">
           <MapPin size={17} />
@@ -1208,6 +1210,10 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
                     return (
                       <button
                         key={key}
+                        type="button"
+                        aria-pressed={active}
+                        aria-current={key === todayStr ? 'date' : undefined}
+                        aria-label={`${d.toLocaleDateString('en-CA', {weekday:'long', month:'long', day:'numeric', year:'numeric'})}, ${cellEvents.length} event${cellEvents.length === 1 ? '' : 's'}`}
                         className={`${inMonth ? "" : "outside"} ${active ? "selected" : ""} ${key === todayStr ? "today" : ""}`}
                         onClick={() => { setSelectedDate(key); }}
                       >
@@ -1226,7 +1232,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
               </div>
             </div>}
 
-          {viewMode !== "month" && <><div className="reference-mobile-agenda"><ReferenceAgenda events={dayEvents} onSelect={setSelectedEvent} colorFor={event => calendarColorFor(event,googleCalendars,googleCalendarColors,famosCalendar?.color)}/></div><div className="reference-desktop-timegrid"><CalendarTimeGrid data-pull-ignore dates={timeGridDates} events={visibleEvents} selectedDate={selectedDate} onSelectDate={setSelectedDate} onSelectEvent={setSelectedEvent} googleCalendars={googleCalendars} googleCalendarColors={googleCalendarColors} famosColor={famosCalendar?.color || "var(--color-family)"} canEditEvent={canEditEvent} onEventChange={handleEventChange} /></div></>}
+          {viewMode !== "month" && <><div className="reference-mobile-agenda"><ReferenceAgenda events={dayEvents} onAdd={() => openAdd()} onSelect={setSelectedEvent} colorFor={event => calendarColorFor(event,googleCalendars,googleCalendarColors,famosCalendar?.color)}/></div><div className="reference-desktop-timegrid"><CalendarTimeGrid data-pull-ignore dates={timeGridDates} events={visibleEvents} selectedDate={selectedDate} onSelectDate={setSelectedDate} onSelectEvent={setSelectedEvent} googleCalendars={googleCalendars} googleCalendarColors={googleCalendarColors} famosColor={famosCalendar?.color || "var(--color-family)"} canEditEvent={canEditEvent} onEventChange={handleEventChange} /></div></>}
 
           {/* ── Agenda below the grid — iOS-style list with section header + inline weather ── */}
           {viewMode === "month" && <div className="calendar-agenda-section" ref={agendaRef} data-pull-ignore>
@@ -1241,8 +1247,9 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
             {dayEvents.length === 0 ? (
               <div className="calendar-empty">
                 <div className="calendar-empty-icon"><CalendarDays size={28} /></div>
-                <strong>A rare patch of open sky</strong>
-                <p>Enjoy the quiet, or tap + before real life fills it.</p>
+                <strong>No events on this day</strong>
+                <p>Add a plan and choose who’s joining.</p>
+                <button type="button" className="empty-state-action" onClick={() => openAdd()}>Add event</button>
               </div>
             ) : (
               <div className="calendar-agenda">
@@ -1308,7 +1315,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
             <DateField label="End date" value={draft.endDate || draft.startDate || draft.date} min={draft.startDate || draft.date} onChange={date => setDraft({ ...draft, endDate: date })} />
             {!draft.allDay && <TextField label="End time" type="time" value={draft.end} onChange={e => setDraft({ ...draft, end: e.target.value })} />}
           </div>
-          <LocationAutocompleteField value={draft.location} onChange={(location) => setDraft((current) => ({ ...current, location }))} />
+          <LocationAutocompleteField country={householdProfileExtra?.country} value={draft.location} onChange={(location) => setDraft((current) => ({ ...current, location }))} />
           <SelectField label="Event type" className="calendar-select-label" value={draft.eventType} onChange={e => setDraft({ ...draft, eventType: e.target.value })}>
               {Object.entries(EVENT_TYPES).map(([key, type]) => <option key={key} value={key}>{type.label}</option>)}
           </SelectField>

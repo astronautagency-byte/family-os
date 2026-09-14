@@ -266,25 +266,45 @@ export function Checkbox({ checked, onChange, color, label = "Toggle selection" 
   );
 }
 
+const openModalStack = [];
 export function Modal({ open, onClose, title, children }) {
+  const dialogRef = useRef(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
     if (!open) return undefined;
+    const dialog = dialogRef.current;
+    const opener = document.activeElement;
+    openModalStack.push(dialog);
+    // Preserve intentional autofocus, e.g. a type-to-confirm field.
+    if (!dialog.contains(document.activeElement)) dialog.focus({ preventScroll: true });
     const closeOnEscape = (event) => {
-      if (event.key === "Escape") onClose();
+      if (openModalStack.at(-1) !== dialog) return;
+      if (event.key === "Escape") { event.preventDefault(); closeRef.current(); }
+      if (event.key === 'Tab') {
+        const controls = [...dialog.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex="0"]')].filter(node => !node.closest('[hidden], [inert]') && getComputedStyle(node).display !== 'none' && getComputedStyle(node).visibility !== 'hidden');
+        const first = controls[0], last = controls.at(-1);
+        if (!first) { event.preventDefault(); dialog.focus(); }
+        else if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog || !dialog.contains(document.activeElement))) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && (document.activeElement === last || document.activeElement === dialog || !dialog.contains(document.activeElement))) { event.preventDefault(); first.focus(); }
+      }
     };
     const unlockBodyScroll = lockBodyScroll();
     document.addEventListener("keydown", closeOnEscape);
     return () => {
       unlockBodyScroll();
       document.removeEventListener("keydown", closeOnEscape);
+      const index = openModalStack.indexOf(dialog);
+      if (index !== -1) openModalStack.splice(index, 1);
+      if (opener?.isConnected && (!openModalStack.length || openModalStack.at(-1).contains(opener))) opener.focus({ preventScroll: true });
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
   return createPortal(
     <div className="m3-dialog-layer fixed inset-0 z-50 flex items-end sm:items-center justify-center" role="presentation">
       <div className="m3-scrim absolute inset-0" onClick={onClose} />
-      <div className="modal-card m3-dialog relative bg-[var(--color-surface)] w-full sm:max-w-sm px-7 pt-7 pb-12 sm:p-8 safe-bottom fade-up max-h-[85vh] overflow-y-auto" role="dialog" aria-modal="true" aria-label={title || "Dialog"}>
+      <div ref={dialogRef} tabIndex={-1} className="modal-card m3-dialog relative bg-[var(--color-surface)] w-full sm:max-w-sm px-7 pt-7 pb-12 sm:p-8 safe-bottom fade-up max-h-[85vh] overflow-y-auto" role="dialog" aria-modal="true" aria-label={title || "Dialog"}>
         <IconButton type="button" className="modal-close-button" onClick={onClose} label="Close dialog"><X size={17} /></IconButton>
         <div className="w-10 h-1 bg-[var(--color-border-strong)] rounded-full mx-auto mb-4 sm:hidden" />
         {title && <h3 className="font-[var(--font-display)] text-[19px] font-semibold mb-5 pr-10">{title}</h3>}
@@ -639,12 +659,13 @@ export function Stepper({ value, onChange, min = 1, max = 99 }) {
   );
 }
 
-export function EmptyState({ icon, title, subtitle }) {
+export function EmptyState({ icon, title, subtitle, actionLabel, onAction }) {
   return (
     <div className="flex flex-col items-center justify-center text-center py-12 px-6">
       {icon && <div className="mb-3 text-[var(--color-ink-faint)]">{icon}</div>}
       <p className="font-medium text-[var(--color-ink)] mb-1">{title}</p>
       {subtitle && <p className="text-sm text-[var(--color-ink-soft)] max-w-[26ch]">{subtitle}</p>}
+      {actionLabel && onAction && <button type="button" className="empty-state-action" onClick={onAction}>{actionLabel}</button>}
     </div>
   );
 }

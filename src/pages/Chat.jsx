@@ -216,7 +216,7 @@ export default function Chat() {
 
   return (
     <PullToRefresh onRefresh={refreshData}><div className="chat-page-shell famos-noscroll reference-chat">
-      <PageHeader eyebrow="Private conversations" title="Chat, minus the chaos." illustration="chat" subtitle="Fewer message archaeology expeditions. More actual answers." />
+      <PageHeader title="Family Chat" illustration="chat" subtitle="Messages and plans, together in one place." />
 
       <div className="px-5 mt-1 mb-2 flex gap-2 overflow-x-auto pb-1">
         <button onClick={() => { setActiveThread("household"); setSendError(""); }} className="shrink-0 flex items-center gap-2 rounded-full border pl-2 pr-3 py-1.5 transition-colors" style={{ borderColor: activeThread === "household" ? "var(--color-chat)" : "var(--color-border)", backgroundColor: activeThread === "household" ? "var(--color-chat-soft)" : "var(--color-surface)", color: activeThread === "household" ? "var(--color-chat-strong)" : "var(--color-ink-soft)" }}><span className="w-7 h-7 rounded-full bg-[var(--pastel-mint)] grid place-items-center"><UsersRound size={14} /></span><span className="text-[12.5px] font-semibold">Everyone</span></button>

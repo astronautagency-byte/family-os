@@ -2,6 +2,13 @@ import { it, expect, vi } from 'vitest';
 import { render, fireEvent, within } from '@testing-library/react';
 import BottomNav from '../BottomNav';
 vi.mock('../../context/FamilyContext', () => ({ useFamily: () => ({ unreadMessageCount: 2 }) }));
+it('adds directly to the current feature from the mobile plus', () => {
+ const add=vi.fn();
+ const {getByRole,queryByRole}=render(<BottomNav active="groceries" onChange={vi.fn()} onAdd={add}/>);
+ fireEvent.click(within(getByRole('navigation',{name:'Mobile navigation'})).getByRole('button',{name:'Add grocery item'}));
+ expect(add).toHaveBeenCalledWith('groceries');
+ expect(queryByRole('dialog')).toBeNull();
+});
 it('uses direct add actions rather than navigation from the plus menu', () => {
   const add = vi.fn(), change = vi.fn();
   const { getByRole } = render(<BottomNav active="today" onChange={change} onAdd={add}/>);

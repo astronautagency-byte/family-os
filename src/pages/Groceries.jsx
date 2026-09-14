@@ -1237,7 +1237,7 @@ export default function Groceries() {
         <div onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={dropStaple} className={`rounded-2xl transition-all ${dragging ? "ring-2 ring-[var(--color-accent)] bg-[var(--color-accent-soft)] p-2" : ""}`}>
           {dragging && <p className="text-center text-[12px] font-semibold text-[var(--color-accent)] py-3">Drop here to add to your list</p>}
         {groceries.length === 0 ? (
-          <EmptyState title="The list is gloriously empty" subtitle="Add the first thing before someone remembers it in the parking lot." />
+          <EmptyState icon={<ShoppingCart size={32}/>} title="Your shopping list is ready" subtitle="Add what your family needs. Everyone can update the same list." actionLabel="Add grocery item" onAction={openNew} />
         ) : (
           Object.entries(grouped).map(([cat, items]) =>
             items.length === 0 ? null : (

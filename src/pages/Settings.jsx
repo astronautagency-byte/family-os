@@ -1801,6 +1801,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
           ? <TextField label="Household name" value={householdName} onChange={(event) => setHouseholdName(event.target.value)} placeholder="e.g. The Miller Family" />
           : <p className="settings-household-note">Adding the shared home address and dietary preferences for <strong>{household?.name}</strong>. Only the master owner can rename the household.</p>}
         <AddressAutocomplete
+          country={householdCountry}
           value={householdAddress}
           onChange={(place) => {
             setHouseholdAddress(place.address ?? householdAddress);

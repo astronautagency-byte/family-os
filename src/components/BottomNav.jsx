@@ -18,11 +18,13 @@ const TABS = [
 ];
 
 const FEATURE_KEYS = { calendar: "calendar", meals: "meals", tasks: "tasks", groceries: "groceries", kitchen: "kitchen", chat: "chat" };
+const ADD_LABELS = { calendar:'Add event', tasks:'Add task', groceries:'Add grocery item', kitchen:'Add kitchen item', meals:'Add meal' };
 
 export default function BottomNav({ active, onChange, onAdd, onOpenAI, features = {}, tabletMode = false }) {
   const [sheet, setSheet] = useState(null);
   const navigate = (id) => { setSheet(null); onChange(id); };
   const { unreadMessageCount = 0 } = useFamily();
+  const contextualAdd = onAdd && ADD_LABELS[active] && features[FEATURE_KEYS[active]] !== false;
   const visibleTabs = TABS.filter((tab) => {
     return tab.id === "today" || features[FEATURE_KEYS[tab.id]] !== false;
   });
@@ -65,7 +67,7 @@ export default function BottomNav({ active, onChange, onAdd, onOpenAI, features 
     <nav className="reference-mobile-nav" aria-label="Mobile navigation">
       <button onClick={() => navigate('today')} aria-current={active === 'today' ? 'page' : undefined}><Home size={21}/><span>Home</span></button>
       {features.calendar !== false ? <button onClick={() => navigate('calendar')} aria-current={active === 'calendar' ? 'page' : undefined}><CalendarDays size={21}/><span>Calendar</span></button> : <span/>}
-      <button className="reference-add-button" onClick={() => setSheet('add')} aria-label="Open quick actions" aria-expanded={sheet === 'add'}><Plus size={28}/></button>
+      <button className="reference-add-button" onClick={() => contextualAdd ? onAdd(active) : setSheet('add')} aria-label={contextualAdd ? ADD_LABELS[active] : 'Open quick actions'} aria-expanded={contextualAdd ? undefined : sheet === 'add'}><Plus size={28}/></button>
       {features.chat !== false ? <button onClick={() => navigate('chat')} aria-current={active === 'chat' ? 'page' : undefined}><MessageCircle size={21}/><span>Chat{unreadMessageCount > 0 ? ` (${unreadMessageCount > 9 ? '9+' : unreadMessageCount})` : ''}</span></button> : <span/>}
       <button onClick={() => setSheet('more')} aria-expanded={sheet === 'more'} aria-current={!['today','calendar','chat'].includes(active) ? 'page' : undefined}><MoreHorizontal size={21}/><span>More</span></button>
     </nav>
