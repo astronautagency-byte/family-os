@@ -4,6 +4,18 @@ import GroceryIllustration, { groceryIllustrationKind } from '../GroceryIllustra
 import { GROCERY_ICONS, GROCERY_CATEGORY_ICONS } from '../../data/groceryIcons';
 
 describe('grocery illustrations', () => {
+  it('clips every atlas cell independently of square viewport letterboxing', () => {
+    const {container}=render(<>{Object.keys(GROCERY_ICONS).map(icon=><GroceryIllustration key={icon} icon={icon}/>)}</>);
+    const ids=new Set();
+    for(const svg of container.querySelectorAll('svg')){
+      const clip=svg.querySelector('clipPath');
+      const rect=clip.querySelector('rect');
+      expect(['x','y','width','height'].map(key=>rect.getAttribute(key)).join(' ')).toBe(svg.getAttribute('viewBox'));
+      expect(svg.querySelector('image').getAttribute('clip-path')).toBe(`url(#${clip.id})`);
+      ids.add(clip.id);
+    }
+    expect(ids.size).toBe(48);
+  });
   it('matches whole item names before category fallbacks', () => {
     expect(groceryIllustrationKind('BANANAS', 'Produce')).toBe('banana');
     expect(groceryIllustrationKind('Cheddar cheese', 'Dairy & Eggs')).toBe('cheese');
