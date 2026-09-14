@@ -1,11 +1,14 @@
 .famos-icon { display:inline-block; flex-shrink:0; vertical-align:middle; overflow:visible; }
-/* Lucide appends custom children; paint the wash behind its original geometry. */
-.famos-icon-wash { opacity:.55; mix-blend-mode:multiply; }
-.famos-icon--illustration > rect:not([fill]),
-.famos-icon--illustration > polygon:not([fill]),
-.famos-icon--illustration > path[d$="z" i]:not([fill]) { fill:var(--icon-paper); }
-.famos-icon--utility { stroke-linecap:round; stroke-linejoin:round; }
+/* Secondary icons retain recognizable geometry; no wash or blended fills. */
+.famos-icon { stroke-linecap:round; stroke-linejoin:round; }
+.famos-icon--adapted > :nth-child(3n + 2) { stroke:var(--icon-secondary); }
+.famos-icon--adapted > :nth-child(3n) { stroke:var(--icon-accent); }
+.famos-icon--adapted > circle { fill:var(--icon-accent); }
+.famos-icon--adapted > circle[r="10"], .famos-icon--adapted > circle[r="9"] { fill:none; }
+.famos-icon--mono > * { stroke:currentColor; }
+.famos-icon--mono [fill]:not([fill="none"]) { fill:currentColor; }
 @media (forced-colors:active) {
   .famos-icon { forced-color-adjust:auto; }
-  .famos-icon-wash { display:none; }
+  .famos-icon * { stroke:CanvasText; }
+  .famos-icon [fill]:not([fill="none"]) { fill:CanvasText; }
 }

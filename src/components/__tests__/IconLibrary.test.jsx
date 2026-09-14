@@ -25,3 +25,16 @@ it('keeps utility icons legible on coloured action buttons',()=>{
   expect(container.querySelector('svg').getAttribute('stroke')).toBe('white');
   expect(container.querySelector('.famos-icon-wash')).toBeNull();
 });
+it('uses flat vector geometry without raster images, gradients or washes',()=>{
+ for(const Icon of Object.values(icons)){
+  const {container,unmount}=render(<Icon/>);
+  expect(container.querySelector('image, linearGradient, radialGradient, filter, .famos-icon-wash')).toBeNull();
+  expect(container.querySelector('svg').getAttribute('stroke-width')).toBe('2.2');
+  unmount();
+ }
+});
+it('honours explicit accessibility and absolute stroke widths for custom artwork',()=>{
+ const {container}=render(<icons.Home size={48} strokeWidth={2} absoluteStrokeWidth aria-hidden={false}/>);
+ expect(container.querySelector('svg').getAttribute('aria-hidden')).toBe('false');
+ expect(container.querySelector('svg').getAttribute('stroke-width')).toBe('1');
+});

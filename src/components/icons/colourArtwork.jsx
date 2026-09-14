@@ -1,0 +1,23 @@
+// Original colour-outline drawings: shared 24px grid and flat palette.
+const c='var(--icon-cyan)',m='var(--icon-mint)',y='var(--icon-yellow)',r='var(--icon-coral)',p='var(--icon-purple)';
+const house=<><path stroke={c} d="M5 10v10h14V10"/><path stroke={r} d="m2 11 10-8 10 8"/><path stroke={y} fill={y} d="M10 20v-5a2 2 0 0 1 4 0v5"/><path stroke={m} d="M10 10h4"/></>;
+const calendar=<><rect stroke={m} x="3" y="5" width="18" height="16" rx="3"/><path stroke={m} d="M3 10h18"/><path stroke={p} d="M8 3v4m8-4v4"/><path stroke={y} d="M7 14h1m-1 4h1m8 0h1"/><path stroke={r} d="M12 14h1"/><path stroke={c} d="M16 14h1m-5 4h1"/></>;
+const tasks=<><path stroke={p} d="M8 5H6a3 3 0 0 0-3 3v11a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3h-2"/><path stroke={y} d="M8 6V4h2a2 2 0 0 1 4 0h2v2Z"/><path stroke={m} d="m7 11 1 1 2-2m-3 7 1 1 2-2"/><path stroke={p} d="M14 11h3m-3 6h3"/></>;
+const cart=<><path stroke={r} fill={r} d="M10 8c-3-3-5 2-2 4h4c3-2 1-7-2-4Z"/><path stroke={m} d="m10 7 2-2"/><path stroke={y} d="m16 11 1-7h3l-1 7"/><path stroke={c} d="M2 5h3l3 12h11l3-7H6"/><circle stroke={p} cx="9" cy="21" r="1"/><circle stroke={p} cx="18" cy="21" r="1"/></>;
+const fridge=<><rect stroke={y} x="5" y="2" width="14" height="20" rx="3"/><path stroke={c} d="M5 10h14M9 5v2m0 7v4"/></>;
+const meals=<><circle stroke={c} cx="12" cy="12" r="6"/><circle stroke={r} cx="12" cy="12" r="3"/><path stroke={m} d="M2 3v6m2-6v6M1 7h4M3 9v12"/><path stroke={y} d="M21 12v9"/><ellipse stroke={y} fill={y} cx="21" cy="7" rx="1.5" ry="4"/></>;
+const chat=<><path stroke={p} d="M6 3h12a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4H9l-5 3v-4a4 4 0 0 1-2-3V7a4 4 0 0 1 4-4Z"/><circle fill={c} stroke="none" cx="7" cy="11" r="1.5"/><circle fill={m} stroke="none" cx="12" cy="11" r="1.5"/><circle fill={y} stroke="none" cx="17" cy="11" r="1.5"/></>;
+const family=<><circle stroke={m} cx="12" cy="6" r="3"/><path stroke={m} d="M7 21v-3a5 5 0 0 1 10 0v3"/><circle stroke={r} fill={r} cx="3" cy="11" r="1.5"/><path stroke={r} d="M1 21v-2a3 3 0 0 1 4-3"/><circle stroke={p} fill={p} cx="21" cy="11" r="1.5"/><path stroke={p} d="M23 21v-2a3 3 0 0 0-4-3"/></>;
+const bot=<><path stroke={y} d="M12 3v4"/><circle stroke={y} cx="12" cy="2" r="1"/><path stroke={p} d="M2 12v5m20-5v5"/><rect stroke={c} x="5" y="7" width="14" height="15" rx="4"/><circle fill={m} stroke="none" cx="9" cy="13" r="1.5"/><circle fill={m} stroke="none" cx="15" cy="13" r="1.5"/><path stroke={p} d="M10 18q2 2 4 0"/></>;
+const bell=<><path stroke={r} d="M4 17c3-3 2-5 3-9a5 5 0 0 1 10 0c1 4 0 6 3 9Z"/><path stroke={r} d="M12 2v1"/><path stroke={y} d="M9 20a3 3 0 0 0 6 0"/></>;
+const gear=<><path stroke={m} d="m9 2 6 0 .6 3 2 .9 2.8-.9 2 4-2.2 2v2l2.2 2-2 4-2.8-.9-2 .9-.6 3H9l-.6-3-2-.9-2.8.9-2-4 2.2-2v-2L1.6 9l2-4 2.8.9 2-.9Z"/><circle stroke={y} cx="12" cy="12" r="3"/></>;
+const wallet=<><path stroke={m} d="M7 6V3l11-1v5m-7-1 3-.5"/><rect stroke={p} x="2" y="7" width="20" height="14" rx="3"/><path stroke={y} fill={y} d="M22 11h-5a3 3 0 0 0 0 6h5Z"/><circle stroke="none" fill={p} cx="17" cy="14" r="1"/></>;
+const heart=<path stroke={r} fill={p} d="M12 21C-5 10 4-3 12 6c8-9 17 4 0 15Z"/>;
+const star=<path stroke={y} fill={r} d="m12 2 3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1Z"/>;
+const leaf=<><path stroke={m} fill={y} d="M22 3C6 2-1 11 6 18c8 8 16-2 16-15Z"/><path stroke={m} d="M3 22 18 7"/></>;
+const clock=<><circle stroke={r} cx="12" cy="12" r="10"/><path stroke={p} d="M12 6v6l4 3"/></>;
+const mail=<><rect stroke={m} x="2" y="5" width="20" height="15" rx="3"/><path stroke={y} d="m3 7 9 7 9-7"/></>;
+const pin=<><path stroke={r} fill={p} d="M12 22S3 13 3 10a9 9 0 0 1 18 0c0 3-9 12-9 12Z"/><circle stroke="none" fill={y} cx="12" cy="10" r="3"/></>;
+const sun=<><circle stroke={y} fill={r} cx="12" cy="12" r="5"/><path stroke={y} d="M12 1v2m0 18v2M1 12h2m18 0h2M4 4l1 1m14 14 1 1M4 20l1-1M19 5l1-1"/></>;
+const badge=<><circle stroke={p} fill={m} cx="18" cy="18" r="5"/><path stroke="#18283E" strokeWidth="1.5" d="M18 15.5v5m-2.5-2.5h5"/></>;
+export const artwork={Home:house,House:house,Calendar:calendar,CalendarDays:calendar,CheckSquare:tasks,ListChecks:tasks,ListTodo:tasks,ClipboardList:tasks,ShoppingCart:cart,MessageCircle:chat,Refrigerator:fridge,Utensils:meals,Users:family,UsersRound:family,Bot:bot,Bell:bell,Settings:gear,WalletCards:wallet,Heart:heart,Star:star,Leaf:leaf,Clock:clock,Clock3:clock,Mail:mail,MapPin:pin,Sun:sun,CalendarPlus:<>{calendar}{badge}</>,MessageSquarePlus:<>{chat}{badge}</>,ListPlus:<>{tasks}{badge}</>};
