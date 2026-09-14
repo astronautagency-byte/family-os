@@ -17,6 +17,7 @@ export function ColorSchemePicker({ value, onChange, label = "App colour schemes
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  if (APP_COLOR_SCHEMES.length === 1) return <div className={`color-scheme-picker ${className}`}><strong>{selected.label}</strong><p className="setup-help">{selected.note}. Use light or dark mode to suit your screen.</p></div>;
   return (
     <div className={`color-scheme-picker ${className}`} ref={detailsRef}>
       <button

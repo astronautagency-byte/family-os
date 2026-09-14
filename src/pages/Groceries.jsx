@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ShoppingCart } from '../components/icons';
 import { Baby, Bone, Camera, Carrot, Check, CheckCircle2, ChevronDown, Clipboard, Clock3, Coffee, Cookie, Croissant, CupSoda, Download, Drumstick, ExternalLink, FlaskConical, Globe2, GripVertical, HeartPulse, Image as ImageIcon, ListChecks, LoaderCircle, Maximize2, Milk, Minus, Package, Pencil, Plus, Refrigerator, RotateCcw, Sandwich, ScanLine, ScrollText, Search, Share2, ShoppingBag, ShoppingBasket, Snowflake, Soup, Sparkles, SprayCan, Star, Store, Trash2, Truck, Upload, Wheat, Wine, X } from "../components/icons";
 import { uploadGroceryPhoto, isUploadableImage, deleteGroceryPhoto, compressImage } from "../lib/groceryPhotoUpload";
 import { useAuth } from "../context/AuthContext";

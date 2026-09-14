@@ -33,8 +33,17 @@ it('uses flat vector geometry without raster images, gradients or washes',()=>{
   unmount();
  }
 });
-it('honours explicit accessibility and absolute stroke widths for custom artwork',()=>{
+it('honours explicit accessibility and absolute stroke widths',()=>{
  const {container}=render(<icons.Home size={48} strokeWidth={2} absoluteStrokeWidth aria-hidden={false}/>);
  expect(container.querySelector('svg').getAttribute('aria-hidden')).toBe('false');
  expect(container.querySelector('svg').getAttribute('stroke-width')).toBe('1');
+});
+it('keeps every UI icon single-colour with no decorative fills',()=>{
+ for(const Icon of Object.values(icons)){
+  const {container,unmount}=render(<Icon/>);
+  expect(container.querySelector('svg').getAttribute('stroke')).toBe('currentColor');
+  expect(container.querySelector('svg').getAttribute('fill')).toBe('none');
+  expect(container.querySelector('[style*="--icon-"]')).toBeNull();
+  unmount();
+ }
 });

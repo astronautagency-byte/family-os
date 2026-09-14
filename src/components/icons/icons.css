@@ -1,14 +1,2 @@
-.famos-icon { display:inline-block; flex-shrink:0; vertical-align:middle; overflow:visible; }
-/* Secondary icons retain recognizable geometry; no wash or blended fills. */
-.famos-icon { stroke-linecap:round; stroke-linejoin:round; }
-.famos-icon--adapted > :nth-child(3n + 2) { stroke:var(--icon-secondary); }
-.famos-icon--adapted > :nth-child(3n) { stroke:var(--icon-accent); }
-.famos-icon--adapted > circle { fill:var(--icon-accent); }
-.famos-icon--adapted > circle[r="10"], .famos-icon--adapted > circle[r="9"] { fill:none; }
-.famos-icon--mono > * { stroke:currentColor; }
-.famos-icon--mono [fill]:not([fill="none"]) { fill:currentColor; }
-@media (forced-colors:active) {
-  .famos-icon { forced-color-adjust:auto; }
-  .famos-icon * { stroke:CanvasText; }
-  .famos-icon [fill]:not([fill="none"]) { fill:CanvasText; }
-}
+.famos-icon { display:inline-block; flex-shrink:0; vertical-align:middle; stroke-linecap:round; stroke-linejoin:round; }
+@media(forced-colors:active) { .famos-icon { forced-color-adjust:auto; } }

@@ -1,0 +1,40 @@
+/* One functional palette regardless of previously saved decorative schemes.
+   Member colours, event-source colours and food illustrations remain intact. */
+:root[data-famos-theme], .app-shell, .app-shell[data-color-scheme] {
+ --color-canvas:#F5F7F6; --color-surface:#FFFFFF; --color-surface-sunken:#EDF1EF;
+ --color-ink:#172B25; --color-ink-soft:#485D55; --color-ink-faint:#596B64;
+ --color-border:#D4DDD8; --color-border-strong:#859A8F;
+ --color-accent:#08764F; --color-accent-hover:#065E40; --color-accent-strong:#086444;
+ --color-accent-soft:#E5F2EB; --color-on-accent:#FFFFFF;
+ --color-danger:#B42318; --color-warn:#845400; --color-good:#08764F;
+ --color-today:var(--color-accent); --color-tasks:var(--color-accent);
+ --color-calendar:var(--color-accent); --color-meals:var(--color-accent);
+ --color-shopping:var(--color-accent); --color-chat:var(--color-accent);
+ --color-family:var(--color-accent);
+ --color-tasks-soft:var(--color-surface-sunken); --color-calendar-soft:var(--color-surface-sunken);
+ --color-meals-soft:var(--color-surface-sunken); --color-shopping-soft:var(--color-surface-sunken);
+ --color-chat-soft:var(--color-surface-sunken); --color-family-soft:var(--color-surface-sunken);
+}
+:root[data-famos-theme="dark"], .app-shell.theme-dark, .app-shell.theme-dark[data-color-scheme] {
+ --color-canvas:#111C18; --color-surface:#192822; --color-surface-sunken:#22372E;
+ --color-ink:#F3F7F5; --color-ink-soft:#CBD8D1; --color-ink-faint:#AEBCB4;
+ --color-border:#435B4E; --color-border-strong:#789285;
+ --color-accent:#A0E2BD; --color-accent-hover:#BEEED2; --color-accent-strong:#A0E2BD;
+ --color-accent-soft:#224C38; --color-on-accent:#10271B;
+ --color-danger:#FFB4AB; --color-warn:#F2D18B; --color-good:#A0E2BD;
+}
+.app-shell :is(.reference-home-shortcuts>button,.reference-action-icon,.illustrated-icon-box),
+.reference-action-list .reference-action-icon {
+ background:var(--color-surface-sunken); color:var(--color-ink-soft);
+ --module-soft:var(--color-surface-sunken); --module-ink:var(--color-ink-soft);
+}
+.app-shell :is(.task-group-title h2,.grocery-category-title h2) { color:var(--color-ink); }
+.app-shell :is(.task-list-switcher,.shopping-list-switcher) button:not(.selected):not([aria-selected="true"]) { color:var(--color-ink-soft); }
+.app-shell :is(.task-list-switcher,.shopping-list-switcher) button.selected,
+.app-shell .task-list-tab.selected>button:first-child { color:var(--color-on-accent); background:var(--color-accent); }
+.app-shell :is(.reference-add-button,.page-add-button,.m3-button-filled,.task-inline-submit) { background:var(--color-accent); color:var(--color-on-accent); }
+.app-shell :is(.reference-add-button,.page-add-button,.m3-button-filled,.task-inline-submit) .famos-icon { color:inherit; }
+.app-shell .reference-mobile-nav>button:not(.reference-add-button) { color:var(--color-ink-soft); }
+.app-shell .reference-mobile-nav>button[aria-current="page"] { color:var(--color-accent-strong); }
+.app-shell :is(.task-row-delete,.task-toolbar-reset,.page-reset-button) { color:var(--color-danger); }
+@media(max-width:767px) { .app-shell .page-add-button { background:transparent; color:var(--color-accent-strong); } }
