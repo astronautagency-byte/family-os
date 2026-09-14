@@ -8,7 +8,7 @@ import PageHeader from "../components/PageHeader";
 import usePageAdd from '../hooks/usePageAdd';
 import PullToRefresh from "../components/PullToRefresh";
 import ConfirmAction from "../components/ConfirmAction";
-import CelebrationConfetti from "../components/CelebrationConfetti";
+import CompletionScreen from "../components/CompletionScreen";
 import NativeAdBanner from "../components/NativeAdBanner";
 import { AD_PLACEMENTS } from "../lib/adNetwork";
 import { FocusShoppingItem } from "../components/FocusShoppingItem";
@@ -285,7 +285,6 @@ export default function Groceries() {
   const photoCameraInputRef = useRef(null);
   const photoLibraryInputRef = useRef(null);
   const photoPickIdRef = useRef(0);
-  const celebrationTimerRef = useRef(null);
 
   const onPickPhotoFile = async (event) => {
     const file = event.target.files?.[0];
@@ -473,20 +472,17 @@ export default function Groceries() {
   };
   const changeInventoryQuantity = (item, delta) => updateInventoryItem(item.id, { quantity: Math.max(1, Number(item.quantity || 1) + delta) });
   const handleToggleGrocery = async (item) => {
-    const completesList = !item.checked && groceries.filter((grocery) => !grocery.checked).length === 1;
-    await toggleGrocery(item.id);
+    const completesList = !item.checked && activeGroceries.filter((grocery) => !grocery.checked).length === 1;
+    const saved = await toggleGrocery(item.id);
+    if (!saved) return;
     const purchasedCategory = categorizeGroceryItem(item.name, item.category);
     if (!item.checked && isKitchenWatchCategory(purchasedCategory) && !inventoriedSourceIds.has(item.id)) {
       setWatchPromptItem({ ...item, category: purchasedCategory });
     }
     if (!completesList) return;
-    window.clearTimeout(celebrationTimerRef.current);
-    setListCelebration(false);
-    window.requestAnimationFrame(() => setListCelebration(true));
-    celebrationTimerRef.current = window.setTimeout(() => setListCelebration(false), 2800);
+    setListCelebration(true);
   };
 
-  useEffect(() => () => window.clearTimeout(celebrationTimerRef.current), []);
   const deliveryItems = useMemo(() => activeGroceries.filter((item) => !item.checked), [activeGroceries]);
   const deliveryListText = useMemo(() => {
     if (!deliveryItems.length) return "";
@@ -1050,13 +1046,7 @@ export default function Groceries() {
 
   return (
     <PullToRefresh onRefresh={refreshData}><div className="pb-28 reference-groceries famos-noscroll">
-      {listCelebration && (
-        <><CelebrationConfetti intensity={52} /><div className="shopping-complete-backdrop" onClick={() => { window.clearTimeout(celebrationTimerRef.current); setListCelebration(false); }} /><div className="shopping-complete-celebration" role="status" aria-live="polite">
-          <span className="shopping-complete-particles" aria-hidden="true">{Array.from({ length: 8 }, (_, index) => <i key={index} />)}</span>
-          <span className="shopping-complete-icon" aria-hidden="true"><CheckCircle2 size={24} /></span>
-          <span><strong>Cart conquered</strong><small>Every last item. Nicely done.</small></span>
-        </div></>
-      )}
+      {listCelebration && <CompletionScreen kind="shopping" onClose={() => setListCelebration(false)}/>}
       <PageHeader
         title="Shopping"
         onAdd={openNew}

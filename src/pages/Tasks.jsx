@@ -12,12 +12,15 @@ import { todayISO } from "../lib/dates";
 import { buildShareUrl } from "../lib/share";
 import ShareSheet from "../components/ShareSheet";
 import { fireConfetti } from "../lib/confetti";
+import CompletionScreen from '../components/CompletionScreen';
 
 const GROUPS={home:{label:"Housework",Icon:House,tone:"violet",color:"#6b5ce7"},errand:{label:"Errands",Icon:ShoppingBag,tone:"green",color:"#3b8c75"},school:{label:"School",Icon:GraduationCap,tone:"slate",color:"#4b7ec5"},family:{label:"Family",Icon:Users,tone:"rose",color:"#d66b83"},work:{label:"Work",Icon:BriefcaseBusiness,tone:"amber",color:"#c98232"},personal:{label:"Personal",Icon:House,tone:"violet",color:"#756d8d"}};
 const LIST_COLORS=[{value:"#6b5ce7",label:"Violet"},{value:"#d66b83",label:"Rose"},{value:"#b95f3b",label:"Coral"},{value:"#c98232",label:"Amber"},{value:"#3b8c75",label:"Green"},{value:"#2f8b9d",label:"Teal"},{value:"#4b7ec5",label:"Blue"},{value:"#756d8d",label:"Slate"}];
 
 export default function Tasks(){
- const {members:rawMembers,memberById:rawMemberById,tasks:rawTasks,taskLists:rawTaskLists,addTaskList,removeTaskList,addTask,toggleTask,updateTask,removeTask,clearTasks,refreshData}=useFamily();
+ const {members:rawMembers,memberById:rawMemberById,tasks:rawTasks,taskLists:rawTaskLists,addTaskList,removeTaskList,addTask,toggleTask: persistToggleTask,updateTask,removeTask,clearTasks,refreshData}=useFamily();
+ const [taskCelebration,setTaskCelebration]=useState(false);
+ const toggleTask=async(id)=>{const task=rawTasks?.find(item=>item.id===id);const saved=await persistToggleTask(id);if(saved&&task&&!task.done)setTaskCelebration(true);};
  const members=Array.isArray(rawMembers)?rawMembers:[];
  const memberById=rawMemberById&&typeof rawMemberById==="object"?rawMemberById:{};
  const tasks=Array.isArray(rawTasks)?rawTasks:[];
@@ -87,6 +90,7 @@ export default function Tasks(){
   </div></div>
 
   {/* Detail editor — opens when a task row is tapped */}
+  {taskCelebration && <CompletionScreen onClose={() => setTaskCelebration(false)}/>}
   <Modal open={showEditPanel} onClose={()=>{if(!taskSaving){setShowEditPanel(false);setTaskSaveError("");}}} title={editingId?"Edit task":"Add task"}><TextField label="Task" value={draft.title} onChange={e=>setDraft({...draft,title:e.target.value})}/><TextAreaField label="Notes (optional)" value={draft.notes} onChange={e=>setDraft({...draft,notes:e.target.value})} placeholder="Add instructions, links, or helpful details"/><DateField label="Due date" value={draft.due} onChange={due=>setDraft({...draft,due})}/><p className="task-assignee-label">List</p><div className="task-category-picker">{Object.entries(GROUPS).map(([key,meta])=><button type="button" key={key} className={!draft.listId&&draft.taskType===key?"selected":""} style={{"--task-color":meta.color}} onClick={()=>setDraft({...draft,taskType:key,listId:null})}><i/>{meta.label}</button>)}{taskLists.map(list=><button type="button" key={list.id} className={draft.listId===list.id?"selected":""} style={{"--task-color":list.color}} onClick={()=>setDraft({...draft,listId:list.id})}><i/>{list.name}</button>)}</div><p className="task-assignee-label">Assign to <small>Choose one or more</small></p><div className="task-assignee-picker">{members.map(member=>{const selected=draft.assigneeIds.includes(member.id);return <button type="button" key={member.id} aria-pressed={selected} className={selected?"selected":""} onClick={()=>setDraft({...draft,assigneeIds:selected?draft.assigneeIds.filter(id=>id!==member.id):[...draft.assigneeIds,member.id]})}><Avatar member={member}/><span>{member.name}</span>{selected&&<Check size={14}/>}</button>})}</div>{taskSaveError&&<Alert tone="error" className="mb-3">{taskSaveError}</Alert>}<PrimaryButton onClick={save} disabled={taskSaving||!draft.title.trim()}>{taskSaving?"Saving…":"Save changes"}</PrimaryButton></Modal>
 
   <Modal open={showListPanel} onClose={()=>{if(!listSaving){setShowListPanel(false);setListError("");}}} title="New task list"><TextField label="List name" value={listDraft.name} onChange={e=>setListDraft({...listDraft,name:e.target.value})} placeholder="Vacation prep"/><div className="task-list-color"><span>List colour</span><div className="task-list-swatches" role="radiogroup" aria-label="List colour">{LIST_COLORS.map(({value,label})=><button key={value} type="button" role="radio" aria-checked={listDraft.color===value} aria-label={label} title={label} className={`task-list-swatch${listDraft.color===value?" selected":""}`} style={{"--swatch-color":value}} onClick={()=>setListDraft({...listDraft,color:value})}><Check aria-hidden="true"/></button>)}</div><strong style={{color:listDraft.color}}>{listDraft.name||"New list"}</strong></div>{listError&&<Alert tone="error" className="mb-3">{listError}</Alert>}<PrimaryButton onClick={saveList} disabled={!listDraft.name.trim()||listSaving}>{listSaving?"Creating…":"Create list"}</PrimaryButton></Modal>

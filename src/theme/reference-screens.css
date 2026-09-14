@@ -1,0 +1,38 @@
+.completion-screen { position:fixed; inset:0; z-index:500; display:grid; place-items:center; overflow:auto; background:radial-gradient(ellipse at 50% 32%,#FFF6D9 0,transparent 42%),#FFF; color:#101A43; padding:64px 28px max(32px,env(safe-area-inset-bottom)); }
+.completion-close { position:absolute; top:max(20px,env(safe-area-inset-top)); right:20px; display:grid; place-items:center; width:44px; height:44px; border-radius:50%; background:#F2F3FA; z-index:2; }
+.completion-content { position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; text-align:center; width:min(100%,360px); }
+.completion-art { display:grid; place-items:center; width:180px; height:180px; border-radius:50%; background:#FFF0B5; margin-bottom:32px; }
+.completion-art.shopping { background:#C8F3DB; }
+.completion-art img { width:170px; height:170px; object-fit:contain; }
+.completion-content h1 { font-size:28px; font-weight:800; line-height:1.2; letter-spacing:-.035em; margin:0 0 20px; }
+.completion-content p { font-size:17px; line-height:1.55; margin:0; }
+.completion-confirm { width:100%; margin-top:60px; min-height:54px; border-radius:999px; background:#009F6C; color:#FFF; font-size:16px; font-weight:700; box-shadow:0 5px 14px #00A16B24; }
+.completion-screen button:focus-visible { outline:3px solid #005F43; outline-offset:4px; }
+.completion-screen .completion-confirm { width:100% !important; max-width:none !important; border-radius:999px !important; background:#009F6C !important; }
+.completion-screen .completion-close { border-radius:50% !important; }
+.completion-confetti { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+.completion-confetti i { position:absolute; width:6px; height:12px; border-radius:2px; animation:completion-drift 5s ease-in-out infinite alternate; }
+@keyframes completion-drift { to { translate:8px 18px; rotate:30deg; } }
+@media(prefers-reduced-motion:reduce) { .completion-confetti i { animation:none; } }
+.reference-mobile-agenda { display:none; }
+.reference-day-agenda { display:grid; gap:12px; padding:16px 0 32px; }
+.reference-agenda-row { display:grid; grid-template-columns:62px minmax(0,1fr); align-items:stretch; gap:10px; text-align:left; color:var(--color-ink,#111C45); }
+.reference-agenda-row time { font-size:11px; line-height:1.4; padding-top:12px; text-align:right; }
+.reference-agenda-card { display:flex; align-items:center; gap:10px; min-height:52px; padding:10px; border-left:3px solid var(--event-tone); border-radius:0 8px 8px 0; background:color-mix(in srgb,var(--event-tone) 11%,var(--color-surface,#FFF)); }
+.reference-agenda-icon { display:grid; place-items:center; width:30px; height:30px; flex-shrink:0; border-radius:50%; color:var(--event-tone); background:var(--color-surface,#FFF); }
+.reference-agenda-card strong { display:block; font-size:13px; line-height:1.4; font-weight:600; overflow-wrap:anywhere; }
+.reference-agenda-card small { display:block; font-size:11px; color:var(--color-ink-soft,#627197); margin-top:3px; }
+.reference-agenda-empty { text-align:center; color:var(--color-ink-soft); padding:32px 12px; }
+@media(max-width:767px) {
+  .reference-mobile-agenda { display:block; }
+  .reference-desktop-timegrid { display:none; }
+  .app-shell .calendar-month-header,.app-shell .calendar-weeknums { display:none; }
+  .app-shell .calendar-month-grid-area { display:block; }
+  .app-shell .calendar-month-grid { gap:4px; }
+  .app-shell .calendar-month-grid>button { min-height:44px; height:44px; border:0; background:transparent; border-radius:50%; padding:4px; }
+  .app-shell .calendar-month-grid>button.selected { background:var(--color-accent); color:var(--color-on-accent); }
+  .app-shell .calendar-month-weekdays { padding-block:12px; font-size:10px; }
+  .app-shell .apple-date-strip button { min-width:0; padding:6px 2px; border:0; }
+  .app-shell .apple-date-strip button small { font-size:10px; }
+  .app-shell .apple-date-strip button strong { font-size:16px; }
+}

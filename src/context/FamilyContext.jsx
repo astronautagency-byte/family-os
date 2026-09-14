@@ -689,13 +689,14 @@ export function FamilyProvider({ children, tabletMode = false }) {
   // ---- Tasks ----
   const toggleTask = async (id) => {
     const task = tasks.find((item) => item.id === id);
-    if (!task) return;
+    if (!task) return false;
     // Optimistic: flip local state immediately.
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
     if (remote) {
       try { const { error } = await supabase.from("tasks").update({ is_done: !task.done }).eq("id", id); if (error) throw error; }
-      catch { /* realtime will re-sync when healthy */ }
+      catch { setTasks(prev => prev.map(t => t.id === id ? { ...t, done: task.done } : t)); return false; }
     }
+    return true;
   };
   const addTask = async (task) => {
     const tempId = makeId("task");
@@ -830,14 +831,15 @@ export function FamilyProvider({ children, tabletMode = false }) {
     }
   };
   const toggleGrocery = async (id) => {
+    const item = groceries.find((g) => g.id === id);
+    if (!item) return false;
     // Optimistic: flip local state immediately.
     setGroceries((prev) => prev.map((g) => (g.id === id ? { ...g, checked: !g.checked } : g)));
     if (remote) {
-      const item = groceries.find((g) => g.id === id);
-      if (!item) return;
       try { const { error } = await supabase.from("grocery_items").update({ is_checked: !item.checked }).eq("id", id); if (error) throw error; }
-      catch { /* realtime will re-sync */ }
+      catch { setGroceries(prev => prev.map(g => g.id === id ? { ...g, checked: item.checked } : g)); return false; }
     }
+    return true;
   };
   const addGrocery = async (item) => {
     const capitalized = titleCaseGrocery(item.name);

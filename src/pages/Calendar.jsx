@@ -8,6 +8,7 @@ import { supabase } from "../lib/supabase";
 import { expandRecurringEvents } from "../lib/eventRecurrence";
 import { AvatarStack, DateField, Modal, PrimaryButton, SecondaryButton, SegmentedControl, SelectField, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
+import ReferenceAgenda from '../components/ReferenceAgenda';
 import PageAddButton from '../components/PageAddButton';
 import usePageAdd from '../hooks/usePageAdd';
 import PullToRefresh from "../components/PullToRefresh";
@@ -1219,7 +1220,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
               </div>
             </div>}
 
-          {viewMode !== "month" && <CalendarTimeGrid data-pull-ignore dates={timeGridDates} events={visibleEvents} selectedDate={selectedDate} onSelectDate={setSelectedDate} onSelectEvent={setSelectedEvent} googleCalendars={googleCalendars} googleCalendarColors={googleCalendarColors} famosColor={famosCalendar?.color || "var(--color-family)"} canEditEvent={canEditEvent} onEventChange={handleEventChange} />}
+          {viewMode !== "month" && <><div className="reference-mobile-agenda"><ReferenceAgenda events={dayEvents} onSelect={setSelectedEvent} colorFor={event => calendarColorFor(event,googleCalendars,googleCalendarColors,famosCalendar?.color)}/></div><div className="reference-desktop-timegrid"><CalendarTimeGrid data-pull-ignore dates={timeGridDates} events={visibleEvents} selectedDate={selectedDate} onSelectDate={setSelectedDate} onSelectEvent={setSelectedEvent} googleCalendars={googleCalendars} googleCalendarColors={googleCalendarColors} famosColor={famosCalendar?.color || "var(--color-family)"} canEditEvent={canEditEvent} onEventChange={handleEventChange} /></div></>}
 
           {/* ── Agenda below the grid — iOS-style list with section header + inline weather ── */}
           {viewMode === "month" && <div className="calendar-agenda-section" ref={agendaRef} data-pull-ignore>
