@@ -2,11 +2,13 @@ import {useEffect,useState} from 'react';
 import {useAuth} from '../context/AuthContext';
 import {useFamily} from '../context/FamilyContext';
 import {supabase} from '../lib/supabase';
-import {Avatar,Modal,PrimaryButton,SecondaryButton} from './ui';
+import {Avatar,PrimaryButton,SecondaryButton} from './ui';
 import './RewardBank.css';
+import PageHeader from './PageHeader';
+import {Gift, Coins, CheckSquare} from './icons';
 
 const tables=['settings','accounts','rewards','chores','redemptions','ledger'];
-export default function RewardBank({onClose}) {
+export default function RewardBank({onNavigate} = {}) {
  const {user,household}=useAuth();
  const {members=[],memberById={},tasks=[]}=useFamily();
  const parent=household?.role==='owner';
@@ -28,15 +30,16 @@ export default function RewardBank({onClose}) {
   finally{setBusy(false);}
  }
  const enabled=data?.settings[0]?.enabled;
- const accounts=data?.accounts || [];
+ const accounts=(data?.accounts || []).filter(a=>parent || a.child_id===user?.id);
  const selectedChild=parent?child:user?.id;
  const account=accounts.find(a=>a.child_id===selectedChild);
  const eligible=tasks.filter(t=>!t.done && (t.assigneeIds || [t.assigneeId]).includes(child));
  const chores=(data?.chores || []).filter(c=>parent || c.child_id===user?.id);
- const requests=data?.redemptions || [];
- return <Modal open onClose={()=>!busy&&onClose()} title="RewardBank">
+ const requests=(data?.redemptions || []).filter(r=>parent || r.child_id===user?.id);
+ return <div className="reward-bank-page">
+  <PageHeader title="RewardBank" titleIcon={<Gift size={26}/>} subtitle={parent ? 'Turn family contributions into something to look forward to.' : 'Your chores. Your points. Your next reward.'}/>
   <div className="reward-bank">
-   <p>Small chores. Something to look forward to.</p>
+   <div className="reward-bank-intro"><Coins size={32}/><div><h2>{parent ? 'Build good habits, together' : 'Small efforts add up'}</h2><p>{parent ? 'Choose chores, approve points, and celebrate with rewards you agree on.' : 'Complete a chore in Tasks. Your parent approves the points, then you can request a reward.'}</p></div>{onNavigate&&<SecondaryButton onClick={()=>onNavigate('tasks')}><CheckSquare size={18}/> Go to Tasks</SecondaryButton>}</div>
    <p className="reward-bank-note">Parents approve earned points and fulfil rewards. Cash is a parent-paid allowance—not a transfer from FamOS.</p>
    {error&&<p role="alert">{error}</p>}
    <SecondaryButton disabled={busy} onClick={()=>setVersion(v=>v+1)}>Refresh RewardBank</SecondaryButton>
@@ -68,13 +71,13 @@ export default function RewardBank({onClose}) {
       <label>What is included?<input maxLength="500" placeholder="Choose a movie and snacks, or specify the allowance amount and currency" value={reward.details} onChange={e=>setReward({...reward,details:e.target.value})}/></label>
       <PrimaryButton type="submit">Create reward</PrimaryButton>
      </form></section>}
-     <section><h3>Rewards to work toward</h3>{!data.rewards.length&&<p>{parent?'Create a reward above to give points a purpose.':'Your parent hasn’t added a reward yet.'}</p>}
+     <section className="reward-bank-catalog"><h3><Gift size={20}/> Rewards to work toward</h3>{!data.rewards.length&&<p>{parent?'Create a reward above to give points a purpose.':'Your parent hasn’t added a reward yet.'}</p>}
       {data.rewards.map(r=>{const pending=requests.some(q=>q.reward_id===r.id&&q.child_id===user?.id&&q.status==='requested');return <article key={r.id}><div><strong>{r.title}</strong><small>{r.cost} pts · {r.kind}</small>{r.details&&<p>{r.details}</p>}{!parent&&account&&<><progress max={r.cost} value={Math.min(account.balance,r.cost)} aria-label={`Progress toward ${r.title}`}/><small>{Math.max(0,r.cost-account.balance)} more points needed</small></>}</div>{!parent&&<SecondaryButton disabled={!account || account.balance<r.cost || pending} onClick={()=>command('redeem',{reward_id:r.id})}>{pending?'Requested':'Request reward'}</SecondaryButton>}</article>;})}
      </section>
      <section><h3>Reward requests</h3>{!requests.length&&<p>No rewards requested yet.</p>}{requests.map(r=><article key={r.id}><div><strong>{r.title}</strong><small>{memberById[r.child_id]?.name} · {r.cost} pts · {r.status}</small></div>{parent&&r.status==='requested'&&<div className="reward-bank-actions"><SecondaryButton onClick={()=>command('fulfill',{id:r.id})}>Mark given</SecondaryButton><SecondaryButton onClick={()=>command('decline',{id:r.id})}>Decline & return points</SecondaryButton></div>}</article>)}</section>
-     <details><summary>Points history</summary>{[...data.ledger].sort((a,b)=>b.created_at.localeCompare(a.created_at)).map(entry=><article key={entry.id}><span>{memberById[entry.child_id]?.name} · {entry.note}</span><strong>{entry.delta>0?'+':''}{entry.delta} pts</strong></article>)}</details>
+     <details><summary>Points history</summary>{data.ledger.filter(e=>parent || e.child_id===user?.id).sort((a,b)=>b.created_at.localeCompare(a.created_at)).map(entry=><article key={entry.id}><span>{memberById[entry.child_id]?.name} · {entry.note}</span><strong>{entry.delta>0?'+':''}{entry.delta} pts</strong></article>)}</details>
     </>}
    </fieldset>}
   </div>
- </Modal>;
+ </div>;
 }

@@ -12,4 +12,4 @@ Deployment requires `202609140005_recipe_book.sql` and the `import-recipe` Edge 
 
 September 14 release: migration applied and function deployed. Both `SPOONACULAR_API_KEY` and `XAI_API_KEY` are configured. Provider extraction with a signed-in household still needs a live acceptance test; configuration alone is not proof of successful extraction.
 
-Visual direction: warm cream #fff5df, ink #263729, sky #88b5d1, deep blue #2e607e, and small sun-yellow #f3cd59 accents. Georgia headings appear only inside Recipe Book; shared form typography and user-selected application colours remain unchanged. Inspired by ReciMe’s creators page, not a copy or global theme replacement.
+Visual direction: shared FamOS typography, card/control radius tokens, theme-aware surfaces, and the user's selected accent colour. Shared iconography identifies importing, searching, cooking, and planning. Recipe cards use spaced action groups instead of touching buttons. The earlier standalone serif/blue styling was removed following user feedback.

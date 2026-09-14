@@ -2,6 +2,16 @@ import { it, expect, vi } from 'vitest';
 import { render, fireEvent, within } from '@testing-library/react';
 import BottomNav from '../BottomNav';
 vi.mock('../../context/FamilyContext', () => ({ useFamily: () => ({ unreadMessageCount: 2 }) }));
+it('gives children only four destinations and no global add or More menu',()=>{
+ const change=vi.fn();
+ const {getByRole}=render(<BottomNav childMode active="tasks" onChange={change}/>);
+ const mobile=within(getByRole('navigation',{name:'Mobile navigation'}));
+ expect(mobile.getAllByRole('button').map(b=>b.textContent)).toEqual(['Calendar','Tasks','Rewards','Chat']);
+ const desktop=within(getByRole('navigation',{name:'FamOS navigation'}));
+ expect(desktop.getAllByRole('button')).toHaveLength(4);
+ fireEvent.click(mobile.getByRole('button',{name:'Rewards'}));
+ expect(change).toHaveBeenCalledWith('rewards');
+});
 it('adds directly to the current feature from the mobile plus', () => {
  const add=vi.fn();
  const {getByRole,queryByRole}=render(<BottomNav active="groceries" onChange={vi.fn()} onAdd={add}/>);

@@ -13,7 +13,7 @@ import { buildShareUrl } from "../lib/share";
 import ShareSheet from "../components/ShareSheet";
 import { fireConfetti } from "../lib/confetti";
 import CompletionScreen from '../components/CompletionScreen';
-import RewardBank from '../components/RewardBank';
+
 
 const GROUPS={home:{label:"Housework",Icon:House,tone:"violet",color:"#6b5ce7"},errand:{label:"Errands",Icon:ShoppingBag,tone:"green",color:"#3b8c75"},school:{label:"School",Icon:GraduationCap,tone:"slate",color:"#4b7ec5"},family:{label:"Family",Icon:Users,tone:"rose",color:"#d66b83"},work:{label:"Work",Icon:BriefcaseBusiness,tone:"amber",color:"#c98232"},personal:{label:"Personal",Icon:House,tone:"violet",color:"#756d8d"}};
 const LIST_COLORS=[{value:"#6b5ce7",label:"Violet"},{value:"#d66b83",label:"Rose"},{value:"#b95f3b",label:"Coral"},{value:"#c98232",label:"Amber"},{value:"#3b8c75",label:"Green"},{value:"#2f8b9d",label:"Teal"},{value:"#4b7ec5",label:"Blue"},{value:"#756d8d",label:"Slate"}];
@@ -21,7 +21,7 @@ const LIST_COLORS=[{value:"#6b5ce7",label:"Violet"},{value:"#d66b83",label:"Rose
 export default function Tasks(){
  const {members:rawMembers,memberById:rawMemberById,tasks:rawTasks,taskLists:rawTaskLists,addTaskList,removeTaskList,addTask,toggleTask: persistToggleTask,updateTask,removeTask,clearTasks,refreshData}=useFamily();
  const [taskCelebration,setTaskCelebration]=useState(false);
- const [rewardBankOpen,setRewardBankOpen]=useState(false);
+
  const toggleTask=async(id)=>{const task=rawTasks?.find(item=>item.id===id);const saved=await persistToggleTask(id);if(saved&&task&&!task.done&&rawTasks.filter(item=>!item.done).length===1)setTaskCelebration(true);};
  const members=Array.isArray(rawMembers)?rawMembers:[];
  const memberById=rawMemberById&&typeof rawMemberById==="object"?rawMemberById:{};
@@ -81,7 +81,7 @@ export default function Tasks(){
  const shareTask=(task)=>{if(!task?.id)return;const due=task.due===todayISO()?"today":task.due?new Date(`${task.due}T12:00`).toLocaleDateString("en-CA",{weekday:"short",month:"short",day:"numeric"}):"whenever it fits";setShareSheet({title:task.title,text:`Due: ${due}`,url:buildShareUrl("task",task.id),image:"/banners/banner-tasks.jpg",imageAlt:task.title});};
  const shareList=(key,items)=>{const custom=key.startsWith("list:")?taskLists.find(list=>list.id===key.slice(5)):null;const label=custom?.name||GROUPS[key]?.label||key;if(!items.length){setShareSheet({title:`${label} · FamOS tasks`,text:"This list is empty — add a task and share it with your family.",url:buildShareUrl("task",`list-${custom?.id||key}`),image:"/banners/banner-tasks.jpg",imageAlt:label});return;}const lines=items.slice(0,25).map((t,index)=>`${index+1}. ${t.title}${t.due?` (${t.due===todayISO()?"today":new Date(`${t.due}T12:00`).toLocaleDateString("en-CA",{weekday:"short",month:"short",day:"numeric"})})`:``}`).join("\n");setShareSheet({title:`${label} · ${items.length} task${items.length===1?"":"s"}`,text:lines,url:buildShareUrl("task",`list-${custom?.id||key}`),image:"/banners/banner-tasks.jpg",imageAlt:label});};
 
-  return <PullToRefresh onRefresh={refreshData}><div className="reference-tasks"><PageHeader title="Tasks" onAdd={openNewTask} addLabel="Add task"/><NativeAdBanner placement={AD_PLACEMENTS.TASKS}/><div className="px-5"><div className="task-toolbar"><button className="task-toolbar-btn" onClick={()=>setRewardBankOpen(true)}>RewardBank</button>{rewardBankOpen&&<RewardBank onClose={()=>setRewardBankOpen(false)}/>} <button className="task-toolbar-btn" onClick={()=>setShowListPanel(true)}><ListPlus size={16}/> New list</button>{tasks.length>0&&<button className="task-toolbar-btn task-toolbar-reset" onClick={()=>setClearing(true)}><Trash2 size={16}/> Reset</button>}</div><div className="space-y-5">
+  return <PullToRefresh onRefresh={refreshData}><div className="reference-tasks"><PageHeader title="Tasks" onAdd={openNewTask} addLabel="Add task"/><NativeAdBanner placement={AD_PLACEMENTS.TASKS}/><div className="px-5"><div className="task-toolbar"><button className="task-toolbar-btn" onClick={()=>setShowListPanel(true)}><ListPlus size={16}/> New list</button>{tasks.length>0&&<button className="task-toolbar-btn task-toolbar-reset" onClick={()=>setClearing(true)}><Trash2 size={16}/> Reset</button>}</div><div className="space-y-5">
   {/* Inline input — iOS Reminders style: type and hit Enter, task appears */}
  <form className="task-inline-form" onSubmit={submitInline}>
     <span className="task-inline-icon"><Plus size={16}/></span>
