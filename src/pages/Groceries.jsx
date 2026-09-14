@@ -44,43 +44,8 @@ function loadStaples(listId) {
   catch { return []; }
 }
 
-const CATEGORY_ICONS = {
-  "Produce": Carrot,
-  "Bakery": Croissant,
-  "Deli & Prepared Foods": Sandwich,
-  "Dairy & Eggs": Milk,
-  "Meat & Seafood": Drumstick,
-  "Breakfast & Cereal": Coffee,
-  "Pantry": Wheat,
-  "Canned & Jarred": Soup,
-  "Pasta, Rice & Grains": Wheat,
-  "Condiments & Sauces": FlaskConical,
-  "Spices & Baking": FlaskConical,
-  "Snacks & Candy": Cookie,
-  "Beverages": CupSoda,
-  "International Foods": Globe2,
-  "Frozen": Snowflake,
-  "Beer, Wine & Spirits": Wine,
-  "Health & Personal Care": HeartPulse,
-  "Baby": Baby,
-  "Pet Supplies": Bone,
-  "Household & Cleaning": SprayCan,
-  "Paper & Disposable": ScrollText,
-  "Household": SprayCan,
-  "Other": Package,
-};
-
 export function GroceryIcon({ category, size = 16 }) {
-  const Icon = CATEGORY_ICONS[category] || Package;
-  const palette = {
-    "Produce": ["#DDF7E9", "#228766"], "Bakery": ["#FFF0D4", "#C76E22"],
-    "Dairy & Eggs": ["#E1F0FF", "#397BCB"], "Meat & Seafood": ["#FFE2E6", "#D64C5C"],
-    "Frozen": ["#E2F6FF", "#3185A8"], "Snacks & Candy": ["#FFE2EF", "#C64882"],
-    "Beverages": ["#EEE9FF", "#7255D9"], "Household & Cleaning": ["#E7F3FF", "#356FA8"],
-    "Baby": ["#FFF2B8", "#A97900"], "Pet Supplies": ["#FFE8D9", "#B86332"],
-  };
-  const [background, foreground] = palette[category] || ["#F0E9FF", "#7255D9"];
-  return <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: background }}><Icon size={size} color={foreground} /></span>;
+  return <GroceryIllustration category={category} size={Math.max(32, size * 2)} />;
 }
 
 function GroceryItemImage({ item, memberById, focus = false }) {
@@ -1156,7 +1121,7 @@ export default function Groceries() {
           {[['fridge','Fridge',Refrigerator],['freezer','Freezer',Snowflake],['pantry','Pantry',Package]].map(([id,label,Icon]) => <button key={id} className={inventoryLocation === id ? "selected" : ""} onClick={() => setInventoryLocation(id)} role="tab" aria-selected={inventoryLocation === id}><Icon size={14}/>{label}<span>{kitchenWatchItems.filter((item) => item.location === id).length}</span></button>)}
         </div>
         {visibleInventory.length ? <div className="inventory-item-grid">{visibleInventory.map((item) => { const expiry = inventoryExpiryStatus(item); const onList = isIngredientOnList(item.name, groceries); return <article key={item.id} className={expiry ? `is-${expiry.state}` : ""}>
-          <div className="inventory-item-copy">{item.imageUrl ? <img src={item.imageUrl} alt=""/> : <GroceryIcon category={item.category}/>}<div><span>{item.category || "Other"}</span><strong>{item.name}</strong>{item.brand && <small>{item.brand}</small>}{expiry && <em>{expiry.label}</em>}</div></div>
+          <div className="inventory-item-copy"><GroceryItemImage item={item} memberById={memberById}/><div><span>{item.category || "Other"}</span><strong>{item.name}</strong>{item.brand && <small>{item.brand}</small>}{expiry && <em>{expiry.label}</em>}</div></div>
           <DateField compact label="Use by" value={item.expiresOn} onChange={(expiresOn) => updateInventoryItem(item.id, { expiresOn })}/>
           <div className="inventory-item-actions"><div className="inventory-quantity" aria-label={`${item.name} quantity`}><button type="button" onClick={() => changeInventoryQuantity(item, -1)} disabled={Number(item.quantity) <= 1} aria-label={`Decrease ${item.name} quantity`}><Minus size={12}/></button><strong>{item.quantity}{item.unit ? ` ${item.unit}` : ""}</strong><button type="button" onClick={() => changeInventoryQuantity(item, 1)} aria-label={`Increase ${item.name} quantity`}><Plus size={12}/></button></div>{expiry?.state === "expired" && <button type="button" disabled={onList} onClick={() => addMissingItem(item.name)}><RotateCcw size={13}/>{onList ? "On list" : "Replace"}</button>}<button type="button" onClick={() => removeInventoryItem(item.id)} aria-label={`Mark ${item.name} used up`}><Check size={13}/>Used up</button></div>
         </article>;})}</div> : <div className="inventory-empty"><span>{inventoryQuery || inventoryStatus !== "all" ? <Search size={20}/> : <Refrigerator size={20}/>}</span><strong>{inventoryQuery || inventoryStatus !== "all" ? "No matching fresh items" : `No fresh food being watched in the ${inventoryLocation}`}</strong><p>{inventoryQuery || inventoryStatus !== "all" ? "Try another search or expiry filter." : <>Use <b>Add fresh item</b> for dairy, meat, produce, deli, or bakery food. Checked perishables from Shopping also appear here for a quick review.</>}</p>{inventoryQuery || inventoryStatus !== "all" ? <button type="button" onClick={() => { setInventoryQuery(""); setInventoryStatus("all"); }}>Clear filters</button> : null}</div>}
