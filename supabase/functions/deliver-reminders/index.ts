@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import {reminderPaused} from "../_shared/feature-reminders.js";
 import webpush from "npm:web-push@3.6.7";
 Deno.serve(async request => {
  const secret=Deno.env.get('REMINDER_CRON_SECRET');
@@ -23,6 +24,14 @@ Deno.serve(async request => {
    };
    let outcome;
    try {
+    const {data:memberships,error:membershipError}=await admin.from("household_members").select("household_id").eq("user_id",job.user_id);
+    if(membershipError)throw membershipError;
+    const householdIds=(memberships || []).map(m=>m.household_id);
+    if(householdIds.length){
+     const {data:preferences,error:preferencesError}=await admin.from("household_feature_preferences").select("features,pause_reminders").in("household_id",householdIds);
+     if(preferencesError)throw preferencesError;
+     if((preferences || []).some(p=>reminderPaused(p,job.notification))){await update({status:"skipped",locked_until:null,last_error:"Paused by household layout"});continue;}
+    }
     const {data:device,error:deviceError}=await admin.from('push_subscriptions').select('subscription').eq('id',job.subscription_id).eq('user_id',job.user_id).single();
     if(deviceError || !device) throw Object.assign(Error('Device registration missing'),{statusCode:410});
     await webpush.sendNotification(device.subscription,JSON.stringify(job.notification),{TTL:3600,urgency:'normal',timeout:10000});

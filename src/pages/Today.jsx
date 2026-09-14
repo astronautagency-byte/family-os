@@ -1,3 +1,4 @@
+import {useHouseholdFeatures} from "../context/HouseholdFeaturesContext";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Bell, CalendarPlus, ChefHat, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, Coffee, Droplets, ExternalLink, GripVertical, LayoutGrid, ListChecks, LoaderCircle, MapPin, Megaphone, MessageCircle, Moon, PartyPopper, Refrigerator, RotateCcw, ShoppingCart, Soup, Sun, Ticket, Trash2, TriangleAlert, Wind, X, Sparkles } from "../components/icons";
 // ChefHat is already imported above for the Cook button icon.
@@ -188,6 +189,8 @@ function BroadcastBanner({ item, sender, reactions, currentUserId, onReact, onCl
 }
 
 export default function Today({ goTo }) {
+  const {features,pauseReminders}=useHouseholdFeatures();
+  const dashboardEnabled=id=>features[({schedule:"calendar",messages:"chat"})[id] || id]!==false;
   // ── Subscription trial state ──
   const [subscription, setSubscription] = useState(null);
   const [promoUnlocked, setPromoUnlocked] = useState(false);
@@ -258,7 +261,8 @@ export default function Today({ goTo }) {
     if (typeof window !== "undefined") localStorage.setItem("famos:today-card-sizes:v1", JSON.stringify(cardSizes));
   }, [cardSizes]);
 
-  const dashboardPosition = (id) => { 
+  const dashboardPosition = (id) => {
+    if(!dashboardEnabled(id))return {display:"none"};
     if (id === "broadcast") {
       return { 
         order: dashboardOrder.indexOf(id) + 1, 
@@ -312,7 +316,7 @@ export default function Today({ goTo }) {
   const moveHandle = (id) => editingDashboard ? <DashboardMoveHandle id={id} label={DASHBOARD_CARDS.find((card) => card.id === id)?.label || id} order={dashboardOrder} onMove={moveDashboardCard}/> : null;
 
   useEffect(() => {
-    if (!expiryAlerts.length || notificationPermission !== "granted" || typeof window === "undefined") return;
+    if ((pauseReminders && !features.kitchen) || !expiryAlerts.length || notificationPermission !== "granted" || typeof window === "undefined") return;
     const dateKey = todayISO();
     const reminderKey = `famos:inventory-expiry-reminder:v1:${household?.id || "local"}:${dateKey}`;
     if (window.localStorage.getItem(reminderKey)) return;
@@ -328,7 +332,7 @@ export default function Today({ goTo }) {
       } catch { /* the Today card remains the durable reminder */ }
     };
     show();
-  }, [expiryAlerts, household?.id, notificationPermission]);
+  }, [expiryAlerts, household?.id, notificationPermission,features.kitchen,pauseReminders]);
 
   const replaceInventoryItem = async (item) => {
     if (replacementIds.has(item.id) || groceries.some((grocery) => !grocery?.checked && String(grocery?.name || "").toLowerCase() === String(item?.name || "").toLowerCase())) return;
@@ -604,7 +608,7 @@ export default function Today({ goTo }) {
       <div className="reference-home-overview px-5">
         <div className="reference-family-strip" aria-label="Your family">{members.map(member => <div key={member.id}><Avatar member={member} size="lg"/><span>{member.name?.split(' ')[0]}</span></div>)}<button type="button" onClick={() => goTo('settings')} aria-label="Manage family members">+</button></div>
         <div className="reference-home-shortcuts">
-          {[['groceries','Shopping',ShoppingCart,`${activeGroceries.length} items`],['kitchen','Kitchen Watch',Refrigerator,'Check freshness'],['tasks','Tasks',ListChecks,`${openTasks.length} to do`],['chat','Family Chat',MessageCircle,'Stay connected']].map(([id,label,Icon,detail]) => <button type="button" key={id} className={`tone-${id}`} onClick={() => goTo(id)}><span className="reference-action-icon"><Icon size={22}/></span><span><strong>{label}</strong><small>{detail}</small></span></button>)}
+          {[['groceries','Shopping',ShoppingCart,`${activeGroceries.length} items`],['kitchen','Kitchen Watch',Refrigerator,'Check freshness'],['tasks','Tasks',ListChecks,`${openTasks.length} to do`],['chat','Family Chat',MessageCircle,'Stay connected']].filter(([id])=>features[id]!==false).map(([id,label,Icon,detail]) => <button type="button" key={id} className={`tone-${id}`} onClick={() => goTo(id)}><span className="reference-action-icon"><Icon size={22}/></span><span><strong>{label}</strong><small>{detail}</small></span></button>)}
         </div>
       </div>
       <div className="px-5"><ProductUpdateBanner /></div>
@@ -632,7 +636,7 @@ export default function Today({ goTo }) {
         </div>
       )}
 
-      {editingDashboard && <div className="today-customize-panel mx-5"><div className="today-customize-hint"><span><GripVertical size={15}/> Choose what appears, then drag cards to rearrange them.</span><button type="button" onClick={() => { setDashboardOrder(defaultDashboardOrder); setHiddenDashboardCards([]); setCardSizes({}); }}><RotateCcw size={14}/> Reset</button></div><div className="today-card-toggles">{DASHBOARD_CARDS.map((card) => { const visible = !hiddenDashboardCards.includes(card.id); return <label key={card.id}><input type="checkbox" checked={visible} onChange={() => toggleDashboardCard(card.id)}/><span aria-hidden="true"/><strong>{card.label}</strong></label>; })}</div></div>}
+      {editingDashboard && <div className="today-customize-panel mx-5"><div className="today-customize-hint"><span><GripVertical size={15}/> Choose what appears, then drag cards to rearrange them.</span><button type="button" onClick={() => { setDashboardOrder(defaultDashboardOrder); setHiddenDashboardCards([]); setCardSizes({}); }}><RotateCcw size={14}/> Reset</button></div><div className="today-card-toggles">{DASHBOARD_CARDS.filter(card=>dashboardEnabled(card.id)).map((card) => { const visible = !hiddenDashboardCards.includes(card.id); return <label key={card.id}><input type="checkbox" checked={visible} onChange={() => toggleDashboardCard(card.id)}/><span aria-hidden="true"/><strong>{card.label}</strong></label>; })}</div></div>}
 
       <NativeAdBanner placement={AD_PLACEMENTS.HOME} />
 
@@ -710,7 +714,7 @@ export default function Today({ goTo }) {
             </div>)}
           </div>}
           {!hasWeatherLocation && <button onClick={() => goTo("settings")} className="weather-address-action"><MapPin size={16} /><span><strong>Add an address to turn on weather</strong><small>FamOS will also flag today’s location-based events when weather may disrupt them.</small></span><ChevronRight size={16} /></button>}
-          {disruptedEvents.length > 0 && <button onClick={() => goTo("calendar")} className="weather-event-warning"><CloudRain size={16} /><span><strong>Weather may affect {disruptedEvents.length} event{disruptedEvents.length === 1 ? "" : "s"} today</strong><small>{disruptedEvents.map((event) => event.title).join(", ")}</small></span><ChevronRight size={16} /></button>}
+          {features.calendar && disruptedEvents.length > 0 && <button onClick={() => goTo("calendar")} className="weather-event-warning"><CloudRain size={16} /><span><strong>Weather may affect {disruptedEvents.length} event{disruptedEvents.length === 1 ? "" : "s"} today</strong><small>{disruptedEvents.map((event) => event.title).join(", ")}</small></span><ChevronRight size={16} /></button>}
           {weatherError && <small className="address-autocomplete-warning">{weatherError}</small>}
         </Card>
         <section className={`today-bento-kitchen ${editingDashboard ? "is-customizing" : ""}`} aria-labelledby="kitchen-watch-title" style={dashboardPosition("kitchen")} {...dashboardDragProps("kitchen")}>
@@ -758,7 +762,7 @@ export default function Today({ goTo }) {
                           <button
                             type="button"
                             disabled={alreadyListed}
-                            onClick={() => replaceInventoryItem(item)}
+                            style={{display:features.groceries?undefined:"none"}} onClick={() => replaceInventoryItem(item)}
                             className={isExpired ? 'kw-card-action kw-card-action-replace' : 'kw-card-action kw-card-action-date'}
                           >
                             {alreadyListed ? 'On list' : isExpired ? 'Replace item' : item.expiresOn ? 'Change date' : 'Set date'}

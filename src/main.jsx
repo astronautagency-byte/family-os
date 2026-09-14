@@ -9,6 +9,7 @@ import "./theme/product-feedback.css";
 import "./theme/ux-refinements.css";
 import "./theme/contrast.css";
 import "./theme/scheme-accents.css";
+import {HouseholdFeaturesProvider} from "./context/HouseholdFeaturesContext";
 import App from "./App.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
@@ -20,7 +21,7 @@ createRoot(document.getElementById("root")).render(
   <StrictMode>
     <ErrorBoundary>
       <AuthProvider>
-        <App />
+        <HouseholdFeaturesProvider><App /></HouseholdFeaturesProvider>
       </AuthProvider>
     </ErrorBoundary>
   </StrictMode>

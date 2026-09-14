@@ -1,3 +1,4 @@
+import {useHouseholdFeatures} from "../context/HouseholdFeaturesContext";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowLeft, BarChart3, Bookmark, CalendarPlus, Check, ChefHat, Clock, Coffee, Dices, Image as ImageIcon, ListChecks, Mic, MicOff, Pencil, Plus, Share2, ShoppingCart, Soup, Sparkles, Trash2, Users, Volume2, X } from "../components/icons";
@@ -266,6 +267,7 @@ const youtubeEmbedUrl = (value = "") => {
 };
 
 export default function Meals({ entitlements = null, goTo } = {}) {
+  const {features}=useHouseholdFeatures();
   const { members, memberById, meals, groceries, addGrocery, setMealForSlot, removeMeal, clearMeals, refreshData } = useFamily();
   const { householdProfileExtra, household, user } = useAuth();
   const { items: inventoryItems, ingredientNames: inventoryIngredientNames, removeItem: removeInventoryItem } = useKitchenInventory(household?.id, user?.id);
@@ -301,8 +303,8 @@ export default function Meals({ entitlements = null, goTo } = {}) {
     const recipeNames = new Set((cookRecipe?.ingredients || []).map((item) => canonicalIngredientName(typeof item === "string" ? item : item?.name)).filter(Boolean));
     const matched = inventoryItems.filter((item) => recipeNames.has(canonicalIngredientName(item.name)));
     setCookMeal(null);
-    if (matched.length) { setConsumeReview(matched); setConsumeSelection(matched.map((item) => item.id)); }
-  }, [cookRecipe?.ingredients, inventoryItems]);
+    if (features.kitchen && matched.length) { setConsumeReview(matched); setConsumeSelection(matched.map((item) => item.id)); }
+  }, [cookRecipe?.ingredients, inventoryItems,features.kitchen]);
   const advanceCookStep = useCallback((delta) => {
     setCookStep((step) => {
       const total = cookRecipe?.instructions?.length || 0;
@@ -493,7 +495,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
   // Checked shopping items represent food that made it home. Reuse that
   // household-owned data for PicMeal-style "cook from what we have" ideas;
   // nothing leaves the existing Spoonacular recipe request.
-  const kitchenIngredients = useMemo(() => Array.from(new Set(inventoryIngredientNames)).slice(0, 15), [inventoryIngredientNames]);
+  const kitchenIngredients = useMemo(() => features.kitchen ? Array.from(new Set(inventoryIngredientNames)).slice(0, 15) : [], [inventoryIngredientNames,features.kitchen]);
 
   const addMissingGroceriesForMeal = (meal, badge) => {
     if (!meal?.id || !badge || badgeAddedRef.current.has(meal.id)) return;
@@ -549,6 +551,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
     setDraft((d) => ({ ...d, cookIds: d.cookIds.includes(id) ? d.cookIds.filter((x) => x !== id) : [...d.cookIds, id] }));
 
   const rouletteForSlot = async (date, slot, kitchenOnly = false, cuisineOverride) => {
+    if(kitchenOnly && !features.kitchen)return;
     setRouletteBusy(true);
     setRouletteError("");
     const chosenCuisine = cuisineOverride !== undefined ? cuisineOverride : rouletteCuisine;
@@ -918,7 +921,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
                             <ChefHat size={14} /> Cook Mode
                           </button>
                         )}
-                        <button className="meal-card-btn meal-card-btn-outline" onClick={() => saveRecipeToLibrary(meal)}>
+                        <button style={{display:features.recipes?undefined:"none"}} className="meal-card-btn meal-card-btn-outline" onClick={() => saveRecipeToLibrary(meal)}>
                           <Bookmark size={14} /> Save recipe
                         </button>
                         <div className="meal-card-slot-actions meal-card-slot-actions-right">
@@ -949,15 +952,15 @@ export default function Meals({ entitlements = null, goTo } = {}) {
 
 
       <div className="meal-plan-toolbar px-5" aria-label="Meal plan controls">
-        <button className="meal-plan-share" onClick={()=>setRecipeBookOpen(true)}><Bookmark size={15}/> Recipe Book</button>
-        {recipeBookOpen&&<RecipeBook onClose={()=>setRecipeBookOpen(false)} onCook={openSavedRecipe}/>}
+        {features.recipes && <button className="meal-plan-share" onClick={()=>setRecipeBookOpen(true)}><Bookmark size={15}/> Recipe Book</button>}
+        {features.recipes&&recipeBookOpen&&<RecipeBook onClose={()=>setRecipeBookOpen(false)} onCook={openSavedRecipe}/>}
         <div className="meal-range-toggle" aria-label="Meal planning range"><button className={horizon===7?"selected":""} onClick={()=>setHorizon(7)}>1 week</button><button className={horizon===14?"selected":""} onClick={()=>setHorizon(14)}>2 weeks</button></div>
         <button className="meal-plan-share" onClick={shareMealPlan} aria-label="Share meal plan" title="Share the meal plan"><Share2 size={15}/> Share</button>
       </div>
 
       {listView}
 
-      {savedRecipes.length > 0 && (
+      {features.recipes && savedRecipes.length > 0 && (
         <section className="saved-recipes-section" aria-label="Saved recipes">
           <div className="saved-recipes-head">
             <div>
@@ -1038,9 +1041,9 @@ export default function Meals({ entitlements = null, goTo } = {}) {
 
         <div className="meal-editor-tools">
           <button onClick={() => { if (editing) { if (entitlements && entitlements.features?.meals === false) { setRouletteUpgradePrompt(true); } else { rouletteForSlot(editing.date, editing.slot); } setEditing(null); } }}><Dices size={16} /> Roulette</button>
-          <button onClick={() => setShowSavedRecipes((value) => !value)}><Bookmark size={16} /> Saved recipes</button>
+          {features.recipes && <button onClick={() => setShowSavedRecipes((value) => !value)}><Bookmark size={16} /> Saved recipes</button>}
         </div>
-        {showSavedRecipes && (
+        {features.recipes && showSavedRecipes && (
           <div className="saved-recipe-picker">
             <div><strong>Saved recipes</strong><span>{savedRecipes.length ? "Choose one for this meal." : "Save recipes from Cook Mode and they'll appear here."}</span></div>
             {savedRecipes.length > 0 && <ul>{savedRecipes.map((saved) => <li key={saved.id}><button onClick={() => chooseSavedRecipe(saved)}><span>{saved.title}</span><small>{saved.cuisine} · {saved.readyInMinutes} min</small></button></li>)}</ul>}
@@ -1233,7 +1236,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
           ))}
         </div>
       </Modal>
-      <Modal open={!!consumeReview} onClose={() => setConsumeReview(null)} title="Update kitchen inventory?">
+      <Modal open={features.kitchen && !!consumeReview} onClose={() => setConsumeReview(null)} title="Update kitchen inventory?">
         <div className="consume-review">
           <p>FamOS found ingredients from this recipe in your kitchen. Review what was finished—nothing changes until you confirm.</p>
           <div>{(consumeReview || []).map((item) => {
@@ -1291,7 +1294,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
             <div className="cook-focus-topbar">
               <button onClick={() => setCookMeal(null)}><ArrowLeft size={18} /> Back to meals</button>
               <div className="cook-focus-topbar-actions">
-                <button className={`recipe-save-button ${cookRecipeSaved ? "saved" : ""}`} onClick={() => saveRecipeToLibrary(cookRecipe)} disabled={!cookRecipe.instructions.length} title={cookRecipe.instructions.length ? "Save recipe to your library" : "Recipe is still loading"}><Bookmark size={16} /> {cookRecipeSaved ? "Saved" : "Save recipe"}</button>
+                <button style={{display:features.recipes?undefined:"none"}} className={`recipe-save-button ${cookRecipeSaved ? "saved" : ""}`} onClick={() => saveRecipeToLibrary(cookRecipe)} disabled={!cookRecipe.instructions.length} title={cookRecipe.instructions.length ? "Save recipe to your library" : "Recipe is still loading"}><Bookmark size={16} /> {cookRecipeSaved ? "Saved" : "Save recipe"}</button>
                 <button onClick={() => { setCookMeal(null); openEditor(cookMeal.date, cookMeal.slot); }}>Edit meal</button>
               </div>
             </div>
@@ -1348,7 +1351,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
                     className={`recipe-grocery-button ${missingIngredients.length && !cookIngredientsAdded ? "needs-items" : ""}`}
                     disabled={missingIngredients.length === 0 || cookIngredientsAdded}
                     onClick={addCookIngredients}
-                    title={missingIngredients.length ? `Add ${missingIngredients.length} ingredients to groceries` : "All ingredients already on list"}
+                    style={{display:features.groceries?undefined:"none"}} title={missingIngredients.length ? `Add ${missingIngredients.length} ingredients to groceries` : "All ingredients already on list"}
                   >
                     <ShoppingCart size={15} />
                     {cookIngredientsAdded

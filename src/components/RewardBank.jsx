@@ -1,3 +1,4 @@
+import {useHouseholdFeatures} from '../context/HouseholdFeaturesContext';
 import {useEffect,useState} from 'react';
 import {useAuth} from '../context/AuthContext';
 import {useFamily} from '../context/FamilyContext';
@@ -10,6 +11,7 @@ import {Gift, Star, CheckSquare} from './icons';
 const tables=['settings','accounts','rewards','chores','redemptions','ledger'];
 export default function RewardBank({onNavigate} = {}) {
  const {user,household}=useAuth();
+ const {features}=useHouseholdFeatures();
  const {members=[],memberById={},tasks=[]}=useFamily();
  const parent=household?.role==='owner';
  const [data,setData]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[version,setVersion]=useState(0);
@@ -39,7 +41,7 @@ export default function RewardBank({onNavigate} = {}) {
  return <div className="reward-bank-page">
   <PageHeader title="RewardBank" titleIcon={<Gift size={26}/>} subtitle={parent ? 'Turn family contributions into something to look forward to.' : 'Your chores. Your stars. Your next reward.'}/>
   <div className="reward-bank">
-   <div className="reward-bank-intro"><span className="reward-bank-star-seal" aria-hidden="true"><Star size={48}/></span><div><h2>{parent ? 'Little chores. Big adventures.' : 'Every star is a step closer'}</h2><p>{parent ? 'Choose chores, approve stars, and celebrate with rewards you agree on.' : 'Complete a chore in Tasks. Your parent approves the stars, then you can request a reward.'}</p></div>{onNavigate&&<SecondaryButton onClick={()=>onNavigate('tasks')}><CheckSquare size={18}/> Go to Tasks</SecondaryButton>}</div>
+   <div className="reward-bank-intro"><span className="reward-bank-star-seal" aria-hidden="true"><Star size={48}/></span><div><h2>{parent ? 'Little chores. Big adventures.' : 'Every star is a step closer'}</h2><p>{parent ? 'Choose chores, approve stars, and celebrate with rewards you agree on.' : 'Complete a chore in Tasks. Your parent approves the stars, then you can request a reward.'}</p></div>{features.tasks&&onNavigate&&<SecondaryButton onClick={()=>onNavigate('tasks')}><CheckSquare size={18}/> Go to Tasks</SecondaryButton>}</div>
    <p className="reward-bank-note">Finish a chore → collect approved stars → choose an experience.</p>
    {error&&<p role="alert">{error}</p>}
    <SecondaryButton disabled={busy} onClick={()=>setVersion(v=>v+1)}>Refresh RewardBank</SecondaryButton>
@@ -52,7 +54,7 @@ export default function RewardBank({onNavigate} = {}) {
       <div className="reward-bank-members">{members.filter(m=>m.id!==user?.id).map(m=><button type="button" key={m.id} disabled={accounts.some(a=>a.child_id===m.id)} onClick={()=>command('enroll',{child_id:m.id})}><Avatar member={m}/><span>{m.name}</span><small>{accounts.some(a=>a.child_id===m.id)?'Enabled':'Enable'}</small></button>)}</div>
      </section>}
      <section><h3>{parent?'Star jars':'Your stars'}</h3><div className="reward-bank-members">{accounts.map(a=><div key={a.child_id}><Avatar member={memberById[a.child_id]}/><span>{memberById[a.child_id]?.name || 'Member'}</span><strong className="reward-bank-balance"><Star size={22}/>{a.balance} stars</strong></div>)}</div>{!accounts.length&&<p>No children enrolled yet.</p>}<p className="reward-bank-note">Available stars exclude stars reserved for requested rewards.</p></section>
-     {parent&&<section><h3>Choose stars for a chore</h3><p className="reward-bank-note">Choose a task already assigned to your child. You decide how many stars it earns.</p>
+     {parent&&features.tasks&&<section><h3>Choose stars for a chore</h3><p className="reward-bank-note">Choose a task already assigned to your child. You decide how many stars it earns.</p>
       <form onSubmit={async e=>{e.preventDefault();if(await command('chore',{child_id:child,task_id:task,points:Number(stars)}))setTask('');}}>
        <label>Child<select required value={child} onChange={e=>{setChild(e.target.value);setTask('');}}><option value="">Choose a child</option>{accounts.map(a=><option key={a.child_id} value={a.child_id}>{memberById[a.child_id]?.name || 'Member'}</option>)}</select></label>
        <label>Assigned chore<select required value={task} onChange={e=>setTask(e.target.value)}><option value="">Choose an unfinished task</option>{eligible.map(t=><option key={t.id} value={t.id}>{t.title}</option>)}</select></label>
@@ -61,7 +63,7 @@ export default function RewardBank({onNavigate} = {}) {
        <PrimaryButton type="submit" disabled={!task || !child}>Save chore stars</PrimaryButton>
       </form>
      </section>}
-     <section><h3>{parent?'Chores and approvals':'Your earning plan'}</h3>{!chores.length&&<p>No scored chores yet.</p>}
+     <section style={{display:features.tasks?undefined:"none"}}><h3>{parent?'Chores and approvals':'Your earning plan'}</h3>{!chores.length&&<p>No scored chores yet.</p>}
       {chores.map(c=>{const t=tasks.find(t=>t.id===c.task_id);return <article key={c.id}><div><strong>{t?.title || 'Chore'}</strong><small>{memberById[c.child_id]?.name} · {c.points} stars · {c.approved_at?'Stars earned':t?.done?'Awaiting parent approval':'Complete in Tasks'}</small></div>{parent&&!c.approved_at&&t?.done&&<SecondaryButton onClick={()=>command('approve',{id:c.id})}>Approve stars</SecondaryButton>}</article>;})}
       <p className="reward-bank-note">Each scored task earns stars once. For next week, create a new task. Reopening a task does not award stars again.</p>
      </section>

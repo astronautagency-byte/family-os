@@ -1,3 +1,4 @@
+import CustomizeFamOS from "../components/CustomizeFamOS";
 import React, { useEffect, useRef, useState } from "react";
 import { AlertCircle, Bell, Bug, Camera, CalendarDays, Check, CheckCircle2, ChevronRight, Clipboard, Eye, EyeOff, ExternalLink, ImagePlus, Info, Lightbulb, Link2, LoaderCircle, Mail, MapPin, Megaphone, Palette, Pencil, Phone, Plus, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Ticket, Trash2, Upload, Users, Utensils, X } from "../components/icons";
 import { useFamily } from "../context/FamilyContext";
@@ -1141,6 +1142,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
           </Card>
         </section>
 
+        <CustomizeFamOS/>
         <section data-tab="family">
           <div className="flex items-end justify-between mb-3">
             <h2 className="settings-section-title">👨‍👩‍👧‍👦 Family members</h2>

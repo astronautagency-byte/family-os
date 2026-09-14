@@ -1,3 +1,4 @@
+import {useHouseholdFeatures} from "../context/HouseholdFeaturesContext";
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, ChefHat, Croissant, Drumstick, Milk, Minus, Package, Plus, Refrigerator, Search, Snowflake, X, Carrot, Sandwich, Trash2, Clock, Leaf, CalendarClock } from "../components/icons";
 import { useAuth } from "../context/AuthContext";
@@ -62,6 +63,7 @@ const GROUP_META = {
 };
 
 export default function KitchenWatch() {
+  const {features}=useHouseholdFeatures();
   const { household, user } = useAuth();
   const { groceries, addGrocery, refreshData, memberById } = useFamily();
   const { items, addItem, updateItem, removeItem } = useKitchenInventory(household?.id, user?.id);
@@ -171,7 +173,7 @@ export default function KitchenWatch() {
   return <PullToRefresh onRefresh={refreshData}><div className="kw-page">
     <PageHeader title="Kitchen Watch" onAdd={() => openDraft()} addLabel="Add kitchen item" />
 
-    {purchaseQueue.length > 0 && <section className="kw-purchase-queue"><div className="kw-pq-header"><p>From Shopping</p><h2>Put fresh purchases away</h2><small>Add a date so reminders start.</small></div><div className="kw-pq-items">{purchaseQueue.slice(0, 6).map((item) => <article key={item.id} className="kw-pq-item"><span>{item.name}</span><div><button onClick={() => openDraft(item, "fridge")}>Fridge</button><button onClick={() => openDraft(item, "freezer")}>Freezer</button><button onClick={() => openDraft(item, "pantry")}>Pantry</button></div></article>)}</div></section>}
+    {features.groceries && purchaseQueue.length > 0 && <section className="kw-purchase-queue"><div className="kw-pq-header"><p>From Shopping</p><h2>Put fresh purchases away</h2><small>Add a date so reminders start.</small></div><div className="kw-pq-items">{purchaseQueue.slice(0, 6).map((item) => <article key={item.id} className="kw-pq-item"><span>{item.name}</span><div><button onClick={() => openDraft(item, "fridge")}>Fridge</button><button onClick={() => openDraft(item, "freezer")}>Freezer</button><button onClick={() => openDraft(item, "pantry")}>Pantry</button></div></article>)}</div></section>}
 
     {expiringCount > 0 && <div className="kw-alert-banner"><AlertTriangle size={16}/> <span>{expiringCount} item{expiringCount === 1 ? "" : "s"} expiring soon</span></div>}
 

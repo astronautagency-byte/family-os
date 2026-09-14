@@ -51,5 +51,9 @@ await db.query('insert into public.household_recipes(household_id,created_by,tit
 await as(sibling);assert.equal((await db.query('select * from household_recipes')).rows.length,1);
 await as(outsider);assert.equal((await db.query('select * from household_recipes')).rows.length,0);
 await assert.rejects(()=>db.query('insert into household_recipes(household_id,created_by,title,recipe) values($1,$2,$3,$4)',[h,outsider,'Not mine',{}]),/row-level security/);
+await as(sibling);
+assert.equal((await db.query('delete from household_recipes where household_id=$1 returning id',[h])).rows.length,0);
+await as(kid);
+assert.equal((await db.query('delete from household_recipes where household_id=$1 returning id',[h])).rows.length,1);
 await db.close();
 console.log('RewardBank database checks passed: owner authority, household isolation, child privacy, completed-task approval, duplicate approval, overspending, refund idempotency, pause.');

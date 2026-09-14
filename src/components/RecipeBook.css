@@ -29,3 +29,7 @@
 .recipe-book .m3-button svg { flex-shrink:0; }
 .recipe-book [role=alert] { color:var(--color-warn); }.recipe-book summary { padding-top:12px; cursor:pointer; }
 @media(max-width:500px){.recipe-book-grid { grid-template-columns:1fr; }.recipe-book-actions { flex-wrap:wrap; }.recipe-book-actions>* { flex-basis:100%; }}
+.recipe-book-thumbnail { height:160px; display:grid; place-items:center; overflow:hidden; border-radius:var(--radius-control); background:var(--color-accent-soft); color:var(--color-accent-strong); margin-bottom:16px; }
+.recipe-book-thumbnail img { width:100%; height:100%; object-fit:cover; }
+.recipe-book-source { display:inline-flex; align-items:center; gap:6px; margin:8px 0; font-size:13px; color:var(--color-accent-strong); overflow-wrap:anywhere; }
+.recipe-book-delete { color:var(--color-warn); }

@@ -2,6 +2,10 @@ import { it, expect, vi } from 'vitest';
 import { render, fireEvent, within } from '@testing-library/react';
 import BottomNav from '../BottomNav';
 vi.mock('../../context/FamilyContext', () => ({ useFamily: () => ({ unreadMessageCount: 2 }) }));
+it('removes disabled destinations from child navigation',()=>{
+ const {getByRole}=render(<BottomNav childMode active="chat" onChange={vi.fn()} features={{calendar:false,tasks:false,rewards:false}}/>);
+ expect(within(getByRole('navigation',{name:'Mobile navigation'})).getAllByRole('button').map(b=>b.textContent)).toEqual(['Chat']);
+});
 it('gives children only four destinations and no global add or More menu',()=>{
  const change=vi.fn();
  const {getByRole}=render(<BottomNav childMode active="tasks" onChange={change}/>);

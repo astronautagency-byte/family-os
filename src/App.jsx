@@ -38,7 +38,10 @@ const Meals = lazy(() => import("./pages/Meals"));
 const Groceries = lazy(() => import("./pages/Groceries"));
 const KitchenWatch = lazy(() => import("./pages/KitchenWatch"));
 import "./components/RewardBank.css";
+import {useHouseholdFeatures} from "./context/HouseholdFeaturesContext";
+import {resolveFeatures,featureRoute} from "./lib/householdFeatures";
 import {allowedTab, isChildAccount} from "./lib/childExperience";
+const RecipeBookPage = lazy(() => import("./pages/RecipeBookPage"));
 const Rewards = lazy(() => import("./components/RewardBank"));
 const Tasks = lazy(() => import("./pages/Tasks"));
 const Settings = lazy(() => import("./pages/Settings"));
@@ -211,7 +214,7 @@ const PageErrorFallback = ({ retry, reloadLatest, goToday }) => {
     </section>
   );
 };
-const VALID_TABS = ["rewards","today","calendar","meals","tasks","groceries","kitchen","chat","famai","settings"];
+const VALID_TABS = ["recipes","rewards","today","calendar","meals","tasks","groceries","kitchen","chat","famai","settings"];
 const PUBLIC_ROUTES = ["privacy", "terms", "contact", "pricing", "signin", "signup", "download"];
 const ROUTE_ALIASES = { "sign-in": "signin", "lsign-in": "signin", "sign-up": "signup", "partners": "partner", "app/admin": "admin" };
 const VALID_ROUTES = [...VALID_TABS, "landing", "admin", "partner", "partners", ...PUBLIC_ROUTES];
@@ -313,7 +316,7 @@ export default function App() {
     fam_ai: "fam_ai",
   };
   const setTab = (next) => {
-    next = allowedTab(next, childMode);
+    next = featureRoute(next, childMode, enabledFeatures);
     // Check if this tab requires a premium entitlement
     const entitlementKey = TAB_ENTITLEMENT_MAP[next];
     if (entitlementKey && effectiveEntitlements && effectiveEntitlements.features?.[entitlementKey] === false) {
@@ -331,20 +334,22 @@ export default function App() {
   const shellRef = useRef(null);
   const { configured, session, household, householdProfile, memberProfile, loading, passwordRecovery, onboardingRequired, accountReady, founderWelcomeSeen, featureTourSeen, markFounderWelcomeSeen, markFeatureTourSeen } = useAuth();
   const childMode = isChildAccount(household, memberProfile);
-  const visibleTab = allowedTab(tab, childMode);
+  const preferences = useHouseholdFeatures();
+  const enabledFeatures = resolveFeatures(preferences.features,runtimeConfig.features);
+  const visibleTab = featureRoute(tab, childMode, enabledFeatures);
   useEffect(() => {
-    if (childMode && visibleTab !== tab) {
+    if (!preferences.loading && visibleTab !== tab) {
       setTabState(visibleTab);
       setUpgradeFeature("");
       window.history.replaceState({tab:visibleTab}, "", "/"+visibleTab);
     }
-  }, [childMode, visibleTab, tab]);
+  }, [childMode, visibleTab, tab, preferences.loading]);
   const publicRoute = route;
   const seoPageConfig = SEO_PAGES[publicRoute] || null;
   const featureTourSteps = useMemo(() => TOUR_FEATURES.filter((feature) => {
     if (feature.id === "today" || feature.id === "settings") return true;
-    return runtimeConfig.features?.[feature.featureKey] !== false && effectiveEntitlements?.features?.[feature.featureKey] !== false;
-  }), [effectiveEntitlements, runtimeConfig.features]);
+    return enabledFeatures[feature.featureKey] !== false && effectiveEntitlements?.features?.[feature.featureKey] !== false;
+  }), [effectiveEntitlements, runtimeConfig.features, preferences.features]);
   const featureTourKey = session?.user?.id ? `family-os:feature-tour-seen:v1:${session.user.id}` : "";
 
   useEffect(() => {
@@ -775,12 +780,12 @@ export default function App() {
   return (
     <FamilyProvider tabletMode={effectiveTabletMode}>
       <div className={`app-shell ${darkMode ? "theme-dark" : ""} ${effectiveTabletMode ? "tablet-mode" : ""}`} data-color-scheme={colorScheme} ref={shellRef}>
-        <BottomNav childMode={childMode} active={visibleTab} onChange={setTab} onAdd={page => { if (setTab(page)) requestPageAdd(page); }} onOpenAI={!childMode && !IS_APP_STORE && !effectiveTabletMode ? () => setFamAiOpen(true) : undefined} features={runtimeConfig.features} tabletMode={effectiveTabletMode} />
+        <BottomNav childMode={childMode} active={visibleTab} onChange={setTab} onAdd={page => { if (setTab(page)) requestPageAdd(page); }} onOpenAI={enabledFeatures.fam_ai && !childMode && !IS_APP_STORE && !effectiveTabletMode ? () => setFamAiOpen(true) : undefined} features={enabledFeatures} tabletMode={effectiveTabletMode} />
         <main className="app-content">
           {childMode ? <header className="child-app-header"><strong>FamOS · Your family space</strong><button onClick={()=>supabase.auth.signOut()}>Sign out</button></header> : <AppTopBar
             onOpenSettings={() => setTab("settings")}
             onNavigate={setTab}
-            onOpenFamAI={IS_APP_STORE ? null : () => effectiveEntitlements?.features?.fam_ai === false ? setUpgradeFeature("pro") : setFamAiOpen(true)}
+            onOpenFamAI={!enabledFeatures.fam_ai || IS_APP_STORE ? null : () => effectiveEntitlements?.features?.fam_ai === false ? setUpgradeFeature("pro") : setFamAiOpen(true)}
             darkMode={darkMode}
             onToggleDarkMode={() => setDarkMode((value) => !value)}
             tabletMode={effectiveTabletMode}
@@ -789,13 +794,15 @@ export default function App() {
           />}
           <ErrorBoundary resetKey={visibleTab} fallback={({ retry, clearSW }) => <PageErrorFallback retry={retry} reloadLatest={clearSW} goToday={() => setTab("today")} />}>
             <Suspense fallback={<PageFallback />}>
-              {!childMode && upgradeFeature ? <FeaturePaywall featureId={upgradeFeature} onChoose={startFeatureCheckout} onBack={() => setUpgradeFeature("")} busy={billingBusy} error={billingError} /> : <>
+              {preferences.loading ? <PageFallback/> : !childMode && upgradeFeature ? <FeaturePaywall featureId={upgradeFeature} onChoose={startFeatureCheckout} onBack={() => setUpgradeFeature("")} busy={billingBusy} error={billingError} /> : <>
               {visibleTab === "today" && <Today goTo={setTab} />}
               {visibleTab === "calendar" && <CalendarPage entitlements={effectiveEntitlements} goTo={setTab} />}
               {visibleTab === "meals" && <Meals entitlements={effectiveEntitlements} goTo={setTab} />}
               {visibleTab === "groceries" && <Groceries />}
               {visibleTab === "kitchen" && <KitchenWatch goTo={setTab} />}
               {visibleTab === "tasks" && <Tasks />}
+              {visibleTab === "recipes" && <RecipeBookPage/>}
+              {visibleTab === "child-empty" && <section className="p-5"><h1>Your family space is taking a break</h1><p>Your parent can turn pages back on in Family Settings.</p></section>}
               {visibleTab === "rewards" && <Rewards onNavigate={setTab}/>}
               {visibleTab === "chat" && <Chat />}
               {visibleTab === "settings" && <Settings colorScheme={colorScheme} onColorSchemeChange={setColorScheme} />}
@@ -808,14 +815,14 @@ export default function App() {
             from inside the sheet simply clears the openFamAI flag. */}
         <ErrorBoundary resetKey={`famai-${famAiOpen}`} fallback={() => null}>
           <Suspense fallback={null}>
-            {!childMode && !IS_APP_STORE && <FamAI open={famAiOpen} onClose={() => setFamAiOpen(false)} screen={tab} />}
+            {enabledFeatures.fam_ai && !childMode && !IS_APP_STORE && <FamAI open={famAiOpen} onClose={() => setFamAiOpen(false)} screen={tab} />}
           </Suspense>
         </ErrorBoundary>
         {!childMode && trialConfirmationOpen && <TrialConfirmationModal onClose={closeTrialConfirmation} onManage={() => { closeTrialConfirmation(); setTab("settings"); }} />}
         {!childMode && founderWelcomeOpen && <FounderWelcomeModal onDismiss={dismissFounderWelcome} />}
         {!childMode && !founderWelcomeOpen && <FeatureTour mode={featureTourMode} steps={featureTourSteps} stepIndex={featureTourStep} onStart={startFeatureTour} onSkip={skipFeatureTour} onNext={() => setFeatureTourStep((current) => Math.min(featureTourSteps.length - 1, current + 1))} onBack={() => setFeatureTourStep((current) => Math.max(0, current - 1))} onExplore={exploreFeatureTourStep} onFinish={featureTourStep === featureTourSteps.length - 1 ? completeFeatureTour : finishFeatureTour} onFeedback={() => openTourFeedback("feedback")} onFeatureRequest={() => openTourFeedback("feature")} />}
         <InstallPrompt />
-        <Confetti />
+        {enabledFeatures.celebrations && <Confetti />}
       </div>
     </FamilyProvider>
   );

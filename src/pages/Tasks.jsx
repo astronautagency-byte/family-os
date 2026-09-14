@@ -1,3 +1,4 @@
+import {useHouseholdFeatures} from "../context/HouseholdFeaturesContext";
 import { useMemo, useState, useCallback } from "react";
 import { BriefcaseBusiness, Check, GraduationCap, House, Layers3, ListPlus, ListTodo, Plus, Share2, ShoppingBag, Trash2, Users } from "../components/icons";
 import { useFamily } from "../context/FamilyContext";
@@ -20,6 +21,7 @@ const LIST_COLORS=[{value:"#6b5ce7",label:"Violet"},{value:"#d66b83",label:"Rose
 
 export default function Tasks(){
  const {members:rawMembers,memberById:rawMemberById,tasks:rawTasks,taskLists:rawTaskLists,addTaskList,removeTaskList,addTask,toggleTask: persistToggleTask,updateTask,removeTask,clearTasks,refreshData}=useFamily();
+ const {features}=useHouseholdFeatures();
  const [taskCelebration,setTaskCelebration]=useState(false);
 
  const toggleTask=async(id)=>{const task=rawTasks?.find(item=>item.id===id);const saved=await persistToggleTask(id);if(saved&&task&&!task.done&&rawTasks.filter(item=>!item.done).length===1)setTaskCelebration(true);};
@@ -101,7 +103,7 @@ export default function Tasks(){
   </div></div>
 
   {/* Detail editor — opens when a task row is tapped */}
-  {taskCelebration && <CompletionScreen onClose={() => setTaskCelebration(false)}/>}
+  {features.celebrations && taskCelebration && <CompletionScreen onClose={() => setTaskCelebration(false)}/>}
   <Modal open={showEditPanel} onClose={()=>{if(!taskSaving){setShowEditPanel(false);setTaskSaveError("");}}} title={editingId?"Edit task":"Add task"}><TextField label="Task" value={draft.title} onChange={e=>setDraft({...draft,title:e.target.value})}/><TextAreaField label="Notes (optional)" value={draft.notes} onChange={e=>setDraft({...draft,notes:e.target.value})} placeholder="Add instructions, links, or helpful details"/><DateField label="Due date" value={draft.due} onChange={due=>setDraft({...draft,due})}/><p className="task-assignee-label">List</p><div className="task-category-picker">{Object.entries(GROUPS).map(([key,meta])=><button type="button" key={key} className={!draft.listId&&draft.taskType===key?"selected":""} style={{"--task-color":meta.color}} onClick={()=>setDraft({...draft,taskType:key,listId:null})}><i/>{meta.label}</button>)}{taskLists.map(list=><button type="button" key={list.id} className={draft.listId===list.id?"selected":""} style={{"--task-color":list.color}} onClick={()=>setDraft({...draft,listId:list.id})}><i/>{list.name}</button>)}</div><p className="task-assignee-label">Assign to <small>Choose one or more</small></p><div className="task-assignee-picker">{members.map(member=>{const selected=draft.assigneeIds.includes(member.id);return <button type="button" key={member.id} aria-pressed={selected} className={selected?"selected":""} onClick={()=>setDraft({...draft,assigneeIds:selected?draft.assigneeIds.filter(id=>id!==member.id):[...draft.assigneeIds,member.id]})}><Avatar member={member}/><span>{member.name}</span>{selected&&<Check size={14}/>}</button>})}</div>{taskSaveError&&<Alert tone="error" className="mb-3">{taskSaveError}</Alert>}<PrimaryButton onClick={save} disabled={taskSaving||!draft.title.trim()}>{taskSaving?"Saving…":editingId?"Save changes":"Add task"}</PrimaryButton></Modal>
 
   <Modal open={showListPanel} onClose={()=>{if(!listSaving){setShowListPanel(false);setListError("");}}} title="New task list"><TextField label="List name" value={listDraft.name} onChange={e=>setListDraft({...listDraft,name:e.target.value})} placeholder="Vacation prep"/><div className="task-list-color"><span>List colour</span><div className="task-list-swatches" role="radiogroup" aria-label="List colour">{LIST_COLORS.map(({value,label})=><button key={value} type="button" role="radio" aria-checked={listDraft.color===value} aria-label={label} title={label} className={`task-list-swatch${listDraft.color===value?" selected":""}`} style={{"--swatch-color":value}} onClick={()=>setListDraft({...listDraft,color:value})}><Check aria-hidden="true"/></button>)}</div><strong style={{color:listDraft.color}}>{listDraft.name||"New list"}</strong></div>{listError&&<Alert tone="error" className="mb-3">{listError}</Alert>}<PrimaryButton onClick={saveList} disabled={!listDraft.name.trim()||listSaving}>{listSaving?"Creating…":"Create list"}</PrimaryButton></Modal>

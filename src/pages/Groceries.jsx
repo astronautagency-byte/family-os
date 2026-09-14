@@ -1,3 +1,4 @@
+import {useHouseholdFeatures} from "../context/HouseholdFeaturesContext";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ShoppingCart } from '../components/icons';
 import { Baby, Bone, Camera, Carrot, Check, CheckCircle2, ChevronDown, Clipboard, Clock3, Coffee, Cookie, Croissant, CupSoda, Download, Drumstick, ExternalLink, FlaskConical, Globe2, GripVertical, HeartPulse, Image as ImageIcon, ListChecks, LoaderCircle, Maximize2, Milk, Minus, Package, Pencil, Plus, Refrigerator, RotateCcw, Sandwich, ScanLine, ScrollText, Search, Share2, ShoppingBag, ShoppingBasket, Snowflake, Soup, Sparkles, SprayCan, Star, Store, Trash2, Truck, Upload, Wheat, Wine, X } from "../components/icons";
@@ -282,6 +283,7 @@ export default function Groceries() {
   const [scannerStarting, setScannerStarting] = useState(false);
   const [scannerError, setScannerError] = useState("");
   const [returnToFocus, setReturnToFocus] = useState(false);
+  const {features}=useHouseholdFeatures();
   const [listCelebration, setListCelebration] = useState(false);
   const [photoDraft, setPhotoDraft] = useState(emptyPhoto);
   const [saveBusy, setSaveBusy] = useState(false);
@@ -480,7 +482,7 @@ export default function Groceries() {
     const saved = await toggleGrocery(item.id);
     if (!saved) return;
     const purchasedCategory = categorizeGroceryItem(item.name, item.category);
-    if (!item.checked && isKitchenWatchCategory(purchasedCategory) && !inventoriedSourceIds.has(item.id)) {
+    if (features.kitchen && !item.checked && isKitchenWatchCategory(purchasedCategory) && !inventoriedSourceIds.has(item.id)) {
       setWatchPromptItem({ ...item, category: purchasedCategory });
     }
     if (!completesList) return;
@@ -1051,7 +1053,7 @@ export default function Groceries() {
 
   return (
     <PullToRefresh onRefresh={refreshData}><div className="pb-28 reference-groceries famos-noscroll">
-      {listCelebration && <CompletionScreen kind="shopping" onClose={() => setListCelebration(false)}/>}
+      {features.celebrations && listCelebration && <CompletionScreen kind="shopping" onClose={() => setListCelebration(false)}/>}
       <PageHeader
         title="Shopping"
         onAdd={openNew}
@@ -1390,7 +1392,7 @@ export default function Groceries() {
         </div>
         {saveError && <p className="text-[12px] text-[var(--color-warn)] mt-3">{saveError}</p>}
       </Modal>
-      <Modal open={!!watchPromptItem} onClose={() => setWatchPromptItem(null)} title="Add this to Kitchen Watch?">
+      <Modal open={features.kitchen && !!watchPromptItem} onClose={() => setWatchPromptItem(null)} title="Add this to Kitchen Watch?">
         <div className="watch-purchase-prompt">
           <span><Refrigerator size={20}/></span>
           <div><strong>{watchPromptItem?.name}</strong><p>Track its use-by date and get a reminder before it expires.</p></div>

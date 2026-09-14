@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import {reminderPaused} from "../_shared/feature-reminders.js";
 import webpush from "npm:web-push@3.6.7";
 
 const corsHeaders = {
@@ -28,6 +29,9 @@ Deno.serve(async (request) => {
     if (!householdId || !notification?.title) throw new Error("Household and notification are required.");
     const { data: senderMembership } = await admin.from("household_members").select("user_id").eq("household_id", householdId).eq("user_id", user.id).maybeSingle();
     if (!senderMembership) throw new Error("You do not belong to this household.");
+    const {data:preferences,error:preferencesError}=await admin.from("household_feature_preferences").select("features,pause_reminders").eq("household_id",householdId).maybeSingle();
+    if(preferencesError)throw preferencesError;
+    if(reminderPaused(preferences,notification))return Response.json({sent:0,paused:true},{headers:corsHeaders});
 
     const { data: memberships, error: membershipError } = await admin.from("household_members").select("user_id").eq("household_id", householdId);
     if (membershipError) throw membershipError;
