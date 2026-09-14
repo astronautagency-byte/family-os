@@ -1,0 +1,18 @@
+.recipe-book { color:var(--color-ink); }
+.recipe-book-welcome { background:#fff5df; color:#263729; padding:24px; border-radius:20px; margin-bottom:20px; border-bottom:6px solid #f3cd59; }
+.recipe-book-welcome>span,.recipe-book-category { font-size:11px; font-weight:750; letter-spacing:.08em; color:#2e607e; }
+.recipe-book-welcome h3 { font-family:Georgia,serif; font-size:30px; line-height:1.15; margin:10px 0; }
+.recipe-book-welcome p { line-height:1.5; margin:0; }
+.recipe-book fieldset { border:0; padding:0; min-width:0; }
+.recipe-book section { padding:16px 0; }
+.recipe-book section>h3 { font-size:18px; font-weight:650; margin-bottom:14px; }
+.recipe-book label { display:flex; flex-direction:column; gap:6px; margin:12px 0; font-size:13px; }
+.recipe-book :is(input,textarea) { min-height:44px; padding:10px 12px; background:var(--color-surface); color:var(--color-ink); border:1px solid var(--color-border); border-radius:var(--radius-control); width:100%; }
+.recipe-book-note { font-size:12px; color:var(--color-ink-soft); line-height:1.5; }
+.recipe-book-actions { display:flex; gap:12px; align-items:center; }.recipe-book-actions>* { flex:1; min-width:0; }
+.recipe-book-photos { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }.recipe-book-photos img { max-width:100%; width:150px; max-height:220px; object-fit:contain; border-radius:8px; }
+.recipe-book-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin-top:16px; }
+.recipe-book-grid article { padding:18px; border:1px solid var(--color-border); border-radius:18px; background:var(--color-surface); border-top:5px solid #88b5d1; }
+.recipe-book-grid h4 { font-size:20px; font-family:Georgia,serif; margin:10px 0; overflow-wrap:anywhere; }.recipe-book-grid p { font-size:13px; color:var(--color-ink-soft); }
+.recipe-book [role=alert] { color:var(--color-warn); }.recipe-book summary { padding-top:12px; cursor:pointer; }
+@media(max-width:500px){.recipe-book-grid { grid-template-columns:1fr; }.recipe-book-actions { flex-wrap:wrap; }.recipe-book-actions>* { flex-basis:100%; }}

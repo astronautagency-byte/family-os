@@ -25,6 +25,7 @@ import { buildShareUrl } from "../lib/share";
 import ShareSheet from "../components/ShareSheet";
 import { lockBodyScroll } from "../lib/bodyScrollLock";
 import { IS_MAC_APP_STORE } from "../lib/distribution";
+import RecipeBook from '../components/RecipeBook';
 
 function MealCookPicker({ members, selectedIds, onToggle }) {
   return (
@@ -169,8 +170,8 @@ const normaliseSavedRecipe = (recipe = {}) => ({
   id: recipeKey(recipe) || `recipe-${Date.now()}`,
   title: recipe.title || "Saved recipe",
   cuisine: recipe.cuisine || "Family favourite",
-  readyInMinutes: recipe.readyInMinutes || 35,
-  servings: recipe.servings || 4,
+  readyInMinutes: recipe.readyInMinutes || null,
+  servings: recipe.servings || null,
   ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : [],
   instructions: Array.isArray(recipe.instructions) ? recipe.instructions : [],
   source: recipe.source || "spoonacular",
@@ -458,6 +459,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
   const [rouletteCosts, setRouletteCosts] = useState({}); // { [recipeId]: costData }
   const [rouletteCuisine, setRouletteCuisine] = useState(null); // null = any cuisine
   const [savedRecipes, setSavedRecipes] = useState(() => readStoredJson(SAVED_RECIPES_KEY, []));
+  const [recipeBookOpen,setRecipeBookOpen]=useState(false);
   const [planningRecipe, setPlanningRecipe] = useState(null);
   const [dietaryPreferences] = useState(() => {
     const onboardingPreferences = householdProfileExtra ? {
@@ -698,6 +700,10 @@ export default function Meals({ entitlements = null, goTo } = {}) {
     setCookNutrition(null);
     setCookLoading(true);
 
+    if(meal.recipeSnapshot?.ingredients?.length && meal.recipeSnapshot?.instructions?.length){
+      setCookRecipe(normaliseSavedRecipe(meal.recipeSnapshot));setCookLoading(false);return;
+    }
+
     if (!supabase) {
       setCookError("offline");
       setCookLoading(false);
@@ -779,7 +785,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
     setCookStep(0);
     setCookError("");
     setCookLoading(false);
-    setCookIngredientsAdded(true);
+    setCookIngredientsAdded(false);
     setCookNutrition(null);
     setCookNutritionLoading(false);
     // Cache ingredient names for the grocery badge on the meal card.
@@ -907,7 +913,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
                     </div>
                     {meal?.title && (
                       <div className="meal-card-slot-buttons">
-                        {meal.source === 'spoonacular' && (
+                        {(meal.source === 'spoonacular' || meal.recipeSnapshot) && (
                           <button className="meal-card-btn meal-card-btn-dark" onClick={() => openCookRecipe(meal)}>
                             <ChefHat size={14} /> Cook Mode
                           </button>
@@ -943,6 +949,8 @@ export default function Meals({ entitlements = null, goTo } = {}) {
 
 
       <div className="meal-plan-toolbar px-5" aria-label="Meal plan controls">
+        <button className="meal-plan-share" onClick={()=>setRecipeBookOpen(true)}><Bookmark size={15}/> Recipe Book</button>
+        {recipeBookOpen&&<RecipeBook onClose={()=>setRecipeBookOpen(false)} onCook={openSavedRecipe}/>}
         <div className="meal-range-toggle" aria-label="Meal planning range"><button className={horizon===7?"selected":""} onClick={()=>setHorizon(7)}>1 week</button><button className={horizon===14?"selected":""} onClick={()=>setHorizon(14)}>2 weeks</button></div>
         <button className="meal-plan-share" onClick={shareMealPlan} aria-label="Share meal plan" title="Share the meal plan"><Share2 size={15}/> Share</button>
       </div>
