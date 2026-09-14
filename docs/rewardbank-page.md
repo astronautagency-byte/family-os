@@ -1,5 +1,9 @@
 # RewardBank page
 
+## Stars and experiences
+
+RewardBank now displays stars instead of points, with the same numerical balances (1 existing point = 1 star). The database/API points field is intentionally unchanged to preserve the ledger and approval safeguards. Parents choose a custom chore star value or a 1/3/5-star shortcut, and set the star cost of each new experience. New rewards use the experience type; existing purchase/cash rewards remain available. No money is transferred by FamOS.
+
 RewardBank is now available at /rewards, from Rewards in desktop navigation or More → Rewards on mobile. Tasks no longer opens a RewardBank modal.
 
 Household owners keep enrollment, scoring, approval, reward creation, and fulfillment controls. Other members see their own balance, earning plan, reward requests, and history.
