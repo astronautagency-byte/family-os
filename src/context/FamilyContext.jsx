@@ -13,6 +13,7 @@ import { useAuth } from "./AuthContext";
 import { invokeEdgeFunction, supabase } from "../lib/supabase";
 import { pathFromPublicUrl as groceryPhotoPath } from "../lib/groceryPhotoUpload";
 import { categorizeGroceryItem } from "../lib/groceryCategories";
+import { registerPushDevice } from "../lib/pushRegistration";
 
 const STORAGE_KEY = "family-os:v1";
 const GOOGLE_STORAGE_KEY = "family-os:google:v1";
@@ -194,6 +195,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
   const [dataLoading, setDataLoading] = useState(remote);
   const [dataError, setDataError] = useState(null);
   const [notificationPermission, setNotificationPermission] = useState(() => typeof Notification === "undefined" ? "unsupported" : Notification.permission);
+  const [notificationRegistrationError, setNotificationRegistrationError] = useState("");
   const [calendarFeeds, setCalendarFeeds] = useState(savedCalendarFeeds.feeds || []);
   const [feedEvents, setFeedEvents] = useState(savedCalendarFeeds.events || []);
   const [calendarFeedStatus, setCalendarFeedStatus] = useState("idle");
@@ -214,26 +216,14 @@ export function FamilyProvider({ children, tabletMode = false }) {
     if (typeof Notification === "undefined") return "unsupported";
     const permission = await Notification.requestPermission();
     setNotificationPermission(permission);
-    if (permission === "granted" && remote && "PushManager" in window) {
+    setNotificationRegistrationError("");
+    if (permission === "granted") {
       try {
-        const registration = await navigator.serviceWorker.ready;
-        let subscription = await registration.pushManager.getSubscription();
-        if (!subscription) {
-          subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: base64UrlToUint8Array(VAPID_PUBLIC_KEY),
-          });
-        }
-        const deviceLabel = [navigator.userAgentData?.platform || navigator.platform, /iPhone|iPad/.test(navigator.userAgent) ? "iOS Home Screen" : ""].filter(Boolean).join(" · ");
-        const { error } = await supabase.from("push_subscriptions").upsert({
-          user_id: user.id,
-          endpoint: subscription.endpoint,
-          subscription: subscription.toJSON(),
-          device_label: deviceLabel,
-        }, { onConflict: "user_id,endpoint" });
-        if (error) throw error;
+        if (!remote) throw new Error("Sign in to enable background notifications.");
+        await registerPushDevice({client:supabase,userId:user.id,publicKey:base64UrlToUint8Array(VAPID_PUBLIC_KEY)});
       } catch (error) {
-        console.warn("Could not register this device for background push.", error);
+        setNotificationRegistrationError(error.message || "Device registration failed. Please retry.");
+        return "registration-failed";
       }
     }
     return permission;
@@ -257,14 +247,13 @@ export function FamilyProvider({ children, tabletMode = false }) {
     let permission = Notification.permission;
     if (permission === "default") permission = await requestNotifications();
     if (permission !== "granted") return permission;
-    const options = { body: "Notifications are ready. Tap to return to your family dashboard.", icon: "/icons/famos-app-icon.png", badge: "/icons/famos-app-icon.png", tag: "familyos-test", data: { url: "/#today" } };
-    const registration = await getNotificationRegistration();
-    if (registration?.showNotification) {
-      await registration.showNotification("FamilyOS notifications are working", options);
-      return "shown";
-    }
-    showLocalNotification("FamilyOS notifications are working", options);
-    return "shown";
+    if (!remote) throw new Error("Sign in to test background notifications.");
+    const endpoint = await registerPushDevice({client:supabase,userId:user.id,publicKey:base64UrlToUint8Array(VAPID_PUBLIC_KEY)});
+    const {data,error} = await supabase.functions.invoke("send-test-push", {body:{endpoint}});
+    if(error || data?.error) throw new Error(data?.error || "The server could not send the test. Check notification setup and retry.");
+    if(!data?.queued) throw new Error("The test was not queued. Please retry.");
+    return "queued";
+
   };
 
   const showHouseholdNotification = async ({ title, body, tag, url }) => {
@@ -2066,7 +2055,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
     expenses, weeklyBudget, monthlyBudget, financePeriod, addExpense, removeExpense, setFinanceBudget, setFinancePeriod,
     resetToDemoData,
     dataLoading, dataError, refreshData: loadRemoteData,
-    notificationPermission, requestNotifications, sendTestNotification,
+    notificationPermission, notificationRegistrationError, requestNotifications, sendTestNotification,
     // FamOS calendar branding
     famosCalendar, setFamosCalendar,
     // Google Calendar

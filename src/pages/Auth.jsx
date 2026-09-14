@@ -1,3 +1,4 @@
+import { Avatar } from "../components/ui";
 import { useEffect, useMemo, useState } from "react";
 import { Baby, Bell, BellRing, BriefcaseBusiness, CalendarDays, Check, CheckSquare, ChefHat, ChevronLeft, Eye, EyeOff, HeartHandshake, House, ImagePlus, Leaf, LoaderCircle, LockKeyhole, Mail, MessageCircle, MilkOff, Palette, Phone, Plus, Salad, Send, ShieldCheck, ShoppingCart, Smartphone, Sparkles, Trash2, UserRound, UsersRound, WalletCards, WheatOff } from "../components/icons";
 import { useAuth } from "../context/AuthContext";
@@ -1303,7 +1304,7 @@ function AvatarPicker({ avatarUrl, setAvatarUrl, status, setStatus }) {
           <label><input type="file" accept="image/*" onChange={uploadAvatar} /><ImagePlus size={15} /> Upload photo</label>
         </div>
       </div>
-      {avatarUrl?.startsWith("data:") && <div className="avatar-preview"><img src={avatarUrl} alt="Your uploaded avatar" /></div>}
+      {avatarUrl?.startsWith("data:") && <Avatar member={{name:"Your uploaded avatar",avatarUrl}} size="xl" />}
       {status && <p className="avatar-status">{status}</p>}
       <p className="avatar-preset-note">Upload a photo, or your initials will be used.</p>
     </div>

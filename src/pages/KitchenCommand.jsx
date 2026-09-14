@@ -1,3 +1,4 @@
+import { Avatar } from "../components/ui";
 import { useState } from "react";
 import { Backpack, CalendarDays, Car, Check, Clock3, ListChecks, LogOut, ShieldCheck, ShoppingBasket, Sparkles } from "../components/icons";
 import { useFamily } from "../context/FamilyContext";
@@ -26,7 +27,7 @@ export default function KitchenCommand({onExit,openAdd}) {
       <div className="command-date"><strong>{new Date().toLocaleDateString("en-CA",{weekday:"long",month:"long",day:"numeric"})}</strong><span>{time(new Date())}</span></div>
       <button onClick={onExit}><LogOut/> Exit display</button>
     </header>
-    <nav className="command-profiles" aria-label="Filter command center by family member"><button className={activeMember==="all"?"active":""} onClick={()=>setActiveMember("all")}><span>All</span><small>Household</small></button>{members.map(member=><button key={member.id} className={activeMember===member.id?"active":""} onClick={()=>setActiveMember(member.id)}><i className={`fam-${member.color||"plum"}`}>{member.avatarUrl?<img src={member.avatarUrl} alt=""/>:member.name?.[0]}</i><span>{member.name?.split(" ")[0]}</span></button>)}</nav>
+    <nav className="command-profiles" aria-label="Filter command center by family member"><button className={activeMember==="all"?"active":""} onClick={()=>setActiveMember("all")}><span>All</span><small>Household</small></button>{members.map(member=><button key={member.id} className={activeMember===member.id?"active":""} onClick={()=>setActiveMember(member.id)}><Avatar member={member} size="lg" /><span>{member.name?.split(" ")[0]}</span></button>)}</nav>
 
     <section className="command-hero">
       <div><span>Household pulse</span><h1>{todaysEvents.length} plans, {openTasks.length} open tasks.</h1><p>One calm view for everyone passing through the kitchen.</p></div>

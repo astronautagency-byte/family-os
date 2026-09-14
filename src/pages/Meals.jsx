@@ -860,17 +860,6 @@ export default function Meals({ entitlements = null, goTo } = {}) {
           <div key={date} className="meal-card-new">
             <div className="meal-card-header">
               <p className="meal-card-date">{formatDayLabel(date)}</p>
-              {(() => {
-                const cookEntries = dayMeals.flatMap(({ slot, meal }) =>
-                  (meal?.cookIds ?? []).map((id) => ({ id, slot, member: memberById[id] })).filter((entry) => entry.member)
-                );
-                const uniqueCooks = [...new Map(cookEntries.map((c) => [c.id, c])).values()]
-                  .map((c) => ({
-                    ...c,
-                    slots: SLOT_ORDER.filter((slot) => cookEntries.some((e) => e.id === c.id && e.slot === slot)).map((slot) => SLOT_META[slot].label),
-                  }));
-                return uniqueCooks.length > 0 ? <MealCooksTooltip cooks={uniqueCooks} /> : null;
-              })()}
             </div>
             <div className="meal-card-slots">
               {dayMeals.map(({ slot, meal }) => {

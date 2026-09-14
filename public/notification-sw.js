@@ -8,7 +8,7 @@ self.addEventListener('push', (event) => {
   // WindowClient.navigate APIs require absolute paths inside an SW.
   const rawUrl = payload.url || '/#today';
   let resolvedUrl;
-  try { resolvedUrl = new URL(rawUrl, self.location.origin).href; }
+  try { const url = new URL(rawUrl, self.location.origin); resolvedUrl = url.origin === self.location.origin ? url.href : self.location.origin; }
   catch { console.warn("notification-sw: invalid url in push payload, falling back to origin", rawUrl); resolvedUrl = self.location.origin; }
   event.waitUntil(self.registration.showNotification(payload.title || 'FamOS', {
     body: payload.body || 'Your household has an update.',
@@ -30,7 +30,7 @@ self.addEventListener('notificationclick', (event) => {
   // invalid" — every documented iOS Safari push-doesn't-open bug
   // traces back to this. Absolute URLs are required by the spec.
   let absoluteUrl;
-  try { absoluteUrl = new URL(target, self.location.origin).href; }
+  try { const url = new URL(target, self.location.origin); absoluteUrl = url.origin === self.location.origin ? url.href : self.location.origin; }
   catch { console.warn("notification-sw: invalid url in notification data, falling back to origin", target); absoluteUrl = self.location.origin; }
   event.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
     const existing = windows[0];

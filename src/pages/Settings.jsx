@@ -618,7 +618,7 @@ function TaskImportCard() {
 }
 
 export default function Settings({ colorScheme = "famos", onColorSchemeChange = () => {} }) {
-  const { members, addMember, updateMember, removeMember, resetToDemoData, notificationPermission, requestNotifications, sendTestNotification, refreshData } = useFamily();
+  const { members, addMember, updateMember, removeMember, resetToDemoData, notificationPermission, notificationRegistrationError, requestNotifications, sendTestNotification, refreshData } = useFamily();
   const { configured, user, household, householdProfileExtra, memberProfile, updateHouseholdSettings, updateHouseholdProfile, invitePartner, updatePassword, updateEmail, signOut, deleteAccount } = useAuth();
   const [settingsTab, setSettingsTab] = useState("appearance");
   const [editingMember, setEditingMember] = useState(null); // member object or "new"
@@ -891,8 +891,8 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
     setNotificationTestStatus("");
     try {
       const result = await sendTestNotification();
-      if (result === "shown") {
-        setNotificationTestStatus("Test sent. If you do not see it, check macOS/browser notification settings or Focus mode.");
+      if (result === "queued") {
+        setNotificationTestStatus("Server test queued. Close FamOS now; it should arrive in about 1–2 minutes when the reminder scheduler is active. This does not confirm delivery—check your device and Focus settings.");
       } else if (result === "denied") {
         setNotificationTestStatus("Notifications are blocked in your browser settings.");
       } else if (result === "unsupported") {
@@ -1174,7 +1174,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
               ))}
               {pendingInvites.map((invite) => (
                 <li key={invite.id} className="family-roster-pending">
-                  <div className="family-invite-avatar">{(invite.invited_name || invite.email || "?").slice(0, 1).toUpperCase()}</div>
+                  <Avatar member={{name:invite.invited_name || invite.email || "?"}} size="lg" />
                   <div className="family-invite-details min-w-0 flex-1">
                     <p>{invite.invited_name || invite.email}</p>
                     <div className="family-invite-meta">
@@ -1523,9 +1523,10 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
           <h2 className="settings-section-title mb-3">🔔 Notifications</h2>
           <Card className="p-4">
             <div className="flex items-start gap-3 mb-4"><div className="w-10 h-10 rounded-xl bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0"><Bell size={18} color="var(--color-accent)" /></div><div><p className="font-medium text-[14.5px]">Household notifications</p><p className="text-[12.5px] text-[var(--color-ink-soft)] mt-0.5">Get notified about assigned tasks and meals, chat messages, shopping list updates, and family calendar updates on every enabled device.</p></div></div>
-            <PrimaryButton onClick={requestNotifications} disabled={notificationPermission === "granted" || notificationPermission === "unsupported"}>{notificationPermission === "granted" ? "Browser notifications allowed" : notificationPermission === "denied" ? "Blocked in browser settings" : notificationPermission === "unsupported" ? "Not supported on this device" : "Enable browser notifications"}</PrimaryButton>
+            <PrimaryButton onClick={requestNotifications} disabled={(notificationPermission === "granted" && !notificationRegistrationError) || notificationPermission === "unsupported"}>{notificationRegistrationError ? "Retry device registration" : notificationPermission === "granted" ? "Browser notifications allowed" : notificationPermission === "denied" ? "Blocked in browser settings" : notificationPermission === "unsupported" ? "Not supported on this device" : "Enable browser notifications"}</PrimaryButton>
+            {notificationRegistrationError && <p role="alert" className="text-[12px] text-[var(--color-warn)] mt-2">{notificationRegistrationError}</p>}
             {notificationPermission === "denied" && <SecondaryButton className="mt-2" onClick={openNotificationSettings}><ExternalLink size={15} /> Open notification settings</SecondaryButton>}
-            {notificationPermission === "granted" && <SecondaryButton className="mt-2" onClick={testNotifications} disabled={testingNotification}>{testingNotification ? "Sending test…" : "Send a test notification"}</SecondaryButton>}
+            {notificationPermission === "granted" && <SecondaryButton className="mt-2" onClick={testNotifications} disabled={testingNotification}>{testingNotification ? "Queuing test…" : "Test background delivery"}</SecondaryButton>}
             {notificationTestStatus && <div className="notification-test-status"><CheckCircle2 size={14} /><p>{notificationTestStatus}</p></div>}
             <div className="notification-help">On iPhone and iPad, install FamOS to the Home Screen first, open the installed app, then enable notifications. Apple only permits background Web Push for Home Screen web apps.</div>
             {notificationPermission === "denied" && <p className="text-[11.5px] text-[var(--color-warn)] mt-2">Allow notifications for this site in your browser or device settings, then reload FamOS.</p>}
@@ -1685,9 +1686,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
 
         <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-2">Avatar</p>
         <div className="avatar-editor">
-          <div className="avatar-editor-preview" style={{ backgroundColor: avatarUrl ? "#fff" : FAMILY_COLORS.find((item) => item.id === color)?.value || "var(--color-accent)" }}>
-            {avatarUrl ? <img src={avatarUrl} alt="" /> : <span>{initialsFrom(name || "Family")}</span>}
-          </div>
+          <Avatar member={{name:name || "Family", initials:initialsFrom(name || "Family"), color, avatarUrl}} size="xl" />
           <div className="avatar-editor-actions">
             <label>
               <input type="file" accept="image/*" onChange={uploadAvatar} />

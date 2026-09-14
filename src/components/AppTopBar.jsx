@@ -8,6 +8,7 @@ import { useFamily } from "../context/FamilyContext";
 import { todayISO } from "../lib/dates";
 import useKitchenInventory from "../hooks/useKitchenInventory";
 import { inventoryExpiryStatus } from "../lib/inventoryExpiry";
+import { Avatar } from "./ui";
 
 export default function AppTopBar({ onOpenSettings, onNavigate, onOpenFamAI, darkMode, onToggleDarkMode, tabletMode, tabletModeAvailable = true, onToggleTabletMode }) {
   const { profile, user, household } = useAuth();
@@ -45,7 +46,7 @@ export default function AppTopBar({ onOpenSettings, onNavigate, onOpenFamAI, dar
   const bellCount=unread.length+(messageNotice?1:0);
   const openChat=()=>{markChatRead?.();onNavigate("chat");setOpen(false);};
   return <header className="app-topbar">
-    <div className={`topbar-avatar ${tabletMode ? "is-household" : ""}`}>{tabletMode?<Home aria-hidden="true"/>:avatar?<img src={avatar} alt={name}/>:<span>{name.slice(0,1).toUpperCase()}</span>}</div>
+    {tabletMode ? <div className="topbar-avatar is-household"><Home aria-hidden="true"/></div> : <Avatar member={{...currentMember, name, avatarUrl:avatar}} size="lg" />}
     <div className="topbar-brand-group">
       <div className="topbar-wordmark"><img src="/icons/famos-app-icon.png" alt=""/><strong>Fam<span>OS</span></strong>{tabletMode&&<em>{household?.name || "Shared display"}</em>}</div>
       {!tabletMode && !IS_APP_STORE && <button className="topbar-download" type="button" onClick={() => openExternalUrl(DESKTOP_DOWNLOAD_PAGE_URL)} aria-label={DESKTOP_DOWNLOAD_LABEL} title={DESKTOP_DOWNLOAD_LABEL}><Download/><span>{DESKTOP_DOWNLOAD_LABEL}</span></button>}

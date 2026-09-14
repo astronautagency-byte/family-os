@@ -1,12 +1,22 @@
 import {it,expect,vi,afterEach} from 'vitest';
 import {render,fireEvent,screen,waitFor,cleanup,act} from '@testing-library/react';
 import Meals from './Meals';
+import {todayISO} from '../lib/dates';
 const mocks=vi.hoisted(()=>({save:vi.fn(),family:{members:[],memberById:{},meals:[],groceries:[],refreshData:async()=>{}}}));
 vi.mock('../context/FamilyContext',()=>({useFamily:()=>({...mocks.family,setMealForSlot:mocks.save})}));
 vi.mock('../context/AuthContext',()=>({useAuth:()=>({household:null,user:null,householdProfileExtra:null})}));
 vi.mock('../hooks/useKitchenInventory',()=>({default:()=>({items:[],ingredientNames:[],removeItem:vi.fn()})}));
 vi.mock('../components/NativeAdBanner',()=>({default:()=>null}));
-afterEach(()=>{cleanup();vi.clearAllMocks();mocks.family.members=[];mocks.family.memberById={};});
+afterEach(()=>{cleanup();vi.clearAllMocks();mocks.family.members=[];mocks.family.memberById={};mocks.family.meals=[];});
+it('shows each cook once per meal without duplicating avatars in the day header',()=>{
+ const member={id:'alex',name:'Alex',initials:'A',color:'plum'};
+ mocks.family.members=[member];mocks.family.memberById={alex:member};
+ mocks.family.meals=[{id:'breakfast',date:todayISO(),slot:'breakfast',title:'Rice and chicken',cookIds:['alex','alex']}];
+ render(<Meals/>);
+ const card=screen.getByText('Rice and chicken').closest('.meal-card-new');
+ expect(card.querySelectorAll('.meal-card-header .family-avatar').length).toBe(0);
+ expect(card.querySelectorAll('.meal-card-slot-avatars .family-avatar').length).toBe(1);
+});
 it('uses shared avatars and saves the selected cooks',async()=>{
   mocks.family.members=[
     {id:'alex',name:'Alex',initials:'AV',color:'green',avatarUrl:'/alex.png'},

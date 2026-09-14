@@ -10,27 +10,31 @@ export function colorVar(colorId) {
 }
 
 export function Avatar({ member, size = "md", className = "" }) {
+  const [failedUrl, setFailedUrl] = useState(null);
   if (!member) return null;
+  const initials = member.initials || member.name?.trim().split(/\s+/).map(part => part[0]).slice(0, 2).join('').toUpperCase() || '?';
+  const photo = member.avatarUrl && member.avatarUrl !== failedUrl ? member.avatarUrl : null;
   const sizes = {
     xs: "w-[18px] h-[18px] text-[8px] ring-1",
     sm: "w-6 h-6 text-[10px]",
     md: "w-8 h-8 text-xs",
     lg: "w-11 h-11 text-sm",
+    xl: "w-16 h-16 text-lg",
   };
   return (
     <div
-      className={`${sizes[size]} family-avatar relative overflow-hidden rounded-full flex items-center justify-center font-semibold text-white shrink-0 ${className}`}
-      style={{ backgroundColor: member.avatarUrl ? "#fff" : colorVar(member.color) }}
+      className={`${sizes[size] || sizes.md} family-avatar relative overflow-hidden rounded-full flex items-center justify-center font-semibold text-white shrink-0 ${className}`}
+      style={{ backgroundColor: photo ? "var(--color-surface)" : colorVar(member.color), width:({xs:18,sm:24,md:32,lg:44,xl:64})[size] || 32, height:({xs:18,sm:24,md:32,lg:44,xl:64})[size] || 32, borderRadius:'50%', border:0 }}
       title={member.name}
     >
-      {member.initials && (size === "xs" ? member.initials.charAt(0) : member.initials)}
-      {member.avatarUrl && (
+      {size === "xs" ? initials.charAt(0) : initials}
+      {photo && (
         <img
-          src={member.avatarUrl}
+          src={photo}
           alt=""
           referrerPolicy="no-referrer"
           className="absolute inset-0 w-full h-full object-cover"
-          onError={(event) => { event.currentTarget.style.display = "none"; }}
+          onError={() => setFailedUrl(photo)}
         />
       )}
     </div>
