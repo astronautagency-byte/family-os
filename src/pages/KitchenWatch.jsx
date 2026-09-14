@@ -9,6 +9,7 @@ import { categorizeGroceryItem } from "../lib/groceryCategories";
 import { isIngredientOnList } from "../lib/mealIngredientCache";
 import PullToRefresh from "../components/PullToRefresh";
 import PageHeader from "../components/PageHeader";
+import GroceryIllustration from "../components/GroceryIllustration";
 import { Modal, TextField, DateField, PrimaryButton } from "../components/ui";
 
 export const KITCHEN_WATCH_CATEGORIES = ["Produce", "Deli & Prepared Foods", "Dairy & Eggs", "Meat & Seafood", "Bakery"];
@@ -64,6 +65,7 @@ export default function KitchenWatch() {
   const { items, addItem, updateItem, removeItem } = useKitchenInventory(household?.id, user?.id);
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
+  const [activeLocation, setActiveLocation] = useState("all");
   const [adding, setAdding] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -104,9 +106,10 @@ export default function KitchenWatch() {
   }, [watchedItems]);
 
   const filteredItems = useMemo(() => watchedItems
+    .filter((item) => activeLocation === "all" || item.location === activeLocation)
     .filter((item) => `${item.name} ${item.brand || ""} ${item.category}`.toLowerCase().includes(query.trim().toLowerCase()))
     .filter((item) => activeCategory === "all" || item.category === activeCategory),
-    [watchedItems, query, activeCategory]);
+    [watchedItems, query, activeCategory, activeLocation]);
 
   const grouped = useMemo(() => {
     const groups = { expired: [], soon: [], later: [], "no-date": [] };
@@ -170,6 +173,9 @@ export default function KitchenWatch() {
 
     <section className="kw-search-bar"><Search size={15}/><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search your kitchen" aria-label="Search Kitchen Watch"/>{query && <button type="button" onClick={() => setQuery("")} aria-label="Clear search"><X size={13}/></button>}</section>
 
+    <div className="reference-segments kw-storage-tabs" role="group" aria-label="Storage location">
+      {[["all","All"],["fridge","Fridge"],["pantry","Pantry"],["freezer","Freezer"]].map(([id,label]) => <button type="button" key={id} aria-pressed={activeLocation === id} onClick={() => setActiveLocation(id)}>{label}</button>)}
+    </div>
     <div className="kw-category-tabs">
       {categories.map((cat) => (
         <button
@@ -205,6 +211,7 @@ export default function KitchenWatch() {
             return (
               <article key={item.id} className={`kw-card ${isExpired ? "kw-card--expired" : ""} ${isSoon ? "kw-card--soon" : ""}`}>
                 <div className="kw-card-body">
+                  <GroceryIllustration name={item.name} category={item.category} size={48}/>
                   <div className="kw-card-left">
                     <div className="kw-card-cat" style={{ background: "transparent", padding: "4px 0" }}>
                       <CatIcon size={14} style={{ color: "var(--color-ink-soft)" }} />

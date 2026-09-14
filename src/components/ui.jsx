@@ -116,7 +116,8 @@ export function IconBox({ children, size = "md", className = "", bg = "accent", 
   
   return (
     <span
-      className={`${sizes[size]} flex items-center justify-center shrink-0 ${radius} ${bgClass} ${iconColorClass} ${className}`}
+      className={`illustrated-icon-box ${sizes[size]} flex items-center justify-center shrink-0 ${radius} ${bgClass} ${iconColorClass} ${className}`}
+      data-tone={bg}
     >
       {children}
     </span>

@@ -758,7 +758,7 @@ export default function App() {
   return (
     <FamilyProvider tabletMode={effectiveTabletMode}>
       <div className={`app-shell ${darkMode ? "theme-dark" : ""} ${effectiveTabletMode ? "tablet-mode" : ""}`} data-color-scheme={colorScheme} ref={shellRef}>
-        <BottomNav active={tab} onChange={setTab} features={runtimeConfig.features} tabletMode={effectiveTabletMode} />
+        <BottomNav active={tab} onChange={setTab} onOpenAI={!IS_APP_STORE && !effectiveTabletMode ? () => setFamAiOpen(true) : undefined} features={runtimeConfig.features} tabletMode={effectiveTabletMode} />
         <main className="app-content">
           <AppTopBar
             onOpenSettings={() => setTab("settings")}

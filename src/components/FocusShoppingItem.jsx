@@ -1,22 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Check, Clock3, Plus, X } from "lucide-react";
-import { GroceryIcon } from "../pages/Groceries";
-
-function GroceryItemImage({ item, focus = false }) {
-  const [failed, setFailed] = useState(false);
-  const src = item.photoUrl || item.imageUrl || "";
-  useEffect(() => setFailed(false), [src]);
-  if (!src || failed) {
-    return <GroceryIcon category={item.category} size={focus ? 22 : 16} />;
-  }
-  const size = focus ? 48 : 34;
-  const radius = focus ? 11 : 9;
-  return (
-    <span className={`grocery-photo-thumb ${focus ? "grocery-photo-thumb-focus" : "grocery-photo-thumb-list"}`} role="img" aria-label={`Photo of ${item.name}`} style={{ position: "relative", display: "grid", placeItems: "center", width: size, height: size, borderRadius: radius, border: "none", overflow: "hidden", flex: "0 0 auto", background: "var(--color-accent-soft)" }}>
-      <img src={src} alt="" onError={() => setFailed(true)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-    </span>
-  );
-}
+import GroceryIllustration from "./GroceryIllustration";
 
 export function FocusShoppingItem({ item, memberById, onToggle, onUpdateExpiry }) {
   const [editingExpiry, setEditingExpiry] = useState(false);
@@ -45,7 +29,7 @@ export function FocusShoppingItem({ item, memberById, onToggle, onUpdateExpiry }
     <div key={item.id} className={`focus-shopping-item ${item.checked ? "is-checked" : ""}`}>
       <button className="focus-shopping-toggle" onClick={() => onToggle(item)}>
         <span className="focus-shopping-check" aria-hidden="true">{item.checked ? "✓" : ""}</span>
-        <GroceryItemImage item={item} memberById={memberById} focus />
+        <GroceryIllustration name={item.name} category={item.category} size={48} />
         <span className="focus-shopping-copy"><strong>{item.name}</strong><small>{item.category}{qtyLabel ? ` · ${qtyLabel}` : ""}{item.brand ? ` · ${item.brand}` : ""}</small></span>
       </button>
       <div className="focus-shopping-expiry">

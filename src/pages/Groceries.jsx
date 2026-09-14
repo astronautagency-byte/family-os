@@ -1258,7 +1258,7 @@ export default function Groceries() {
                           className={`grocery-list-row flex items-center gap-3 px-3 py-2.5 border-b border-[var(--color-border)] last:border-0 ${item.checked ? "is-checked" : ""}`}
                         >
                           <Checkbox checked={item.checked} onChange={() => handleToggleGrocery(item)} />
-                          <GroceryItemImage item={item} memberById={memberById} />
+                          <GroceryIllustration name={item.name} category={item.category} size={40} />
                           <button onClick={() => openEdit(item)} className="flex-1 min-w-0 flex items-center gap-2 text-left">
                             <span
                               className={`min-w-0 text-[14.5px] ${

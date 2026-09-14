@@ -1,0 +1,84 @@
+/* Reference-led FamOS: white, navy, green, and soft module colours. */
+.reference-segments { display:flex; gap:4px; padding:4px; border-radius:10px; background:var(--color-surface-sunken); }
+.reference-segments button { flex:1; min-height:40px; padding:8px 12px; border-radius:8px; color:var(--color-ink-soft); font-size:12px; }
+.reference-segments button[aria-pressed="true"] { background:var(--color-accent); color:var(--color-on-accent); }
+.app-shell .kw-storage-tabs { margin:16px 20px; }
+.app-shell :is(.task-board-list,.kw-card) { background:var(--color-surface); border:1px solid var(--color-border); box-shadow:none; border-radius:14px; }
+.app-shell .task-board-row { border-bottom:1px solid var(--color-border); min-height:60px; }
+.app-shell .task-board-row:last-child { border-bottom:0; }
+.app-shell .task-row-copy strong { font-size:14px; font-weight:500; line-height:1.5; color:var(--color-ink); }
+.app-shell .task-row-copy small { font-size:12px; line-height:1.5; color:var(--color-ink-soft); }
+.app-shell .task-group-title { margin-block:24px 12px; }
+.app-shell :is(.task-inline-form,.kw-search-bar) { background:var(--color-surface); border:1px solid var(--color-border-strong); border-radius:10px; box-shadow:none; min-height:44px; }
+.app-shell .task-list-switcher { background:var(--color-surface-sunken); border-radius:10px; padding:4px; gap:4px; }
+.app-shell .task-list-switcher>button.selected { background:var(--color-accent); color:var(--color-on-accent); border-color:transparent; }
+.app-shell .kw-card-body { display:flex; align-items:flex-start; gap:14px; padding:16px; }
+.app-shell .kw-card-left { flex:1; min-width:0; }
+.app-shell .kw-card-name { font-size:15px; line-height:1.4; color:var(--color-ink); }
+.app-shell .kw-card-expiry { display:inline-flex; gap:5px; border-radius:6px; padding:4px 7px; background:#FFF3DA; color:#8A5700; font-size:11px; }
+.app-shell .kw-card-expiry--expired { background:#FFE8EB; color:#B5233A; }
+.app-shell .kw-alert-banner { border:0; background:#FFF0F1; color:#BC233A; border-radius:12px; padding:14px 16px; }
+.app-shell .kw-category-tab { border-radius:8px; }
+.app-shell .kw-category-tab--active { color:var(--color-accent-strong); background:var(--color-accent-soft); }
+.app-shell.theme-dark :is(.kw-card-expiry,.kw-alert-banner) { background:var(--color-surface-sunken); color:var(--color-ink); }
+@media(max-width:767px) {
+  .app-shell :is(.reference-tasks,.reference-groceries,.kw-page) .page-spot-frame { display:none; }
+  .app-shell .kw-card-body { gap:10px; padding:12px; }
+  .app-shell .kw-group-items { grid-template-columns:minmax(0,1fr); }
+}
+.app-shell {
+  --color-canvas:#FFFFFF; --color-surface:#FFFFFF; --color-surface-sunken:#F5F7FB;
+  --color-ink:#111C45; --color-ink-soft:#627197; --color-ink-faint:#7683A2;
+  --color-border:#EAF0F5; --color-border-strong:#CFD9E8;
+  --color-accent:#009C69; --color-accent-hover:#008359;
+  --color-accent-soft:#E2F8EF; --color-accent-strong:#00764E; --color-on-accent:#FFFFFF;
+  --radius-control:12px; --radius-card:18px;
+}
+.app-shell.theme-dark {
+  --color-canvas:#111827; --color-surface:#192438; --color-surface-sunken:#202E43;
+  --color-ink:#F3F6FF; --color-ink-soft:#BAC8DF; --color-ink-faint:#9CAFCB;
+  --color-border:#304059; --color-border-strong:#536782;
+  --color-accent:#00875C; --color-accent-soft:#173D35; --color-accent-strong:#75E6BB;
+}
+.app-shell .kinship-card { border:1px solid var(--color-border); border-radius:var(--radius-card); box-shadow:0 3px 14px #10254A04; }
+.app-shell .illustrated-icon-box { border:0; border-radius:12px; box-shadow:none; }
+.app-shell :is(.m3-button-filled,.m3-button-outlined,.form-control) { border-radius:var(--radius-control); box-shadow:none; }
+.app-shell .m3-button-filled { background:var(--color-accent); color:var(--color-on-accent); }
+.app-shell .nav-item.is-active { color:var(--color-accent-strong); }
+.app-shell .nav-item.is-active .nav-icon { background:var(--color-accent-soft); box-shadow:none; border:0; }
+.reference-mobile-nav { display:none; }
+.reference-family-strip { display:flex; gap:16px; align-items:flex-start; overflow-x:auto; padding-block:8px 20px; }
+.reference-family-strip>div { display:grid; justify-items:center; gap:6px; flex-shrink:0; }
+.reference-family-strip>div>span { font-size:11px; color:var(--color-ink); }
+.reference-family-strip>button { width:44px; height:44px; flex-shrink:0; border-radius:50%; background:#E8EEFF; color:#293F87; font-size:26px; }
+.reference-home-shortcuts { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:24px; }
+.reference-home-shortcuts>button,.reference-action-list>button { display:flex; align-items:center; gap:12px; padding:14px; border-radius:16px; text-align:left; min-width:0; }
+.reference-home-shortcuts strong,.reference-action-list strong { display:block; font-size:14px; line-height:1.4; color:var(--color-ink); }
+.reference-home-shortcuts small,.reference-action-list small { display:block; font-size:12px; line-height:1.5; color:var(--color-ink-soft); margin-top:3px; }
+.reference-action-icon { display:grid; place-items:center; width:42px; height:42px; flex:0 0 auto; border-radius:13px; background:var(--module-soft,#E4F8F0); color:var(--module-ink,#00885C); }
+.tone-groceries { --module-soft:#FFE6E2; --module-ink:#CB433A; background:var(--module-soft); }
+.tone-kitchen,.tone-meals { --module-soft:#FFF4D9; --module-ink:#A36A00; background:var(--module-soft); }
+.tone-tasks { --module-soft:#E7F7F7; --module-ink:#008376; background:var(--module-soft); }
+.tone-chat { --module-soft:#F0E9FF; --module-ink:#7A42D4; background:var(--module-soft); }
+.tone-calendar { --module-soft:#EAF2FF; --module-ink:#2771C4; background:var(--module-soft); }
+.reference-action-list { display:grid; gap:12px; }
+.reference-action-list>button { border:1px solid #EAF0F5; background:var(--color-surface,#FFF); min-height:72px; }
+.app-shell.theme-dark .reference-home-shortcuts>button { background:var(--color-surface-sunken); }
+.app-shell .grocery-category-title h2 { color:var(--color-ink); font-size:15px; }
+.app-shell .grocery-list-row { min-height:64px; background:var(--color-surface); }
+.app-shell .shopping-list-switcher { border-radius:12px; background:var(--color-surface-sunken); padding:4px; }
+.app-shell .shopping-list-switcher button.selected { background:var(--color-accent); color:#FFF; border-radius:9px; }
+@media(max-width:767px) {
+  .app-shell .primary-nav { display:none; }
+  .reference-mobile-nav { position:fixed; z-index:45; bottom:0; left:0; right:0; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); align-items:center; padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px)); background:var(--color-surface); border-top:1px solid var(--color-border); }
+  .reference-mobile-nav>button { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; min-height:44px; color:var(--color-ink-soft); font-size:10px; }
+  .reference-mobile-nav>button[aria-current="page"] { color:var(--color-accent-strong); }
+  .reference-mobile-nav>.reference-add-button { justify-self:center; width:46px; height:46px; border-radius:50%; background:var(--color-accent); color:#FFF; }
+  .app-shell .app-content { padding-bottom:calc(88px + env(safe-area-inset-bottom,0px)); }
+  .reference-home-shortcuts { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+  .reference-home-shortcuts>button { padding:12px; gap:9px; }
+  .reference-home-shortcuts strong { font-size:12px; }
+  .reference-home-shortcuts small { font-size:11px; }
+  .reference-home-shortcuts .reference-action-icon { width:32px; height:36px; }
+  .app-shell :is(.reference-dashboard,.reference-groceries) .page-header-aside .page-spot-illustration { display:none; }
+}

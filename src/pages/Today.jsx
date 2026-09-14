@@ -601,6 +601,12 @@ export default function Today({ goTo }) {
         action={<button type="button" className={`today-customize-trigger ${editingDashboard ? "active" : ""}`} onClick={() => setEditingDashboard((current) => !current)} aria-expanded={editingDashboard}><LayoutGrid size={16}/>{editingDashboard ? "Done" : "Customize"}</button>}
       />
 
+      <div className="reference-home-overview px-5">
+        <div className="reference-family-strip" aria-label="Your family">{members.map(member => <div key={member.id}><Avatar member={member} size="lg"/><span>{member.name?.split(' ')[0]}</span></div>)}<button type="button" onClick={() => goTo('settings')} aria-label="Manage family members">+</button></div>
+        <div className="reference-home-shortcuts">
+          {[['groceries','Shopping',ShoppingCart,`${activeGroceries.length} items`],['kitchen','Kitchen Watch',Refrigerator,'Check freshness'],['tasks','Tasks',ListChecks,`${openTasks.length} to do`],['chat','Family Chat',MessageCircle,'Stay connected']].map(([id,label,Icon,detail]) => <button type="button" key={id} className={`tone-${id}`} onClick={() => goTo(id)}><span className="reference-action-icon"><Icon size={22}/></span><span><strong>{label}</strong><small>{detail}</small></span></button>)}
+        </div>
+      </div>
       <div className="px-5"><ProductUpdateBanner /></div>
 
       {/* TODO: Enable when email parser is ready to deploy */false && <div className="px-5"><EmailInbox compact /></div>}
