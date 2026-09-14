@@ -102,7 +102,7 @@ function intentDetail(intent) {
 export default function Chat() {
   const { user } = useAuth();
   const { members, memberById, messages, sendMessage, clearFamilyChat, clearMyDirectMessages, markChatRead, dataError, tabletMode, addGrocery, addTask, setMealForSlot, addEvent, refreshData } = useFamily();
-  const [text, setText] = useState("");
+  const [drafts, setDrafts] = useState({});
   const [sendError, setSendError] = useState("");
   const [sending, setSending] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
@@ -114,6 +114,9 @@ export default function Chat() {
   const currentUserId = user?.id || members[0]?.id;
   const chatMembers = members.filter((member) => member.id !== currentUserId);
   const [activeThread, setActiveThread] = useState("household");
+  const draftKey = `${currentUserId}:${activeThread}`;
+  const text = drafts[draftKey] || "";
+  const setText = (value) => setDrafts(previous => ({ ...previous, [draftKey]: value }));
   const endRef = useRef(null);
 
   useEffect(() => {
@@ -154,7 +157,7 @@ export default function Chat() {
 
   const submit = async (event) => {
     event.preventDefault();
-    if (!text.trim() || !currentUserId || sending) return;
+    if (!text.trim() || !currentUserId || sending || (activeThread !== "household" && !activeMember)) return;
     setSending(true); setSendError("");
     try { await sendMessage({ text: text.trim(), recipientId: activeThread === "household" ? null : activeThread, senderId: currentUserId }); setText(""); }
     catch (e) { setSendError(e.message || "Message could not be sent."); }
@@ -284,7 +287,7 @@ export default function Chat() {
 
       {(sendError || dataError) && <p className="px-5 py-2 text-[12px] text-[var(--color-warn)]">{sendError || dataError}</p>}
 
-      <form onSubmit={submit} className="chat-mobile-composer" style={{position:'sticky',bottom:0,zIndex:10,display:'flex',alignItems:'center',gap:8,padding:'8px 12px',paddingBottom:'max(8px, calc(8px + env(safe-area-inset-bottom, 0px)))',background:'var(--color-surface)',borderTop:'1px solid var(--color-border)'}}>
+      <form onSubmit={submit} className="chat-mobile-composer" style={{position:'sticky',bottom:0,zIndex:10,display:'flex',alignItems:'center',gap:8,padding:'8px 12px',background:'var(--color-surface)',borderTop:'1px solid var(--color-border)'}}>
         <div className="shrink-0">{memberById[currentUserId] && <Avatar member={memberById[currentUserId]} size="sm" />}</div>
         <input
           value={text}

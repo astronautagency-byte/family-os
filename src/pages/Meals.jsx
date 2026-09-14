@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { ArrowLeft, BarChart3, Bookmark, CalendarPlus, Check, ChefHat, Clock, Coffee, Dices, Image as ImageIcon, ListChecks, Mic, MicOff, Pencil, Plus, Share2, ShoppingCart, Soup, Sparkles, Trash2, Users, Volume2, X } from "../components/icons";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
-import { Avatar, AvatarStack, Card, Modal, PrimaryButton, ProgressBar, SecondaryButton, TextField, colorVar } from "../components/ui";
+import { Avatar, AvatarStack, Card, Modal, PrimaryButton, ProgressBar, SecondaryButton, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import usePageAdd from '../hooks/usePageAdd';
 import PullToRefresh from "../components/PullToRefresh";
@@ -25,6 +25,24 @@ import { buildShareUrl } from "../lib/share";
 import ShareSheet from "../components/ShareSheet";
 import { lockBodyScroll } from "../lib/bodyScrollLock";
 import { IS_MAC_APP_STORE } from "../lib/distribution";
+
+function MealCookPicker({ members, selectedIds, onToggle }) {
+  return (
+    <div className="meal-cook-picker" role="group" aria-label="Who's cooking?">
+      {members.map(member => {
+        const selected = selectedIds.includes(member.id);
+        return (
+          <button key={member.id} type="button" aria-pressed={selected}
+            aria-label={member.name} onClick={() => onToggle(member.id)}>
+            <Avatar member={member} size="md" />
+            <span>{member.name}</span>
+            <span className="meal-cook-picker-check" aria-hidden="true">{selected && <Check size={16} />}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 function ShelfLifeRing({ progress, size = 90, strokeWidth = 7 }) {
   const radius = (size - strokeWidth) / 2;
@@ -994,25 +1012,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
           </div>
           {draft.notes && <p className="text-[14px] text-[var(--color-ink-soft)] mb-4">{draft.notes}</p>}
           <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-2">Assign cooks:</p>
-          <div className="flex flex-wrap gap-2 mb-5">
-            {members.map((m) => {
-              const active = draft.cookIds.includes(m.id);
-              return (
-                <button
-                  key={m.id}
-                  onClick={() => toggleCook(m.id)}
-                  className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium border transition-colors"
-                  style={{
-                    borderColor: active ? colorVar(m.color) : "var(--color-border)",
-                    backgroundColor: active ? `color-mix(in srgb, ${colorVar(m.color)} 14%, white)` : "transparent",
-                    color: active ? colorVar(m.color) : "var(--color-ink-soft)",
-                  }}
-                >
-                  {m.name}
-                </button>
-              );
-            })}
-          </div>
+          <MealCookPicker members={members} selectedIds={draft.cookIds} onToggle={toggleCook} />
           <div className="flex gap-2">
             <button onClick={() => { setPreviewMeal(null); openCookRecipe(previewMeal); }} className="rounded-xl bg-[var(--color-accent)] text-[var(--color-on-accent)] px-4 py-3 flex items-center justify-center gap-1.5 text-[13px] font-medium shrink-0 w-full">
               <ChefHat size={16} /> Cook
@@ -1051,25 +1051,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
         )}
 
         <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-2">Who's cooking?</p>
-        <div className="flex flex-wrap gap-2 mb-5">
-          {members.map((m) => {
-            const active = draft.cookIds.includes(m.id);
-            return (
-              <button
-                key={m.id}
-                onClick={() => toggleCook(m.id)}
-                className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium border transition-colors"
-                style={{
-                  borderColor: active ? colorVar(m.color) : "var(--color-border)",
-                  backgroundColor: active ? `color-mix(in srgb, ${colorVar(m.color)} 14%, white)` : "transparent",
-                  color: active ? colorVar(m.color) : "var(--color-ink-soft)",
-                }}
-              >
-                {m.name}
-              </button>
-            );
-          })}
-        </div>
+        <MealCookPicker members={members} selectedIds={draft.cookIds} onToggle={toggleCook} />
         <div className="flex gap-2">
           {editing?.mealId && (
             <button

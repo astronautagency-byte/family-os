@@ -537,6 +537,9 @@ export function FamilyProvider({ children, tabletMode = false }) {
   const applyBroadcastChange = useCallback((eventType, envelope) => {
     const change = envelope?.payload || envelope || {};
     if (!change.table) return;
+    // Message privacy is enforced by Postgres Changes RLS, not household
+    // broadcast authorization. Ignore legacy broad fan-out for these tables.
+    if (["messages", "message_reactions"].includes(change.table)) return;
     applyChange(change.table, {
       eventType: change.operation || change.type || eventType,
       new: change.record || change.new || null,
@@ -1146,15 +1149,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
     if (remote) {
       try {
         const row = { id: optimisticId, household_id: household.id, sender_id: user.id, recipient_id: message.recipientId, body: message.text };
-        let result = await supabase.from("messages").insert(row).select().single();
-        if (result.error && /recipient_id|schema cache/i.test(result.error.message || "")) {
-          // Fallback for pre-migration schemas: drop the generated id so
-          // Supabase allocates its own. The temp id in state won't match
-          // the realtime payload, so applyChange() will see it as a fresh
-          // INSERT — still safe, just a tiny render flicker on legacy DBs.
-          const { id: _id, ...withoutId } = row;
-          result = await supabase.from("messages").insert(withoutId).select().single();
-        }
+        const result = await supabase.from("messages").insert(row).select().single();
         if (result.error) throw result.error;
         // Reconcile: if the server assigned a different id (legacy fallback),
         // swap the optimistic row for the real one. Otherwise applyChange()
@@ -2055,8 +2050,8 @@ export function FamilyProvider({ children, tabletMode = false }) {
   );
   const visibleMessages = useMemo(
     () => (tabletMode ? messages.filter((message) => !message.recipientId) : messages)
-      .filter((message) => !message.broadcast),
-    [tabletMode, messages],
+      .filter((message) => !message.broadcast && (!message.recipientId || message.senderId === currentUserId || message.recipientId === currentUserId)),
+    [tabletMode, messages, currentUserId],
   );
 
   const value = {

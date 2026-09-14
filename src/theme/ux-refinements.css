@@ -1,4 +1,86 @@
 /* Consumer-flow refinements: scoped to the app, leaving marketing untouched. */
+.app-shell .chat-mobile-composer { flex:0 0 auto; margin-bottom:0; padding-bottom:8px !important; }
+@media (min-width:1024px) {
+ .app-shell .chat-page-shell { padding-bottom:0; }
+}
+.meal-cook-picker { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; }
+.meal-cook-picker>button {
+ display:flex; align-items:center; gap:8px; min-height:48px; max-width:100%;
+ padding:7px 12px 7px 8px; border:1px solid var(--color-border); border-radius:999px;
+ background:var(--color-surface); color:var(--color-ink); font-size:13px; font-weight:500;
+}
+.meal-cook-picker>button>span:not(.meal-cook-picker-check) { overflow-wrap:anywhere; min-width:0; }
+.meal-cook-picker>button[aria-pressed="true"] {
+ border-color:var(--color-accent); background:var(--color-accent-soft); color:var(--color-accent-strong);
+}
+.meal-cook-picker>button:focus-visible { outline:2px solid var(--color-accent); outline-offset:3px; }
+.meal-cook-picker-check { display:flex; width:16px; flex-shrink:0; }
+/* Page tabs keep the same silhouette in every interaction state. Compound
+   list tabs include their share/delete controls inside the outer pill. */
+:root { --radius-page-tab:999px; }
+.app-shell [role="tab"],
+.app-shell :is(.shopping-list-tab,.task-list-tab),
+.app-shell :is(.reference-segments,.ui-segmented,.meal-range-toggle,.kw-category-tabs,.inventory-location-tabs,.calendar-sources-tabs,.billing-cadence-toggle)>button,
+.m3-dialog :is(.reference-segments,.ui-segmented,.billing-cadence-toggle)>button {
+ border-radius:var(--radius-page-tab) !important;
+}
+.app-shell :is(.reference-segments,.ui-segmented,.meal-range-toggle,.billing-cadence-toggle) {
+ border-radius:var(--radius-page-tab);
+}
+.app-shell :is(.shopping-list-tab,.task-list-tab)>[role="tab"] {
+ border-radius:var(--radius-page-tab) 0 0 var(--radius-page-tab) !important;
+}
+.app-shell :is(.shopping-list-tab,.task-list-tab)>button:last-child {
+ border-top-right-radius:var(--radius-page-tab); border-bottom-right-radius:var(--radius-page-tab);
+}
+.app-shell .calendar-page .calendar-hero-date { align-items:flex-start; text-align:left; gap:6px; }
+.app-shell .calendar-page .apple-month-nav { justify-content:flex-start; }
+.app-shell .calendar-page .calendar-hero-actions { align-self:flex-start; }
+/* Highlight the date, not the whole cell; preserve independent event dots. */
+.app-shell .calendar-page .calendar-month-grid>button {
+ background:transparent !important; box-shadow:none; border-radius:0;
+ color:var(--color-ink) !important; gap:2px;
+}
+.app-shell .calendar-page .calendar-month-grid>button>b,
+.app-shell .calendar-page .apple-date-strip button>strong {
+ display:grid; place-items:center; width:30px; height:30px; min-width:30px;
+ flex-shrink:0; padding:0; border-radius:50%; line-height:1;
+}
+.app-shell .calendar-page .calendar-month-grid>button.selected { opacity:1; }
+.app-shell .calendar-page .calendar-month-grid>button.selected>b,
+.app-shell .calendar-page .apple-date-strip button.selected>strong {
+ background:var(--color-accent); color:var(--color-on-accent); font-weight:700;
+}
+.app-shell .calendar-page .calendar-month-grid>button.today:not(.selected)>b,
+.app-shell .calendar-page .apple-date-strip button.today:not(.selected)>strong {
+ box-shadow:inset 0 0 0 1px var(--color-accent-strong); color:var(--color-accent-strong); background:transparent;
+}
+.app-shell .calendar-page .calendar-month-grid>button:not(.selected):hover>b { background:var(--color-accent-soft); }
+.app-shell .calendar-page .calendar-month-dots { min-height:4px; flex-shrink:0; }
+.app-shell .calendar-page .apple-date-strip button.selected { background:transparent; color:var(--color-ink); }
+/* Give the assistant identity, status and controls distinct space. */
+.fam-ai-sheet .fam-ai-header .fam-ai-header-inner {
+ display:flex; align-items:center; gap:24px; min-height:88px;
+ padding:20px 88px 20px 24px; box-sizing:border-box;
+}
+.fam-ai-sheet .fam-ai-header .fam-ai-brand {
+ width:auto; flex:1 1 auto; min-width:0; justify-content:flex-start; gap:12px;
+}
+.fam-ai-sheet .fam-ai-brand .fam-ai-brand-icon { flex-shrink:0; }
+.fam-ai-sheet .fam-ai-brand .fam-ai-brand-copy { gap:6px; }
+.fam-ai-sheet .fam-ai-brand em { margin-left:12px; flex-shrink:0; }
+.fam-ai-sheet .fam-ai-header .fam-ai-header-actions { flex:0 0 auto; gap:12px; margin-left:0; }
+.fam-ai-sheet .fam-ai-header .fam-ai-header-btn { width:44px; height:44px; flex-shrink:0; border-radius:12px; }
+.fam-ai-sheet .fam-ai-header .fam-ai-usage-badge { padding:7px 10px; gap:6px; margin-right:8px; }
+.fam-ai-sheet .fam-ai-sheet-close { top:22px; right:20px; width:44px; height:44px; }
+@media(max-width:599px) {
+ .fam-ai-sheet .fam-ai-header .fam-ai-header-inner { flex-wrap:wrap; gap:16px; padding:16px 20px; }
+ .fam-ai-sheet .fam-ai-header .fam-ai-brand { flex-basis:100%; padding-right:56px; }
+ .fam-ai-sheet .fam-ai-brand em { margin-left:auto; }
+ .fam-ai-sheet .fam-ai-header .fam-ai-header-actions { width:100%; justify-content:flex-end; gap:12px; }
+ .fam-ai-sheet .fam-ai-header .fam-ai-usage-badge { margin-right:auto; font-size:11px; }
+ .fam-ai-sheet .fam-ai-sheet-close { top:14px; right:16px; }
+}
 .empty-state-action { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:10px 16px; margin-top:16px; border:1px solid var(--color-border); border-radius:12px; color:var(--color-accent-strong); background:var(--color-surface); font-size:14px; font-weight:650; }
 .app-shell .task-filter-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
 .app-shell .task-filter-row .reference-segments { flex:1 1 200px; margin:0; }

@@ -507,10 +507,10 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
                   <Zap size={12} /> {usage.famai.remaining} / {usage.famai.limit}
                 </span>
               )}
-              <button className="fam-ai-header-btn" onClick={startNewChat} title="New conversation" type="button">
+              <button className="fam-ai-header-btn" onClick={startNewChat} title="New conversation" aria-label="New conversation" type="button">
                 <MessageSquarePlus size={16} />
               </button>
-              <button className={`fam-ai-header-btn ${showSidebar ? "active" : ""}`} onClick={() => setShowSidebar(!showSidebar)} title="Chat history" type="button">
+              <button className={`fam-ai-header-btn ${showSidebar ? "active" : ""}`} onClick={() => setShowSidebar(!showSidebar)} title="Chat history" aria-label="Chat history" aria-expanded={showSidebar} type="button">
                 <History size={16} />
               </button>
             </div>

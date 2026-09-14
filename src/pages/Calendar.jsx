@@ -1218,13 +1218,11 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
                         onClick={() => { setSelectedDate(key); }}
                       >
                         <b>{d.getDate()}</b>
-                        {cellEvents.length > 0 && (
                           <span className="calendar-month-dots">
                             {cellEvents.slice(0, 3).map(event => (
                               <i key={event.id} style={{ backgroundColor: calendarColorFor(event, googleCalendars, googleCalendarColors, famosCalendar?.color) }} />
                             ))}
                           </span>
-                        )}
                       </button>
                     );
                   })}
