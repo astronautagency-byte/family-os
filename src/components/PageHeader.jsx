@@ -1,6 +1,6 @@
-import PageSpotIllustration from "./PageSpotIllustration";
+import PageAddButton from './PageAddButton';
 
-export default function PageHeader({ eyebrow, title, titleIcon, subtitle, action, illustration, liveHealth }) {
+export default function PageHeader({ eyebrow, title, titleIcon, subtitle, action, illustration, liveHealth, onAdd, addLabel = 'Add item' }) {
   return (
     <header className={`page-header m3-page-header safe-top ${illustration ? `page-header-${illustration} has-illustration` : ""}`}>
       <div className="page-header-content">
@@ -15,7 +15,7 @@ export default function PageHeader({ eyebrow, title, titleIcon, subtitle, action
           {subtitle && <p className="page-subtitle">{subtitle}</p>}
           {liveHealth && <div className="page-header-live">{liveHealth}</div>}
         </div>
-        {(illustration||action)&&<div className="page-header-aside">{illustration&&<PageSpotIllustration variant={illustration}/>} {action}</div>}
+        {(onAdd||action)&&<div className="page-header-aside">{action}{onAdd && <PageAddButton label={addLabel} onClick={onAdd}/>}</div>}
       </div>
     </header>
   );

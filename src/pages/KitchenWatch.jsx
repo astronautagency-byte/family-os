@@ -9,6 +9,7 @@ import { categorizeGroceryItem } from "../lib/groceryCategories";
 import { isIngredientOnList } from "../lib/mealIngredientCache";
 import PullToRefresh from "../components/PullToRefresh";
 import PageHeader from "../components/PageHeader";
+import usePageAdd from '../hooks/usePageAdd';
 import GroceryIllustration from "../components/GroceryIllustration";
 import { Modal, TextField, DateField, PrimaryButton } from "../components/ui";
 
@@ -164,8 +165,9 @@ export default function KitchenWatch() {
     setConfirmDelete(null);
   };
 
+  usePageAdd('kitchen', () => openDraft());
   return <PullToRefresh onRefresh={refreshData}><div className="kw-page">
-    <PageHeader eyebrow="Track what's expiring" title="Kitchen Watch" subtitle="A few taps now can prevent a kitchen-table summit later." illustration="groceries" action={<button type="button" className="kw-add-btn" onClick={() => openDraft()}><Plus size={15}/> Add item</button>} />
+    <PageHeader title="Kitchen Watch" onAdd={() => openDraft()} addLabel="Add kitchen item" />
 
     {purchaseQueue.length > 0 && <section className="kw-purchase-queue"><div className="kw-pq-header"><p>From Shopping</p><h2>Put fresh purchases away</h2><small>Add a date so reminders start.</small></div><div className="kw-pq-items">{purchaseQueue.slice(0, 6).map((item) => <article key={item.id} className="kw-pq-item"><span>{item.name}</span><div><button onClick={() => openDraft(item, "fridge")}>Fridge</button><button onClick={() => openDraft(item, "freezer")}>Freezer</button><button onClick={() => openDraft(item, "pantry")}>Pantry</button></div></article>)}</div></section>}
 

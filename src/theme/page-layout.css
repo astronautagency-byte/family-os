@@ -1,0 +1,60 @@
+/* Shared page layout, after legacy per-page rules. Calendar cells retain
+   their data-driven dimensions; only their surrounding controls are normalized. */
+.app-shell .app-content .page-header {
+  padding:24px var(--layout-page-gutter) 20px;
+  margin:0;
+  min-height:0;
+  background:none;
+  border:0;
+}
+.app-shell .app-content .page-header-content { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.app-shell .app-content .page-header-aside { display:flex; align-items:center; gap:8px; flex:0 0 auto; }
+.app-shell .app-content .page-title { font-size:24px; line-height:1.25; letter-spacing:-.025em; margin:0; }
+.app-shell .app-content .page-subtitle { margin-top:8px; max-width:60ch; line-height:1.5; }
+.page-add-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-width:44px; min-height:44px; padding:10px 14px; border-radius:12px; background:var(--color-accent,#009C69); color:var(--color-on-accent,#FFF); flex-shrink:0; font-size:13px; font-weight:650; }
+.page-add-button:focus-visible,.reference-mobile-nav button:focus-visible { outline:2px solid var(--color-accent-strong,#00764E); outline-offset:3px; }
+.app-shell .calendar-hero.apple-calendar-toolbar { padding:24px var(--layout-page-gutter) 16px; gap:16px; background:var(--color-surface); border:0; }
+.app-shell .calendar-hero-actions { gap:8px; }
+.app-shell .apple-calendar-controls { gap:12px; margin-bottom:16px; }
+.app-shell .apple-date-strip { gap:4px; margin-block:16px; }
+.app-shell .apple-date-strip button.selected { background:var(--color-accent); color:var(--color-on-accent); border-radius:12px; }
+.app-shell .calendar-sources-tabs { gap:8px; padding-block:8px; }
+.calendar-fab { width:auto; height:40px; padding:0 14px; border-radius:999px; background:var(--color-accent,#009C69); color:#FFF; font-size:12px; font-weight:650; bottom:calc(88px + env(safe-area-inset-bottom,0px)); }
+.app-shell .reference-tasks .task-board-group { padding:0; background:transparent; box-shadow:none; border:0; }
+.app-shell .reference-tasks .task-group-title { margin-block:24px 12px; }
+.app-shell .reference-tasks .task-board-row { padding:12px; gap:12px; flex-wrap:nowrap; align-items:center; }
+.app-shell .reference-tasks .task-row-copy { flex:1 1 0; }
+.app-shell .reference-tasks .task-row-actions { gap:4px; }
+.app-shell .reference-tasks .task-row-actions button { min-width:32px; min-height:36px; }
+.app-shell .grocery-list-row { gap:12px; padding:12px; }
+.app-shell .grocery-list-row>button:last-child { min-width:32px; min-height:36px; }
+.app-shell .grocery-list-row .grocery-illustration { flex-shrink:0; }
+.app-shell :is(.shopping-list-switcher,.task-list-switcher,.kw-category-tabs) { margin-bottom:16px; }
+.app-shell .kw-group-header { margin-top:24px; margin-bottom:12px; }
+.app-shell .reference-mobile-nav { min-height:68px; box-sizing:border-box; }
+@media(max-width:767px) {
+  .app-shell .app-content .page-header { padding:16px 16px 12px; }
+  .app-shell .app-content .page-title { font-size:22px; }
+  .app-shell .app-content .page-eyebrow { display:none; }
+  .app-shell .app-content :is(.reference-groceries,.reference-tasks,.kw-page,.reference-meals) .page-subtitle { display:none; }
+  .page-add-button { width:44px; height:44px; padding:10px; background:transparent; color:var(--color-accent-strong,#00764E); }
+  .page-add-button>span { display:none; }
+  .app-shell .calendar-hero.apple-calendar-toolbar { padding:16px; flex-wrap:wrap; }
+  .app-shell .calendar-hero-date { min-width:0; flex:1; }
+  .app-shell .apple-month-nav { gap:4px; }
+  .app-shell .calendar-hero-dayname { font-size:19px; }
+  .app-shell .apple-calendar-navigation { display:none; }
+  .app-shell .apple-calendar-controls { flex-wrap:wrap; }
+  .app-shell .reference-tasks .task-row-copy { flex-basis:0; }
+  .app-shell .reference-tasks .task-board-row>.avatar-circles { margin-left:0; order:initial; }
+  .app-shell .reference-tasks .task-row-actions { order:initial; margin-left:0; }
+  .app-shell .reference-tasks .task-list-switcher { flex-wrap:nowrap; overflow-x:auto; padding:4px; gap:4px; }
+  .app-shell .reference-tasks .task-list-switcher>button,.app-shell .reference-tasks .task-list-tab { flex-shrink:0; }
+  .app-shell .app-content { margin-left:0; padding-bottom:calc(92px + env(safe-area-inset-bottom,0px)); }
+  .app-shell .reference-mobile-nav { padding-bottom:calc(8px + env(safe-area-inset-bottom,0px)); }
+}
+@media(max-width:380px) {
+  .app-shell .reference-tasks .task-board-row { flex-wrap:wrap; }
+  .app-shell .reference-tasks .task-row-copy { flex-basis:calc(100% - 48px); }
+  .app-shell .reference-tasks .task-row-actions { margin-left:auto; }
+}

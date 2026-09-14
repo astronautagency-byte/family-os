@@ -8,6 +8,8 @@ import { supabase } from "../lib/supabase";
 import { expandRecurringEvents } from "../lib/eventRecurrence";
 import { AvatarStack, DateField, Modal, PrimaryButton, SecondaryButton, SegmentedControl, SelectField, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
+import PageAddButton from '../components/PageAddButton';
+import usePageAdd from '../hooks/usePageAdd';
 import PullToRefresh from "../components/PullToRefresh";
 import ConfirmAction from "../components/ConfirmAction";
 import { formatDuration, formatTime, todayISO, eventDateLocal } from "../lib/dates";
@@ -738,6 +740,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
   };
 
   // Quick-capture: free-form text → parsed draft → openAdd with prefill.
+  usePageAdd('calendar', () => openAdd());
   // Cuts the add-event path from ~6 taps (FAB → fields → save) to 2:
   // FAB + Enter. The parse is best-effort — bad input still opens the
   // modal so the user can adjust without re-typing their title.
@@ -1142,9 +1145,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
             <button className="calendar-hero-action" onClick={() => setCalendarManagerOpen(true)} aria-label="Manage calendars">
               <Settings2 size={17} />
             </button>
-            <button className="calendar-hero-action calendar-hero-action-primary" onClick={openAdd} aria-label="Add event">
-              <Plus size={20} />
-            </button>
+            <PageAddButton label="Add event" onClick={() => openAdd()}/>
           </div>
         </div>
 
@@ -1854,8 +1855,8 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
       </div>
     </PullToRefresh>
     <ShareSheet open={!!eventShare} onClose={()=>setEventShare(null)} title={eventShare?.title} text={eventShare?.text} url={eventShare?.url} image={eventShare?.image} imageAlt={eventShare?.imageAlt}/>
-    <button className="calendar-fab" onClick={openQuick} aria-label="Add event" aria-expanded={quickOpen} style={{background:'#2563EB',color:'#fff',border:'none',display:'grid',placeItems:'center'}}>
-      <Plus size={26} color="#fff" strokeWidth={2.5} />
+    <button type="button" className="calendar-fab" onClick={openQuick} aria-label="Quick event entry" aria-expanded={quickOpen}>
+      <span>Quick entry</span>
     </button>
     {quickOpen && (
       <div className="calendar-quick-capture" ref={quickRef} role="dialog" aria-label="Quick add event">

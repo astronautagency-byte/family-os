@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
 import { Avatar, Card, Checkbox, DateField, EmptyState, Modal, PrimaryButton, SecondaryButton, Stepper, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
+import usePageAdd from '../hooks/usePageAdd';
 import PullToRefresh from "../components/PullToRefresh";
 import ConfirmAction from "../components/ConfirmAction";
 import CelebrationConfetti from "../components/CelebrationConfetti";
@@ -598,6 +599,7 @@ export default function Groceries() {
     setEditingId("new");
   };
 
+  usePageAdd('groceries', openNew);
   const openEdit = (item) => {
     abandonDraftPhoto();
     setDraft({ name: item.name, category: item.category, categoryManual: true, quantity: item.quantity ?? 1, unit: item.unit ?? "", brand: item.brand || "", imageUrl: item.imageUrl || "", assigneeIds: item.assigneeIds || [] });
@@ -1057,6 +1059,8 @@ export default function Groceries() {
       )}
       <PageHeader
         title="Shopping"
+        onAdd={openNew}
+        addLabel="Add grocery item"
         illustration="groceries"
         subtitle="A shared memory for everything the fridge forgot to mention."
       />

@@ -19,7 +19,7 @@ const TABS = [
 
 const FEATURE_KEYS = { calendar: "calendar", meals: "meals", tasks: "tasks", groceries: "groceries", kitchen: "kitchen", chat: "chat" };
 
-export default function BottomNav({ active, onChange, onOpenAI, features = {}, tabletMode = false }) {
+export default function BottomNav({ active, onChange, onAdd, onOpenAI, features = {}, tabletMode = false }) {
   const [sheet, setSheet] = useState(null);
   const navigate = (id) => { setSheet(null); onChange(id); };
   const { unreadMessageCount = 0 } = useFamily();
@@ -71,7 +71,7 @@ export default function BottomNav({ active, onChange, onOpenAI, features = {}, t
     </nav>
     <Modal open={sheet !== null} onClose={() => setSheet(null)} title={sheet === 'add' ? 'What would you like to do?' : 'More from FamOS'}>
       <div className="reference-action-list">
-        {visibleTabs.filter(tab => sheet === 'add' ? !['today','chat'].includes(tab.id) : !['today','calendar','chat'].includes(tab.id)).map(({id, label, icon: Icon, hint}) => <button type="button" key={id} onClick={() => navigate(id)}><span className={`reference-action-icon tone-${id}`}><Icon size={23}/></span><span><strong>{label}</strong><small>{hint}</small></span></button>)}
+        {visibleTabs.filter(tab => sheet === 'add' ? !['today','chat'].includes(tab.id) : !['today','calendar','chat'].includes(tab.id)).map(({id, label, icon: Icon, hint}) => <button type="button" key={id} onClick={() => { if (sheet === 'add' && onAdd) { setSheet(null); onAdd(id); } else navigate(id); }}><span className={`reference-action-icon tone-${id}`}><Icon size={23}/></span><span><strong>{sheet === 'add' ? ({calendar:'Add event',tasks:'Add task',groceries:'Add grocery item',kitchen:'Add kitchen item',meals:'Add meal'})[id] : label}</strong><small>{hint}</small></span></button>)}
         {onOpenAI && features.fam_ai !== false && <button type="button" onClick={() => { setSheet(null); onOpenAI(); }}><span className="reference-action-icon tone-chat"><Sparkles size={23}/></span><span><strong>Ask Fam AI</strong><small>Get help planning your day</small></span></button>}
         {sheet === 'more' && <button type="button" onClick={() => navigate('settings')}><span className="reference-action-icon tone-calendar"><Settings size={23}/></span><span><strong>Settings & family</strong><small>People, preferences, and support</small></span></button>}
       </div>

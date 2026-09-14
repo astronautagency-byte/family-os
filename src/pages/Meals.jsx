@@ -5,6 +5,7 @@ import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, AvatarStack, Card, Modal, PrimaryButton, ProgressBar, SecondaryButton, TextField, colorVar } from "../components/ui";
 import PageHeader from "../components/PageHeader";
+import usePageAdd from '../hooks/usePageAdd';
 import PullToRefresh from "../components/PullToRefresh";
 import ConfirmAction from "../components/ConfirmAction";
 import ErrorBoundary from "../components/ErrorBoundary";
@@ -501,6 +502,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
     setEditing({ date, slot, mealId: existing?.id || null });
   };
 
+  usePageAdd('meals', () => openEditor(todayISO(), 'dinner'));
   const openMealPreview = (meal) => {
     if (!meal?.title) return;
     setDraft({ title: meal.title ?? "", notes: meal.notes ?? "", cookIds: meal.cookIds ?? [] });
@@ -915,7 +917,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
 
   return (
     <PullToRefresh onRefresh={refreshData}><div className="pb-28 reference-meals">
-      <PageHeader eyebrow="Nourish & connect" title="Meal planner" illustration="meals" subtitle="Answer “what’s for dinner?” before anyone asks it." action={meals.length?<button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button>:null} />
+      <PageHeader title="Meal Plan" onAdd={() => openEditor(todayISO(), 'dinner')} addLabel="Add meal" action={meals.length?<button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button>:null} />
 
       <NativeAdBanner placement={AD_PLACEMENTS.MEALS} />
 

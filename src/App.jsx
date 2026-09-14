@@ -10,6 +10,7 @@ import { CalendarDays, CheckSquare, CookingPot, HeartHandshake, Home, MessageCir
 import "./feature.css";
 import { FamilyProvider } from "./context/FamilyContext";
 import BottomNav from "./components/BottomNav";
+import { requestPageAdd } from './hooks/usePageAdd';
 import AppTopBar from "./components/AppTopBar";
 import InstallPrompt from "./components/InstallPrompt";
 import DesktopAuthGate from "./components/DesktopAuthGate";
@@ -321,6 +322,7 @@ export default function App() {
     if (VALID_TABS.includes(next)) {
       window.history.pushState({ tab: next }, "", `/${next === "today" ? "" : next}`);
     }
+    return true;
   };
   const shellRef = useRef(null);
   const { configured, session, household, householdProfile, loading, passwordRecovery, onboardingRequired, accountReady, founderWelcomeSeen, featureTourSeen, markFounderWelcomeSeen, markFeatureTourSeen } = useAuth();
@@ -758,7 +760,7 @@ export default function App() {
   return (
     <FamilyProvider tabletMode={effectiveTabletMode}>
       <div className={`app-shell ${darkMode ? "theme-dark" : ""} ${effectiveTabletMode ? "tablet-mode" : ""}`} data-color-scheme={colorScheme} ref={shellRef}>
-        <BottomNav active={tab} onChange={setTab} onOpenAI={!IS_APP_STORE && !effectiveTabletMode ? () => setFamAiOpen(true) : undefined} features={runtimeConfig.features} tabletMode={effectiveTabletMode} />
+        <BottomNav active={tab} onChange={setTab} onAdd={page => { if (setTab(page)) requestPageAdd(page); }} onOpenAI={!IS_APP_STORE && !effectiveTabletMode ? () => setFamAiOpen(true) : undefined} features={runtimeConfig.features} tabletMode={effectiveTabletMode} />
         <main className="app-content">
           <AppTopBar
             onOpenSettings={() => setTab("settings")}

@@ -1,0 +1,10 @@
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import PageHeader from '../../src/components/PageHeader';
+import GroceryIllustration from '../../src/components/GroceryIllustration';
+import { Home, CalendarDays, Plus, MessageCircle, MoreHorizontal } from 'lucide-react';
+import '../../src/index.css';
+import '../../src/theme/component-consistency.css';
+import '../../src/theme/illustrated-ui.css';
+import '../../src/theme/page-layout.css';
+createRoot(document.getElementById('root')).render(<div className="app-shell"><main className="app-content"><div className="reference-groceries"><PageHeader title="Shopping" onAdd={() => {}} addLabel="Add grocery item"/><div style={{padding:'0 16px'}}><div className="reference-segments"><button aria-pressed="true">My list</button><button>Categories</button><button>Completed</button></div><h2 className="grocery-category-title">Produce</h2>{['Bananas','Strawberries','Broccoli','Red bell peppers'].map(name => <div className="grocery-list-row flex items-center" key={name}><input aria-label={`Check ${name}`} type="checkbox"/><GroceryIllustration name={name} category="Produce" size={40}/><span style={{flex:1,fontSize:14}}>{name}</span><span style={{borderRadius:'50%',background:'#e8eefc',padding:6}}>A</span></div>)}<h2 className="grocery-category-title">Dairy</h2>{['Milk','Cheddar cheese','Greek yogurt'].map(name => <div className="grocery-list-row flex items-center" key={name}><input aria-label={`Check ${name}`} type="checkbox"/><GroceryIllustration name={name} category="Dairy & Eggs" size={40}/><span style={{fontSize:14}}>{name}</span></div>)}</div></div></main><nav className="reference-mobile-nav">{[[Home,'Home'],[CalendarDays,'Calendar'],[Plus,'Add'],[MessageCircle,'Chat'],[MoreHorizontal,'More']].map(([Icon,label]) => <button key={label} className={label==='Add'?'reference-add-button':''} aria-label={label}><Icon size={label==='Add'?28:21}/>{label!=='Add'&&<span>{label}</span>}</button>)}</nav></div>);

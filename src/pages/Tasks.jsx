@@ -3,6 +3,7 @@ import { BriefcaseBusiness, Check, GraduationCap, House, Layers3, ListPlus, List
 import { useFamily } from "../context/FamilyContext";
 import { Alert, Avatar, AvatarStack, Badge, Checkbox, DateField, Modal, PrimaryButton, ProgressBar, TextAreaField, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
+import usePageAdd from '../hooks/usePageAdd';
 import PullToRefresh from "../components/PullToRefresh";
 import ConfirmAction from "../components/ConfirmAction";
 import NativeAdBanner from "../components/NativeAdBanner";
@@ -60,14 +61,16 @@ export default function Tasks(){
  // Tapping a task row opens the detail editor for category, assignee, due date.
  const openEdit=(task)=>{setEditingId(task.id);setDraft({title:task.title,notes:task.notes||"",assigneeIds:task.assigneeIds?.length?task.assigneeIds:task.assigneeId?[task.assigneeId]:[],due:task.due||todayISO(),taskType:task.taskType||"home",listId:task.listId||null});setTaskSaveError("");setShowEditPanel(true);};
 
- const save=async()=>{if(!draft.title.trim()||taskSaving)return;setTaskSaving(true);setTaskSaveError("");try{await updateTask(editingId,{...draft,title:draft.title.trim()});setShowEditPanel(false);setEditingId(null);}catch(error){setTaskSaveError(error?.message||"This task could not be saved. Try again.");}finally{setTaskSaving(false);}};
+ const openNewTask=()=>{setEditingId(null);setDraft({title:"",notes:"",assigneeIds:[],due:todayISO(),taskType:activeList!=="all"&&!activeList.startsWith("list:")?activeList:"home",listId:activeList.startsWith("list:")?activeList.slice(5):null});setTaskSaveError("");setShowEditPanel(true);};
+ usePageAdd('tasks', openNewTask);
+ const save=async()=>{if(!draft.title.trim()||taskSaving)return;setTaskSaving(true);setTaskSaveError("");try{const payload={...draft,title:draft.title.trim()};if(editingId)await updateTask(editingId,payload);else await addTask(payload);setShowEditPanel(false);setEditingId(null);}catch(error){setTaskSaveError(error?.message||"This task could not be saved. Try again.");}finally{setTaskSaving(false);}};
  const saveList=async()=>{if(!listDraft.name.trim()||listSaving)return;setListSaving(true);setListError("");try{const list=await addTaskList(listDraft);if(!list)throw new Error("Could not create this list.");setListDraft({name:"",color:"#6b5ce7"});setShowListPanel(false);setDraft((current)=>({...current,listId:list.id}));setActiveList(`list:${list.id}`);}catch(error){setListError(error?.message||"Could not create this list. Try again.");}finally{setListSaving(false);}};
 
  const [shareSheet,setShareSheet]=useState(null);
  const shareTask=(task)=>{if(!task?.id)return;const due=task.due===todayISO()?"today":task.due?new Date(`${task.due}T12:00`).toLocaleDateString("en-CA",{weekday:"short",month:"short",day:"numeric"}):"whenever it fits";setShareSheet({title:task.title,text:`Due: ${due}`,url:buildShareUrl("task",task.id),image:"/banners/banner-tasks.jpg",imageAlt:task.title});};
  const shareList=(key,items)=>{const custom=key.startsWith("list:")?taskLists.find(list=>list.id===key.slice(5)):null;const label=custom?.name||GROUPS[key]?.label||key;if(!items.length){setShareSheet({title:`${label} · FamOS tasks`,text:"This list is empty — add a task and share it with your family.",url:buildShareUrl("task",`list-${custom?.id||key}`),image:"/banners/banner-tasks.jpg",imageAlt:label});return;}const lines=items.slice(0,25).map((t,index)=>`${index+1}. ${t.title}${t.due?` (${t.due===todayISO()?"today":new Date(`${t.due}T12:00`).toLocaleDateString("en-CA",{weekday:"short",month:"short",day:"numeric"})})`:``}`).join("\n");setShareSheet({title:`${label} · ${items.length} task${items.length===1?"":"s"}`,text:lines,url:buildShareUrl("task",`list-${custom?.id||key}`),image:"/banners/banner-tasks.jpg",imageAlt:label});};
 
-  return <PullToRefresh onRefresh={refreshData}><div className="reference-tasks"><PageHeader title="Tasks" subtitle="Tiny missions, clear owners, fewer mysterious piles." illustration="tasks"/><NativeAdBanner placement={AD_PLACEMENTS.TASKS}/><div className="px-5"><div className="task-toolbar"><button className="task-toolbar-btn" onClick={()=>setShowListPanel(true)}><ListPlus size={16}/> New list</button>{tasks.length>0&&<button className="task-toolbar-btn task-toolbar-reset" onClick={()=>setClearing(true)}><Trash2 size={16}/> Reset</button>}</div><div className="space-y-5">
+  return <PullToRefresh onRefresh={refreshData}><div className="reference-tasks"><PageHeader title="Tasks" onAdd={openNewTask} addLabel="Add task"/><NativeAdBanner placement={AD_PLACEMENTS.TASKS}/><div className="px-5"><div className="task-toolbar"><button className="task-toolbar-btn" onClick={()=>setShowListPanel(true)}><ListPlus size={16}/> New list</button>{tasks.length>0&&<button className="task-toolbar-btn task-toolbar-reset" onClick={()=>setClearing(true)}><Trash2 size={16}/> Reset</button>}</div><div className="space-y-5">
   {/* Inline input — iOS Reminders style: type and hit Enter, task appears */}
  <form className="task-inline-form" onSubmit={submitInline}>
     <span className="task-inline-icon"><Plus size={16}/></span>
