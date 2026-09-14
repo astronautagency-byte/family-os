@@ -134,6 +134,7 @@ export default function useKitchenInventory(householdId, userId) {
   const updateItem = useCallback(async (id, patch) => {
     const next = items.map((item) => item.id === id ? { ...item, ...patch } : item); persistLocal(next);
     const db = {};
+    if (patch.name !== undefined) db.name = patch.name;
     if (patch.quantity !== undefined) db.quantity = patch.quantity;
     if (patch.location !== undefined) db.location = patch.location;
     if (patch.expiresOn !== undefined) db.expires_on = patch.expiresOn || null;

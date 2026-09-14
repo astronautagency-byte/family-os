@@ -1,4 +1,4 @@
-import { ArrowLeft, LockKeyhole } from "lucide-react";
+import { ArrowLeft, LockKeyhole } from "../components/icons";
 import MarketingFooter from "../components/MarketingFooter";
 
 const go = (route) => {

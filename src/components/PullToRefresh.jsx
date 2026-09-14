@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "./icons";
 
 const PULL_THRESHOLD = 72;
 const PULL_RESISTANCE = 0.55;

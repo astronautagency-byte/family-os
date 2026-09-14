@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Sparkles, ExternalLink } from "lucide-react";
+import { Sparkles, ExternalLink } from "./icons";
 import { fetchAdsForPlacement, trackAdImpression } from "../lib/adNetwork";
 import { useAuth } from "../context/AuthContext";
 

@@ -1,4 +1,4 @@
-import { CalendarDays, Home, GraduationCap, BriefcaseBusiness, Users } from 'lucide-react';
+import { CalendarDays, Home, GraduationCap, BriefcaseBusiness, Users } from "./icons";
 import { formatTime } from '../lib/dates';
 const icons = { school:GraduationCap, work:BriefcaseBusiness, family:Home, social:Users };
 export default function ReferenceAgenda({ events, onSelect, colorFor }) {

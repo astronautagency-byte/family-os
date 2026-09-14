@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowRight, ChevronDown, ChevronRight } from "./icons";
 import { MARKETING_FEATURES } from "../data/featureData";
 import { IS_MAC_APP_STORE } from "../lib/distribution";
 

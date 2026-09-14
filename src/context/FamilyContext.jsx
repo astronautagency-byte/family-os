@@ -346,6 +346,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
     category: categorizeGroceryItem(row.name, row.category),
     quantity: Number(row.quantity),
     unit: row.unit,
+    preferredStore: row.preferred_store || "",
     checked: row.is_checked,
     addedBy: row.added_by,
     barcode: row.barcode || "",
@@ -883,13 +884,14 @@ export function FamilyProvider({ children, tabletMode = false }) {
         photo_uploaded_at: item.photoUrl ? new Date().toISOString() : null,
         list_id: item.listId || null,
         assignee_ids: assigneeIds,
+        ...(item.preferredStore ? {preferred_store:item.preferredStore.trim()} : {}),
       };
       let { data, error } = await supabase.from("grocery_items").insert(row).select().single();
       // Production households can briefly be on the base grocery schema
       // while the optional barcode/photo migrations are still rolling out.
       // A plain item must still save in that window: retry using only the
       // original required columns when PostgREST rejects a newer column.
-      if (error && /schema cache|column|barcode|brand|price|image_url|photo_|assignee_ids/i.test(error.message || "") && !item.listId) {
+      if (error && /schema cache|column|barcode|brand|price|image_url|photo_|assignee_ids/i.test(error.message || "") && !item.listId && !item.preferredStore) {
         const baseRow = {
           id: row.id,
           household_id: row.household_id,
@@ -926,6 +928,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
       if (patch.category !== undefined) dbPatch.category = patch.category;
       if (patch.quantity !== undefined) dbPatch.quantity = patch.quantity;
       if (patch.unit !== undefined) dbPatch.unit = patch.unit;
+      if (patch.preferredStore !== undefined) dbPatch.preferred_store = patch.preferredStore.trim();
       if (patch.checked !== undefined) dbPatch.is_checked = patch.checked;
       if (patch.listId !== undefined) dbPatch.list_id = patch.listId || null;
       if (patch.assigneeIds !== undefined) dbPatch.assignee_ids = uniqueIds(patch.assigneeIds);
@@ -1032,6 +1035,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
 
   // ---- Meals ----
   const setMealForSlot = async (date, slot, patch) => {
+    const previousMeal = meals.find(m => m.date === date && m.slot === slot);
     const tempId = makeId("meal");
     const source = patch.source || "manual";
     // Optimistic: show the meal instantly.
@@ -1047,7 +1051,9 @@ export function FamilyProvider({ children, tabletMode = false }) {
         setMeals((prev) => prev.map((m) => (m.date === date && m.slot === slot) ? mapMeal(data) : m));
         sendHouseholdPush({ title: patch.cookIds?.length ? "Meal assigned" : "Meal plan updated", body: `${patch.title || "Meal"} · ${date} ${slot}`, tag: `meal-${data.id}`, url: "/#meals" }, patch.cookIds || []);
       } catch (error) {
-        setMeals((prev) => prev.filter((m) => m.id !== tempId));
+        setMeals((prev) => previousMeal
+          ? prev.map(m => m.date === date && m.slot === slot ? previousMeal : m)
+          : prev.filter(m => m.id !== tempId));
         setDataError(error.message);
         throw error;
       }

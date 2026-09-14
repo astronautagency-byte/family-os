@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, BarChart3, Bookmark, CalendarPlus, Check, ChefHat, Clock, Coffee, Dices, Image as ImageIcon, ListChecks, Mic, MicOff, Pencil, Plus, Share2, ShoppingCart, Soup, Sparkles, Trash2, Users, Volume2, X } from "lucide-react";
+import { ArrowLeft, BarChart3, Bookmark, CalendarPlus, Check, ChefHat, Clock, Coffee, Dices, Image as ImageIcon, ListChecks, Mic, MicOff, Pencil, Plus, Share2, ShoppingCart, Soup, Sparkles, Trash2, Users, Volume2, X } from "../components/icons";
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, AvatarStack, Card, Modal, PrimaryButton, ProgressBar, SecondaryButton, TextField, colorVar } from "../components/ui";
@@ -255,6 +255,8 @@ export default function Meals({ entitlements = null, goTo } = {}) {
   const [editing, setEditing] = useState(null); // { date, slot, mealId }
   const [previewMeal, setPreviewMeal] = useState(null);
   const [draft, setDraft] = useState({ title: "", notes: "", cookIds: [] });
+  const [manualSaving, setManualSaving] = useState(false);
+  const [manualSaveError, setManualSaveError] = useState("");
   const [showSavedRecipes, setShowSavedRecipes] = useState(false);
   const [cookMeal, setCookMeal] = useState(null);
   const [cookRecipe, setCookRecipe] = useState(null);
@@ -496,6 +498,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
   const mealFor = (date, slot) => meals.find((m) => m.date === date && m.slot === slot);
 
   const openEditor = (date, slot) => {
+    setManualSaveError("");
     const existing = mealFor(date, slot);
     setDraft({ title: existing?.title ?? "", notes: existing?.notes ?? "", cookIds: existing?.cookIds ?? [] });
     setShowSavedRecipes(false);
@@ -622,7 +625,9 @@ export default function Meals({ entitlements = null, goTo } = {}) {
   };
 
   const chooseSavedRecipe = async (recipeToPlan) => {
-    if (!editing || !recipeToPlan?.title) return;
+    if (!editing || !recipeToPlan?.title || manualSaving) return;
+    setManualSaving(true);setManualSaveError("");
+    try {
     // Manual meal planning is free — only roulette/suggestions are gated
     await setMealForSlot(editing.date, editing.slot, {
       title: recipeToPlan.title,
@@ -631,12 +636,20 @@ export default function Meals({ entitlements = null, goTo } = {}) {
     });
     setEditing(null);
     setShowSavedRecipes(false);
+    } catch(error) {setManualSaveError(error?.message || "Your meal could not be saved.");}
+    finally {setManualSaving(false);}
   };
 
-  const save = () => {
-    // Manual meal planning is free — only roulette/suggestions are gated
-    setMealForSlot(editing.date, editing.slot, draft);
-    setEditing(null);
+  const save = async () => {
+    if (!editing || manualSaving || !draft.title.trim()) return;
+    setManualSaving(true);
+    setManualSaveError("");
+    try {
+      await setMealForSlot(editing.date, editing.slot, {...draft, title:draft.title.trim()});
+      setEditing(null);
+    } catch (error) {
+      setManualSaveError(error?.message || "Your meal could not be saved. Please try again.");
+    } finally { setManualSaving(false); }
   };
 
   const missingIngredients = (cookRecipe?.ingredients || []).filter((ingredient) => {
@@ -1009,7 +1022,8 @@ export default function Meals({ entitlements = null, goTo } = {}) {
           </div>
         </div>
       </Modal>
-      <Modal open={!!editing} onClose={() => setEditing(null)} title={editing ? `${SLOT_META[editing.slot].label} · ${formatDayLabel(editing.date)}` : ""}>
+      <Modal open={!!editing} onClose={() => {if(!manualSaving)setEditing(null);}} title={editing ? `${SLOT_META[editing.slot].label} · ${formatDayLabel(editing.date)}` : ""}>
+        <fieldset disabled={manualSaving} style={{border:0,padding:0,margin:0,minWidth:0}}>
         <TextField
           label="What are we cooking?"
           placeholder="e.g. Sheet-pan chicken fajitas"
@@ -1067,9 +1081,11 @@ export default function Meals({ entitlements = null, goTo } = {}) {
               <Trash2 size={16} /> Clear
             </button>
           )}
-          <SecondaryButton onClick={() => setEditing(null)}>Cancel</SecondaryButton>
-          <PrimaryButton onClick={save}>Save</PrimaryButton>
+          <SecondaryButton disabled={manualSaving} onClick={() => setEditing(null)}>Cancel</SecondaryButton>
+          <PrimaryButton onClick={save} disabled={manualSaving || !draft.title.trim()}>{manualSaving ? "Saving…" : "Save meal"}</PrimaryButton>
         </div>
+        {manualSaveError && <p role="alert" className="setup-help">{manualSaveError}</p>}
+        </fieldset>
       </Modal>
       <ConfirmAction
         open={clearing}

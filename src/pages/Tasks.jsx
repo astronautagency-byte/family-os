@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback } from "react";
-import { BriefcaseBusiness, Check, GraduationCap, House, Layers3, ListPlus, ListTodo, Plus, Share2, ShoppingBag, Trash2, Users } from "lucide-react";
+import { BriefcaseBusiness, Check, GraduationCap, House, Layers3, ListPlus, ListTodo, Plus, Share2, ShoppingBag, Trash2, Users } from "../components/icons";
 import { useFamily } from "../context/FamilyContext";
 import { Alert, Avatar, AvatarStack, Badge, Checkbox, DateField, Modal, PrimaryButton, ProgressBar, TextAreaField, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";

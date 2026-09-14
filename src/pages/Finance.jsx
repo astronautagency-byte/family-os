@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Camera, Pencil, Plus, ReceiptText, Sparkles, Trash2, TrendingDown, Upload, WalletCards } from "lucide-react";
+import { Camera, Pencil, Plus, ReceiptText, Sparkles, Trash2, TrendingDown, Upload, WalletCards } from "../components/icons";
 import { useFamily } from "../context/FamilyContext";
 import PageHeader from "../components/PageHeader";
 import { Card, DateField, EmptyState, Modal, PrimaryButton, ProgressBar, SegmentedControl, TextField } from "../components/ui";

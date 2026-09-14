@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Backpack, CalendarDays, Car, Check, Clock3, ListChecks, LogOut, ShieldCheck, ShoppingBasket, Sparkles } from "lucide-react";
+import { Backpack, CalendarDays, Car, Check, Clock3, ListChecks, LogOut, ShieldCheck, ShoppingBasket, Sparkles } from "../components/icons";
 import { useFamily } from "../context/FamilyContext";
 import { useCoordination } from "../context/CoordinationContext";
 

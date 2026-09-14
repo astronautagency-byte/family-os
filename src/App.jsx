@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays, CheckSquare, CookingPot, HeartHandshake, Home, MessageCircle, Refrigerator, Settings2, ShieldCheck, ShoppingCart, Sparkles, X } from "lucide-react";
+import { CalendarDays, CheckSquare, CookingPot, HeartHandshake, Home, MessageCircle, Refrigerator, Settings2, ShieldCheck, ShoppingCart, Sparkles, X } from "./components/icons";
 // Eager-load feature.css alongside the main entry so the FeaturesDropdown's
 // `position:absolute` popover styles are guaranteed to be present before any
 // page (lazy-loaded Landing.jsx OR Features.jsx) renders its nav. Without this,
@@ -426,6 +426,8 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem("familyos:theme", darkMode ? "dark" : "light");
+    document.documentElement.dataset.famosTheme = darkMode ? "dark" : "light";
+    return () => {delete document.documentElement.dataset.famosTheme;};
   }, [darkMode]);
   useEffect(() => {
     localStorage.setItem("familyos:color-scheme", colorScheme);

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useId } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { X } from "./icons";
 import { lockBodyScroll } from '../lib/bodyScrollLock';
 
 export default function CompletionScreen({ kind = 'task', onClose }) {

@@ -1,4 +1,4 @@
-import { CalendarDays, CheckSquare, CookingPot, Home, MessageCircle, Refrigerator, ShoppingCart, Plus, MoreHorizontal, Settings, Sparkles } from "lucide-react";
+import { CalendarDays, CheckSquare, CookingPot, Home, MessageCircle, Refrigerator, ShoppingCart, Plus, MoreHorizontal, Settings, Sparkles } from "./icons";
 import { useState } from "react";
 import { Modal } from './ui';
 import { useFamily } from "../context/FamilyContext";

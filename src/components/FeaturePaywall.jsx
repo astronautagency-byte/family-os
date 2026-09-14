@@ -1,4 +1,4 @@
-import { Check, LockKeyhole, Sparkles } from "lucide-react";
+import { Check, LockKeyhole, Sparkles } from "./icons";
 import { PREMIUM_FEATURES, featureById } from "../data/billingCatalog";
 import { PRICING_PLAN } from "../data/pricingPlan";
 import { Card, PrimaryButton, SecondaryButton } from "./ui";

@@ -1,4 +1,4 @@
-import { Check, Lock } from "lucide-react";
+import { Check, Lock } from "./icons";
 // Namespace import (vs. named `passwordError`, etc.) keeps every helper as a
 // property access — esbuild/Terser can no longer minify any utility to the
 // same short identifier as a local destructured `error`, eliminating the

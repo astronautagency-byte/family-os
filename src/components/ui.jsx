@@ -1,7 +1,7 @@
 import { FAMILY_COLORS } from "../data/mockData";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, Info, TriangleAlert, X } from "lucide-react";
+import { CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, Info, TriangleAlert, X } from "./icons";
 import { lockBodyScroll } from "../lib/bodyScrollLock";
 
 export function colorVar(colorId) {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { BedDouble, BookOpen, Check, PawPrint, Plus, ShieldCheck, Sparkles, Star, Trophy, X } from "lucide-react";
+import { BedDouble, BookOpen, Check, PawPrint, Plus, ShieldCheck, Sparkles, Star, Trophy, X } from "../components/icons";
 import { Avatar, Modal, PrimaryButton, SelectField, TextField } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";

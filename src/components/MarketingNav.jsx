@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Download, X, Home, Puzzle, CalendarDays, BarChart3, Tag, Search, User, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowRight, Download, X, Home, Puzzle, CalendarDays, BarChart3, Tag, Search, User, ChevronDown, ChevronRight } from "./icons";
 import { DESKTOP_DOWNLOAD_LABEL } from "../lib/downloads";
 import FeaturesDropdown from "./FeaturesDropdown";
 import { MARKETING_FEATURES } from "../data/featureData";

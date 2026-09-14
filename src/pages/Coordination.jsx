@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ArrowRight, Backpack, CalendarDays, Car, Check, CheckCircle2, ChevronLeft, ChevronRight, CirclePlus, CloudSun, FileText as FileTextIcon, History, ListChecks, LockKeyhole, MapPin, Navigation, Plus, Repeat2, Search, ShieldCheck, Trophy, UserRound, Users } from "lucide-react";
+import { AlertTriangle, ArrowRight, Backpack, CalendarDays, Car, Check, CheckCircle2, ChevronLeft, ChevronRight, CirclePlus, CloudSun, FileText as FileTextIcon, History, ListChecks, LockKeyhole, MapPin, Navigation, Plus, Repeat2, Search, ShieldCheck, Trophy, UserRound, Users } from "../components/icons";
 import { useFamily } from "../context/FamilyContext";
 import { useCoordination } from "../context/CoordinationContext";
 import { useAuth } from "../context/AuthContext";

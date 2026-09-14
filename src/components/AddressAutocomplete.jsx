@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MapPin } from "lucide-react";
+import { MapPin } from "./icons";
 import { fetchGooglePlaceSuggestions, googleMapsApiKey, loadGooglePlaces } from "../lib/googleMapsPlaces";
 import { googleAddressParts, googlePredictionText } from "../lib/googleAddress";
 

@@ -17,7 +17,7 @@ import {
   Wrench,
   X,
   Zap,
-} from "lucide-react";
+} from "../components/icons";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
 import { Avatar } from "../components/ui";

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, useAnimate, useInView, useScroll, useSpring, useTransform, useReducedMotion, MotionConfig, stagger } from "framer-motion";
-import { ArrowRight, Baby, BellRing, Bot, CalendarDays, Check, CheckSquare, ChefHat, FileInput, Gift, GraduationCap, Heart, LoaderCircle, LockKeyhole, MessageCircle, Palette, Refrigerator, ShieldCheck, ShoppingCart, Smartphone, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Baby, BellRing, Bot, CalendarDays, Check, CheckSquare, ChefHat, FileInput, Gift, GraduationCap, Heart, LoaderCircle, LockKeyhole, MessageCircle, Palette, Refrigerator, ShieldCheck, ShoppingCart, Smartphone, Sparkles, Users } from "../components/icons";
 import "../landing.css";
 import "../landing-theme.css";
 import "../feature.css";

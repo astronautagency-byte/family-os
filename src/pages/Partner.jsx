@@ -4,7 +4,7 @@ import {
   ExternalLink, Filter, Globe2, Landmark, LayoutDashboard, Link2, MapPin, Megaphone,
   MoreHorizontal, Pencil, Pause, Play, Plus, RefreshCw, Search, ShieldCheck, Sparkles,
   Target, Trash2, TrendingUp, Upload, Users, X, PieChart,
-} from "lucide-react";
+} from "../components/icons";
 import { supabase } from "../lib/supabase";
 import { Card } from "../components/ui";
 import {

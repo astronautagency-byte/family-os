@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, ChefHat, ChevronDown, Dices, LoaderCircle, ShoppingBasket, Sparkles, WandSparkles } from "lucide-react";
+import { Check, ChefHat, ChevronDown, Dices, LoaderCircle, ShoppingBasket, Sparkles, WandSparkles } from "./icons";
 import { normaliseDietaryPreferences } from "../data/recipeBox";
 import { useFamily } from "../context/FamilyContext";
 import { supabase } from "../lib/supabase";

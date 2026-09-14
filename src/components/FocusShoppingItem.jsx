@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Clock3, Plus, X } from "lucide-react";
+import { Check, Clock3, Plus, X } from "./icons";
 import GroceryIllustration from "./GroceryIllustration";
 
 export function FocusShoppingItem({ item, memberById, onToggle, onUpdateExpiry }) {
@@ -30,7 +30,7 @@ export function FocusShoppingItem({ item, memberById, onToggle, onUpdateExpiry }
       <button className="focus-shopping-toggle" onClick={() => onToggle(item)}>
         <span className="focus-shopping-check" aria-hidden="true">{item.checked ? "✓" : ""}</span>
         <GroceryIllustration name={item.name} category={item.category} size={48} />
-        <span className="focus-shopping-copy"><strong>{item.name}</strong><small>{item.category}{qtyLabel ? ` · ${qtyLabel}` : ""}{item.brand ? ` · ${item.brand}` : ""}</small></span>
+        <span className="focus-shopping-copy"><strong>{item.name}</strong><small>{item.category}{qtyLabel ? ` · ${qtyLabel}` : ""}{item.brand ? ` · ${item.brand}` : ""}{item.preferredStore ? ` · Buy at ${item.preferredStore}` : ""}</small></span>
       </button>
       <div className="focus-shopping-expiry">
         {editingExpiry ? (

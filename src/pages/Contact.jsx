@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Mail, MessageCircle, Send, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Mail, MessageCircle, Send, ShieldCheck } from "../components/icons";
 import MarketingFooter from "../components/MarketingFooter";
 import { IS_MAC_APP_STORE } from "../lib/distribution";
 

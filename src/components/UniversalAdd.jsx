@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarPlus, Car, Check, ChevronLeft, FileText, ListPlus, Mic, Repeat2, Sparkles, Trophy, Upload, Users, X } from "lucide-react";
+import { CalendarPlus, Car, Check, ChevronLeft, FileText, ListPlus, Mic, Repeat2, Sparkles, Trophy, Upload, Users, X } from "./icons";
 import { useFamily } from "../context/FamilyContext";
 import { useCoordination } from "../context/CoordinationContext";
 

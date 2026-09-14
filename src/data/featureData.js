@@ -8,7 +8,7 @@ import {
   BellRing, CalendarDays, CalendarPlus, Camera, ChefHat, ClipboardList,
   Coins, FileInput, ListChecks, MapPin, Megaphone, Mic, Palette, Refrigerator,
   ShoppingCart, Sparkles, Users,
-} from "lucide-react";
+} from "../components/icons";
 
 // Single source of truth for the on-device screenshot shown on a feature
 // hero. Today + Calendar have dedicated PNGs; the other five modules

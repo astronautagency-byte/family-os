@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Link2, Mail, MessageCircle, Share2 } from "lucide-react";
+import { Check, Link2, Mail, MessageCircle, Share2 } from "./icons";
 import { Modal } from "./ui";
 import { nativeShareWithFallback } from "../lib/share";
 

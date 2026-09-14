@@ -1,4 +1,4 @@
-import { ArrowLeft, FileText } from "lucide-react";
+import { ArrowLeft, FileText } from "../components/icons";
 import { formatMoney } from "../data/pricingPlan";
 import MarketingFooter from "../components/MarketingFooter";
 

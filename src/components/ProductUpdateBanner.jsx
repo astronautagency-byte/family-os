@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Megaphone, Sparkles, Check, Wrench, ChevronRight, X } from "lucide-react";
+import { Megaphone, Sparkles, Check, Wrench, ChevronRight, X } from "./icons";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabase";
 

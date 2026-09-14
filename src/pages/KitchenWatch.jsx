@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ChefHat, Croissant, Drumstick, Milk, Minus, Package, Plus, Refrigerator, Search, Snowflake, X, Carrot, Sandwich, Trash2, Clock, Leaf, CalendarClock } from "lucide-react";
+import { AlertTriangle, ChefHat, Croissant, Drumstick, Milk, Minus, Package, Plus, Refrigerator, Search, Snowflake, X, Carrot, Sandwich, Trash2, Clock, Leaf, CalendarClock } from "../components/icons";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
 import { Avatar, Badge } from "../components/ui";
@@ -10,6 +10,7 @@ import { isIngredientOnList } from "../lib/mealIngredientCache";
 import PullToRefresh from "../components/PullToRefresh";
 import PageHeader from "../components/PageHeader";
 import usePageAdd from '../hooks/usePageAdd';
+import QuantityUnitFields from '../components/QuantityUnitFields';
 import GroceryIllustration from "../components/GroceryIllustration";
 import { Modal, TextField, DateField, PrimaryButton } from "../components/ui";
 
@@ -140,12 +141,13 @@ export default function KitchenWatch() {
 
   const saveItem = async () => {
     if (!draft.name.trim() || !draft.expiresOn || saving) return;
+    if (!(Number(draft.quantity)>0)) {setError('Enter a quantity greater than zero.');return;}
     setSaving(true); setError("");
     try {
       if (editingItemId) {
         // Change-date flow: update the existing item's expiry (and location)
         // instead of adding a new row or bumping the quantity.
-        await updateItem(editingItemId, { expiresOn: draft.expiresOn, location: draft.location });
+        await updateItem(editingItemId, { name:draft.name.trim(), quantity:Number(draft.quantity), unit:draft.unit, expiresOn: draft.expiresOn, location: draft.location });
       } else {
         await addItem({ ...draft, name: draft.name.trim() });
       }
@@ -266,7 +268,7 @@ export default function KitchenWatch() {
       <p className="kw-modal-intro">{editingItemId ? "Update when this item needs to be used by." : "Track produce, dairy, meat, bakery, and deli items that can spoil."}</p>
       <TextField label="Item" placeholder="e.g. Milk, chicken, strawberries" value={draft.name} onChange={(e) => setDraft((c) => ({ ...c, name: e.target.value }))}/>
       <div className="kw-modal-grid"><label className="kw-select-field"><span>Category</span><select value={draft.category} onChange={(e) => setDraft((c) => ({ ...c, category: e.target.value }))}>{KITCHEN_WATCH_CATEGORIES.map((cat) => <option key={cat}>{cat}</option>)}</select></label><TextField label="Brand (optional)" placeholder="e.g. Compliments" value={draft.brand} onChange={(e) => setDraft((c) => ({ ...c, brand: e.target.value }))}/></div>
-      <div className="kw-modal-grid"><TextField label="Quantity" inputMode="decimal" value={draft.quantity} onChange={(e) => setDraft((c) => ({ ...c, quantity: Math.max(Number(e.target.value) || 1, 1) }))}/><TextField label="Unit (optional)" placeholder="bag, carton, lb" value={draft.unit} onChange={(e) => setDraft((c) => ({ ...c, unit: e.target.value }))}/></div>
+      <QuantityUnitFields quantity={draft.quantity} unit={draft.unit} onChange={patch=>setDraft(d=>({...d,...patch}))}/>
       <label className="kw-location-select"><span>Store in</span><div>{[["fridge","Fridge",Refrigerator],["freezer","Freezer",Snowflake],["pantry","Pantry",Package]].map(([id,label,Icon]) => <button type="button" key={id} className={draft.location === id ? "selected" : ""} onClick={() => setDraft((c) => ({ ...c, location: id }))}><Icon size={15}/>{label}</button>)}</div></label>
       <DateField label="Use by or best before" value={draft.expiresOn} onChange={(expiresOn) => setDraft((c) => ({ ...c, expiresOn }))}/>
       {expirySuggestion && !editingItemId && (

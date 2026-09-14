@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, ArrowUpRight, ChevronRight } from "lucide-react";
+import { ArrowRight, ArrowUpRight, ChevronRight } from "../components/icons";
 import { FEATURES, FEATURE_BY_ID, FEATURE_HERO, MARKETING_FEATURES, SITE_WIDE_FEATURES } from "../data/featureData";
 import MarketingNav from "../components/MarketingNav";
 import MarketingFooter from "../components/MarketingFooter";

@@ -1,4 +1,4 @@
-import { Bell, CalendarDays, CheckSquare, Download, Home, MessageCircle, Moon, Refrigerator, Settings2, ShoppingCart, Sparkles, Sun, Tablet, X } from "lucide-react";
+import { Bell, CalendarDays, CheckSquare, Download, Home, MessageCircle, Moon, Refrigerator, Settings2, ShoppingCart, Sparkles, Sun, Tablet, X } from "./icons";
 import { DESKTOP_DOWNLOAD_LABEL, DESKTOP_DOWNLOAD_PAGE_URL } from "../lib/downloads";
 import { openExternalUrl } from "../lib/desktopRuntime";
 import { IS_APP_STORE } from "../lib/distribution";

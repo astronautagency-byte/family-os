@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Baby, Bone, Camera, Carrot, Check, CheckCircle2, ChevronDown, Clipboard, Clock3, Coffee, Cookie, Croissant, CupSoda, Download, Drumstick, ExternalLink, FlaskConical, Globe2, GripVertical, HeartPulse, Image as ImageIcon, ListChecks, LoaderCircle, Maximize2, Milk, Minus, Package, Pencil, Plus, Refrigerator, RotateCcw, Sandwich, ScanLine, ScrollText, Search, Share2, ShoppingBag, ShoppingBasket, Snowflake, Soup, Sparkles, SprayCan, Star, Store, Trash2, Truck, Upload, Wheat, Wine, X } from "lucide-react";
+import { Baby, Bone, Camera, Carrot, Check, CheckCircle2, ChevronDown, Clipboard, Clock3, Coffee, Cookie, Croissant, CupSoda, Download, Drumstick, ExternalLink, FlaskConical, Globe2, GripVertical, HeartPulse, Image as ImageIcon, ListChecks, LoaderCircle, Maximize2, Milk, Minus, Package, Pencil, Plus, Refrigerator, RotateCcw, Sandwich, ScanLine, ScrollText, Search, Share2, ShoppingBag, ShoppingBasket, Snowflake, Soup, Sparkles, SprayCan, Star, Store, Trash2, Truck, Upload, Wheat, Wine, X } from "../components/icons";
 import { uploadGroceryPhoto, isUploadableImage, deleteGroceryPhoto, compressImage } from "../lib/groceryPhotoUpload";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
 import { Avatar, Card, Checkbox, DateField, EmptyState, Modal, PrimaryButton, SecondaryButton, Stepper, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
+import QuantityUnitFields from '../components/QuantityUnitFields';
+import StapleStarter from '../components/StapleStarter';
+import {mergeStarterStaples} from '../data/starterStaples';
 import usePageAdd from '../hooks/usePageAdd';
 import PullToRefresh from "../components/PullToRefresh";
 import ConfirmAction from "../components/ConfirmAction";
@@ -598,7 +601,7 @@ export default function Groceries() {
   usePageAdd('groceries', openNew);
   const openEdit = (item) => {
     abandonDraftPhoto();
-    setDraft({ name: item.name, category: item.category, categoryManual: true, quantity: item.quantity ?? 1, unit: item.unit ?? "", brand: item.brand || "", imageUrl: item.imageUrl || "", assigneeIds: item.assigneeIds || [] });
+    setDraft({ name: item.name, category: item.category, categoryManual: true, quantity: item.quantity ?? 1, unit: item.unit ?? "", preferredStore:item.preferredStore || "", brand: item.brand || "", imageUrl: item.imageUrl || "", assigneeIds: item.assigneeIds || [] });
     setPhotoDraft({ file: null, previewUrl: "", remoteUrl: item.photoUrl || "", uploading: false, error: "" });
     setSaveError("");
     setEditingId(item.id);
@@ -630,15 +633,16 @@ export default function Groceries() {
 
   const submit = async () => {
     if (!draft.name.trim() || saveBusy) return;
+    if (!(Number(draft.quantity) > 0)) { setSaveError('Enter a quantity greater than zero.'); return; }
     setSaveBusy(true);
     setSaveError("");
     const photoUrl = photoDraft.remoteUrl || "";
     const previousPhotoUrl = editingId !== "new" ? (groceries.find((g) => g.id === editingId)?.photoUrl || "") : "";
     try {
       if (editingId === "new") {
-        await addGrocery({ name: draft.name.trim(), category: draft.category, quantity: draft.quantity, unit: draft.unit.trim(), brand: draft.brand?.trim() || "", imageUrl: draft.imageUrl || "", assigneeIds: draft.assigneeIds || [], addedBy: null, photoUrl });
+        await addGrocery({ name: draft.name.trim(), category: draft.category, quantity: draft.quantity, unit: draft.unit.trim(), preferredStore:draft.preferredStore?.trim() || "", brand: draft.brand?.trim() || "", imageUrl: draft.imageUrl || "", assigneeIds: draft.assigneeIds || [], addedBy: null, photoUrl });
       } else {
-        await updateGrocery(editingId, { name: draft.name.trim(), category: draft.category, quantity: draft.quantity, unit: draft.unit.trim(), brand: draft.brand?.trim() || "", imageUrl: draft.imageUrl || "", assigneeIds: draft.assigneeIds || [], photoUrl, previousPhotoUrl });
+        await updateGrocery(editingId, { name: draft.name.trim(), category: draft.category, quantity: draft.quantity, unit: draft.unit.trim(), ...(draft.preferredStore || groceries.find(g=>g.id===editingId)?.preferredStore ? {preferredStore:draft.preferredStore?.trim() || ""} : {}), brand: draft.brand?.trim() || "", imageUrl: draft.imageUrl || "", assigneeIds: draft.assigneeIds || [], photoUrl, previousPhotoUrl });
       }
       setEditingId(null);
       photoPickIdRef.current += 1;
@@ -690,7 +694,7 @@ export default function Groceries() {
   };
 
   const saveMasterItem = () => {
-    if (!masterDraft.name.trim()) return;
+    if (!masterDraft.name.trim() || !(Number(masterDraft.quantity)>0)) return;
     const item = { ...masterDraft, name: masterDraft.name.trim(), unit: masterDraft.unit.trim() };
     if (masterEditing === "new") setStaples((current) => [...current, { id: `staple_${Date.now()}`, ...item }]);
     else setStaples((current) => current.map((staple) => staple.id === masterEditing ? { ...staple, ...item } : staple));
@@ -1205,6 +1209,7 @@ export default function Groceries() {
             <div><p className="page-eyebrow">{activeGroceryListId === "all" ? "All staples" : `${groceryLists.find((l) => l.id === activeGroceryListId)?.name || "List"} staples`}</p><h2 className="grocery-section-title">Quick add</h2></div>
             <button onClick={() => openMasterItem()} className="flex items-center gap-1 text-[11.5px] font-semibold text-[var(--color-accent)]"><Plus size={13} /> New staple</button>
           </div>
+          <StapleStarter onAdd={items=>setStaples(current=>mergeStarterStaples(current,items))}/>
           {staples.length === 0 && (
             <p className="text-center text-[12px] text-[var(--color-ink-faint)] py-4 px-2">No staples yet. Tap <strong>New staple</strong> to save items you buy regularly.</p>
           )}
@@ -1261,6 +1266,7 @@ export default function Groceries() {
                             >
                               <span className="block truncate">{item.name}</span>
                               {item.brand && <small className="block truncate text-[11px] text-[var(--color-ink-soft)] no-underline">{item.brand}</small>}
+                              {item.preferredStore && <small className="setup-store-label block">Buy at {item.preferredStore}</small>}
                             </span>
                             {qtyLabel && (
                               <span
@@ -1324,23 +1330,11 @@ export default function Groceries() {
           onKeyDown={(e) => e.key === "Enter" && submit()}
         />
         <TextField label="Brand (optional)" placeholder="e.g. Liberté" value={draft.brand || ""} onChange={(e) => setDraft((current) => ({ ...current, brand: e.target.value }))} />
+        <TextField label="Buy at (optional)" placeholder="e.g. Costco, Walmart, local market" value={draft.preferredStore || ""} onChange={e=>setDraft(d=>({...d,preferredStore:e.target.value}))}/>
 
         <GroceryCategorySelect value={draft.category} itemName={draft.name} onChange={(category) => setDraft((current) => ({ ...current, category, categoryManual: true }))}/>
 
-        <div className="grocery-quantity-row mb-4">
-          <div className="form-field grocery-quantity-field">
-            <span className="form-label">Quantity</span>
-            <Stepper value={draft.quantity} onChange={(v) => setDraft((d) => ({ ...d, quantity: v }))} />
-          </div>
-          <div>
-            <TextField
-              label="Unit (optional)"
-              placeholder="e.g. lb, bag, dozen"
-              value={draft.unit}
-              onChange={(e) => setDraft((d) => ({ ...d, unit: e.target.value }))}
-            />
-          </div>
-        </div>
+        <QuantityUnitFields quantity={draft.quantity} unit={draft.unit} onChange={patch=>setDraft(d=>({...d,...patch}))}/>
 
         <p className="task-assignee-label">For family members <small>Optional · choose one or more</small></p>
         <div className="task-assignee-picker grocery-member-picker">
@@ -1420,7 +1414,7 @@ export default function Groceries() {
       <Modal open={!!masterEditing} onClose={() => setMasterEditing(null)} title={masterEditing === "new" ? "Save a favourite" : "Edit favourite"}>
         <TextField label="Item" placeholder="e.g. Greek yogurt" value={masterDraft.name} onChange={(e) => updateMasterName(e.target.value)} autoFocus />
         <GroceryCategorySelect value={masterDraft.category} itemName={masterDraft.name} onChange={(category) => setMasterDraft((current) => ({ ...current, category, categoryManual: true }))}/>
-        <div className="grocery-quantity-row mb-5"><div className="form-field grocery-quantity-field"><span className="form-label">Default quantity</span><Stepper value={masterDraft.quantity} onChange={(quantity) => setMasterDraft((draft) => ({ ...draft, quantity }))} /></div><div><TextField label="Unit" placeholder="bag, dozen, lb" value={masterDraft.unit} onChange={(e) => setMasterDraft((draft) => ({ ...draft, unit: e.target.value }))} /></div></div>
+        <QuantityUnitFields quantity={masterDraft.quantity} unit={masterDraft.unit} onChange={patch=>setMasterDraft(d=>({...d,...patch}))}/>
         <div className="flex gap-2">{masterEditing !== "new" && <SecondaryButton onClick={() => { setStaples((current) => current.filter((item) => item.id !== masterEditing)); setMasterEditing(null); }}>Remove</SecondaryButton>}<PrimaryButton onClick={saveMasterItem} disabled={!masterDraft.name.trim()}>Save favourite</PrimaryButton></div>
       </Modal>
 

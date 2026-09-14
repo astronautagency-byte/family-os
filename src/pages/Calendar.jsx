@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo, useState } from "react";
-import { CalendarDays, CalendarPlus, ChevronDown, ChevronLeft, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, ExternalLink, Eye, EyeOff, LoaderCircle, MapPin, Moon, Pencil, Plus, RefreshCw, Search, Settings2, Share2, Sparkles, Sun, Ticket, Trash2, TriangleAlert, Users, X } from "lucide-react";
+import { CalendarDays, CalendarPlus, ChevronDown, ChevronLeft, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, ExternalLink, Eye, EyeOff, LoaderCircle, MapPin, Moon, Pencil, Plus, RefreshCw, Search, Settings2, Share2, Sparkles, Sun, Ticket, Trash2, TriangleAlert, Users, X } from "../components/icons";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useFamily } from "../context/FamilyContext";
@@ -458,7 +458,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
   const [viewMode, setViewMode] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches ? "day" : "month");
   const selected = new Date(`${selectedDate}T12:00:00`);
   const [month, setMonth] = useState(new Date(selected.getFullYear(), selected.getMonth(), 1));
-  const [sourceFilter, setSourceFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState(null); // null = all; array = selected overlays
   const [weather, setWeather] = useState(null);
   const [weatherError, setWeatherError] = useState("");
   const [adding, setAdding] = useState(false);
@@ -593,7 +593,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
   }, [month]);
   const expandedEvents = useMemo(() => expandRecurringEvents(allEvents, recurrenceRange.start, recurrenceRange.end), [allEvents, recurrenceRange]);
   const visibleEvents = useMemo(() =>
-    sourceFilter === "all" ? expandedEvents : expandedEvents.filter((event) => sourceId(event) === sourceFilter),
+    sourceFilter === null ? expandedEvents : expandedEvents.filter((event) => sourceFilter.includes(sourceId(event))),
   [expandedEvents, sourceFilter]);
 
   const sources = useMemo(() => {
@@ -1166,17 +1166,23 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
             <SegmentedControl options={[{value:"month",label:"Month"},{value:"week",label:"Week"},{value:"day",label:"Day"}]} value={viewMode} onChange={setViewMode} label="Calendar view" />
           </div>
           {sources.length > 1 && (
-            <div className="calendar-sources calendar-sources-primary">
+            <details className="calendar-sources calendar-sources-primary">
+              <summary className="setup-starter-trigger">Calendars · {sourceFilter === null ? 'All visible' : `${sourceFilter.length} selected`}</summary>
               <div className="calendar-sources-heading"><span>Calendars</span><button type="button" onClick={() => setCalendarManagerOpen(true)}>Manage</button></div>
-              <div className="calendar-sources-tabs" role="tablist" aria-label="Choose a calendar">
+              <div className="calendar-sources-tabs" role="group" aria-label="Overlay calendars">
                 {sources.map(source => {
                   const count = source.id === "all" ? allEvents.length : allEvents.filter(event => sourceId(event) === source.id).length;
-                  return <button type="button" role="tab" aria-selected={sourceFilter === source.id} key={source.id} className={`calendar-sources-tab ${sourceFilter === source.id ? "selected" : ""}`} style={{"--calendar-tone":source.color}} onClick={() => setSourceFilter(source.id)}><i style={{ backgroundColor: source.color }} /><span>{source.label}</span><em>{count}</em></button>;
+                  const selected = source.id === "all" ? sourceFilter === null : sourceFilter === null || sourceFilter.includes(source.id);
+                  return <button type="button" aria-pressed={selected} key={source.id} className={`calendar-sources-tab ${selected ? "selected" : ""}`} style={{"--calendar-tone":source.color}} onClick={() => setSourceFilter(current => {
+                    if (source.id === "all") return null;
+                    const ids = current === null ? sources.filter(s => s.id !== "all").map(s => s.id) : current;
+                    return ids.includes(source.id) ? ids.filter(id => id !== source.id) : [...ids, source.id];
+                  })}><i style={{ backgroundColor: source.color }} /><span>{source.label}</span><em>{count}</em></button>;
                 })}
 </div>
-            </div>
+            </details>
            )}
-           <div className="apple-date-strip" data-pull-ignore aria-label="Selected week">{dayStrip.map((date) => { const key=iso(date); return <button type="button" key={key} className={`${key===selectedDate?"selected":""} ${key===todayStr?"today":""}`} onClick={()=>{setSelectedDate(key);setMonth(new Date(date.getFullYear(),date.getMonth(),1));}}><small>{date.toLocaleDateString("en-CA",{weekday:"narrow"})}</small><strong>{date.getDate()}</strong><i>{visibleEvents.some(event=>eventDateLocal(event.start)===key)?"•":""}</i></button>;})}</div>
+           {viewMode !== 'month' && <div className="apple-date-strip" data-pull-ignore aria-label="Selected week">{dayStrip.map((date) => { const key=iso(date); return <button type="button" key={key} className={`${key===selectedDate?"selected":""} ${key===todayStr?"today":""}`} onClick={()=>{setSelectedDate(key);setMonth(new Date(date.getFullYear(),date.getMonth(),1));}}><small>{date.toLocaleDateString("en-CA",{weekday:"narrow"})}</small><strong>{date.getDate()}</strong><i>{visibleEvents.some(event=>eventDateLocal(event.start)===key)?"•":""}</i></button>;})}</div>}
            {/* ── Month grid (always shown — the grid IS the date picker now) ── */}
 
            {/* ── Month grid ── */}

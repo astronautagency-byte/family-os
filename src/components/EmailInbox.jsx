@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Mail, Check, X, Calendar, ShoppingCart, CheckSquare, FileText, ChevronDown, ChevronUp, Inbox, Sparkles, Send } from "lucide-react";
+import { Mail, Check, X, Calendar, ShoppingCart, CheckSquare, FileText, ChevronDown, ChevronUp, Inbox, Sparkles, Send } from "./icons";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";

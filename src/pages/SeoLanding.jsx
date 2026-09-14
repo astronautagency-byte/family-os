@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Check, ArrowRight, Shield, Star, Zap, Users, Calendar, ShoppingCart, MessageCircle, Brain, Tablet, ChefHat, ListChecks, Sparkles, ChevronRight } from "lucide-react";
+import { Check, ArrowRight, Shield, Star, Zap, Users, Calendar, ShoppingCart, MessageCircle, Brain, Tablet, ChefHat, ListChecks, Sparkles, ChevronRight } from "../components/icons";
 import { IS_MAC_APP_STORE } from "../lib/distribution";
 
 const ICONS = { calendar: Calendar, shopping: ShoppingCart, tasks: ListChecks, chat: MessageCircle, brain: Brain, tablet: Tablet, chef: ChefHat, star: Star, zap: Zap, users: Users, shield: Shield, sparkles: Sparkles };

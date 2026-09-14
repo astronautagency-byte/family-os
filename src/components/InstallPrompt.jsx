@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Share, X } from "lucide-react";
+import { Share, X } from "./icons";
 import { isTauriRuntime } from "../lib/desktopRuntime";
 
 const DISMISS_KEY = "family-os:install-prompt-dismissed:v1";

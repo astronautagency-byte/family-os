@@ -4,7 +4,7 @@ import {
   CircleDollarSign, CreditCard, Flag, LayoutDashboard, Lightbulb, ListChecks, LogOut, Mail, MessageCircle,
   Search, Send, Settings2, ShieldCheck, ShoppingCart, Tag, Ticket, Trash2, TrendingUp, UserPlus, Users, Utensils, Gauge, AlertTriangle, Clock3,
   WalletCards, XCircle, RefreshCw, ExternalLink, ReceiptText, Megaphone,
-} from "lucide-react";
+} from "../components/icons";
 import { supabase } from "../lib/supabase";
 import { Badge, Card, Modal, PrimaryButton, SecondaryButton, SelectField, TextField } from "../components/ui";
 import PasswordStrengthMeter from "../components/PasswordStrengthMeter";

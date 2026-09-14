@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { ChevronDown, Check, Palette } from "lucide-react";
+import { ChevronDown, Check, Palette } from "./icons";
 import { APP_COLOR_SCHEMES } from "../data/appColorSchemes";
 
 export function ColorSchemePicker({ value, onChange, label = "App colour schemes", className = "" }) {

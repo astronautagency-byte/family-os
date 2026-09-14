@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ExternalLink, LockKeyhole } from "lucide-react";
+import { ExternalLink, LockKeyhole } from "./icons";
 import { openDesktopSignIn } from "../lib/desktopRuntime";
 
 export default function DesktopAuthGate({ status = "idle", error = "" }) {

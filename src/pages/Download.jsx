@@ -1,4 +1,4 @@
-import { ArrowDownToLine, ArrowRight, CheckCircle2, ExternalLink, MonitorDown, Smartphone } from "lucide-react";
+import { ArrowDownToLine, ArrowRight, CheckCircle2, ExternalLink, MonitorDown, Smartphone } from "../components/icons";
 import MarketingFooter from "../components/MarketingFooter";
 import MarketingNav from "../components/MarketingNav";
 import { DESKTOP_DOWNLOAD_URL, DESKTOP_RELEASES_URL } from "../lib/downloads";

@@ -1,0 +1,29 @@
+.setup-quantity-fields {display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-block:16px;}
+.setup-quantity-fields label,.setup-pack-label {display:grid;gap:8px;font-size:13px;color:var(--color-ink);}
+.setup-quantity-fields input,.setup-quantity-fields select,.setup-pack-label select {width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--color-border);border-radius:12px;background:var(--color-surface);color:var(--color-ink);}
+.setup-starter-trigger {min-height:44px;color:var(--color-accent);font-weight:600;padding:8px 4px;}
+.setup-help {color:var(--color-ink-soft);font-size:13px;line-height:1.6;margin-bottom:16px;}
+.setup-staple-options {display:grid;gap:4px;margin-block:16px;}
+.setup-staple-options label {display:flex;gap:12px;align-items:center;min-height:52px;padding:8px;border-bottom:1px solid var(--color-border);}
+.setup-staple-options input {width:20px;height:20px;accent-color:var(--color-accent);}
+.setup-staple-options small {display:block;color:var(--color-ink-soft);font-size:12px;margin-top:3px;}
+.setup-store-label {color:var(--color-ink-soft);font-size:12px;margin-top:4px;}
+@media(max-width:767px){
+  .app-shell .calendar-month-grid>button {height:38px!important;min-height:38px!important;}
+  .app-shell .calendar-month-grid {gap:2px!important;}
+  .app-shell .apple-calendar-month {padding:8px!important;margin-block:8px!important;}
+  .app-shell .calendar-sources-primary {margin-block:8px;}
+  .app-shell .calendar-sources-tabs {flex-wrap:wrap;gap:6px;}
+}
+/* Portal dialogs inherit root theme variables rather than light-only fills. */
+.completion-screen {background:var(--color-surface,#fff);color:var(--color-ink,#101A43);}
+.completion-close {background:var(--color-surface-sunken,#F2F3FA);color:var(--color-ink,#101A43);}
+:root[data-famos-theme="dark"] {
+  color-scheme:dark;
+  --color-canvas:#111827; --color-surface:#192438; --color-surface-sunken:#202E43;
+  --color-ink:#F3F6FF; --color-ink-soft:#BAC8DF; --color-ink-faint:#9CAFCB;
+  --color-border:#304059; --color-border-strong:#536782;
+  --color-accent:#00875C; --color-accent-soft:#173D35; --color-accent-strong:#75E6BB;
+}
+:root[data-famos-theme="dark"] .m3-dialog {color:var(--color-ink)!important;background:var(--color-surface)!important;}
+:root[data-famos-theme="dark"] .modal-close-button {color:var(--color-ink)!important;background:var(--color-surface-sunken)!important;}
