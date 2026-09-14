@@ -1,4 +1,68 @@
 /* Shared component contracts, loaded after page styles. */
+:root {
+  --layout-text-gap: 8px;
+  --layout-row-gap: 12px;
+  --layout-card-padding: 24px;
+  --layout-section-gap: 28px;
+  --layout-page-gutter: 24px;
+}
+/* Target content containers, not calendar cells, artwork, or full-bleed cards. */
+.app-shell .app-content .page-header {
+  padding-inline: var(--layout-page-gutter);
+  padding-block: 24px 20px;
+  row-gap: var(--layout-row-gap);
+}
+.app-shell .page-title + .page-subtitle { margin-top: var(--layout-text-gap); }
+.app-shell .app-content :is(.today-bento-grid, .meal-plan-list) {
+  padding-inline: var(--layout-page-gutter);
+  gap: var(--layout-section-gap);
+}
+.app-shell .kinship-card:is(.p-3, .p-4, .p-5, .p-6) {
+  padding: var(--layout-card-padding);
+}
+.app-shell :is(.today-list-item, .grocery-list-row, .task-board-row) {
+  padding-block: 14px;
+  gap: var(--layout-row-gap);
+  min-width: 0;
+}
+.app-shell :is(.grocery-list-row, .task-board-row) { padding-inline: 16px; }
+.app-shell :is(.task-row-copy, .inventory-item-copy > div) { min-width: 0; }
+.app-shell :is(.task-row-copy, .inventory-item-copy) :is(strong, small) { line-height: 1.5; }
+.app-shell .inventory-item-copy { gap: var(--layout-row-gap); }
+.app-shell .inventory-item-grid { gap: 16px; }
+.app-shell .inventory-item-grid article { padding: 16px; gap: 16px; }
+.app-shell .inventory-item-actions { flex-wrap: wrap; gap: 8px; padding-top: 8px; }
+.app-shell .grocery-category-title { margin-top: var(--layout-section-gap); margin-bottom: 12px; }
+.app-shell :is(.task-toolbar, .shopping-list-switcher, .inventory-tools) {
+  gap: var(--layout-row-gap);
+  margin-bottom: 20px;
+}
+.app-shell .settings-section-title { margin-bottom: 16px; line-height: 1.4; }
+.app-shell section[data-tab] + section[data-tab] { margin-top: var(--layout-section-gap); }
+.form-field .form-label { margin-bottom: var(--layout-text-gap); line-height: 1.5; }
+.form-field .form-control { min-height: 44px; padding: 11px 14px; line-height: 1.5; }
+.form-field .form-hint { display: block; margin-top: var(--layout-text-gap); line-height: 1.5; }
+.modal-card.m3-dialog {
+  padding: 24px;
+  padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  scroll-padding-block: 24px;
+}
+.modal-card.m3-dialog > h3 { margin-bottom: 24px; line-height: 1.4; }
+.modal-card.m3-dialog > p { margin-bottom: 20px; line-height: 1.6; }
+@media (max-width: 640px) {
+  :root {
+    --layout-card-padding: 20px;
+    --layout-section-gap: 24px;
+    --layout-page-gutter: 16px;
+  }
+  .app-shell .app-content .page-header { padding-block: 20px 16px; }
+  .app-shell .grocery-list-row { gap: 10px; padding-inline: 12px; }
+  .app-shell .inventory-item-grid article {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "copy" "date" "actions";
+  }
+  .modal-card.m3-dialog { padding-inline: 20px; }
+}
 .app-shell .page-title {
   color: var(--color-ink);
   font-family: var(--font-display);
