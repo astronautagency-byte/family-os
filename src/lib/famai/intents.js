@@ -428,6 +428,8 @@ function routeQueryGroceries(text, ctx) {
 // "what's everyone doing saturday" / "what are we doing this weekend" — handled
 // by routeQueryDay; here the umbrella router wires everything together.
 export function routeIntent(text, ctx = {}) {
+  // Routine planning needs a structured multi-step proposal, not a one-off grocery/task match.
+  if (/\broutines?\b/i.test(text)) return null;
   if (!text || !text.trim()) return null;
   const clean = text.trim();
 

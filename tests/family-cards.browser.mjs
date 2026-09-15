@@ -1,0 +1,34 @@
+import { chromium } from 'playwright';
+import assert from 'node:assert/strict';
+const browser = await chromium.launch({headless:true,channel:'chrome'});
+try {
+ const page = await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
+ const errors=[]; page.on('pageerror',error=>errors.push(error.message));
+ await page.goto('http://127.0.0.1:5173/tests/visual-regression/family-cards.html');
+ await page.locator('.family-story-card').first().waitFor();
+ await page.evaluate(()=>document.fonts.ready);
+ await page.evaluate(async()=>{const images=[...document.images]; images.forEach(img=>{img.loading='eager';}); await Promise.all(images.map(img=>img.decode()));});
+ await page.getByRole('button',{name:'Choose Peach hijab'}).click();
+ assert.equal(await page.getByRole('button',{name:'Choose Peach hijab'}).getAttribute('aria-pressed'),'true');
+ await page.locator('.family-card-section').scrollIntoViewIfNeeded();
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no page overflow');
+ await page.getByRole('button',{name:'Next your family, at a glance cards'}).click();
+ await page.waitForFunction(()=>document.querySelector('.family-card-rail').scrollLeft>100);
+ await page.getByRole('button',{name:'View tasks',exact:true}).click();
+ assert.match(await page.getByRole('status').innerText(),/tasks/);
+ await page.screenshot({path:'tests/visual-regression/family-cards-mobile.png',fullPage:true});
+ await page.getByRole('button',{name:'Dark mode',exact:true}).click();
+ await page.evaluate(()=>{document.querySelector('.family-card-rail').scrollLeft=0;});
+ await page.screenshot({path:'tests/visual-regression/family-cards-dark.png',fullPage:true});
+ await page.setViewportSize({width:1280,height:900});
+ await page.getByRole('button',{name:'Light mode',exact:true}).click();
+ await page.screenshot({path:'tests/visual-regression/family-cards-desktop.png',fullPage:true});
+ assert.deepEqual(errors,[]);
+ await page.goto('http://127.0.0.1:5173/sign-in');
+ await page.getByRole('heading',{name:'Welcome back',exact:true}).waitFor();
+ await page.locator('.family-login-art').evaluate(img=>img.decode());
+ await page.setViewportSize({width:390,height:844});
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'login no overflow');
+ await page.screenshot({path:'tests/visual-regression/family-login-mobile.png',fullPage:true});
+ console.log('Family cards: mobile overflow, navigation, action routing and runtime checks passed. Screenshots saved.');
+} finally { await browser.close(); }

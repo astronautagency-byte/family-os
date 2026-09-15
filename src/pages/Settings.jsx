@@ -1,4 +1,5 @@
 import CustomizeFamOS from "../components/CustomizeFamOS";
+import IllustratedAvatarPicker from '../components/IllustratedAvatarPicker';
 import React, { useEffect, useRef, useState } from "react";
 import { AlertCircle, Bell, Bug, Camera, CalendarDays, Check, CheckCircle2, ChevronRight, Clipboard, Eye, EyeOff, ExternalLink, ImagePlus, Info, Lightbulb, Link2, LoaderCircle, Mail, MapPin, Megaphone, Palette, Pencil, Phone, Plus, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Ticket, Trash2, Upload, Users, Utensils, X } from "../components/icons";
 import { useFamily } from "../context/FamilyContext";
@@ -1698,7 +1699,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
           </div>
         </div>
         {avatarStatus && <p className="avatar-status">{avatarStatus}</p>}
-        <p className="avatar-preset-note">Upload a photo of yourself, or use your initials.</p>
+        <IllustratedAvatarPicker value={avatarUrl} onChange={url => { setAvatarUrl(url); setAvatarStatus('Illustration selected. Save to apply it.'); }} />
 
         <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-2">Role</p>
         <div className="flex gap-2 mb-4">

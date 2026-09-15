@@ -1,4 +1,5 @@
 import {useHouseholdFeatures} from "../context/HouseholdFeaturesContext";
+import { fireConfetti as fireBrandConfetti } from '../lib/confetti';
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Bell, CalendarPlus, ChefHat, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, Coffee, Droplets, ExternalLink, GripVertical, LayoutGrid, ListChecks, LoaderCircle, MapPin, Megaphone, MessageCircle, Moon, PartyPopper, Refrigerator, RotateCcw, ShoppingCart, Soup, Sun, Ticket, Trash2, TriangleAlert, Wind, X, Sparkles } from "../components/icons";
 // ChefHat is already imported above for the Cook button icon.
@@ -8,6 +9,8 @@ import { BROADCAST_REACTIONS, useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, AvatarStack, Card, Checkbox, EmptyState } from "../components/ui";
 import PageHeader from "../components/PageHeader";
+import BroadcastVoice, { BroadcastAudio } from '../components/BroadcastVoice';
+import FamilyCardRail from '../components/FamilyCardRail';
 import PullToRefresh from "../components/PullToRefresh";
 import { supabase } from "../lib/supabase";
 import { dailyEncouragement, eventDateLocal, formatTime, fullDateLabel, greetingInfo, todayISO } from "../lib/dates";
@@ -129,15 +132,6 @@ const BROADCAST_PLACEHOLDERS = [
   "Tell everyone you're thinking of them",
 ];
 
-// Confetti palette matches the daypart sunrise gradient (kept in CSS vars so the
-// day/morning/evening variants pick up automatically).
-const CONFETTI_COLORS = [
-  "var(--color-accent)",
-  "var(--color-fam-rose)",
-  "var(--color-fam-marigold)",
-  "var(--color-fam-plum)",
-  "var(--color-fam-sky)",
-];
 
 
 function BroadcastBanner({ item, sender, reactions, currentUserId, onReact, onClear }) {
@@ -164,6 +158,7 @@ function BroadcastBanner({ item, sender, reactions, currentUserId, onReact, onCl
           <span className="broadcast-banner-time">{formatTime(item.sentAt)}</span>
         </div>
         <p>{item.text}</p>
+        {item.voicePath && <BroadcastAudio path={item.voicePath} />}
         <div className="broadcast-reactions">
           {BROADCAST_REACTIONS.map((emoji) => {
             const list = reactions.filter((reaction) => reaction.reaction === emoji);
@@ -234,6 +229,8 @@ export default function Today({ goTo }) {
   const [weather, setWeather] = useState(null);
   const [weatherError, setWeatherError] = useState("");
   const [broadcastText, setBroadcastText] = useState("");
+  const [broadcastVoice, setBroadcastVoice] = useState(null);
+  const [voiceRecording, setVoiceRecording] = useState(false);
   const [broadcasting, setBroadcasting] = useState(false);
   const [broadcastError, setBroadcastError] = useState("");
   const [broadcastFocused, setBroadcastFocused] = useState(false);
@@ -374,45 +371,24 @@ export default function Today({ goTo }) {
     return () => clearInterval(id);
   }, [broadcastFocused, broadcastText]);
 
-  // Tiny DOM confetti burst on successful broadcast. Pure CSS keyframe — no
-  // dependency, micro-cost, removed after one play. The CSS rules also honour
-  // prefers-reduced-motion via @media, but the early-return here avoids even
-  // creating the DOM nodes for users who opt out of motion.
-  const fireConfetti = () => {
-    const host = composeContainerRef.current;
-    if (!host) return;
-    const reduced = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    if (reduced) return;
-    const count = 14;
-    for (let i = 0; i < count; i += 1) {
-      const dot = document.createElement("span");
-      dot.className = "broadcast-confetti";
-      dot.style.setProperty("--c", CONFETTI_COLORS[i % CONFETTI_COLORS.length]);
-      // Spread upward, slightly to the right (where the button sits), with some variance.
-      dot.style.setProperty("--x", `${(Math.random() * 160 - 30).toFixed(0)}px`);
-      dot.style.setProperty("--y", `${(-30 - Math.random() * 90).toFixed(0)}px`);
-      dot.style.setProperty("--rot", `${(Math.random() * 540 - 90).toFixed(0)}deg`);
-      dot.style.animationDelay = `${(Math.random() * 0.08).toFixed(2)}s`;
-      host.appendChild(dot);
-      setTimeout(() => dot.remove(), 1300);
-    }
-  };
+  const fireConfetti = () => { if (features.celebrations !== false) fireBrandConfetti(28, 1600); };
 
 
 
   const postBroadcast = async (event) => {
     event.preventDefault();
-    if (!broadcastText.trim() || broadcasting) return;
+    if ((!broadcastText.trim() && !broadcastVoice) || broadcasting || voiceRecording) return;
     setBroadcasting(true); setBroadcastError("");
     try {
-      await broadcastMessage(broadcastText.trim());
+      await broadcastMessage(broadcastText.trim(), broadcastVoice);
       setBroadcastText("");
+      setBroadcastVoice(null);
       fireConfetti();
     }
     catch (error) { setBroadcastError(error.message || "Could not broadcast right now."); }
     finally { setBroadcasting(false); }
   };
-  const broadcastReady = broadcastText.trim().length > 0;
+  const broadcastReady = !voiceRecording && (broadcastText.trim().length > 0 || !!broadcastVoice);
   // Hide the wiggle + chips whenever the composer is "engaged" — text entered,
   // focused, or actively sending a message. CSS owns the wiggle keyframe; we
   // just flip the `is-idle` class.
@@ -607,9 +583,14 @@ export default function Today({ goTo }) {
 
       <div className="reference-home-overview px-5">
         <div className="reference-family-strip" aria-label="Your family">{members.map(member => <div key={member.id}><Avatar member={member} size="lg"/><span>{member.name?.split(' ')[0]}</span></div>)}<button type="button" onClick={() => goTo('settings')} aria-label="Manage family members">+</button></div>
-        <div className="reference-home-shortcuts">
-          {[['groceries','Shopping',ShoppingCart,`${activeGroceries.length} items`],['kitchen','Kitchen Watch',Refrigerator,'Check freshness'],['tasks','Tasks',ListChecks,`${openTasks.length} to do`],['chat','Family Chat',MessageCircle,'Stay connected']].filter(([id])=>features[id]!==false).map(([id,label,Icon,detail]) => <button type="button" key={id} className={`tone-${id}`} onClick={() => goTo(id)}><span className="reference-action-icon"><Icon size={22}/></span><span><strong>{label}</strong><small>{detail}</small></span></button>)}
-        </div>
+        <FamilyCardRail title="Your family, at a glance" onSelect={goTo} cards={[
+          { id: 'calendar', label: 'Today’s schedule', title: `${todaysEvents.length} event${todaysEvents.length === 1 ? '' : 's'} today`, detail: todaysEvents[0]?.title || 'A little room to breathe.', action: 'Open calendar' },
+          { id: 'tasks', label: 'Shared responsibilities', title: `${openTasks.length} task${openTasks.length === 1 ? '' : 's'} to do`, detail: openTasks.length ? 'Small jobs. A lighter load for everyone.' : 'You’re all caught up.', action: 'View tasks' },
+          { id: 'meals', label: 'What’s for dinner?', title: meals.find(meal => meal.date === today && meal.slot === 'dinner')?.title || 'Make a dinner plan', detail: 'Bring everyone to the table.', action: 'Open meal plan' },
+          { id: 'groceries', label: 'Your shopping list', title: `${activeGroceries.length} item${activeGroceries.length === 1 ? '' : 's'} to pick up`, detail: 'Remember it once. Share it with everyone.', action: 'Open shopping' },
+          { id: 'kitchen', label: 'Kitchen Watch', title: expiryAlerts.length ? `${expiryAlerts.length} item${expiryAlerts.length === 1 ? '' : 's'} to use soon` : 'See what’s in your kitchen', detail: 'Use what you have before buying more.', action: 'Open kitchen' },
+          { id: 'chat', label: 'Family chat', title: 'Keep everyone in the loop', detail: 'A place for plans and quick check-ins.', action: 'Open chat' },
+        ].filter(card => features[card.id] !== false && !hiddenDashboardCards.includes(({calendar:'schedule',chat:'messages'})[card.id] || card.id))} />
       </div>
       <div className="px-5"><ProductUpdateBanner /></div>
 
@@ -665,6 +646,7 @@ export default function Today({ goTo }) {
                 {broadcasting ? "Sending…" : "Broadcast"}
               </button>
             </form>
+            <BroadcastVoice value={broadcastVoice} onChange={setBroadcastVoice} disabled={broadcasting} onRecordingChange={setVoiceRecording} />
           </div>
           {broadcastError && <p className="broadcast-compose-error">{broadcastError}</p>}
           {broadcasts.length > 0 && (

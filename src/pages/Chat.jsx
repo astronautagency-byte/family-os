@@ -4,6 +4,7 @@ import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, colorVar, Modal, SecondaryButton } from "../components/ui";
 import PageHeader from "../components/PageHeader";
+import { BroadcastAudio } from '../components/BroadcastVoice';
 import PullToRefresh from "../components/PullToRefresh";
 import ConfirmAction from "../components/ConfirmAction";
 import { detectIntent, intentKey } from "../lib/chatIntents";
@@ -265,6 +266,7 @@ export default function Chat() {
                 >
                   {message.source === "whatsapp" && <span className="whatsapp-message-source"><MessageCircle size={11} /> WhatsApp · {message.sourceSender || "Imported"}</span>}
                   {message.text}
+                  {message.broadcast && message.voicePath && <BroadcastAudio path={message.voicePath} />}
                 </div>
                 <span className="text-[10px] text-[var(--color-ink-faint)] mt-1 px-1">
                   {sender?.name} · {timeLabel(message.sentAt)}

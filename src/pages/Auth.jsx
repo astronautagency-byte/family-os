@@ -1,4 +1,6 @@
 import { Avatar } from "../components/ui";
+import FamilyIllustration from '../components/FamilyIllustration';
+import IllustratedAvatarPicker from '../components/IllustratedAvatarPicker';
 import { useEffect, useMemo, useState } from "react";
 import { Baby, Bell, BellRing, BriefcaseBusiness, CalendarDays, Check, CheckSquare, ChefHat, ChevronLeft, Eye, EyeOff, HeartHandshake, House, ImagePlus, Leaf, LoaderCircle, LockKeyhole, Mail, MessageCircle, MilkOff, Palette, Phone, Plus, Salad, Send, ShieldCheck, ShoppingCart, Smartphone, Sparkles, Trash2, UserRound, UsersRound, WalletCards, WheatOff } from "../components/icons";
 import { useAuth } from "../context/AuthContext";
@@ -130,6 +132,7 @@ export function SignIn({ initialCreating = false }) {
 
   return (
     <Shell>
+      <FamilyIllustration variant="welcome" className="family-login-art" eager />
       <h1 className="minimal-auth-title">{creating ? "Create your FamOS account" : "Welcome back"}</h1>
       <p className="minimal-auth-subtitle">
         {creating
@@ -756,6 +759,7 @@ function RevisedOwnerProfileStep({ familyMembers, setFamilyMembers, interests, t
   return (
     <div className="guided-onboarding revised-onboarding">
       <OnboardingProgress steps={steps} current={step} />
+      <FamilyIllustration variant={['family', 'tasks', 'calendar', 'welcome', 'family'][step] || 'family'} className="family-onboarding-art" />
       <div className="guided-onboarding-panel">
         {step === 0 && <>
           <div className="onboarding-value-heading"><UsersRound size={19} /><div><strong>Add your family</strong><span>Add the people you plan around. You can add or edit members later.</span></div></div>          <div className="revised-family-list">
@@ -1304,9 +1308,10 @@ function AvatarPicker({ avatarUrl, setAvatarUrl, status, setStatus }) {
           <label><input type="file" accept="image/*" onChange={uploadAvatar} /><ImagePlus size={15} /> Upload photo</label>
         </div>
       </div>
-      {avatarUrl?.startsWith("data:") && <Avatar member={{name:"Your uploaded avatar",avatarUrl}} size="xl" />}
+      {avatarUrl && <Avatar member={{name:"Your avatar",avatarUrl}} size="xl" />}
       {status && <p className="avatar-status">{status}</p>}
-      <p className="avatar-preset-note">Upload a photo, or your initials will be used.</p>
+      <IllustratedAvatarPicker value={avatarUrl} onChange={url => { setAvatarUrl(url); setStatus('Illustration selected. Continue to save it.'); }} />
+      <button type="button" onClick={() => {setAvatarUrl('');setStatus('Initials selected.');}}>Use initials</button>
     </div>
   );
 }

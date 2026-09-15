@@ -1,0 +1,16 @@
+# Planning illustration prompts
+
+Mode: built-in image_gen, separate call per asset. Reference: welcome-concept.png (character identity).
+
+## calendar.png
+
+Use case: illustration-story. Asset type: FamOS family planning app square illustration. Input image 1 is a character identity reference, not an edit target. Create a new standalone illustration of the reference's friendly bearded father in green and little boy with short dark hair in sky blue planning together at one large blank calendar. Both smiling, pointing to blank grid squares. Simplify their likeness into FLAT MINIMALISTIC geometric vector-style raster illustration with solid uniform color fills, very few shapes and details. Compact centered waist-up vignette occupying about 65 percent of square canvas, generous empty margins. Plain ivory #FFFDF7 background. Palette forest #173C32, green #16865D, peach #F6AE96, yellow #F4D15B, sky #9DD7EB plus warm natural skin tones. Calendar blank grid only, no dates, words or letters. No text, logo, watermark, texture, gradients, shading, shadows, decorative setting or extra props. Keep expressive simple dot eyes and warm smiles. Square image.
+
+## tasks.png
+
+Use case: illustration-story. Asset type: FamOS family tasks app square illustration. Input image 1 is a character identity reference, not an edit target. Create a new standalone illustration of the reference's smiling brown-skinned mother with curly high bun, green headband and peach shirt and little brown-skinned daughter with dark curly ponytail, yellow top and sky-blue overalls checking a chore card together. A single large ivory chore card between them carries one simple green checkmark and tiny leaf symbol, no writing. Simplify their likeness into FLAT MINIMALISTIC geometric vector-style raster illustration with solid uniform color fills, very few shapes and details. Compact centered waist-up vignette occupying about 65 percent of square canvas, generous empty margins. Plain ivory #FFFDF7 background. Palette forest #173C32, green #16865D, peach #F6AE96, yellow #F4D15B, sky #9DD7EB plus warm natural skin tones. No text, logo, watermark, texture, gradients, shading, shadows, decorative setting or extra props. Keep expressive simple dot eyes and warm smiles. Square image.
+
+## rewards.png
+
+Use case: illustration-story. Asset type: FamOS family rewards app square illustration. Input image 1 is a character identity reference, not an edit target. Create a new standalone illustration of the reference's little brown-skinned daughter with dark curly ponytail, yellow top and sky-blue overalls joyfully placing a single golden yellow star into the open top of one green star jar. One large yellow star emblem on front of green jar. Simplify her likeness into extremely FLAT MINIMALISTIC geometric vector-style raster illustration: solid uniform color fills, few broad shapes, dot eyes, single curved smile, simplified mitten hands. No lighting or tonal variation whatsoever. Compact centered waist-up vignette occupying about 65 percent of square canvas, generous empty margins. Plain uniform ivory #FFFDF7 background. Palette forest #173C32, green #16865D, peach #F6AE96, yellow #F4D15B, sky #9DD7EB plus one warm natural brown skin tone. No text, logo, watermark, texture, gradients, shading, shadows, decorative setting or extra props. Square image.
+

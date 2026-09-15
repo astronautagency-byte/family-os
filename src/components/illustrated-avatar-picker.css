@@ -1,0 +1,10 @@
+.illustrated-avatar-picker{margin:20px 0;padding:0;border:0;min-width:0}
+.illustrated-avatar-picker legend{font-size:14px;font-weight:700;color:var(--color-ink)}
+.illustrated-avatar-picker>p{font-size:12px;line-height:1.5;color:var(--color-ink-soft);margin:8px 0 16px}
+.illustrated-avatar-group{margin:16px 0}
+.illustrated-avatar-group h3{font-size:12px;font-weight:650;margin:0 0 10px;color:var(--color-ink-soft)}
+.illustrated-avatar-options{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px}
+.illustrated-avatar-options button{display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 6px;border:2px solid transparent;border-radius:16px;background:var(--color-surface);color:var(--color-ink);min-width:0}
+.illustrated-avatar-options button[aria-pressed=true]{border-color:var(--color-accent);background:var(--color-accent-soft)}
+.illustrated-avatar-options button:focus-visible{outline:2px solid var(--color-accent);outline-offset:3px}
+.illustrated-avatar-options button>span{font-size:11px;line-height:1.35;text-align:center}

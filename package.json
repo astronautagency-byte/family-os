@@ -37,6 +37,7 @@
     "@tauri-apps/plugin-opener": "^2.5.4",
     "@zxing/browser": "^0.2.1",
     "@zxing/library": "^0.23.0",
+    "canvas-confetti": "^1.9.4",
     "date-fns": "^4.4.0",
     "framer-motion": "^12.42.2",
     "gsap": "^3.15.0",

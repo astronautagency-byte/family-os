@@ -79,12 +79,11 @@ describe("Fam AI deterministic routing", () => {
 });
 
 describe("Fam AI orchestration", () => {
-  it("executes low-risk grocery adds directly", async () => {
+  it("previews grocery adds without writing before approval", async () => {
     const { state, api } = makeFixture();
     const result = await handleAskFam("add eggs and cheese", { state, api });
-    expect(result.kind).toBe("execute");
-    expect(result.canUndo).toBe(true);
-    expect(state.groceries.some((g) => g.name === "Eggs")).toBe(true);
+    expect(result.kind).toBe("preview");
+    expect(state.groceries.some((g) => g.name === "Eggs")).toBe(false);
   });
   it("answers schedule queries without an LLM", async () => {
     const { state, api } = makeFixture();

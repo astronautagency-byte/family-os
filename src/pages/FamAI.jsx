@@ -29,8 +29,11 @@ import { supabase } from "../lib/supabase";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { handleAskFam, getSuggestedPrompts, getSuggestedActions, riskLabel } from "../lib/famai";
 import { undoAction, executeAction } from "../lib/famai/actions";
+import { validateRoutine, getRoutinePrompts } from '../lib/famai/routines';
+import RoutineReviewFields from '../components/RoutineReviewFields';
 
 const actionMeta = {
+  add_routine: { label: 'Create routine', Icon: CheckSquare },
   add_task: { label: "Create task", Icon: CheckSquare },
   add_grocery: { label: "Add grocery", Icon: ShoppingCart },
   add_event: { label: "Add event", Icon: CalendarDays },
@@ -46,7 +49,7 @@ const INITIAL_FAM_AI_MESSAGE = {
 
 export default function FamAI({ open: propOpen, onClose, screen = "" }) {
   const {features}=useHouseholdFeatures();
-  const actionEnabled=type=>!Object.entries({tasks:/task|chore/i,calendar:/event|calendar/i,groceries:/grocery|groceries|shopping/i,kitchen:/kitchen|inventory/i,meals:/meal/i,recipes:/recipe/i}).some(([key,pattern])=>features[key]===false&&pattern.test(type));
+  const actionEnabled=type=>!(type==='add_routine' && features.routine_suggestions===false) && !Object.entries({tasks:/task|chore|routine/i,calendar:/event|calendar/i,groceries:/grocery|groceries|shopping/i,kitchen:/kitchen|inventory/i,meals:/meal/i,recipes:/recipe/i}).some(([key,pattern])=>features[key]===false&&pattern.test(type));
   const { configured, household, user } = useAuth();
   const {
     members,
@@ -72,6 +75,7 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
   const [busy, setBusy] = useState(false);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState([]);
+  const executionLock = useRef(false);
   const [error, setError] = useState("");
   const chatRef = useRef(null);
   const pendingClarifyRef = useRef(null);
@@ -326,7 +330,7 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
           screen,
           family: members.map((member) => member.name),
           members: members.map((member) => ({ id: member.id, name: member.name, role: member.role })),
-          tasks: (features.tasks?tasks:[]).filter((task) => !task.done).slice(0, 40).map((task) => ({ title: task.title, due: task.due, assignee: task.assigneeId ? members.find((m) => m.id === task.assigneeId)?.name : null, taskType: task.taskType })),
+          tasks: (features.tasks?tasks:[]).filter((task) => !task.done).slice(0, 40).map((task) => ({ title: task.title, due: task.due, assignee: task.assigneeId ? members.find((m) => m.id === task.assigneeId)?.name : null, taskType: task.taskType, recurrence: task.recurring, steps: task.recurring?.startsWith('routine:') ? task.notes : undefined })),
           groceries: (features.groceries?groceries:[]).filter((item) => !item.checked).slice(0, 60).map((item) => ({ name: item.name, category: item.category, quantity: item.quantity, unit: item.unit })),
           upcomingEvents: (features.calendar?allEvents:[])
             .filter((item) => item.start && item.start >= new Date(`${todayISO()}T00:00:00`).toISOString())
@@ -345,7 +349,7 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
     appendAssistant({ role: "assistant", content: responseText });
     const convId = activeConversationId || null;
     if (convId) saveMessage(convId, "assistant", responseText);
-    setPending(Array.isArray(data?.actions) ? data.actions.filter(action=>actionEnabled(action.type)) : []);
+    setPending(Array.isArray(data?.actions) ? data.actions.filter(action=>actionEnabled(action.type)).map(action=>({...action,saveId:crypto.randomUUID()})) : []);
   };
 
   const send = async (event) => {
@@ -401,13 +405,21 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
 
   // LLM-generated action execution (the review panel path).
   const execute = async () => {
+    if (busy || executionLock.current) return;
+    executionLock.current = true;
     setBusy(true);
     setError("");
     const approvedActions = pending;
     try {
+      // Validate every routine before beginning a batch. A failed item stays reviewable.
+      for (const action of approvedActions) if (action.type === 'add_routine') validateRoutine(action.args || {}, members);
       for (const action of approvedActions) {
         if(!actionEnabled(action.type))throw Error("That page is turned off in Family Settings.");
         const args = action.args || {};
+        if (!actionMeta[action.type]) throw Error('This action is not supported. Please ask FamAI to prepare it again.');
+        if (action.type === 'add_routine') {
+          await addTask({...validateRoutine(args,members),id:action.saveId});
+        }
         if (action.type === "add_task") {
           await addTask({
             title: args.title,
@@ -441,6 +453,8 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
             cookIds: (args.cook_names || []).map(memberId).filter(Boolean),
           });
         }
+        // Remove successful items immediately so retrying a later failure cannot duplicate them.
+        setPending(current=>current.filter(item=>item!==action));
       }
       appendAssistant({
         role: "assistant",
@@ -450,6 +464,7 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
     } catch (actionError) {
       setError(actionError.message || "An action could not be completed.");
     } finally {
+      executionLock.current = false;
       setBusy(false);
     }
   };
@@ -464,7 +479,7 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
   const primaryPending = pending.filter((action) => !cookablePlanMealIds.has(action.id));
   const welcomeState = messages.length === 1 && !busy && pending.length === 0;
 
-  const suggestedPrompts = [...getSuggestedPrompts(stateSnapshot(), screen),...(features.routine_suggestions&&features.tasks?[{text:"Help me plan a school-morning routine",tone:"tasks"}]:[])].filter(prompt=>features[prompt.tone]!==false && (features.kitchen || !/kitchen|pantry|expir/i.test(prompt.text)));
+  const suggestedPrompts = [...getSuggestedPrompts(stateSnapshot(), screen),...(features.routine_suggestions&&features.tasks?getRoutinePrompts(stateSnapshot()):[])].filter(prompt=>features[prompt.tone]!==false && (features.kitchen || !/kitchen|pantry|expir/i.test(prompt.text)));
   const suggestedActions = features.insights ? getSuggestedActions(stateSnapshot()).filter(action=>features[action.kind]!==false) : [];
 
   const sheet = (
@@ -635,6 +650,7 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
                     <div className="fam-ai-review-item-text">
                       <strong>{meta.label}</strong>
                       <small>{actionSummary(action)}</small>
+                      {action.type === 'add_routine' && <RoutineReviewFields args={action.args || {}} members={members} onChange={args=>setPending(current=>current.map(item=>item.id===action.id?{...item,args}:item))}/>}
                     </div>
                   </div>
                 );

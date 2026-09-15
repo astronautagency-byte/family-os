@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { nextRoutineDate } from '../lib/famai/routines';
 import {
   initialFamilyMembers,
   initialEvents,
@@ -350,7 +351,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
   });
   const mapEvent = (row) => ({ id: row.id, title: row.title, start: row.starts_at, end: row.ends_at, location: row.location, recurrence: row.recurrence || "none", recurrenceUntil: row.recurrence_until || "", source: row.source === "familyos" ? "local" : row.source, externalId: row.external_id || null, googleEventId: row.source === "google" ? row.external_id || null : null, calendarId: row.external_calendar_id || null, memberIds: (row.event_participants || []).map((p) => p.user_id) });
   const mapMeal = (row) => ({ id: row.id, date: row.meal_date, slot: row.slot, title: row.title, notes: row.notes, cookIds: row.cook_ids || [], createdBy: row.created_by || null, source: row.source || "manual", thumbnail: row.thumbnail || "", recipeSnapshot:row.recipe_snapshot || null });
-  const mapMessage = (row) => ({ id: row.id, senderId: row.sender_id, recipientId: row.recipient_id || null, text: row.body, sentAt: row.created_at, source: row.source || "famos", sourceSender: row.source_sender || "", broadcast: row.broadcast === true || row.source_sender === "__famos_broadcast__" });
+  const mapMessage = (row) => ({ id: row.id, voicePath: row.voice_path || null, senderId: row.sender_id, recipientId: row.recipient_id || null, text: row.body, sentAt: row.created_at, source: row.source || "famos", sourceSender: row.source_sender || "", broadcast: row.broadcast === true || row.source_sender === "__famos_broadcast__" });
   const mapReaction = (row) => ({ id: row.id, messageId: row.message_id, memberId: row.member_id, reaction: row.reaction, createdAt: row.created_at });
   const mapExpense = (row) => ({
     id: row.id,
@@ -689,16 +690,22 @@ export function FamilyProvider({ children, tabletMode = false }) {
       try { const { error } = await supabase.from("tasks").update({ is_done: !task.done }).eq("id", id); if (error) throw error; }
       catch { setTasks(prev => prev.map(t => t.id === id ? { ...t, done: task.done } : t)); return false; }
     }
+    if (!remote && !task.done) {
+      const due = nextRoutineDate(task.due, task.recurring);
+      if (due) setTasks(prev => prev.some(item => item.routinePreviousId === id) ? prev : [...prev, {...task,id:makeId('task'),done:false,due,routinePreviousId:id}]);
+    }
     return true;
   };
   const addTask = async (task) => {
-    const tempId = makeId("task");
+    const tempId = task.id || makeId("task");
     // Optimistic: show the task instantly in all views.
     setTasks((prev) => [...prev, { id: tempId, done: false, taskType: "home", ...task }]);
     if (remote) {
       const assigneeIds = Array.isArray(task.assigneeIds) ? task.assigneeIds : task.assigneeId ? [task.assigneeId] : [];
       const row = { household_id: household.id, title: task.title, notes: task.notes || "", assignee_id: assigneeIds[0] || null, assignee_ids: assigneeIds, due_date: task.due || null, recurrence: task.recurring || "", task_type: task.taskType || "home", list_id: task.listId || null, created_by: user.id };
+      if (task.recurring?.startsWith('routine:')) { row.id = task.id || crypto.randomUUID(); row.routine_previous_task_id = null; }
       let result = await supabase.from("tasks").insert(row).select().single();
+      if (result.error?.code === '23505' && row.id) result = await supabase.from('tasks').select('*').eq('id',row.id).single();
       if (result.error && /task_type|notes|schema cache|assignee_ids/i.test(result.error.message || "") && !task.listId) {
         const { task_type: _taskType, notes: _notes, assignee_ids: _assigneeIds, ...compatibleRow } = row;
         result = await supabase.from("tasks").insert(compatibleRow).select().single();
@@ -1279,24 +1286,36 @@ export function FamilyProvider({ children, tabletMode = false }) {
       .sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt)),
     [messages, currentUserId, dismissedBroadcastIds]
   );
-  const broadcastMessage = async (text) => {
-    const body = (text || "").trim();
+  const broadcastMessage = async (text, voice = null) => {
+    const body = (text || "").trim() || (voice ? 'Voice note' : '');
     if (!body) return;
+    if (voice && !remote) throw new Error('Sign in to send a voice broadcast.');
+    if (voice && (!voice.size || voice.size > 10485760 || !/^audio\/(webm|mp4|ogg)(;|$)/.test(voice.type))) throw new Error('Unsupported or oversized voice recording.');
+    let voicePath = null;
+    let broadcastSaved = false;
     const tempId = makeId("msg");
     // Keep the optimistic record available for realtime sync, but the sender's
     // own Today view intentionally filters it out.
     setMessages((prev) => [...prev, { id: tempId, senderId: currentUserId, recipientId: null, text: body, sentAt: new Date().toISOString(), broadcast: true }]);
     if (remote) {
       try {
+        if (voice) {
+          voicePath = `${household.id}/${user.id}/${crypto.randomUUID()}`;
+          const upload = await supabase.storage.from('broadcast-voice').upload(voicePath, voice, { contentType: voice.type.split(';')[0], upsert: false });
+          if (upload.error) throw upload.error;
+        }
         // `source_sender` already exists in the deployed schema. Its reserved
         // value keeps announcements distinct without requiring the newer
         // `broadcast` column to be present in Supabase's schema cache.
         const row = { household_id: household.id, sender_id: user.id, recipient_id: null, body, source: "famos", source_sender: "__famos_broadcast__" };
+        if (voicePath) row.voice_path = voicePath;
         const result = await supabase.from("messages").insert(row).select().single();
         if (result.error) throw result.error;
+        broadcastSaved = true;
         setMessages((prev) => prev.map((item) => item.id === tempId ? mapMessage(result.data) : item));
         sendHouseholdPush({ title: `${memberById[user.id]?.name || "A family member"} broadcast a message`, body, tag: `broadcast-${result.data.id}`, url: "/#today" }, []);
       } catch (error) {
+        if (voicePath && !broadcastSaved) await supabase.storage.from('broadcast-voice').remove([voicePath]);
         setMessages((prev) => prev.filter((item) => item.id !== tempId));
         setDataError(error.message);
         throw error;

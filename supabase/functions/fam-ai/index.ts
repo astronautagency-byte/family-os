@@ -7,6 +7,7 @@ const MAX_CONTEXT_MESSAGES=8;
 
 // Structured output schema the client validates before acting (PRD §9).
 const tools=[
+ {type:"function",function:{name:"add_routine",description:"Prepare an editable routine proposal. Never saved until user approval.",parameters:{type:"object",properties:{title:{type:"string"},cadence:{type:"string",enum:["daily","weekdays","weekly","monthly"]},start_date:{type:"string",description:"YYYY-MM-DD local date"},assignee_name:{type:"string"},steps:{type:"array",items:{type:"string"},minItems:1,maxItems:12}},required:["title","cadence","start_date","steps"]}}},
  {type:"function",function:{name:"add_task",description:"Create a household task or chore",parameters:{type:"object",properties:{title:{type:"string"},assignee_name:{type:"string"},due_date:{type:"string",description:"YYYY-MM-DD"},task_type:{type:"string",enum:["home","errand","family","work","personal"]}},required:["title"]}}},
  {type:"function",function:{name:"add_grocery",description:"Add an item to the shared grocery list",parameters:{type:"object",properties:{name:{type:"string"},category:{type:"string"},quantity:{type:"number"},unit:{type:"string"}},required:["name"]}}},
  {type:"function",function:{name:"add_event",description:"Add an event to the FamilyOS calendar",parameters:{type:"object",properties:{title:{type:"string"},start:{type:"string",description:"ISO 8601 date-time"},end:{type:"string",description:"ISO 8601 date-time"},location:{type:"string"},member_names:{type:"array",items:{type:"string"}}},required:["title","start","end"]}}},
@@ -60,10 +61,11 @@ Respond with a JSON object exactly shaped as:
  "requires_confirmation": true for ALL actions — every add, create, or change must show a preview card for user approval. Never set false.
  "missing_fields": ["list of entity keys still needed"],
  "message": "one or two short, calm sentences for the user. If you are preparing actions, say what you prepared and that it awaits their review. If entities are missing, ask ONE concise question.",
- "actions": [ { "type":"add_task|add_grocery|add_event|plan_meal", "args":{...} } ]
+ "actions": [ { "type":"add_routine|add_task|add_grocery|add_event|plan_meal", "args":{...} } ]
 }
 
 Rules:
+- Routine requests are a specific exception to text-only suggestions: when asked to suggest or plan a routine, prepare up to three add_routine proposals for review. Nothing is written by this response. Include 1–12 practical steps, cadence (daily/weekdays/weekly/monthly), proposed local start_date, and an exact known member name or blank for unassigned. Explain that dates/frequency are proposals. Do not invent reminders or promise delivery times. Never use add_task for repeating routines. Do not duplicate existing open routines from context. If tasks or routine_suggestions are disabled in enabledFeatures, explain how to enable them instead of proposing routines.
 - Answer analytical questions (busiest day, what's on today, what's left, driver) directly from the supplied household context — no actions, message only.
 - CRITICAL: Only prepare actions when the user EXPLICITLY asks to add, create, or change something. Questions like "what do we need", "what should I buy", "what's for dinner", "suggest meals" are READ-ONLY queries — answer with information and suggestions, NEVER with actions.
 - Never proactively add groceries, tasks, or events unless the user's message contains a clear imperative command ("add milk", "create a task for...", "schedule soccer").
@@ -119,7 +121,7 @@ Household context (compact): ${JSON.stringify(context)}`;
    const entities=parsed.entities&&typeof parsed.entities==="object"?parsed.entities:{};
    const requires=parsed.requires_confirmation===true||["CREATE_EVENT","UPDATE_EVENT","CANCEL_EVENT","PLAN_WEEK","GENERATE_PACKING_LIST","GENERATE_GROCERY_LIST","OFFER_DRIVE"].includes(intent);
    const missing=Array.isArray(parsed.missing_fields)?parsed.missing_fields.filter((f:unknown)=>typeof f==="string"):[];
-   const envActions=Array.isArray(parsed.actions)?parsed.actions.filter((a:any)=>a&&typeof a==="object"&&["add_task","add_grocery","add_event","plan_meal"].includes(a.type)).map((a:any,i:number)=>({id:`ai-${i}-${a.type}`,type:a.type,args:typeof a.args==="object"?a.args:{}})):actions;
+   const envActions=Array.isArray(parsed.actions)?parsed.actions.filter((a:any)=>a&&typeof a==="object"&&["add_routine","add_task","add_grocery","add_event","plan_meal"].includes(a.type)).map((a:any,i:number)=>({id:`ai-${i}-${a.type}`,type:a.type,args:typeof a.args==="object"?a.args:{}})):actions;
    return new Response(JSON.stringify(structuredEnvelope(parsed.message||message.content||"How can I help your family?",intent,confidence,entities,requires,missing,envActions)),{headers:{...cors,"Content-Type":"application/json"}});
   }
 

@@ -2,6 +2,7 @@ import { it, expect, vi, afterEach } from 'vitest';
 import { render, fireEvent, cleanup } from '@testing-library/react';
 import CompletionScreen from '../CompletionScreen';
 import ReferenceAgenda from '../ReferenceAgenda';
+vi.mock('../../lib/brandConfetti',()=>({launchBrandConfetti:vi.fn(),resetBrandConfetti:vi.fn()}));
 afterEach(cleanup);
 it('shows a persistent, keyboard-dismissible task celebration', () => {
   const close = vi.fn();
@@ -14,7 +15,7 @@ it('shows a persistent, keyboard-dismissible task celebration', () => {
 it('shows shopping-specific artwork and confirmation', () => {
   const close = vi.fn();
   const {getByRole} = render(<CompletionScreen kind="shopping" onClose={close}/>);
-  expect(getByRole('dialog').querySelector('img').src).toContain('/cart.png');
+  expect(getByRole('dialog').querySelector('img').src).toContain('/family-v3/celebration-shopping.png');
   fireEvent.click(getByRole('button', {name:'Nice!'}));
   expect(close).toHaveBeenCalledOnce();
 });
