@@ -9,6 +9,8 @@ import "./theme/product-feedback.css";
 import "./theme/ux-refinements.css";
 import "./theme/contrast.css";
 import "./theme/scheme-accents.css";
+import "./theme/spacing.css";
+import "./theme/dark-mode.css";
 import {HouseholdFeaturesProvider} from "./context/HouseholdFeaturesContext";
 import App from "./App.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";

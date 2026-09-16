@@ -218,7 +218,7 @@ export default function Finance() {
 
   return (
     <div className="pb-24 famos-noscroll reference-finance">
-      <PageHeader eyebrow={range.label} title="Money without the mystery." illustration="finance" subtitle={`A calmer look at real dollars this ${financePeriod === "monthly" ? "month" : "week"}.`} />
+      <PageHeader eyebrow={range.label} title="Money without the mystery." illustration="finance" subtitle={`A calmer look at real dollars this ${financePeriod === "monthly" ? "month" : "week"}.`} onAdd={() => { resetDraft(); setAdding(true); }} addLabel="Add expense" />
       <div className="px-5 mt-2 space-y-5">
         <SegmentedControl options={[{ value: "weekly", label: "Weekly" }, { value: "monthly", label: "Monthly" }]} value={financePeriod} onChange={setFinancePeriod} label="Budget period" />
 
@@ -289,7 +289,6 @@ export default function Finance() {
         </section>
       </div>
 
-      <button onClick={() => { resetDraft(); setAdding(true); }} className="fixed bottom-24 right-5 w-[52px] h-[52px] rounded-full bg-[var(--color-accent)] shadow-lg flex items-center justify-center active:scale-95 transition-transform" aria-label="Add expense"><Plus color="white" size={24} /></button>
 
       <Modal open={adding} onClose={() => { setAdding(false); setError(""); }} title="Add a spend">
         <ExpenseFields draft={draft} setDraft={setDraft} />

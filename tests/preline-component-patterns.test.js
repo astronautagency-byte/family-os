@@ -22,5 +22,5 @@ test("reference screens consume the shared patterns", () => {
   assert.match(tasks, /<AvatarStack/);
   assert.match(tasks, /<Badge tone="accent"/);
   assert.match(kitchen, /<CircularProgress/);
-  assert.match(settings, /<MenuDropdown/);
+  assert.match(settings, /<ColorSchemePicker/);
 });

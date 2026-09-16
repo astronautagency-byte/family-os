@@ -12,5 +12,5 @@ test("application page headers use an uncoloured editorial treatment", () => {
 test("application page titles use the reduced responsive scale", () => {
   assert.match(css, /60% of the former 38px\/32px scale/);
   assert.match(css, /body \.app-content \.page-title\{\s*font-size:23px!important/);
-  assert.match(css, /body \.app-content \.page-title\{font-size:19px!important/);
+  assert.match(css, /body \.app-content \.page-title\{font-size:24px!important/);
 });

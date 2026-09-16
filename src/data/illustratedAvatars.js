@@ -10,4 +10,17 @@ export const ILLUSTRATED_AVATARS = [
   ['child-straight-hair', 'Straight-haired child', 'Kids & teens'],
   ['older-woman', 'Silver bob and glasses', 'Older adults'],
   ['older-man', 'Silver hair and beard', 'Older adults'],
-].map(([id, label, group]) => ({ id, label, group, url: `/avatars/flat-v1/${id}.png` }));
+].map(([id, label, group]) => ({ id, label, group, url: `/avatars/flat-v1/${id}.png` })).concat([
+  ['toddler-blonde', 'Blonde pigtails · toddler', 'Kids & teens'],
+  ['child-coils', 'Short coils · child', 'Kids & teens'],
+  ['teen-freckles', 'Red curls and freckles · teen', 'Kids & teens'],
+  ['teen-bob', 'Dark bob · teen', 'Kids & teens'],
+  ['adult-blonde-waves', 'Long blonde waves', 'Adults'],
+  ['adult-bald', 'Bald and bearded', 'Adults'],
+  ['adult-coily-bun', 'Coily bun', 'Adults'],
+  ['adult-pixie', 'Silver-violet pixie and glasses', 'Adults'],
+  ['elder-silver-curls', 'Silver curls', 'Older adults'],
+  ['elder-dark-glasses', 'Salt-and-pepper hair and glasses', 'Older adults'],
+  ['elder-silver-braid', 'Long silver braid', 'Older adults'],
+  ['elder-bald-beard', 'Bald crown and white beard', 'Older adults'],
+].map(([id,label,group])=>({id,label,group,url:`/avatars/flat-v2/${id}.png`})));

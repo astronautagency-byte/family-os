@@ -6,8 +6,10 @@ import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabase";
 import { expandRecurringEvents } from "../lib/eventRecurrence";
+import { combineCalendarSources } from '../lib/calendarSources';
 import { AvatarStack, DateField, Modal, PrimaryButton, SecondaryButton, SegmentedControl, SelectField, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
+import FamilyIllustration from '../components/FamilyIllustration';
 import ReferenceAgenda from '../components/ReferenceAgenda';
 import PageAddButton from '../components/PageAddButton';
 import usePageAdd from '../hooks/usePageAdd';
@@ -582,11 +584,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
   // and are not cleared by `clearEvents`, so they don't belong in this count.
   const localEventsCount = events.filter((event) => event.source === "local").length;
 
-  const allEvents = useMemo(() => [
-    ...events,
-    ...googleEvents.filter((event) => !sharedGoogleCalendarIds.includes(event.calendarId)),
-    ...feedEvents,
-  ], [events, googleEvents, feedEvents, sharedGoogleCalendarIds]);
+  const allEvents = useMemo(() => combineCalendarSources(events,googleEvents,feedEvents,sharedGoogleCalendarIds), [events, googleEvents, feedEvents, sharedGoogleCalendarIds]);
 
   const recurrenceRange = useMemo(() => {
     const start = new Date(month.getFullYear(), month.getMonth() - 1, 1);
@@ -1123,6 +1121,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
             <span className="calendar-hero-month">{dayName} · {dayEventCount} event{dayEventCount === 1 ? "" : "s"}</span>
           </div>
           <div className="calendar-hero-actions">
+            <FamilyIllustration variant="calendar" className="family-header-art" />
             {LOCAL_EVENT_FINDER_ENABLED && <button className="calendar-hero-action calendar-hero-action-settings" onClick={() => {
               setDiscovering(true);
               const initialCities = discoverCities.length ? discoverCities : (discoverLocation ? [discoverLocation] : []);
@@ -1867,9 +1866,6 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
       </div>
     </PullToRefresh>
     <ShareSheet open={!!eventShare} onClose={()=>setEventShare(null)} title={eventShare?.title} text={eventShare?.text} url={eventShare?.url} image={eventShare?.image} imageAlt={eventShare?.imageAlt}/>
-    <button type="button" className="calendar-fab" onClick={openQuick} aria-label="Quick event entry" aria-expanded={quickOpen}>
-      <span>Quick entry</span>
-    </button>
     {quickOpen && (
       <div className="calendar-quick-capture" ref={quickRef} role="dialog" aria-label="Quick add event">
         <span className="calendar-quick-icon" aria-hidden="true"><Plus size={16} /></span>

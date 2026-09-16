@@ -27,7 +27,8 @@ test("shopping lists scope new items and destructive actions", () => {
 test("mobile chat composer clears the bottom navigation", () => {
   const chat = readFileSync(new URL("../src/pages/Chat.jsx", import.meta.url), "utf8");
   assert.match(chat, /chat-mobile-composer/);
-  assert.match(css, /chat-mobile-composer\{padding-bottom:calc\(10px \+ env\(safe-area-inset-bottom\)\)/);
+  assert.match(css, /chat-mobile-composer\{padding-bottom:8px!important;flex-shrink:0/);
+  assert.match(css, /padding-bottom:calc\(64px \+ env\(safe-area-inset-bottom, 0px\)\)/);
 });
 
 test("settings restores the Astronaut Digital credit", () => {
@@ -38,9 +39,9 @@ test("settings restores the Astronaut Digital credit", () => {
 
 test("Kitchen Watch renders an expiry progress meter", () => {
   assert.match(kitchen, /inventoryExpiryProgress/);
-  assert.match(kitchen, /<CircularProgress value=\{expired \? 100 : progress\.percent\}/);
-  assert.match(kitchen, /days until expiry/);
-  assert.match(kitchen, /color-mix\(in srgb,var\(--color-shopping\)/);
+  assert.match(kitchen, /<CircularProgress value=\{isExpired \? 100 : progress\.percent\}/);
+  assert.match(kitchen, /label=\{`\$\{item.name\}: \$\{expiryText\}`\}/);
+  assert.match(kitchen, /"var\(--color-danger\)" : "var\(--color-accent\)"/);
   assert.match(css, /\.ui-circular-progress/);
 });
 

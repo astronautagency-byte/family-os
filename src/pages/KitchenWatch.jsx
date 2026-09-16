@@ -3,9 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, ChefHat, Croissant, Drumstick, Milk, Minus, Package, Plus, Refrigerator, Search, Snowflake, X, Carrot, Sandwich, Trash2, Clock, Leaf, CalendarClock } from "../components/icons";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
-import { Avatar, Badge } from "../components/ui";
+import { Avatar, Badge, CircularProgress } from "../components/ui";
 import useKitchenInventory from "../hooks/useKitchenInventory";
-import { daysUntilExpiry, toLocalDay, suggestExpiryDate, getSuggestedExpiryDate } from "../lib/inventoryExpiry";
+import { daysUntilExpiry, toLocalDay, suggestExpiryDate, getSuggestedExpiryDate, inventoryExpiryProgress } from "../lib/inventoryExpiry";
 import { categorizeGroceryItem } from "../lib/groceryCategories";
 import { isIngredientOnList } from "../lib/mealIngredientCache";
 import PullToRefresh from "../components/PullToRefresh";
@@ -213,7 +213,8 @@ export default function KitchenWatch() {
             const onList = isIngredientOnList(item.name, groceries);
             const isExpired = groupKey === "expired";
             const isSoon = groupKey === "soon";
-            const expiryText = days !== null ? (days <= 0 ? "Expired" : days === 0 ? "Expires today" : days === 1 ? "Expires tomorrow" : `Expires in ${days} days`) : null;
+            const expiryText = expiryLabel(item);
+            const progress = inventoryExpiryProgress(item);
             return (
               <article key={item.id} className={`kw-card ${isExpired ? "kw-card--expired" : ""} ${isSoon ? "kw-card--soon" : ""}`}>
                 <div className="kw-card-body">
@@ -252,6 +253,8 @@ export default function KitchenWatch() {
                     </div>
                   </div>
                   <div className="kw-card-right">
+                    {progress && <CircularProgress value={isExpired ? 100 : progress.percent} size={36} strokeWidth={7} color={isExpired ? "var(--color-danger)" : "var(--color-accent)"} label={`${item.name}: ${expiryText}`} />}
+                    {features.groceries && <button type="button" disabled={onList} onClick={() => replaceItem(item).catch(error => setError(error?.message || "Could not add a replacement."))} aria-label={`Replace ${item.name}`}>{onList ? "On shopping list" : "Replace"}</button>}
                     <button type="button" className="kw-delete-btn" onClick={() => setConfirmDelete(item)} aria-label={`Remove ${item.name}`}><Trash2 size={18}/></button>
                   </div>
                 </div>
@@ -263,6 +266,7 @@ export default function KitchenWatch() {
     })}
 
     {watchedItems.length === 0 && <div className="kw-empty"><Refrigerator size={32}/><h3>Your kitchen is empty</h3><p>Add fresh food to start tracking expiry dates.</p><PrimaryButton onClick={() => openDraft()}>Add your first item</PrimaryButton></div>}
+    {error && !adding && <p role="alert" className="kw-error">{error}</p>}
 
     {watchedItems.length > 0 && filteredItems.length === 0 && <div className="kw-empty"><Search size={24}/><h3>No items in this view</h3><p>{query ? `No items match “${query}” with these filters.` : 'Try another storage location or category.'}</p><button type="button" className="empty-state-action" onClick={() => {setQuery('');setActiveLocation('all');setActiveCategory('all');}}>Clear filters</button></div>}
 

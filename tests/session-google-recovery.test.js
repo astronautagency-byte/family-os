@@ -45,7 +45,7 @@ test("page failures stay inside the signed-in shell and record a diagnostic fing
   const vite = read("vite.config.js");
   assert.match(boundary, /famos:recent-crash:v1/);
   assert.match(boundary, /resetKey/);
-  assert.match(app, /<ErrorBoundary resetKey=\{tab\}/);
+  assert.match(app, /<ErrorBoundary resetKey=\{visibleTab\}/);
   assert.match(app, /Return to Today/);
   assert.match(app, /Load latest version/);
   assert.match(app, /resetKey=\{`famai-\$\{famAiOpen\}`\}/);

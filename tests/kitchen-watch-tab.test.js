@@ -10,22 +10,22 @@ const topbar = readFileSync(new URL("../src/components/AppTopBar.jsx", import.me
 
 test("Kitchen Watch is its own routed primary tab", () => {
   assert.match(app, /const KitchenWatch = lazy/);
-  assert.match(app, /tab === "kitchen" && <KitchenWatch/);
+  assert.match(app, /visibleTab === "kitchen" && <KitchenWatch/);
   assert.match(nav, /id: "kitchen", label: "Kitchen"/);
   assert.match(groceries, /\{false && <><section className="kitchen-inventory-card"/);
 });
 
 test("Kitchen Watch preserves freshness, purchase review and replacement workflows", () => {
-  assert.match(page, /What’s at home/);
+  assert.match(page, /title="Kitchen Watch"/);
   assert.match(page, /Put fresh purchases away/);
-  assert.match(page, /Use soon/);
+  assert.match(page, /Expiring Soon/);
   assert.match(page, /Expired/);
   assert.match(page, /Replace/);
   assert.match(page, /Start watching/);
   assert.doesNotMatch(page, /Kitchen Watch summary/);
   assert.match(page, /progress\.percent/);
-  assert.match(page, /Passed/);
-  assert.match(page, /Replace item/);
+  assert.match(page, /expiryLabel\(item\)/);
+  assert.match(page, /Replace \$\{item.name\}/);
   assert.match(groceries, /Add this to Kitchen Watch\?/);
   assert.match(groceries, /Add expiry date/);
 });

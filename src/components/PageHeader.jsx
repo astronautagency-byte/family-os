@@ -1,9 +1,11 @@
 import PageAddButton from './PageAddButton';
+import './family-header.css';
 import FamilyIllustration, { FAMILY_ART } from './FamilyIllustration';
 
 export default function PageHeader({ eyebrow, title, titleIcon, subtitle, action, illustration, liveHealth, onAdd, addLabel = 'Add item' }) {
+  illustration = illustration ?? ({Tasks:'tasks', 'Kitchen Watch':'kitchen', 'Meal Plan':'meals', 'Recipe Book':'recipes', RewardBank:'rewards'})[title];
   return (
-    <header className={`page-header m3-page-header safe-top ${illustration ? `page-header-${illustration} has-illustration` : ""}`}>
+    <header className={`page-header m3-page-header safe-top family-page-header ${illustration ? `page-header-${illustration} has-illustration` : ""}`}>
       <div className="page-header-content">
         <div className="min-w-0">
           {eyebrow && (

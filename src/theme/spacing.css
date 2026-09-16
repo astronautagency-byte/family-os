@@ -1,0 +1,50 @@
+/* Shared outer rhythm. Deliberately excludes calendar cells, avatar stacks,
+   full-bleed artwork and chat composer safe-area sizing. */
+.app-shell .app-content .reference-tasks .task-board-group { padding:16px; }
+.app-shell .app-content .reference-tasks .task-board-group .task-group-title { margin:0 0 16px; padding:8px 4px 16px; }
+.app-shell .app-content .reference-tasks .task-board-list { display:grid;gap:12px;padding:4px; }
+.app-shell .app-content .reference-tasks .task-board-list .task-board-row { margin:0;padding:16px; }
+@media(max-width:640px){.app-shell .app-content .reference-tasks .task-board-group{padding:12px}}
+:root {
+  --layout-control-gap: 8px;
+  --layout-field-gap: 16px;
+  --layout-text-gap: 8px;
+  --layout-row-gap: 12px;
+  --layout-section-gap: 28px;
+  --layout-card-padding: 24px;
+  --layout-page-gutter: 24px;
+}
+@media(max-width:640px) {
+  :root { --layout-section-gap:24px; --layout-card-padding:20px; --layout-page-gutter:16px; }
+}
+.app-shell .app-content .page-header { margin-bottom:var(--layout-field-gap); padding-inline:var(--layout-page-gutter); }
+.app-shell .app-content :is(.task-toolbar,.grocery-actions-row,.shopping-list-switcher,.inventory-tools) {
+  gap:var(--layout-row-gap); margin-block:var(--layout-control-gap) var(--layout-field-gap);
+}
+.app-shell .app-content .grocery-actions-row { padding-block:var(--layout-control-gap); }
+.app-shell .app-content .grocery-actions-row button { min-height:44px; }
+.app-shell .app-content :is(.reference-segments,.ui-segmented,.meal-range-toggle,.inventory-location-tabs) {
+  margin-bottom:var(--layout-field-gap);
+}
+.app-shell .app-content :is(.today-bento-grid,.meal-plan-list,.inventory-item-grid) { gap:var(--layout-section-gap); }
+.app-shell .app-content .reference-tasks .task-board-row,
+.app-shell .app-content .grocery-list-row { padding-block:14px; gap:var(--layout-row-gap); }
+.app-shell .app-content :is(.task-board-row,.grocery-list-row) + :is(.task-board-row,.grocery-list-row) { margin-top:var(--layout-control-gap); }
+.app-shell .app-content .reference-meals .meal-card-header { padding-bottom:var(--layout-row-gap); }
+.app-shell .app-content .reference-meals .meal-card-slot { padding-block:var(--layout-field-gap); }
+.app-shell .app-content .reference-meals .meal-card-slot-buttons { gap:var(--layout-row-gap); margin-top:var(--layout-row-gap); }
+.app-shell .app-content .settings-section-title { margin-bottom:var(--layout-field-gap); }
+.app-shell .app-content .broadcast-home { padding-block:var(--layout-control-gap); }
+.app-shell .app-content .broadcast-banner-list { margin-top:var(--layout-field-gap); display:grid; gap:var(--layout-row-gap); }
+.app-shell .app-content .reward-bank-page .reward-bank fieldset { gap:var(--layout-section-gap); }
+.app-shell .app-content .reward-bank-page .reward-bank :is(section,details) { padding:var(--layout-card-padding); }
+.recipe-book section + section { margin-top:var(--layout-field-gap); }
+.recipe-book label { gap:var(--layout-text-gap); margin-block:var(--layout-field-gap); }
+/* Fields own label spacing; the parent owns spacing between fields. */
+.form-field .form-label { margin-bottom:var(--layout-text-gap); }
+.modal-card.m3-dialog > .form-field { margin-bottom:0; }
+.modal-card.m3-dialog > .form-field + .form-field { margin-top:var(--layout-field-gap); }
+.modal-card.m3-dialog > .form-field + :is(button,.m3-button),
+.modal-card.m3-dialog > .form-field + div:has(> .m3-button) { margin-top:var(--layout-field-gap); }
+.modal-card.m3-dialog { scroll-padding-block:var(--layout-card-padding); }
+.modal-card.m3-dialog > h3 { padding-right:44px; margin-bottom:24px; }

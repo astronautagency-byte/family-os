@@ -6,7 +6,7 @@ const meals = fs.readFileSync(new URL("../src/pages/Meals.jsx", import.meta.url)
 const css = fs.readFileSync(new URL("../src/index.css", import.meta.url), "utf8");
 
 test("meal creator profile sits in metadata below the meal title", () => {
-  const titleIndex = meals.indexOf('className={`meal-slot-value');
+  const titleIndex = meals.indexOf('className="meal-card-slot-dish"');
   const metaIndex = meals.indexOf('className="meal-slot-meta"');
   assert.ok(titleIndex >= 0 && metaIndex > titleIndex);
   assert.match(meals, /Added by \{adder\.name\}/);

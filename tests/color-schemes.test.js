@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { APP_COLOR_SCHEMES } from '../src/data/appColorSchemes.js';
 
 const app = readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
 const settings = readFileSync(new URL("../src/pages/Settings.jsx", import.meta.url), "utf8");
@@ -13,18 +14,19 @@ test("app colour scheme persists and is applied to the signed-in shell", () => {
   assert.match(app, /onColorSchemeChange=\{setColorScheme\}/);
 });
 
-const schemeIds = ["famos", "ocean", "berry", "forest", "sunset", "mist", "sage", "clay", "harbour"];
+const schemeIds = APP_COLOR_SCHEMES.map(scheme => scheme.id);
 
 test("Settings exposes curated accessible palettes", () => {
   for (const scheme of schemeIds) assert.match(schemes, new RegExp(`id: "${scheme}"`));
-  assert.match(settings, /<MenuDropdown[^>]+label="App colour schemes"/);
-  assert.match(settings, /settings-color-select/);
-  assert.match(settings, /scheme-swatches/);
+  assert.ok(schemeIds.length >= 9);
+  assert.equal(new Set(schemeIds).size, schemeIds.length);
+  assert.match(settings, /<ColorSchemePicker/);
 });
 
 test("every alternate palette has light and dark token overrides", () => {
   for (const scheme of schemeIds.filter((scheme) => scheme !== "famos")) {
-    assert.match(css, new RegExp(`app-shell\\[data-color-scheme="${scheme}"\\]`));
-    assert.match(css, new RegExp(`theme-dark\\[data-color-scheme="${scheme}"\\]`));
+    const accents = readFileSync(new URL("../src/theme/scheme-accents.css", import.meta.url), "utf8");
+    assert.match(accents, new RegExp(`app-shell\\[data-color-scheme="${scheme}"\\]`));
+    assert.match(accents, new RegExp(`theme-dark\\[data-color-scheme="${scheme}"\\]`));
   }
 });

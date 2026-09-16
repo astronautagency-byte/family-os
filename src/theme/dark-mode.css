@@ -1,0 +1,45 @@
+/* Last shared layer: includes portals outside .app-shell. Keep accents from
+   scheme-accents.css; never blanket-recolour every button or nested class. */
+:root[data-famos-theme="dark"] { color-scheme:dark; }
+:root[data-famos-theme="light"] { color-scheme:light; }
+:root[data-famos-theme="dark"] body { background:var(--color-canvas); color:var(--color-ink); }
+:root[data-famos-theme="dark"] .reward-bank-page {
+  --star-paper:#39321E; --star-ink:#F2D18B; --star-gold:#F5BD38;
+}
+:root[data-famos-theme="dark"] :is(
+  .app-shell,.app-content,.reference-dashboard,.reference-tasks,.reference-groceries,
+  .reference-meals,.reference-chat,.reference-settings,.kw-page,.reward-bank-page,
+  .fam-ai-page,.fam-ai-workspace,.fam-ai-chat
+) { background:var(--color-canvas)!important; color:var(--color-ink); }
+:root[data-famos-theme="dark"] :is(
+  .app-topbar,.primary-nav,.reference-mobile-nav,.page-header,
+  .kinship-card,.task-board-group,.task-board-row,.meal-card-new,.meal-card-slot,
+  .grocery-list-row,.kw-card,.saved-recipe-card,.recipe-book,
+  .family-broadcast-composer,.broadcast-banner,.broadcast-compact-row,
+  .chat-mobile-composer,.fam-ai-composer,.fam-ai-composer-inner,
+  .fam-ai-suggestion,.fam-ai-review,.settings-card,.settings-section,
+  .notification-feed,.modal-card,.m3-dialog,.date-popover,.ui-menu-options
+) { background:var(--color-surface)!important; color:var(--color-ink); border-color:var(--color-border)!important; }
+:root[data-famos-theme="dark"] :is(.m3-dialog,.family-broadcast-composer,.chat-mobile-composer,.fam-ai-composer) :is(input,textarea,select) {
+  background:var(--color-surface-sunken); color:var(--color-ink); border-color:var(--color-border-strong);
+}
+:root[data-famos-theme="dark"] :is(input,textarea)::placeholder { color:var(--color-ink-faint); opacity:1; }
+:root[data-famos-theme="dark"] :is(
+  .primary-button,.m3-button-filled,.broadcast-send-button,.task-inline-submit,
+  .fam-ai-composer-send,.completion-confirm,.chat-intent-add
+) { background:var(--color-accent)!important; color:var(--color-on-accent)!important; }
+:root[data-famos-theme="dark"] .calendar-month-grid button.selected {
+  color:var(--color-on-accent)!important;
+}
+:root[data-famos-theme="dark"] .voice-note-player {
+  background:var(--color-accent-soft); color:var(--color-ink); border-color:var(--color-border);
+}
+:root[data-famos-theme="dark"] .voice-note-player .voice-note-play {
+  background:var(--color-accent); color:var(--color-on-accent);
+}
+:root[data-famos-theme="dark"] .broadcast-mode-picker button {
+  background:var(--color-surface)!important; color:var(--color-ink); border-color:var(--color-border)!important;
+}
+:root[data-famos-theme="dark"] .broadcast-mode-picker button[aria-pressed="true"] {
+  background:var(--color-accent-soft)!important; color:var(--color-accent-strong); border-color:var(--color-accent)!important;
+}

@@ -1,4 +1,6 @@
 import {useHouseholdFeatures} from "../context/HouseholdFeaturesContext";
+import { combineCalendarSources } from '../lib/calendarSources';
+import { expandRecurringEvents } from '../lib/eventRecurrence';
 import { fireConfetti as fireBrandConfetti } from '../lib/confetti';
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Bell, CalendarPlus, ChefHat, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, Coffee, Droplets, ExternalLink, GripVertical, LayoutGrid, ListChecks, LoaderCircle, MapPin, Megaphone, MessageCircle, Moon, PartyPopper, Refrigerator, RotateCcw, ShoppingCart, Soup, Sun, Ticket, Trash2, TriangleAlert, Wind, X, Sparkles } from "../components/icons";
@@ -9,7 +11,8 @@ import { BROADCAST_REACTIONS, useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, AvatarStack, Card, Checkbox, EmptyState } from "../components/ui";
 import PageHeader from "../components/PageHeader";
-import BroadcastVoice, { BroadcastAudio } from '../components/BroadcastVoice';
+import { BroadcastAudio } from '../components/BroadcastVoice';
+import BroadcastComposer from '../components/BroadcastComposer';
 import FamilyCardRail from '../components/FamilyCardRail';
 import PullToRefresh from "../components/PullToRefresh";
 import { supabase } from "../lib/supabase";
@@ -157,7 +160,7 @@ function BroadcastBanner({ item, sender, reactions, currentUserId, onReact, onCl
           <strong>{sender?.name || "Family"}</strong>
           <span className="broadcast-banner-time">{formatTime(item.sentAt)}</span>
         </div>
-        <p>{item.text}</p>
+        {(!item.voicePath || item.text !== 'Voice note') && <p>{item.text}</p>}
         {item.voicePath && <BroadcastAudio path={item.voicePath} />}
         <div className="broadcast-reactions">
           {BROADCAST_REACTIONS.map((emoji) => {
@@ -184,6 +187,7 @@ function BroadcastBanner({ item, sender, reactions, currentUserId, onReact, onCl
 }
 
 export default function Today({ goTo }) {
+  const {sharedGoogleCalendarIds=[]}=useFamily();
   const {features,pauseReminders}=useHouseholdFeatures();
   const dashboardEnabled=id=>features[({schedule:"calendar",messages:"chat"})[id] || id]!==false;
   // ── Subscription trial state ──
@@ -229,6 +233,10 @@ export default function Today({ goTo }) {
   const [weather, setWeather] = useState(null);
   const [weatherError, setWeatherError] = useState("");
   const [broadcastText, setBroadcastText] = useState("");
+  const [broadcastMode, setBroadcastMode] = useState('text');
+  const [voiceText,setVoiceText]=useState('');
+  const [broadcastSuccess, setBroadcastSuccess] = useState('');
+  const broadcastLock = useRef(false);
   const [broadcastVoice, setBroadcastVoice] = useState(null);
   const [voiceRecording, setVoiceRecording] = useState(false);
   const [broadcasting, setBroadcasting] = useState(false);
@@ -377,22 +385,18 @@ export default function Today({ goTo }) {
 
   const postBroadcast = async (event) => {
     event.preventDefault();
-    if ((!broadcastText.trim() && !broadcastVoice) || broadcasting || voiceRecording) return;
-    setBroadcasting(true); setBroadcastError("");
+    if ((broadcastMode==='text' ? !broadcastText.trim() : !broadcastVoice) || broadcastLock.current || voiceRecording) return;
+    broadcastLock.current=true;
+    setBroadcasting(true); setBroadcastError(""); setBroadcastSuccess('');
     try {
-      await broadcastMessage(broadcastText.trim(), broadcastVoice);
-      setBroadcastText("");
-      setBroadcastVoice(null);
+      await broadcastMessage(broadcastMode==='text' ? broadcastText.trim() : voiceText.trim(), broadcastMode==='voice' ? broadcastVoice : null);
+      if(broadcastMode==='text') setBroadcastText(''); else {setBroadcastVoice(null);setVoiceText('');}
+      setBroadcastSuccess(broadcastMode==='text'?'Text broadcast sent to your household.':'Voice note sent to your household.');
       fireConfetti();
     }
     catch (error) { setBroadcastError(error.message || "Could not broadcast right now."); }
-    finally { setBroadcasting(false); }
+    finally { broadcastLock.current=false; setBroadcasting(false); }
   };
-  const broadcastReady = !voiceRecording && (broadcastText.trim().length > 0 || !!broadcastVoice);
-  // Hide the wiggle + chips whenever the composer is "engaged" — text entered,
-  // focused, or actively sending a message. CSS owns the wiggle keyframe; we
-  // just flip the `is-idle` class.
-  const composerIdle = !broadcastReady && !broadcastFocused && !broadcasting;
   const WEATHER_CACHE_KEY = "famos:weather-cache:v1";
   const loadWeatherCache = () => {
     try {
@@ -412,9 +416,9 @@ export default function Today({ goTo }) {
 
   const today = todayISO();
   const greeting = greetingInfo();
-  const allEvents = [...events, ...googleEvents, ...feedEvents];
+  const allEvents = combineCalendarSources(events,googleEvents,feedEvents,sharedGoogleCalendarIds);
 
-  const todaysEvents = allEvents
+  const todaysEvents = expandRecurringEvents(allEvents,new Date(`${today}T00:00:00`),new Date(`${today}T23:59:59`))
     .filter((e) => eventDateLocal(e.start) === today)
     .sort((a, b) => a.start.localeCompare(b.start));
 
@@ -624,31 +628,13 @@ export default function Today({ goTo }) {
       <div className="px-5 mt-2 today-bento-grid">
         <section className="broadcast-home" aria-label="Family broadcast">
           <div className="broadcast-confetti-host" ref={composeContainerRef}>
-            <form
-              className="broadcast-compose"
-              onSubmit={postBroadcast}
-            >
-              <span
-                className={`broadcast-compose-icon ${composerIdle ? "is-idle" : ""}`}
-                aria-hidden="true"
-              ><Megaphone size={18} color="var(--color-accent)" /></span>
-              <input
-                value={broadcastText}
-                onChange={(event) => setBroadcastText(event.target.value)}
-                onFocus={() => setBroadcastFocused(true)}
-                onBlur={() => setBroadcastFocused(false)}
-                placeholder={BROADCAST_PLACEHOLDERS[placeholderIdx]}
-                aria-label="Broadcast a message to the family"
-                maxLength={4000}
-              />
-              <button type="submit" className={`broadcast-submit ${broadcastReady ? "is-ready" : ""}`} disabled={!broadcastReady || broadcasting} aria-live="polite">
-                {broadcasting ? <LoaderCircle className="broadcast-spin" size={14} aria-hidden="true" /> : <PartyPopper size={14} aria-hidden="true" />}
-                {broadcasting ? "Sending…" : "Broadcast"}
-              </button>
-            </form>
-            <BroadcastVoice value={broadcastVoice} onChange={setBroadcastVoice} disabled={broadcasting} onRecordingChange={setVoiceRecording} />
+            <BroadcastComposer mode={broadcastMode} onModeChange={value=>{setBroadcastMode(value);setBroadcastError('');setBroadcastSuccess('');}}
+              text={broadcastText} onTextChange={setBroadcastText} voice={broadcastVoice} onVoiceChange={setBroadcastVoice}
+              recording={voiceRecording} onRecordingChange={setVoiceRecording} sending={broadcasting} onSubmit={postBroadcast} voiceText={voiceText} onVoiceTextChange={setVoiceText}
+              placeholder={BROADCAST_PLACEHOLDERS[placeholderIdx]} onFocus={()=>setBroadcastFocused(true)} onBlur={()=>setBroadcastFocused(false)}/>
           </div>
-          {broadcastError && <p className="broadcast-compose-error">{broadcastError}</p>}
+          {broadcastError && <p className="broadcast-compose-error" role="alert">{broadcastError}</p>}
+          {broadcastSuccess && <p role="status">{broadcastSuccess}</p>}
           {broadcasts.length > 0 && (
             <div className="broadcast-banner-list">
               {broadcasts.map((item) => (
@@ -851,6 +837,10 @@ export default function Today({ goTo }) {
                   try { window.sessionStorage.setItem("famos:cook-intent:v1", meal.id || `${today}:${slot}`); } catch { /* private mode */ }
                   goTo("meals");
                 };
+                const findMealIdeas = () => {
+                  try { window.sessionStorage.setItem("famos:meal-ideas-intent:v1", JSON.stringify({date:today,slot})); } catch { /* private mode */ }
+                  goTo("meals");
+                };
                 return (
                   <article key={slot} className={`today-daily-meal ${meal ? "is-planned" : "is-open"}`}>
                     <span className="today-daily-meal-icon"><SlotIcon size={16} /></span>
@@ -875,7 +865,7 @@ export default function Today({ goTo }) {
                         {meal ? (
                           <button type="button" className="cook" onClick={openCook}><ChefHat size={14} /> Cook Mode</button>
                         ) : (
-                          <button type="button" className="plan" onClick={() => goTo("meals")}><CalendarPlus size={14} /> Plan a meal</button>
+                          <button type="button" className="plan" onClick={findMealIdeas}><CalendarPlus size={14} /> Find meal ideas</button>
                         )}
                       </div>
                     )}

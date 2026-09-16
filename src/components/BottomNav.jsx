@@ -1,4 +1,4 @@
-import { BookOpen, Gift, CalendarDays, CheckSquare, CookingPot, Home, MessageCircle, Refrigerator, ShoppingCart, Plus, MoreHorizontal, Settings, Sparkles } from "./icons";
+import { BookOpen, Gift, CalendarDays, CheckSquare, CookingPot, Home, MessageCircle, Refrigerator, ShoppingCart, MoreHorizontal, Settings, Sparkles } from "./icons";
 import { useState } from "react";
 import { Modal } from './ui';
 import { useFamily } from "../context/FamilyContext";
@@ -20,17 +20,14 @@ const TABS = [
 ];
 
 const FEATURE_KEYS = { recipes:"recipes", rewards:"rewards", calendar: "calendar", meals: "meals", tasks: "tasks", groceries: "groceries", kitchen: "kitchen", chat: "chat" };
-const ADD_LABELS = { calendar:'Add event', tasks:'Add task', groceries:'Add grocery item', kitchen:'Add kitchen item', meals:'Add meal' };
 
-export default function BottomNav({ active, onChange, onAdd, onOpenAI, features = {}, tabletMode = false, childMode = false }) {
+export default function BottomNav({ active, onChange, onOpenAI, features = {}, tabletMode = false, childMode = false }) {
   const [sheet, setSheet] = useState(null);
   const navigate = (id) => { setSheet(null); onChange(id); };
   const { unreadMessageCount = 0 } = useFamily();
-  const contextualAdd = onAdd && ADD_LABELS[active] && features[FEATURE_KEYS[active]] !== false;
   const visibleTabs = TABS.filter((tab) => {
     return (childMode ? ["calendar","tasks","rewards","chat"].includes(tab.id) : true) && features[FEATURE_KEYS[tab.id] || tab.id] !== false;
   });
-  const hasQuickActions = visibleTabs.some(tab=>ADD_LABELS[tab.id]) || !!(onOpenAI && features.fam_ai!==false);
   return (
     <><nav className="primary-nav m3-navigation" aria-label="FamOS navigation">
       <div className="nav-brand">
@@ -67,18 +64,17 @@ export default function BottomNav({ active, onChange, onAdd, onOpenAI, features 
       </div>
       <p className="nav-foot">{tabletMode ? "Shared family display · Tablet mode" : "Families run better on FamOS."}</p>
     </nav>
-    <nav className={`reference-mobile-nav ${childMode ? "child-mobile-nav" : ""}`} aria-label="Mobile navigation" style={{gridTemplateColumns:`repeat(${childMode?Math.max(1,visibleTabs.length):2+Number(features.calendar!==false)+Number(features.chat!==false)+Number(hasQuickActions)},minmax(0,1fr))`}}>
+    <nav className={`reference-mobile-nav ${childMode ? "child-mobile-nav" : ""}`} aria-label="Mobile navigation" style={{gridTemplateColumns:`repeat(${childMode?Math.max(1,visibleTabs.length):2+Number(features.calendar!==false)+Number(features.chat!==false)},minmax(0,1fr))`}}>
       {childMode ? ["calendar","tasks","rewards","chat"].filter(id=>features[id]!==false).map(id=>{const {label,icon:Icon}=TABS.find(t=>t.id===id);return <button key={id} onClick={()=>navigate(id)} aria-current={active===id?"page":undefined}><Icon size={21}/><span>{label}</span></button>;}) : <>
       <button onClick={() => navigate('today')} aria-current={active === 'today' ? 'page' : undefined}><Home size={21}/><span>Home</span></button>
       {features.calendar !== false ? <button onClick={() => navigate('calendar')} aria-current={active === 'calendar' ? 'page' : undefined}><CalendarDays size={21}/><span>Calendar</span></button> : null}
-      {hasQuickActions && <button className="reference-add-button" onClick={() => contextualAdd ? onAdd(active) : setSheet('add')} aria-label={contextualAdd ? ADD_LABELS[active] : 'Open quick actions'} aria-expanded={contextualAdd ? undefined : sheet === 'add'}><Plus size={28}/></button>}
       {features.chat !== false ? <button onClick={() => navigate('chat')} aria-current={active === 'chat' ? 'page' : undefined}><MessageCircle size={21}/><span>Chat{unreadMessageCount > 0 ? ` (${unreadMessageCount > 9 ? '9+' : unreadMessageCount})` : ''}</span></button> : null}
       <button onClick={() => setSheet('more')} aria-expanded={sheet === 'more'} aria-current={!['today','calendar','chat'].includes(active) ? 'page' : undefined}><MoreHorizontal size={21}/><span>More</span></button>
     </>}
     </nav>
-    <Modal open={sheet !== null} onClose={() => setSheet(null)} title={sheet === 'add' ? 'What would you like to do?' : 'More from FamOS'}>
+    <Modal open={sheet !== null} onClose={() => setSheet(null)} title="More from FamOS">
       <div className="reference-action-list">
-        {visibleTabs.filter(tab => sheet === 'add' ? !['today','chat','rewards','recipes'].includes(tab.id) : !['today','calendar','chat'].includes(tab.id)).map(({id, label, icon: Icon, hint}) => <button type="button" key={id} onClick={() => { if (sheet === 'add' && onAdd) { setSheet(null); onAdd(id); } else navigate(id); }}><span className={`reference-action-icon tone-${id}`}><Icon size={23}/></span><span><strong>{sheet === 'add' ? ({calendar:'Add event',tasks:'Add task',groceries:'Add grocery item',kitchen:'Add kitchen item',meals:'Add meal'})[id] : label}</strong><small>{hint}</small></span></button>)}
+        {visibleTabs.filter(tab => !['today','calendar','chat'].includes(tab.id)).map(({id, label, icon: Icon, hint}) => <button type="button" key={id} onClick={() => navigate(id)}><span className={`reference-action-icon tone-${id}`}><Icon size={23}/></span><span><strong>{label}</strong><small>{hint}</small></span></button>)}
         {onOpenAI && features.fam_ai !== false && <button type="button" onClick={() => { setSheet(null); onOpenAI(); }}><span className="reference-action-icon tone-chat"><Sparkles size={23}/></span><span><strong>Ask Fam AI</strong><small>Get help planning your day</small></span></button>}
         {sheet === 'more' && <button type="button" onClick={() => navigate('settings')}><span className="reference-action-icon tone-calendar"><Settings size={23}/></span><span><strong>Settings & family</strong><small>People, preferences, and support</small></span></button>}
       </div>

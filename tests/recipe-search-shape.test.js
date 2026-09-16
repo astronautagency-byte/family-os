@@ -18,8 +18,10 @@ test("Spoonacular search requests complete recipe information", () => {
   for (const parameter of ["query", "includeIngredients", "instructionsRequired", "addRecipeInformation", "addRecipeInstructions", "fillIngredients", "number", "offset"]) {
     assert.ok(source.includes(`params.set("${parameter}"`), `missing Spoonacular parameter ${parameter}`);
   }
-  assert.match(source, /DEFAULT_RESULT_LIMIT\s*=\s*12/);
-  assert.match(source, /MAX_RESULT_LIMIT\s*=\s*24/);
+  // The server deliberately caps each discovery request to five expanded
+  // recipes to bound provider usage; Load more uses the returned offset.
+  assert.match(source, /DEFAULT_RESULT_LIMIT\s*=\s*5/);
+  assert.match(source, /MAX_RESULT_LIMIT\s*=\s*5/);
   assert.match(source, /totalResults/);
   assert.match(source, /safeOffset.*900/);
 });

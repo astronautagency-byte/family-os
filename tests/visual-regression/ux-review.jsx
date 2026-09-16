@@ -12,6 +12,9 @@ import '../../src/theme/reference-screens.css';
 import '../../src/theme/product-feedback.css';
 import '../../src/theme/ux-refinements.css';
 import '../../src/theme/contrast.css';
+import '../../src/theme/spacing.css';
+import '../../src/theme/scheme-accents.css';
+import '../../src/theme/dark-mode.css';
 function Preview(){
  const [dark,setDark]=useState(false),[editor,setEditor]=useState(null),[title,setTitle]=useState(''),[tasks,setTasks]=useState([]),[events,setEvents]=useState([]);
  useEffect(()=>{document.documentElement.dataset.famosTheme=dark?'dark':'light';return()=>delete document.documentElement.dataset.famosTheme;},[dark]);
@@ -20,7 +23,7 @@ function Preview(){
  <p style={{padding:16,fontSize:13}}>UX component preview · local sample data only</p>
  <button className="empty-state-action" style={{marginLeft:16}} onClick={()=>setDark(!dark)}>{dark?'Light mode':'Dark mode'}</button>
  <div className="reference-tasks"><PageHeader title="Tasks" onAdd={()=>setEditor('task')} addLabel="Add task"/><div style={{padding:16}}>
- {tasks.length?tasks.map((task,index)=><div className="task-board-row" key={index}><Checkbox checked={task.done} label={`Complete ${task.title}`} onChange={()=>setTasks(items=>items.map((t,i)=>i===index?{...t,done:!t.done}:t))}/><span className="task-row-copy"><strong>{task.title}</strong><small>Today · Family</small></span></div>):<EmptyState icon={<ListTodo size={40}/>} title="You’re all caught up" subtitle="Add a task, choose a due date, and share the responsibility." actionLabel="Add your first task" onAction={()=>setEditor('task')}/>}
+ {tasks.length?<section className="task-board-group"><h3 className="task-group-title">Family</h3><div className="task-board-list">{tasks.map((task,index)=><div className="task-board-row" key={index}><Checkbox checked={task.done} label={`Complete ${task.title}`} onChange={()=>setTasks(items=>items.map((t,i)=>i===index?{...t,done:!t.done}:t))}/><span className="task-row-copy"><strong>{task.title}</strong><small>Today · Family</small></span></div>)}</div></section>:<EmptyState icon={<ListTodo size={40}/>} title="You’re all caught up" subtitle="Add a task, choose a due date, and share the responsibility." actionLabel="Add your first task" onAction={()=>setEditor('task')}/>}
  </div></div>
  <PageHeader title="Today's calendar"/><div style={{padding:16}}><ReferenceAgenda events={events} colorFor={()=>'#20B4C9'} onSelect={()=>{}} onAdd={()=>setEditor('event')}/></div>
  <Modal open={!!editor} onClose={()=>setEditor(null)} title={editor==='event'?'Add sample event':'Add sample task'}><TextField label={editor==='event'?'Event':'Task'} value={title} onChange={e=>setTitle(e.target.value)}/><PrimaryButton disabled={!title.trim()} onClick={()=>{if(editor==='event')setEvents(items=>[...items,{id:items.length+1,title:title.trim(),start:new Date().toISOString(),allDay:true}]);else setTasks(items=>[...items,{title:title.trim(),done:false}]);setTitle('');setEditor(null);}}>{editor==='event'?'Add event':'Add task'}</PrimaryButton></Modal>

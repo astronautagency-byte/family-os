@@ -75,5 +75,6 @@ test("Today exposes all daily meal slots with direct ideas and Cook intents", ()
 
 test("Today hides meal-planning actions once a meal is planned", () => {
   assert.match(todaySource, /meal \? \(\s*<button[^>]+className="cook"/);
-  assert.match(todaySource, /className=\{`today-daily-meal-actions \$\{meal \? "is-single" : ""\}`\}/);
+  assert.match(todaySource, /\(!meal \|\| suggestedMeal\) &&/);
+  assert.match(todaySource, /className="today-daily-meal-actions is-single"/);
 });

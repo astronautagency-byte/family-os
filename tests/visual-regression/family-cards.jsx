@@ -6,16 +6,21 @@ import IllustratedAvatarPicker from '../../src/components/IllustratedAvatarPicke
 import {Avatar} from '../../src/components/ui';
 import CompletionScreen from '../../src/components/CompletionScreen';
 import RoutineReviewFields from '../../src/components/RoutineReviewFields';
+import BroadcastVoice from '../../src/components/BroadcastVoice';
+import PageHeader from '../../src/components/PageHeader';
 import '../../src/theme/reference-screens.css';
 import '../../src/index.css';
 import '../../src/theme/contrast.css';
 import '../../src/theme/scheme-accents.css';
 function Preview(){
+ const [voice,setVoice]=useState(null),[recording,setRecording]=useState(false);
  const [dark,setDark]=useState(false),[selected,setSelected]=useState(''),[avatar,setAvatar]=useState('');
  const [celebration,setCelebration]=useState(''),[routine,setRoutine]=useState({title:'School morning',cadence:'weekdays',start_date:'2026-09-15',assignee_name:'Alex',steps:['Pack lunches','Check backpacks']});
  return <main className={`app-shell ${dark?'theme-dark':''}`} style={{display:'block',minHeight:'100vh',padding:'24px 16px',background:'var(--color-canvas)',color:'var(--color-ink)'}}>
   <div style={{maxWidth:1080,margin:'auto'}}>
    <p>FamOS · Illustration and interaction preview · Sample data</p>
+   <section aria-label="Voice note test"><BroadcastVoice value={voice} onChange={setVoice} onRecordingChange={setRecording}/><p>{recording?'Microphone active':voice?'Draft ready — not sent':'No recording'}</p></section>
+   <details open><summary>Feature headers</summary>{['Tasks','Kitchen Watch','Meal Plan','Recipe Book','RewardBank'].map(title=><PageHeader key={title} title={title} onAdd={()=>{}}/>)}</details>
    <button onClick={()=>setDark(!dark)} style={{padding:12}}>{dark?'Light mode':'Dark mode'}</button>
    <h1 style={{fontSize:28,margin:'20px 0'}}>A little more together.</h1>
    <button style={{padding:12}} onClick={()=>setCelebration('shopping')}>Preview shopping celebration</button><button style={{padding:12}} onClick={()=>setCelebration('task')}>Preview task celebration</button>

@@ -16,22 +16,14 @@ it('gives children only four destinations and no global add or More menu',()=>{
  fireEvent.click(mobile.getByRole('button',{name:'Rewards'}));
  expect(change).toHaveBeenCalledWith('rewards');
 });
-it('adds directly to the current feature from the mobile plus', () => {
- const add=vi.fn();
- const {getByRole,queryByRole}=render(<BottomNav active="groceries" onChange={vi.fn()} onAdd={add}/>);
- fireEvent.click(within(getByRole('navigation',{name:'Mobile navigation'})).getByRole('button',{name:'Add grocery item'}));
- expect(add).toHaveBeenCalledWith('groceries');
- expect(queryByRole('dialog')).toBeNull();
+it.each(['today','calendar','tasks','groceries','kitchen','meals'])('keeps %s navigation free of redundant add controls', (active) => {
+ const {getByRole,queryByRole}=render(<BottomNav active={active} onChange={vi.fn()}/>);
+ const mobile=getByRole('navigation',{name:'Mobile navigation'});
+ expect(within(mobile).getAllByRole('button').map(b=>b.textContent)).toEqual(['Home','Calendar','Chat (2)','More']);
+ expect(mobile.style.gridTemplateColumns).toBe('repeat(4,minmax(0,1fr))');
+ expect(queryByRole('button',{name:'Open quick actions'})).toBeNull();
+ expect(mobile.querySelector('.reference-add-button')).toBeNull();
 });
-it('uses direct add actions rather than navigation from the plus menu', () => {
-  const add = vi.fn(), change = vi.fn();
-  const { getByRole } = render(<BottomNav active="today" onChange={change} onAdd={add}/>);
-  fireEvent.click(getByRole('button', { name: 'Open quick actions' }));
-  fireEvent.click(within(getByRole('dialog')).getByRole('button', { name: /Add grocery item/ }));
-  expect(add).toHaveBeenCalledWith('groceries');
-  expect(change).not.toHaveBeenCalled();
-});
-
 it('keeps shopping reachable from the mobile More menu', () => {
   const change = vi.fn();
   const { getByRole } = render(<BottomNav active="today" onChange={change}/>);
@@ -40,10 +32,10 @@ it('keeps shopping reachable from the mobile More menu', () => {
   fireEvent.click(within(dialog).getByRole('button', { name: /Shopping/ }));
   expect(change).toHaveBeenCalledWith('groceries');
 });
-it('respects disabled features in quick actions and opens AI through its handler', () => {
+it('respects disabled features in More and opens AI through its handler', () => {
   const openAI = vi.fn();
   const { getByRole } = render(<BottomNav active="today" onChange={vi.fn()} onOpenAI={openAI} features={{ meals: false }}/>);
-  fireEvent.click(getByRole('button', { name: 'Open quick actions' }));
+  fireEvent.click(within(getByRole('navigation', { name: 'Mobile navigation' })).getByRole('button', { name: 'More' }));
   const dialog = getByRole('dialog');
   expect(within(dialog).queryByRole('button', { name: /Meals/ })).toBeNull();
   fireEvent.click(within(dialog).getByRole('button', { name: /Ask Fam AI/ }));

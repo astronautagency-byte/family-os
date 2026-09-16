@@ -1,0 +1,11 @@
+/* One compact illustration slot across feature-page headers. */
+body .family-page-header.has-illustration .page-header-content {display:flex;align-items:center;gap:20px}
+body .family-page-header .page-header-content > div:first-child {flex:1;min-width:0}
+body .family-page-header .page-header-aside {display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:12px;min-width:0;overflow:visible;flex:0 0 auto;max-width:45%}
+body .family-page-header .family-header-art,
+body .calendar-hero .family-header-art {display:block;width:88px;height:72px;object-fit:contain;flex-shrink:0;border-radius:12px}
+@media(max-width:600px){
+ body .family-page-header.has-illustration .page-header-content{gap:12px}
+ body .family-page-header .family-header-art,body .calendar-hero .family-header-art{display:block;width:60px;height:56px}
+ body .family-page-header .page-header-aside{gap:8px;max-width:38%}
+}

@@ -873,6 +873,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
             <div className="meal-card-slots">
               {dayMeals.map(({ slot, meal }) => {
                 const Icon = SLOT_META[slot].icon;
+                const adder = meal?.createdBy ? memberById[meal.createdBy] : null;
                 return (
                   <div key={slot} className={`meal-card-slot ${meal?.title ? '' : 'meal-card-slot--empty'}`}>
                     <div className="meal-card-slot-top">
@@ -888,6 +889,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
                             <span>Nothing planned yet</span>
                           </div>
                         )}
+                        {adder && <small className="meal-slot-meta">Added by {adder.name}</small>}
                       </div>
                       {meal?.thumbnail ? (
                         <img className="meal-card-slot-thumb" src={meal.thumbnail} alt="" loading="lazy" />
@@ -952,6 +954,8 @@ export default function Meals({ entitlements = null, goTo } = {}) {
 
 
       <div className="meal-plan-toolbar px-5" aria-label="Meal plan controls">
+        <button className="meal-slot-tool meal-surprise-action" onClick={()=>rouletteForSlot(todayISO(), 'dinner')}><Dices size={15}/> Find Meal Ideas</button>
+        {features.kitchen && <button className="meal-plan-share" onClick={()=>rouletteForSlot(todayISO(), 'dinner', true)}><ChefHat size={15}/> Cook from what you have</button>}
         {features.recipes && <button className="meal-plan-share" onClick={()=>setRecipeBookOpen(true)}><Bookmark size={15}/> Recipe Book</button>}
         {features.recipes&&recipeBookOpen&&<RecipeBook onClose={()=>setRecipeBookOpen(false)} onCook={openSavedRecipe}/>}
         <div className="meal-range-toggle" aria-label="Meal planning range"><button className={horizon===7?"selected":""} onClick={()=>setHorizon(7)}>1 week</button><button className={horizon===14?"selected":""} onClick={()=>setHorizon(14)}>2 weeks</button></div>

@@ -17,6 +17,7 @@
 @import "./famos-tokens.css";
 
 :root {
+  --landing-radius-feature: 24px;
   /* ── Brand palette (landing-specific) ────────────────────────── */
   --landing-color-primary: #7952E8;       /* CTA lavender, hover states, panel headings, step number 3 */
   --landing-color-primary-dark: #5741C9;  /* Chart legend, deeper lavender accent */

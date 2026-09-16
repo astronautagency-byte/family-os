@@ -37,5 +37,5 @@ test("admin operations support scrolling, flexible statistics, promotions and pr
   assert.match(admin, /value="730"/);
   assert.match(admin, /admin_list_promo_codes/);
   assert.match(admin, /admin_apply_promo_code/);
-  assert.match(admin, /admin-chargebee-refund/);
+  assert.match(admin, /admin-stripe-refund/);
 });

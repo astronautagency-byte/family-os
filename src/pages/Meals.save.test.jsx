@@ -11,11 +11,12 @@ afterEach(()=>{cleanup();vi.clearAllMocks();mocks.family.members=[];mocks.family
 it('shows each cook once per meal without duplicating avatars in the day header',()=>{
  const member={id:'alex',name:'Alex',initials:'A',color:'plum'};
  mocks.family.members=[member];mocks.family.memberById={alex:member};
- mocks.family.meals=[{id:'breakfast',date:todayISO(),slot:'breakfast',title:'Rice and chicken',cookIds:['alex','alex']}];
+ mocks.family.meals=[{id:'breakfast',date:todayISO(),slot:'breakfast',title:'Rice and chicken',cookIds:['alex','alex'],createdBy:'alex'}];
  render(<Meals/>);
  const card=screen.getByText('Rice and chicken').closest('.meal-card-new');
  expect(card.querySelectorAll('.meal-card-header .family-avatar').length).toBe(0);
  expect(card.querySelectorAll('.meal-card-slot-avatars .family-avatar').length).toBe(1);
+ expect(screen.getByText('Added by Alex')).toBeDefined();
 });
 it('uses shared avatars and saves the selected cooks',async()=>{
   mocks.family.members=[

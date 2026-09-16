@@ -95,6 +95,24 @@
   --radius-tag: 20px;  /* labels, tabs, tokens */
   --radius-control: 6px;  /* form controls, buttons */
   --radius-card: 20px;  /* boxes and containers */
+  --radius-pill-sm: 8px;
+  --radius-compact-card: 14px;
+  --radius-panel: 18px;
+
+  /* Compatibility tokens still consumed by illustration/marketing surfaces. */
+  --color-fam-coral: #E85D3D;
+  --color-fam-marigold: #DFA525;
+  --color-fam-moss: #08764F;
+  --color-fam-sky: #2196F3;
+  --color-fam-plum: #7C3AED;
+  --color-fam-rose: #C11574;
+  --pastel-pink: #FFE3EF;
+  --pastel-peach: #FFF0DF;
+  --pastel-yellow: #FFF5CE;
+  --pastel-mint: #E5F8EF;
+  --pastel-blue: #E8F3FF;
+  --pastel-lilac: #EDE9FE;
+  --sunrise-gradient: linear-gradient(120deg, #FFEDD5 0%, #FDE68A 32%, #FED7AA 60%, #FDBA74 80%, #FFF7ED 100%);
 
   /* ── Elevation / shadows (3 levels max) ───────────────────────── */
   --shadow-xs: 0 1px 2px rgba(17, 24, 39, 0.04);

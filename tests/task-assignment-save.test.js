@@ -16,6 +16,7 @@ test("custom task-list selection is never silently discarded", () => {
 
 test("task editor reports persistence failures and prevents duplicate saves", () => {
   assert.match(tasksPage, /taskSaveError/);
-  assert.match(tasksPage, /taskSaving\?"Saving…":"Save changes"/);
+  assert.match(tasksPage, /taskSaving\?"Saving…":editingId\?"Save changes":"Add task"/);
+  assert.match(tasksPage, /disabled=\{taskSaving\|\|!draft.title.trim\(\)\}/);
   assert.match(tasksPage, /type="button" key=\{member\.id\}/);
 });

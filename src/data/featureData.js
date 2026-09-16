@@ -428,12 +428,14 @@ export const SITE_WIDE_FEATURES = [
 // and feature index. Rewards remains a supporting Tasks capability until it
 // is ready to stand alone in the primary app navigation.
 export const MARKETING_FEATURE_IDS = [
+  "today",
   "calendar",
   "meals",
   "fam-ai",
   "tasks",
   "chat",
   "shopping",
+  "family",
   "tablet",
 ];
 

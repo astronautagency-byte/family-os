@@ -14,6 +14,11 @@
  --color-tasks-soft:var(--color-surface-sunken); --color-calendar-soft:var(--color-surface-sunken);
  --color-meals-soft:var(--color-surface-sunken); --color-shopping-soft:var(--color-surface-sunken);
  --color-chat-soft:var(--color-surface-sunken); --color-family-soft:var(--color-surface-sunken);
+ --color-finance:var(--color-accent); --color-finance-soft:var(--color-surface-sunken);
+ --color-calendar-strong:var(--color-accent-strong); --color-meals-strong:var(--color-accent-strong);
+ --color-shopping-strong:var(--color-accent-strong); --color-chat-strong:var(--color-accent-strong);
+ --color-family-strong:var(--color-accent-strong); --color-finance-strong:var(--color-accent-strong);
+ --color-on-vibrant:var(--color-on-accent); --color-on-status:var(--color-on-accent);
 }
 :root[data-famos-theme="dark"], .app-shell.theme-dark, .app-shell.theme-dark[data-color-scheme] {
  --color-canvas:#111C18; --color-surface:#192822; --color-surface-sunken:#22372E;

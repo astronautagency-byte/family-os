@@ -10,7 +10,6 @@ import { CalendarDays, CheckSquare, CookingPot, HeartHandshake, Home, MessageCir
 import "./feature.css";
 import { FamilyProvider } from "./context/FamilyContext";
 import BottomNav from "./components/BottomNav";
-import { requestPageAdd } from './hooks/usePageAdd';
 import AppTopBar from "./components/AppTopBar";
 import InstallPrompt from "./components/InstallPrompt";
 import DesktopAuthGate from "./components/DesktopAuthGate";
@@ -780,7 +779,7 @@ export default function App() {
   return (
     <FamilyProvider tabletMode={effectiveTabletMode}>
       <div className={`app-shell ${darkMode ? "theme-dark" : ""} ${effectiveTabletMode ? "tablet-mode" : ""}`} data-color-scheme={colorScheme} ref={shellRef}>
-        <BottomNav childMode={childMode} active={visibleTab} onChange={setTab} onAdd={page => { if (setTab(page)) requestPageAdd(page); }} onOpenAI={enabledFeatures.fam_ai && !childMode && !IS_APP_STORE && !effectiveTabletMode ? () => setFamAiOpen(true) : undefined} features={enabledFeatures} tabletMode={effectiveTabletMode} />
+        <BottomNav childMode={childMode} active={visibleTab} onChange={setTab} onOpenAI={enabledFeatures.fam_ai && !childMode && !IS_APP_STORE && !effectiveTabletMode ? () => setFamAiOpen(true) : undefined} features={enabledFeatures} tabletMode={effectiveTabletMode} />
         <main className="app-content">
           {childMode ? <header className="child-app-header"><strong>FamOS · Your family space</strong><button onClick={()=>supabase.auth.signOut()}>Sign out</button></header> : <AppTopBar
             onOpenSettings={() => setTab("settings")}

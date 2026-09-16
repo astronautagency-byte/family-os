@@ -1314,15 +1314,6 @@ export default function Groceries() {
         </div>
       </div>
 
-      <button
-        onClick={openNew}
-        className="fixed bottom-24 right-5 rounded-full bg-[var(--color-accent)] shadow-lg flex items-center justify-center active:scale-95 transition-transform"
-        style={{ width: 52, height: 52 }}
-        aria-label="Add grocery item"
-      >
-        <Plus color="white" size={24} />
-      </button>
-
       <Modal open={!!editingId} onClose={closeEditorModal} title={editingId === "new" ? "Add a grocery" : "Edit grocery"}>
         <TextField
           label="Item"
