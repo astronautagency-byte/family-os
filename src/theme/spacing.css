@@ -48,3 +48,27 @@
 .modal-card.m3-dialog > .form-field + div:has(> .m3-button) { margin-top:var(--layout-field-gap); }
 .modal-card.m3-dialog { scroll-padding-block:var(--layout-card-padding); }
 .modal-card.m3-dialog > h3 { padding-right:44px; margin-bottom:24px; }
+
+/* Form parents own row spacing, including mixed custom/shared controls. */
+.kw-item-form {display:grid;gap:20px;min-width:0}
+.modal-card .kw-item-form :is(.form-field,.kw-modal-intro,.kw-modal-grid,.setup-quantity-fields,.kw-location-select,.kw-suggestion-hint,.kw-error) {margin:0}
+.kw-item-form .kw-modal-grid {align-items:start;gap:16px}
+.kw-item-form :is(.form-label,.kw-select-field>span,.kw-location-select>span) {display:block;margin:0 0 8px;font-size:13px;line-height:20px;font-weight:500;color:var(--color-ink)}
+.kw-item-form :is(input,select) {min-height:44px;height:44px}
+.kw-item-form .setup-quantity-fields {gap:16px}
+.kw-item-form .setup-quantity-fields label {gap:8px;font-size:13px;line-height:20px}
+.kw-item-form .kw-location-select button {min-height:44px}
+
+/* Actions wrap as whole controls instead of shrinking into narrow rails. */
+.app-shell .app-content .reference-meals .meal-plan-toolbar {flex-wrap:wrap;justify-content:flex-start;gap:12px;margin-bottom:20px}
+.app-shell .app-content .meal-plan-toolbar > button {display:inline-flex;align-items:center;justify-content:center;gap:8px;flex:0 0 auto;white-space:nowrap;min-height:44px;padding:10px 14px;border:1px solid var(--color-border);border-radius:var(--radius-control);background:var(--color-surface);color:var(--color-ink-soft);font-size:13px;font-weight:600}
+.app-shell .app-content .meal-plan-toolbar > button svg {flex-shrink:0}
+.app-shell .app-content .meal-plan-toolbar .meal-range-toggle {flex:0 0 auto;margin:0;min-height:44px}
+@media(max-width:600px) {
+ .app-shell .app-content .reference-meals .page-header-content {display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px}
+ .app-shell .app-content .reference-meals .family-page-header .page-header-aside {display:contents}
+ .reference-meals .family-header-art {grid-column:2;grid-row:1}
+ .reference-meals .page-header-actions {grid-column:1/-1;justify-content:flex-start}
+ .reference-meals .page-header-actions:not(:has(.page-reset-button)) {grid-column:3;grid-row:1}
+ .app-shell .app-content .meal-plan-toolbar > button {max-width:100%;white-space:normal;text-align:left}
+}

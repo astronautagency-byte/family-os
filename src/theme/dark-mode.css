@@ -43,3 +43,25 @@
 :root[data-famos-theme="dark"] .broadcast-mode-picker button[aria-pressed="true"] {
   background:var(--color-accent-soft)!important; color:var(--color-accent-strong); border-color:var(--color-accent)!important;
 }
+
+/* Nested surfaces must use the same tokens as their text. These selectors
+   deliberately target cards, not headings or every settings-* descendant. */
+:root[data-famos-theme="dark"] .app-shell .reference-settings .kinship-card,
+:root[data-famos-theme="dark"] .app-shell .reference-settings .google-calendar-picker li.is-connected,
+:root[data-famos-theme="dark"] .app-shell .today-daily-meal {
+  background:var(--color-surface)!important;
+  color:var(--color-ink);
+  border-color:var(--color-border)!important;
+}
+:root[data-famos-theme="dark"] .reference-settings .google-calendar-picker {
+  background:var(--color-surface-sunken);
+}
+:root[data-famos-theme="dark"] .settings-household-edit {
+  background:var(--color-surface-sunken);color:var(--color-ink);
+}
+:root[data-famos-theme="dark"] .reference-settings :is(.google-calendar-visibility.is-shared,button.is-selected) {
+  color:var(--color-ink);
+}
+:root[data-famos-theme="dark"] .app-shell .reference-settings button[class~="bg-[var(--color-accent)]"] {
+  color:var(--color-on-accent)!important;
+}

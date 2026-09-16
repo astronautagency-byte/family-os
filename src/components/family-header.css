@@ -1,4 +1,5 @@
 /* One compact illustration slot across feature-page headers. */
+.page-header-actions {display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-shrink:0}
 body .family-page-header.has-illustration .page-header-content {display:flex;align-items:center;gap:20px}
 body .family-page-header .page-header-content > div:first-child {flex:1;min-width:0}
 body .family-page-header .page-header-aside {display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:12px;min-width:0;overflow:visible;flex:0 0 auto;max-width:45%}

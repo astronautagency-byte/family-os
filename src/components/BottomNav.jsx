@@ -2,6 +2,8 @@ import { BookOpen, Gift, CalendarDays, CheckSquare, CookingPot, Home, MessageCir
 import { useState } from "react";
 import { Modal } from './ui';
 import { useFamily } from "../context/FamilyContext";
+import { DEFAULT_SHORTCUTS, CHILD_SHORTCUTS, resolveShortcuts, readShortcuts } from '../lib/navigationShortcuts';
+import './navigation-shortcuts.css';
 
 // Fam AI is no longer a tab — it's a global floating action button mounted
 // once at the shell level. Leaving it out of TABS keeps the bottom nav
@@ -21,13 +23,28 @@ const TABS = [
 
 const FEATURE_KEYS = { recipes:"recipes", rewards:"rewards", calendar: "calendar", meals: "meals", tasks: "tasks", groceries: "groceries", kitchen: "kitchen", chat: "chat" };
 
-export default function BottomNav({ active, onChange, onOpenAI, features = {}, tabletMode = false, childMode = false }) {
+export default function BottomNav({ active, onChange, onOpenAI, features = {}, tabletMode = false, childMode = false, preferenceKey = 'local' }) {
   const [sheet, setSheet] = useState(null);
+  const storageKey = `famos:nav-shortcuts:v1:${preferenceKey}:${childMode ? 'child' : 'adult'}`;
+  const [preference, setPreference] = useState(() => ({key:storageKey, ids:readShortcuts(storageKey)}));
+  const [draft, setDraft] = useState([]);
+  const [saveError, setSaveError] = useState('');
   const navigate = (id) => { setSheet(null); onChange(id); };
   const { unreadMessageCount = 0 } = useFamily();
   const visibleTabs = TABS.filter((tab) => {
     return (childMode ? ["calendar","tasks","rewards","chat"].includes(tab.id) : true) && features[FEATURE_KEYS[tab.id] || tab.id] !== false;
   });
+  const defaults = childMode ? CHILD_SHORTCUTS : DEFAULT_SHORTCUTS;
+  const available = visibleTabs.map(tab => tab.id);
+  const selected = resolveShortcuts(preference.key === storageKey ? preference.ids : readShortcuts(storageKey), available, defaults);
+  const shortcuts = selected.map(id => visibleTabs.find(tab => tab.id === id));
+  const editShortcuts = () => { setDraft(selected); setSaveError(''); setSheet('customize'); };
+  const saveShortcuts = () => {
+    const ids = resolveShortcuts(draft, available, defaults);
+    try { localStorage.setItem(storageKey, JSON.stringify(ids)); }
+    catch { setSaveError('Your browser could not save these shortcuts. Check available storage and try again.'); return; }
+    setPreference({key:storageKey,ids}); setSheet(null);
+  };
   return (
     <><nav className="primary-nav m3-navigation" aria-label="FamOS navigation">
       <div className="nav-brand">
@@ -64,20 +81,26 @@ export default function BottomNav({ active, onChange, onOpenAI, features = {}, t
       </div>
       <p className="nav-foot">{tabletMode ? "Shared family display · Tablet mode" : "Families run better on FamOS."}</p>
     </nav>
-    <nav className={`reference-mobile-nav ${childMode ? "child-mobile-nav" : ""}`} aria-label="Mobile navigation" style={{gridTemplateColumns:`repeat(${childMode?Math.max(1,visibleTabs.length):2+Number(features.calendar!==false)+Number(features.chat!==false)},minmax(0,1fr))`}}>
-      {childMode ? ["calendar","tasks","rewards","chat"].filter(id=>features[id]!==false).map(id=>{const {label,icon:Icon}=TABS.find(t=>t.id===id);return <button key={id} onClick={()=>navigate(id)} aria-current={active===id?"page":undefined}><Icon size={21}/><span>{label}</span></button>;}) : <>
-      <button onClick={() => navigate('today')} aria-current={active === 'today' ? 'page' : undefined}><Home size={21}/><span>Home</span></button>
-      {features.calendar !== false ? <button onClick={() => navigate('calendar')} aria-current={active === 'calendar' ? 'page' : undefined}><CalendarDays size={21}/><span>Calendar</span></button> : null}
-      {features.chat !== false ? <button onClick={() => navigate('chat')} aria-current={active === 'chat' ? 'page' : undefined}><MessageCircle size={21}/><span>Chat{unreadMessageCount > 0 ? ` (${unreadMessageCount > 9 ? '9+' : unreadMessageCount})` : ''}</span></button> : null}
-      <button onClick={() => setSheet('more')} aria-expanded={sheet === 'more'} aria-current={!['today','calendar','chat'].includes(active) ? 'page' : undefined}><MoreHorizontal size={21}/><span>More</span></button>
-    </>}
+    <nav className={`reference-mobile-nav ${childMode ? "child-mobile-nav" : ""}`} aria-label="Mobile navigation" style={{gridTemplateColumns:`repeat(${shortcuts.length+1},minmax(0,1fr))`}}>
+      {shortcuts.map(({id,label,icon:Icon})=><button key={id} onClick={()=>navigate(id)} aria-current={active===id?'page':undefined}><Icon size={21}/><span>{id==='today'?'Home':label}{id==='chat'&&unreadMessageCount>0?` (${unreadMessageCount>9?'9+':unreadMessageCount})`:''}</span></button>)}
+      <button onClick={() => setSheet('more')} aria-expanded={sheet === 'more'} aria-current={!selected.includes(active) ? 'page' : undefined}><MoreHorizontal size={21}/><span>More</span></button>
     </nav>
-    <Modal open={sheet !== null} onClose={() => setSheet(null)} title="More from FamOS">
+    <Modal open={sheet !== null} onClose={() => setSheet(null)} title={sheet==='customize'?'Customize shortcuts':'More from FamOS'}>
+      {sheet==='customize'?<div className="shortcut-editor">
+        <p>Choose up to four shortcuts in the order you want. Other pages stay in More. Saved for your profile on this device.</p>
+        {draft.map((id,index)=><label key={index}><span>Shortcut {index+1}</span><select aria-label={`Shortcut ${index+1}`} value={id} onChange={event=>{const next=event.target.value;setDraft(current=>current.map((value,i)=>i===index?next:value===next?id:value));}}>{visibleTabs.map(tab=><option key={tab.id} value={tab.id}>{tab.id==='today'?'Home':tab.label}</option>)}</select></label>)}
+        {available.length<4&&<p>Only {available.length} pages are enabled for your profile.</p>}
+        {saveError&&<p role="alert">{saveError}</p>}
+        <button type="button" className="shortcut-reset" onClick={()=>setDraft(resolveShortcuts([],available,defaults))}>Restore defaults</button>
+        <button type="button" className="primary-button" onClick={saveShortcuts}>Save shortcuts</button>
+      </div>:<>
       <div className="reference-action-list">
-        {visibleTabs.filter(tab => !['today','calendar','chat'].includes(tab.id)).map(({id, label, icon: Icon, hint}) => <button type="button" key={id} onClick={() => navigate(id)}><span className={`reference-action-icon tone-${id}`}><Icon size={23}/></span><span><strong>{label}</strong><small>{hint}</small></span></button>)}
-        {onOpenAI && features.fam_ai !== false && <button type="button" onClick={() => { setSheet(null); onOpenAI(); }}><span className="reference-action-icon tone-chat"><Sparkles size={23}/></span><span><strong>Ask Fam AI</strong><small>Get help planning your day</small></span></button>}
-        {sheet === 'more' && <button type="button" onClick={() => navigate('settings')}><span className="reference-action-icon tone-calendar"><Settings size={23}/></span><span><strong>Settings & family</strong><small>People, preferences, and support</small></span></button>}
+        {visibleTabs.filter(tab => !selected.includes(tab.id)).map(({id, label, icon: Icon, hint}) => <button type="button" key={id} onClick={() => navigate(id)}><span className={`reference-action-icon tone-${id}`}><Icon size={23}/></span><span><strong>{label}</strong><small>{hint}</small></span></button>)}
+        <button type="button" onClick={editShortcuts}><span className="reference-action-icon"><Settings size={23}/></span><span><strong>Customize shortcuts</strong><small>Choose your four bottom tabs</small></span></button>
+        {!childMode && onOpenAI && features.fam_ai !== false && <button type="button" onClick={() => { setSheet(null); onOpenAI(); }}><span className="reference-action-icon tone-chat"><Sparkles size={23}/></span><span><strong>Ask Fam AI</strong><small>Get help planning your day</small></span></button>}
+        {!childMode && <button type="button" onClick={() => navigate('settings')}><span className="reference-action-icon tone-calendar"><Settings size={23}/></span><span><strong>Settings & family</strong><small>People, preferences, and support</small></span></button>}
       </div>
+      </>}
     </Modal></>
   );
 }

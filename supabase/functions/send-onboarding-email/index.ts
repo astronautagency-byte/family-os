@@ -378,7 +378,7 @@ const EMAIL_TEMPLATES: Record<
 
   day21_nudge: ({ firstName, appOrigin, activity }) => ({
     subject: `Your FamOS Pro trial — 7 days left`,
-    text: `Hi ${firstName},\n\nYour FamOS Pro trial has 7 days left.\n\nSo far this month FamOS has helped your family:\n\n• Coordinate activities\n• Share lists and tasks\n• Keep everyone on the same page\n\nFamOS Pro unlocks everything: unlimited activities, advanced transportation, Fam AI actions, multiple calendar integrations, and more.\n\nIf you decide not to continue, your family stays on FamOS Core with the free features. Nothing gets deleted.\n\n— The FamOS Team`,
+    text: `Hi ${firstName},\n\nYour FamOS Pro trial has 7 days left.\n\nSo far this month FamOS has helped your family:\n\n• Coordinate activities\n• Share lists and tasks\n• Keep everyone on the same page\n\nFamOS Pro unlocks everything: unlimited activities, advanced transportation, Fam AI actions, multiple calendar integrations, and more.\n\nCard-backed subscriptions renew automatically unless you cancel renewal before the trial ends in Settings → Manage billing. Cancelling returns your family to Free without deleting data. Promotional access follows its offer terms.\n\n— The FamOS Team`,
     html: `<!doctype html>
 <html><body style="margin:0;background:#f8f5ff;color:#19172b;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8f5ff;padding:32px 16px">
@@ -405,7 +405,7 @@ const EMAIL_TEMPLATES: Record<
           </table>
         </td></tr>
         <tr><td style="padding:6px 32px;text-align:center;font-size:14px;line-height:1.6;color:#5d5970">
-          If you decide not to continue, your family stays on <strong style="color:#19172b">FamOS Core</strong> with the free features. Nothing gets deleted.
+          Card-backed subscriptions renew automatically unless you cancel renewal before the trial ends in Settings → Manage billing. Cancelling returns your family to Free without deleting data. Promotional access follows its offer terms.
         </td></tr>
         <tr><td align="center" style="padding:18px 32px 34px">
           <a href="${escapeHtml(appOrigin)}" style="display:inline-block;min-width:200px;padding:14px 24px;border-radius:999px;background:#5b4fd6;color:#fff;text-decoration:none;font-size:15px;font-weight:700">Open FamOS</a>
@@ -463,7 +463,7 @@ const EMAIL_TEMPLATES: Record<
 
   trial_7_days: ({ firstName, appOrigin, activity }) => ({
     subject: `Your FamOS Pro trial — 7 days left`,
-    text: `Hi ${firstName},\n\nYour FamOS Pro trial has 7 days left.\n\nSo far this month FamOS has helped your family:\n\n• ${activity.events} event${activity.events !== 1 ? "s" : ""} on the calendar\n• ${activity.tasks} task${activity.tasks !== 1 ? "s" : ""} created\n• ${activity.meals} meal${activity.meals !== 1 ? "s" : ""} planned\n• ${activity.groceries} grocery item${activity.groceries !== 1 ? "s" : ""}\n\nFamOS Pro keeps all of this working — plus unlimited activities, Fam AI actions, advanced transportation, and more.\n\nIf you decide not to continue, your family stays on FamOS Core with the free features. Nothing gets deleted.\n\n— The FamOS Team`,
+    text: `Hi ${firstName},\n\nYour FamOS Pro trial has 7 days left.\n\nSo far this month FamOS has helped your family:\n\n• ${activity.events} event${activity.events !== 1 ? "s" : ""} on the calendar\n• ${activity.tasks} task${activity.tasks !== 1 ? "s" : ""} created\n• ${activity.meals} meal${activity.meals !== 1 ? "s" : ""} planned\n• ${activity.groceries} grocery item${activity.groceries !== 1 ? "s" : ""}\n\nFamOS Pro keeps all of this working — plus unlimited activities, Fam AI actions, advanced transportation, and more.\n\nCard-backed subscriptions renew automatically unless you cancel renewal before the trial ends in Settings → Manage billing. Cancelling returns your family to Free without deleting data. Promotional access follows its offer terms.\n\n— The FamOS Team`,
     html: `<!doctype html>
 <html><body style="margin:0;background:#f8f5ff;color:#19172b;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8f5ff;padding:32px 16px">
@@ -492,7 +492,7 @@ const EMAIL_TEMPLATES: Record<
           </table>
         </td></tr>
         <tr><td style="padding:6px 32px;text-align:center;font-size:14px;line-height:1.6;color:#5d5970">
-          If you decide not to continue, your family stays on <strong style="color:#19172b">FamOS Core</strong> with the free features. Nothing gets deleted.
+          Card-backed subscriptions renew automatically unless you cancel renewal before the trial ends in Settings → Manage billing. Cancelling returns your family to Free without deleting data. Promotional access follows its offer terms.
         </td></tr>
         <tr><td align="center" style="padding:18px 32px 34px">
           <a href="${escapeHtml(appOrigin)}/settings" style="display:inline-block;min-width:200px;padding:14px 24px;border-radius:999px;background:#5b4fd6;color:#fff;text-decoration:none;font-size:15px;font-weight:700">Manage Subscription</a>
@@ -508,7 +508,7 @@ const EMAIL_TEMPLATES: Record<
 
   trial_2_days: ({ firstName, appOrigin, activity }) => ({
     subject: `Your FamOS Pro trial ends in 2 days`,
-    text: `Hi ${firstName},\n\nYour FamOS Pro trial ends in 2 days.\n\nIf you continue with FamOS Pro, you'll keep everything your family has been using: advanced scheduling, Fam AI, calendar sync, and more — for $19.99/month after the trial.\n\nIf you don't continue, you'll move to FamOS Core — still free, still useful, and your family's data stays intact.\n\nNo pressure. You can manage your subscription anytime from Settings → Billing.\n\n— The FamOS Team`,
+    text: `Hi ${firstName},\n\nYour FamOS Pro trial is ending soon.\n\nCard-backed subscriptions renew automatically at the price and date shown in Settings unless you cancel renewal before the trial ends. To return to Free without a subscription charge, open Settings → Manage billing and cancel renewal. Your saved data stays intact. Promotional access follows its offer terms.\n\nReview billing: ${appOrigin}/settings\n\n— The FamOS Team`,
     html: `<!doctype html>
 <html><body style="margin:0;background:#f8f5ff;color:#19172b;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8f5ff;padding:32px 16px">
@@ -528,8 +528,8 @@ const EMAIL_TEMPLATES: Record<
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f7f4ff;border-radius:18px">
             <tr><td style="padding:20px 24px;font-size:14px;line-height:1.8;color:#5d5970">
               Your family has coordinated <strong style="color:#19172b">${activity.events} event${activity.events !== 1 ? "s" : ""}</strong>, created <strong style="color:#19172b">${activity.tasks} task${activity.tasks !== 1 ? "s" : ""}</strong>, and planned <strong style="color:#19172b">${activity.meals} meal${activity.meals !== 1 ? "s" : ""}</strong> on FamOS so far.<br><br>
-              <strong style="color:#19172b">Keep FamOS Pro</strong> — $19.99/month after your trial. Everything keeps working.<br><br>
-              <strong style="color:#19172b">Stay on Core</strong> — free forever. Your family's data stays intact. You just lose access to Pro features.
+              <strong style="color:#19172b">Keep FamOS Pro</strong> — card-backed subscriptions renew automatically at the price and date shown in Settings unless renewal is cancelled.<br><br>
+              <strong style="color:#19172b">Return to Free</strong> — cancel renewal in Settings → Manage billing before the trial ends to avoid a subscription charge. Your saved data stays intact. Promotional access follows its offer terms.
             </td></tr>
           </table>
         </td></tr>

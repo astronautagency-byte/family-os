@@ -271,6 +271,7 @@ export default function KitchenWatch() {
     {watchedItems.length > 0 && filteredItems.length === 0 && <div className="kw-empty"><Search size={24}/><h3>No items in this view</h3><p>{query ? `No items match “${query}” with these filters.` : 'Try another storage location or category.'}</p><button type="button" className="empty-state-action" onClick={() => {setQuery('');setActiveLocation('all');setActiveCategory('all');}}>Clear filters</button></div>}
 
     <Modal open={adding} onClose={() => { if (!saving) { setAdding(false); setError(""); setEditingItemId(null); } }} title={editingItemId ? "Change date" : "Add fresh food"}>
+      <div className="kw-item-form">
       <p className="kw-modal-intro">{editingItemId ? "Update when this item needs to be used by." : "Track produce, dairy, meat, bakery, and deli items that can spoil."}</p>
       <TextField label="Item" placeholder="e.g. Milk, chicken, strawberries" value={draft.name} onChange={(e) => setDraft((c) => ({ ...c, name: e.target.value }))}/>
       <div className="kw-modal-grid"><label className="kw-select-field"><span>Category</span><select value={draft.category} onChange={(e) => setDraft((c) => ({ ...c, category: e.target.value }))}>{KITCHEN_WATCH_CATEGORIES.map((cat) => <option key={cat}>{cat}</option>)}</select></label><TextField label="Brand (optional)" placeholder="e.g. Compliments" value={draft.brand} onChange={(e) => setDraft((c) => ({ ...c, brand: e.target.value }))}/></div>
@@ -282,6 +283,7 @@ export default function KitchenWatch() {
       )}
       {error && <p className="kw-error" role="alert">{error}</p>}
       <PrimaryButton onClick={saveItem} disabled={saving || !draft.name.trim() || !draft.expiresOn}>{saving ? "Saving…" : editingItemId ? "Save date" : "Start watching"}</PrimaryButton>
+      </div>
     </Modal>
 
     <Modal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} title={`Remove ${confirmDelete?.name || ""}?`}>

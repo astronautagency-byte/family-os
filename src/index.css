@@ -7423,14 +7423,14 @@ input:focus, textarea:focus, select:focus {
    slot, and no empty action rail when a manually-entered meal is displayed. */
 .app-shell .today-daily-meal,
 .app-shell .today-daily-meal.is-planned {
-  background:#fff!important;
+  background:var(--color-surface)!important;
 }
 .app-shell .today-daily-meal-actions:empty {
   display:none;
 }
 .app-shell .today-daily-meal-actions button.plan {
   border-color:var(--color-border);
-  background:#fff;
+  background:var(--color-surface);
   color:var(--color-accent-strong);
 }
 .app-shell .today-daily-meal-actions button.plan:hover {
@@ -7699,7 +7699,7 @@ input:focus, textarea:focus, select:focus {
    internally. Page titles cap at 20px on phones. */
 @media (max-width: 700px) {
   .meal-plan-toolbar {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: center;
   }
   .meal-plan-toolbar .meal-range-toggle {
@@ -8683,9 +8683,7 @@ input:focus, textarea:focus, select:focus {
 .primary-nav .nav-item
 {background:rgba(255,255,255,.98)!important}
 
-/* All generic cards with borders */
-[class*="border"][class*="rounded"]:not(button):not(a):not(input):not(select):not(textarea):not(svg):not(img):not(br):not(hr)
-{background:#fff!important}
+/* Bordered utility elements keep their explicit semantic background. */
 
 /* Dark mode — use var(--color-surface) instead of #fff */
 .theme-dark .grocery-list-row,
@@ -8981,9 +8979,8 @@ input:focus, textarea:focus, select:focus {
 
 /* Settings cards */
 .theme-dark .settings-card,
-.theme-dark .settings-section,
-.theme-dark [class*="settings-"] {
-  background: #1A1D24 !important;
+.theme-dark .settings-section {
+  background: var(--color-surface) !important;
 }
 
 /* Form controls in dark mode */

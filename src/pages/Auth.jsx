@@ -440,7 +440,7 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
           setInviteMembers(draft.inviteEmails.split(/[\n,;]+/).filter(Boolean).map((email) => ({ ...newInviteMember(), email: email.trim() })));
         }
         setNotificationsSkipped(Boolean(draft.notificationsSkipped));
-        setOwnerStep(Math.max(0, Math.min(Number(draft.ownerStep) || 0, 5)));
+        setOwnerStep(Math.max(0, Math.min(Math.trunc(Number(draft.ownerStep)) || 0, 4)));
         setMemberStep(Math.max(0, Math.min(Number(draft.memberStep) || 0, 3)));
       }
     } catch {
@@ -471,7 +471,7 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
     if (invitation && !household) return "Come on in";
     if (!household) return "Create your family";
     if (memberProfileStep) return ["Tell us about you", "Food preferences", "Add your calendar", "Make it yours"][memberStep];
-    if (ownerProfileStep) return ["Who’s at home?", "Where is home?", "Connect your calendar", "Bring your task lists", "Set food preferences", "Bring your shopping list", "Choose your look", "Choose your plan"][ownerStep];
+    if (ownerProfileStep) return ["Who’s at home?", "Your family’s interests", "Bring in your schedule", "Preview your setup", "Start your Pro trial"][ownerStep];
     return "Invite your people";
   }, [household, invitation, memberProfileStep, memberStep, ownerProfileStep, ownerStep]);
 
@@ -489,7 +489,7 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
       "Choose the activities that keep your household moving.",
       "Connect calendars now, or add things yourself as you go.",
       "Here’s a useful starting point for your family’s week.",
-      "Unlock every Pro feature for 30 days. Your family can always stay on Core.",
+      "Add your card for 7 days of Pro. Cancel renewal before the trial ends to return to Free without a subscription charge.",
     ][ownerStep];
     return `Invite people to ${household.name} now, or skip and add them later from Settings.`;
   }, [household, invitation, memberProfileStep, memberStep, ownerProfileStep, ownerStep]);
@@ -522,6 +522,15 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
   const saveOwnerProfile = () => run(async () => {
     if (!onboardingFamilyMembers.some((member) => member.firstName.trim())) {
       throw new Error("Add at least one family member, or add yourself to continue.");
+    }
+    // Obtain checkout before saving a completed profile. A checkout error must
+    // leave the user in the wizard with a retry action, not skip the billing step.
+    let checkoutUrl = '';
+    if(!promoApplied){
+      const {data,error}=await supabase.functions.invoke('create-checkout-session',{body:{feature:'pro',billing:'monthly',onboarding:true}});
+      if(error) throw new Error('Could not open secure checkout. Your setup is still here; please try again.');
+      if(!data?.url) throw new Error(data?.error || 'Secure checkout could not be opened. Please try again.');
+      checkoutUrl=data.url;
     }
     await saveHouseholdProfile({
       familySize: Math.max(1, onboardingFamilyMembers.length + 1),
@@ -584,11 +593,8 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
       householdName: household?.name,
       userFirstName: onboardingFamilyMembers.find((m) => m.firstName.trim())?.firstName || session.user.email?.split("@")[0],
     }).catch(() => {});
-    const { data, error: checkoutError } = await supabase.functions.invoke("create-checkout-session", { body: { feature: "plus", billing: "monthly", onboarding: true } });
-    if (checkoutError) throw checkoutError;
-    if (!data?.url) throw new Error("Secure checkout could not be opened. Please try again.");
     localStorage.setItem(`family-os:onboarding-trial-pending:${session.user.id}`, "true");
-    window.location.assign(data.url);
+    window.location.assign(checkoutUrl);
   });
 
   const saveMember = () => run(async () => {
@@ -748,7 +754,7 @@ const REVISED_SCHEDULE_SOURCES = [
 ];
 
 function RevisedOwnerProfileStep({ familyMembers, setFamilyMembers, interests, toggleInterest, scheduleSources, toggleScheduleSource, scheduleFeedUrl, setScheduleFeedUrl, busy, onSave, promoCode, setPromoCode, promoBusy, setPromoBusy, promoResult, setPromoResult, promoApplied, setPromoApplied, step, setStep, trialConfirmation, onComplete, signInWithGoogle, googleProviderToken }) {
-  const steps = ["Your family", "What keeps you busy?", "Bring in your schedule", "Your family is ready", "Unlock FamOS"];
+  const steps = ["Your family", "Interests (optional)", "Calendar (optional)", "Preview your setup", "Start your Pro trial"];
   const updateMember = (index, key, value) => setFamilyMembers((current) => current.map((member, memberIndex) => memberIndex === index ? { ...member, [key]: value } : member));
   const addMember = () => setFamilyMembers((current) => [...current, { firstName: "", relationship: "", birthday: "", email: "", phone: "" }]);
   const removeMember = (index) => setFamilyMembers((current) => current.length === 1 ? current : current.filter((_, memberIndex) => memberIndex !== index));
@@ -762,7 +768,9 @@ function RevisedOwnerProfileStep({ familyMembers, setFamilyMembers, interests, t
       <FamilyIllustration variant={['family', 'tasks', 'calendar', 'welcome', 'family'][step] || 'family'} className="family-onboarding-art" />
       <div className="guided-onboarding-panel">
         {step === 0 && <>
-          <div className="onboarding-value-heading"><UsersRound size={19} /><div><strong>Add your family</strong><span>Add the people you plan around. You can add or edit members later.</span></div></div>          <div className="revised-family-list">
+          <div className="onboarding-value-heading"><UsersRound size={19} /><div><strong>Add your family</strong><span>Add yourself first, then anyone you plan around. Relationships, birthdays and invitations are optional. You can edit members later.</span></div></div>
+          <p className="revised-trial-note">Setup ends with secure card checkout: 7 days of Pro, then CAD {PRICING_PLAN.plans.find(plan => plan.id === "pro")?.price.monthly}/month unless cancelled before the trial ends. One subscription covers your household.</p>
+          <div className="revised-family-list">
             {familyMembers.map((member, index) => <div className="revised-family-row" key={index}>
               <div className="revised-family-row-main">
                 <TextField label="First name" placeholder="e.g. Leo" value={member.firstName} onChange={(event) => updateMember(index, "firstName", event.target.value)} />
@@ -785,6 +793,8 @@ function RevisedOwnerProfileStep({ familyMembers, setFamilyMembers, interests, t
         {step === 2 && <>
           <div className="onboarding-value-heading"><CalendarDays size={19} /><div><strong>Bring in your schedule</strong><span>Connect a calendar now or add things yourself later.</span></div></div>
           <div className="revised-schedule-grid">{REVISED_SCHEDULE_SOURCES.map(([id, label, Icon]) => <button type="button" key={id} className={scheduleSources.includes(id) ? "selected" : ""} onClick={() => toggleScheduleSource(id)}><Icon size={18} /><span>{label}</span>{scheduleSources.includes(id) && <Check size={15} />}</button>)}</div>
+          {(scheduleSources.includes("apple") || scheduleSources.includes("outlook")) && <p className="revised-trial-note">This saves your preferred calendar provider; it does not connect it yet. Finish the connection in Settings after setup.</p>}
+          {scheduleSources.includes("feed") && <p className="revised-trial-note">We’ll save this URL with your setup. Add it as a calendar feed in Settings to start syncing events.</p>}
           {scheduleSources.includes("google") && <GoogleCalendarStep signInWithGoogle={signInWithGoogle} googleProviderToken={googleProviderToken} busy={busy} run={async (action) => action()} />}
           {scheduleSources.includes("feed") && <TextField label="Team or school calendar feed URL" value={scheduleFeedUrl} onChange={(event) => setScheduleFeedUrl(event.target.value)} placeholder="https://…" type="url" />}
           <button type="button" className={`revised-manual-schedule${scheduleSources.includes("manual") ? " selected" : ""}`} onClick={() => toggleScheduleSource("manual")}><Check size={16} /> I’ll add things myself</button>
@@ -796,37 +806,35 @@ function RevisedOwnerProfileStep({ familyMembers, setFamilyMembers, interests, t
         {step > 0 ? <SecondaryButton type="button" disabled={busy} onClick={() => setStep((current) => Math.max(0, current - 1))}><ChevronLeft size={16} /> Back</SecondaryButton> : <span />}
         {step < 3 && <PrimaryButton type="button" disabled={busy || !canContinue} onClick={() => setStep((current) => Math.min(4, current + 1))}>{step === 0 ? "That’s Everyone" : step === 2 ? "Build My FamOS" : "Continue"}</PrimaryButton>}
         {step === 3 && <PrimaryButton type="button" disabled={busy} onClick={() => setStep(4)}>Unlock Full FamOS</PrimaryButton>}
-        {step === 4 && <PrimaryButton type="button" disabled={busy || promoBusy} onClick={onSave}>{busy ? "Opening secure checkout…" : promoApplied ? "Start FamOS Pro" : "Subscribe to FamOS Plus"}</PrimaryButton>}
+        {step === 4 && <PrimaryButton type="button" disabled={busy || promoBusy} onClick={onSave}>{busy ? "Opening secure checkout…" : promoApplied ? "Start FamOS Pro" : "Start 7-day Pro trial"}</PrimaryButton>}
       </div>
-      {step === 4 && <p className="revised-trial-secondary">Your selected plan is charged today. Cancel future renewals anytime.</p>}
+      {step === 4 && !promoApplied && <p className="revised-trial-secondary">Card required. No subscription charge today. Pro renews automatically after 7 days. Cancel in Settings → Manage billing before your trial ends to return to Free without a subscription charge.</p>}
     </div>
   );
 }
 
 function RevisedValueScreen({ familyMembers, interests }) {
-  const activityCount = Math.max(3, Math.min(9, familyMembers.length + (interests.length ? 2 : 0)));
   return <div className="revised-value-screen">
-    <div className="onboarding-value-heading"><Check size={20} /><div><strong>Your family is ready</strong><span>Here’s a quick look at the week FamOS can help coordinate.</span></div></div>
-    <div className="revised-value-metrics"><div><strong>{activityCount}</strong><span>activities this week</span></div><div><strong>1</strong><span>transportation gap</span></div><div><strong>2</strong><span>things need attention</span></div></div>
+    <div className="onboarding-value-heading"><Check size={20} /><div><strong>A preview of family life with FamOS</strong><span>Sample activities only—not your actual calendar or tasks. You can add your own after setup.</span></div></div>
+    <div className="revised-value-metrics"><div><strong>{familyMembers.filter(member => member.firstName.trim()).length}</strong><span>people added in setup</span></div><div><strong>{interests.length}</strong><span>interests selected</span></div><div><strong>Next</strong><span>review your Pro trial</span></div></div>
     <div className="revised-value-items"><article><CalendarDays size={16} /><div><strong>Soccer practice</strong><span>Thursday · 5:00 PM · Shared with family</span></div></article><article><ShoppingCart size={16} /><div><strong>Milk and bananas</strong><span>Shopping list · ready to pick up</span></div></article><article><CheckSquare size={16} /><div><strong>Pack school bags</strong><span>Task · needs attention</span></div></article></div>
   </div>;
 }
 
 function RevisedTrialGate({ promoCode, setPromoCode, promoBusy, setPromoBusy, promoResult, setPromoResult, promoApplied, setPromoApplied }) {
-  const features = PRICING_PLAN.plans.find((plan) => plan.id === "plus")?.featureList || [];
+  const features = PRICING_PLAN.plans.find((plan) => plan.id === "pro")?.featureList || [];
   return <div className="revised-trial-gate">
-    <div className="onboarding-value-heading"><ShieldCheck size={20} /><div><strong>Unlock more of what FamOS can do.</strong><span>Subscribe to FamOS Plus for calendar sync, recipes, meal planning, smart tools, and FamAI. Your plan starts immediately and your household can return to FamOS Core after the paid term.</span></div></div>
-    <h3>FamOS Plus</h3>
+    <div className="onboarding-value-heading"><ShieldCheck size={20} /><div><strong>Try FamOS Pro for 7 days.</strong><span>Give your household access to calendar sync, recipes, meal planning and FamAI. Add your card securely to start. Keep Pro automatically, or cancel before the trial ends and return to the Free plan.</span></div></div>
+    <h3>FamOS Pro</h3>
     <ul className="revised-trial-features">{features.map((feature) => <li key={feature}><Check size={14} />{feature}</li>)}</ul>
-    <div className="revised-trial-price"><strong>{formatMoney(PRICING_PLAN.plans.find((plan) => plan.id === "plus")?.price.monthly || 0)}</strong><span>/month, charged today</span></div>
+    <div className="revised-trial-price"><strong>{formatMoney(PRICING_PLAN.plans.find((plan) => plan.id === "pro")?.price.monthly || 0)}</strong><span> CAD/month after your 7-day trial. Applicable taxes shown at checkout.</span></div>
     <div className="onboarding-promo-field"><label>Promo code</label><div className="onboarding-promo-row"><input value={promoCode} onChange={(event) => { setPromoCode(event.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, "")); setPromoApplied(false); }} placeholder="Have a promo code?" disabled={promoBusy || promoApplied} />{promoCode.trim().length >= 3 && !promoApplied && <button type="button" className="onboarding-promo-apply" disabled={promoBusy} onClick={async () => { setPromoBusy(true); setPromoResult(""); try { const { data, error } = await supabase.rpc("apply_my_promo_code", { promo_code: promoCode.trim() }); if (error) throw error; setPromoApplied(true); setPromoResult(data || "Promo code applied. Pro is unlocked."); } catch (error) { setPromoApplied(false); setPromoResult(error.message || "Invalid promo code."); } finally { setPromoBusy(false); } }}> {promoBusy ? "Applying…" : "Apply"}</button>}</div>{promoResult && <p className={`onboarding-promo-result ${promoApplied ? "success" : "error"}`}>{promoResult}</p>}</div>
     <p className="revised-trial-note">Secure checkout. Cancel future renewals anytime.</p>
   </div>;
 }
 
 function RevisedTrialConfirmation({ promo = false, onComplete }) {
-  const plusPlan = PRICING_PLAN.plans.find((plan) => plan.id === "plus");
-  return <div className="revised-trial-confirmation"><div className="onboarding-value-heading"><Check size={22} /><div><strong>You’re on {promo ? "FamOS Pro" : "FamOS Plus"}.</strong><span>{promo ? "Your promotional access is active now." : "Your paid access is active now."}</span></div></div><div className="revised-trial-summary"><div><span>Plan</span><strong>{promo ? "Promotional Pro" : "FamOS Plus"}</strong></div><div><span>{promo ? "Promotion" : "Charged today"}</span><strong>{promo ? "Applied" : formatMoney(plusPlan?.price.monthly || 0)}</strong></div><div><span>{promo ? "Access" : "Renews"}</span><strong>{promo ? "Per offer terms" : "Monthly until cancelled"}</strong></div></div><PrimaryButton type="button" onClick={onComplete}>Start Using FamOS</PrimaryButton><button type="button" className="revised-manual-schedule" onClick={() => window.location.assign("/settings")}>Manage Subscription</button></div>;
+  return <div className="revised-trial-confirmation"><div className="onboarding-value-heading"><Check size={22} /><div><strong>{promo ? "Your Pro promotion is applied." : "Your family setup is saved."}</strong><span>{promo ? "Access follows your offer terms." : "Check Settings for your confirmed subscription status and billing dates."}</span></div></div><PrimaryButton type="button" onClick={onComplete}>Start Using FamOS</PrimaryButton><button type="button" className="revised-manual-schedule" onClick={() => window.location.assign("/settings")}>Manage Subscription</button></div>;
 }
 
 function OwnerProfileStep(props) {
@@ -915,8 +923,8 @@ function OwnerProfileStep(props) {
 
         {props.step === 7 && <div className="onboarding-trial-step">
           <div className="onboarding-trial-card">
-            <h3>Subscribe to FamOS Plus</h3>
-            <p>Unlock Plus features immediately. Your selected plan is charged through secure Stripe checkout today. Cancel future renewals anytime.</p>
+            <h3>Try FamOS Pro for 7 days</h3>
+            <p>Add your card through secure Stripe checkout. Pro renews at CAD {PRICING_PLAN.plans.find(plan => plan.id === "pro")?.price.monthly}/month after 7 days unless you cancel renewal before the trial ends.</p>
             <div className="onboarding-trial-features">
               <span>Google & Outlook two-way sync</span>
               <span>Recipe discovery, meal planning, and Cook Mode</span>
@@ -978,7 +986,7 @@ function OwnerProfileStep(props) {
         onBack={() => props.setStep((step) => Math.max(0, step - 1))}
         onNext={next}
         onFinish={props.onSave}
-        finishLabel={props.promoApplied ? "Unlock FamOS Pro" : "Subscribe to Plus"}
+        finishLabel={props.promoApplied ? "Unlock FamOS Pro" : "Start 7-day Pro trial"}
       />
     </div>
   );

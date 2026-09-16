@@ -15,6 +15,8 @@ import '../../src/theme/contrast.css';
 import '../../src/theme/spacing.css';
 import '../../src/theme/scheme-accents.css';
 import '../../src/theme/dark-mode.css';
+import '../../src/components/billing-plans.css';
+import '../../src/components/navigation-shortcuts.css';
 function Preview(){
  const [dark,setDark]=useState(false),[editor,setEditor]=useState(null),[title,setTitle]=useState(''),[tasks,setTasks]=useState([]),[events,setEvents]=useState([]);
  useEffect(()=>{document.documentElement.dataset.famosTheme=dark?'dark':'light';return()=>delete document.documentElement.dataset.famosTheme;},[dark]);

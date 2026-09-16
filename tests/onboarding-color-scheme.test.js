@@ -23,7 +23,7 @@ test("revised owner onboarding includes the requested setup stages", () => {
   assert.match(auth, /Bring in your schedule/);
   assert.match(auth, /Build My FamOS/);
   assert.match(auth, /Unlock Full FamOS/);
-  assert.match(auth, /Start My 30-Day Free Trial/);
+  assert.match(auth, /Start 7-day Pro trial/);
 });
 
 test("family interests and schedule sources are persisted", () => {
@@ -36,8 +36,8 @@ test("family interests and schedule sources are persisted", () => {
 });
 
 test("trial messaging keeps Core available and uses hosted Stripe checkout", () => {
-  assert.match(auth, /your household can stay on FamOS Core/);
+  assert.match(auth, /Cancel renewal before the trial ends to return to Free/);
   assert.match(auth, /create-checkout-session/);
-  assert.match(auth, /You won’t be charged today/);
+  assert.match(auth, /No subscription charge today/);
   assert.match(app, /TrialConfirmationModal/);
 });

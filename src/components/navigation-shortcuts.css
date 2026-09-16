@@ -1,0 +1,8 @@
+.shortcut-editor {display:grid;gap:16px;color:var(--color-ink)}
+.shortcut-editor p {font-size:13px;line-height:1.5;color:var(--color-ink-soft)}
+.shortcut-editor label {display:grid;grid-template-columns:90px minmax(0,1fr);align-items:center;gap:12px;font-size:13px}
+.shortcut-editor select {min-height:44px;width:100%;padding:10px;border:1px solid var(--color-border);border-radius:var(--radius-control);background:var(--color-surface);color:var(--color-ink)}
+.shortcut-editor button {min-height:44px;border-radius:var(--radius-control)}
+.shortcut-reset {border:1px solid var(--color-border);color:var(--color-ink);background:var(--color-surface)}
+.reference-mobile-nav > button {min-width:0}
+.reference-mobile-nav > button > span {max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

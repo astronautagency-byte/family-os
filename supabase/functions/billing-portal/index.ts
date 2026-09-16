@@ -69,8 +69,10 @@ Deno.serve(async (req) => {
   if (membershipError || !membership?.household_id) {
     return respond({ error: "Household not found." }, 404);
   }
-  // Allow any household member to access the billing portal
-  // Stripe portal is scoped to the customer, so access is safe for all members.
+  const { data: household } = await admin.from("households").select("created_by").eq("id", membership.household_id).single();
+  if (household?.created_by !== userData.user.id && membership.role !== "owner") {
+    return respond({ error: "Only the household owner can manage billing." }, 403);
+  }
 
   const subRes = await admin
     .from("account_subscriptions")

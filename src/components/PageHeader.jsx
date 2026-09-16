@@ -18,7 +18,7 @@ export default function PageHeader({ eyebrow, title, titleIcon, subtitle, action
           {subtitle && <p className="page-subtitle">{subtitle}</p>}
           {liveHealth && <div className="page-header-live">{liveHealth}</div>}
         </div>
-        {(onAdd||action||FAMILY_ART[illustration])&&<div className="page-header-aside">{FAMILY_ART[illustration] && <FamilyIllustration variant={illustration} className="family-header-art" />}{action}{onAdd && <PageAddButton label={addLabel} onClick={onAdd}/>}</div>}
+        {(onAdd||action||FAMILY_ART[illustration])&&<div className="page-header-aside">{FAMILY_ART[illustration] && <FamilyIllustration variant={illustration} className="family-header-art" />}{(action||onAdd)&&<div className="page-header-actions">{action}{onAdd && <PageAddButton label={addLabel} onClick={onAdd}/>}</div>}</div>}
       </div>
     </header>
   );

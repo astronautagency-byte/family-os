@@ -21,7 +21,7 @@ import { classifySharedContent, SHARED_RECIPE_KEY, sharedRecipeTitle } from "./l
 import ErrorBoundary from "./components/ErrorBoundary";
 import FeaturePaywall from "./components/FeaturePaywall";
 import { PREMIUM_FEATURE_IDS } from "./data/billingCatalog";
-import { PRICING_PLAN, formatMoney } from "./data/pricingPlan";
+import { PRICING_PLAN } from "./data/pricingPlan";
 import { clearDesktopAuthState, expectedDesktopAuthState, isTauriRuntime, listenForDesktopAuth } from "./lib/desktopRuntime";
 import { finishDesktopAuthHandoff, redeemDesktopAuthHandoff } from "./lib/desktopAuth";
 import { IS_APP_STORE } from "./lib/distribution";
@@ -86,18 +86,37 @@ const TOUR_FEATURES = [
 ];
 
 function TrialConfirmationModal({ onClose, onManage }) {
-  const plusPlan = PRICING_PLAN.plans.find((plan) => plan.id === "plus");
+  const [subscription, setSubscription] = useState(null);
+  const [checked, setChecked] = useState(false);
+  useEffect(() => {
+    let disposed = false;
+    let timer;
+    const check = async (attempt = 0) => {
+      const { data, error } = await supabase.rpc("get_my_subscription").then(result => result).catch(error => ({data:null,error}));
+      const record = !error && data?.[0];
+      if (disposed) return;
+      if (record && ["trial", "trialing", "active"].includes(record.status)) {
+        setSubscription(record);
+        setChecked(true);
+      } else if (attempt < 4) timer = setTimeout(() => check(attempt + 1), 2000);
+      else setChecked(true);
+    };
+    check();
+    return () => { disposed = true; clearTimeout(timer); };
+  }, []);
+  const trial = ["trial", "trialing"].includes(subscription?.status);
+  const planName = PRICING_PLAN.plans.find(plan => plan.id === subscription?.plan)?.name || "FamOS";
   return (
     <div className="trial-confirmation-layer" role="presentation">
       <section className="trial-confirmation-card" role="dialog" aria-modal="true" aria-labelledby="trial-confirmation-title">
         <div className="trial-confirmation-mark"><ShieldCheck size={22} /></div>
-        <p className="feature-tour-eyebrow">FamOS Plus</p>
-        <h2 id="trial-confirmation-title">You’re on FamOS Plus.</h2>
-        <p className="trial-confirmation-copy">Your paid access is active now.</p>
+        <p className="feature-tour-eyebrow">Your subscription</p>
+        <h2 id="trial-confirmation-title">{subscription ? (trial ? "Your trial is active." : "Your access is active.") : "Confirming your access…"}</h2>
+        <p className="trial-confirmation-copy">{subscription ? (trial ? "Cancel renewal in Manage billing before your trial ends to return to Free without a subscription charge." : "Review your plan and renewal details in Settings.") : checked ? "Confirmation is taking a little longer. Check Settings before trying checkout again." : "Waiting for your subscription status. Please don’t submit another payment."}</p>
         <div className="trial-confirmation-summary">
-          <div><span>Plan</span><strong>FamOS Plus</strong></div>
-          <div><span>Charged today</span><strong>{formatMoney(plusPlan?.price.monthly || 0)}</strong></div>
-          <div><span>Renews</span><strong>Monthly until cancelled</strong></div>
+          <div><span>Plan</span><strong>{subscription ? planName : "Awaiting confirmation"}</strong></div>
+          {trial && subscription.trial_ends_at && <div><span>Trial ends</span><strong>{new Date(subscription.trial_ends_at).toLocaleDateString()}</strong></div>}
+          {subscription?.amount_cents > 0 && <div><span>{trial ? "After trial" : "Plan price"}</span><strong>{new Intl.NumberFormat(undefined, {style:"currency", currency:subscription.currency || "CAD"}).format(subscription.amount_cents / 100)} / {subscription.billing_interval || "month"}</strong></div>}
         </div>
         <button type="button" className="trial-confirmation-primary" onClick={onClose}>Start Using FamOS</button>
         <button type="button" className="trial-confirmation-secondary" onClick={onManage}>Manage Subscription</button>
@@ -779,7 +798,7 @@ export default function App() {
   return (
     <FamilyProvider tabletMode={effectiveTabletMode}>
       <div className={`app-shell ${darkMode ? "theme-dark" : ""} ${effectiveTabletMode ? "tablet-mode" : ""}`} data-color-scheme={colorScheme} ref={shellRef}>
-        <BottomNav childMode={childMode} active={visibleTab} onChange={setTab} onOpenAI={enabledFeatures.fam_ai && !childMode && !IS_APP_STORE && !effectiveTabletMode ? () => setFamAiOpen(true) : undefined} features={enabledFeatures} tabletMode={effectiveTabletMode} />
+        <BottomNav key={`${session?.user?.id}:${household?.id}:${childMode}`} preferenceKey={`${session?.user?.id || 'guest'}:${household?.id || 'local'}`} childMode={childMode} active={visibleTab} onChange={setTab} onOpenAI={enabledFeatures.fam_ai && !childMode && !IS_APP_STORE && !effectiveTabletMode ? () => setFamAiOpen(true) : undefined} features={enabledFeatures} tabletMode={effectiveTabletMode} />
         <main className="app-content">
           {childMode ? <header className="child-app-header"><strong>FamOS · Your family space</strong><button onClick={()=>supabase.auth.signOut()}>Sign out</button></header> : <AppTopBar
             onOpenSettings={() => setTab("settings")}

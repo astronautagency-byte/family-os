@@ -6,9 +6,11 @@ import { FREE_FEATURES, PLAN_FEATURES } from "../src/data/billingCatalog.js";
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const migration = read("supabase/migrations/202608230001_stripe_billing_cutover.sql");
 const checkout = read("supabase/functions/create-checkout-session/index.ts");
+const checkoutPolicy = read("supabase/functions/_shared/checkoutPolicy.ts");
 const webhook = read("supabase/functions/stripe-webhook/index.ts");
 const portal = read("supabase/functions/billing-portal/index.ts");
 const settings = read("src/pages/Settings.jsx");
+const billingPlans = read("src/components/BillingPlans.jsx");
 const app = read("src/App.jsx");
 
  test("core household tools remain free", () => {
@@ -25,10 +27,12 @@ test("Plus and Pro match the published pricing catalog", () => {
 });
 
 test("Stripe checkout is owner-only, price-configured, and trial-aware", () => {
-  assert.match(checkout, /Only the household owner can change billing/);
+  assert.match(checkout, /Only the household owner can start or change billing/);
   assert.match(checkout, /STRIPE_PRICE_PLUS_MONTHLY/);
   assert.match(checkout, /STRIPE_PRICE_PRO_YEARLY/);
-  assert.match(checkout, /trial_period_days: 30/);
+  assert.match(checkoutPolicy, /trial_period_days:\s*7/);
+  assert.match(checkout, /payment_method_collection: "always"/);
+  assert.match(checkout, /idempotencyKey:checkoutIdempotencyKey/);
   assert.match(checkout, /allow_promotion_codes: true/);
   assert.doesNotMatch(app, /STRIPE_SECRET_KEY/);
 });
@@ -50,8 +54,8 @@ test("Stripe customer portal stays server-side and owner-scoped", () => {
 test("billing upgrades use isolated progress states and Stripe-only client calls", () => {
   assert.match(settings, /const \[billingBusy, setBillingBusy\] = useState\(null\)/);
   assert.match(settings, /setBillingBusy\(feature\)/);
-  assert.match(settings, /billingBusy === "plus" \? "Processing…"/);
-  assert.match(settings, /billingBusy === "pro" \? "Processing…"/);
+  assert.match(billingPlans, /busy===plan.id\?'Opening checkout…'/);
+  assert.match(billingPlans, /PRICING_PLAN.plans.map/);
   assert.match(settings, /supabase\.functions\.invoke\("create-checkout-session"/);
   assert.match(settings, /supabase\.functions\.invoke\("billing-portal"/);
   assert.doesNotMatch(settings, /chargebee/i);

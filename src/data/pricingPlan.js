@@ -52,7 +52,7 @@ export const PRICING_PLAN = {
       isPopular: true,
     },
   ],
-  trial: { days: 0, cardRequired: true, fullFeatureAccess: false },
+  trial: { days: 7, cardRequired: true, fullFeatureAccess: true, plan: 'pro' },
   get basePlan() { return this.plans[0]; },
   get paidPlans() { return this.plans.slice(1); },
 };

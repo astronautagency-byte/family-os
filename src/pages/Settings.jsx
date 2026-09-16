@@ -1,4 +1,5 @@
 import CustomizeFamOS from "../components/CustomizeFamOS";
+import BillingPlans from '../components/BillingPlans';
 import IllustratedAvatarPicker from '../components/IllustratedAvatarPicker';
 import React, { useEffect, useRef, useState } from "react";
 import { AlertCircle, Bell, Bug, Camera, CalendarDays, Check, CheckCircle2, ChevronRight, Clipboard, Eye, EyeOff, ExternalLink, ImagePlus, Info, Lightbulb, Link2, LoaderCircle, Mail, MapPin, Megaphone, Palette, Pencil, Phone, Plus, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Ticket, Trash2, Upload, Users, Utensils, X } from "../components/icons";
@@ -26,8 +27,7 @@ const SETTINGS_TABS = [
   ["integrations", "Integrations"],
   ["support", "Support"],
 ].filter(([id]) => !IS_APP_STORE || id !== "billing");
-import { PRICING_PLAN, formatMoney } from "../data/pricingPlan";
-import { PREMIUM_FEATURES, PLAN_FEATURES, FEATURE_COMPARISON } from "../data/billingCatalog";
+import { FEATURE_COMPARISON } from "../data/billingCatalog";
 import { supabase } from "../lib/supabase";
 import AddressAutocomplete from "../components/AddressAutocomplete";
 import { formatPhoneInput, isValidPhoneNumber, normalizePhoneE164 } from "../utils/phone";
@@ -923,21 +923,20 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
     }
     setNotificationTestStatus("Open this site’s permissions from the icon beside the address bar, allow Notifications, then reload FamOS.");
   };
-  const includedMembers = PRICING_PLAN.basePlan.membersIncluded;
   const isMasterOwner = household?.created_by
     ? household.created_by === user?.id
     : household?.role === "owner" || household?.role === undefined;
   // Owner manages the household name + everything; any parent/guardian can add
   // the shared home location & dietary preferences (children cannot).
   const canEditHome = isMasterOwner || memberProfile?.profileType !== "child";
-  const extraMembers = Math.max(0, members.length - includedMembers);
-  const estimatedMonthlyPlan = PRICING_PLAN.basePlan.price.monthly + extraMembers * PRICING_PLAN.basePlan.additionalMemberPrice.monthly;
 
   // ── Subscription status (Stripe-backed) ──
   // Pulls the household's real subscription via get_my_subscription so the
   // Plan & billing card can show a status badge, payment method, and
   // next-charge date instead of the static PRICING_PLAN values.
   const [subscription, setSubscription] = useState(null);
+  const [subscriptionLoaded, setSubscriptionLoaded] = useState(false);
+  const [subscriptionError, setSubscriptionError] = useState(false);
   const [usageStatus, setUsageStatus] = useState(null);
   // Track the specific billing action so only the clicked control shows progress.
   const [billingBusy, setBillingBusy] = useState(null);
@@ -950,12 +949,6 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
   // Billing cadence offered on checkout — monthly is default; yearly pre-pays
   // the full year through Stripe's yearly price.
   const [billingInterval, setBillingInterval] = useState("monthly");
-
-  const planFeature = (() => {
-    if (!subscription?.plan || subscription.plan === "core" || subscription.plan === "family") return null;
-    const itemId = subscription.plan;
-    return PLAN_FEATURES.find((plan) => itemId.includes(plan.id)) || null;
-  })();
 
   // Auto-select the manual-mode clipboard textarea on mount so the
   // user lands with text already selected — next long-press → Copy
@@ -973,10 +966,14 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
           supabase.rpc("get_my_subscription"),
           supabase.functions.invoke("usage-status"),
         ]);
-        if (!cancelled && !subscriptionResult.error && subscriptionResult.data?.[0]) setSubscription(subscriptionResult.data[0]);
+        if (!cancelled) {
+          setSubscriptionLoaded(true);
+          setSubscriptionError(Boolean(subscriptionResult.error));
+          if (!subscriptionResult.error) setSubscription(subscriptionResult.data?.[0] || null);
+        }
         if (!cancelled && !usageResult.error && usageResult.data) setUsageStatus(usageResult.data);
       } catch {
-        // * — subscription is optional; missing RPC must not break Settings.
+        if (!cancelled) { setSubscriptionLoaded(true); setSubscriptionError(true); }
       }
     })();
     return () => { cancelled = true; };
@@ -1001,13 +998,13 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
     }
   };
 
-  const addPaidFeature = async (feature, billing = "monthly") => {
+  const addPaidFeature = async (feature, billing = "monthly", onboarding = false) => {
     console.log("[billing] addPaidFeature called:", { feature, billing });
     setBillingError("");
     setBillingBusy(feature);
     try {
       console.log("[billing] invoking create-checkout-session...");
-      const result = await supabase.functions.invoke("create-checkout-session", { body: { feature, billing } });
+      const result = await supabase.functions.invoke("create-checkout-session", { body: { feature, billing, onboarding } });
       console.log("[billing] edge function returned:", JSON.stringify({ hasData: !!result.data, hasError: !!result.error, dataKeys: result.data ? Object.keys(result.data) : null, errorMessage: result.error?.message }));
       const { data, error } = result;
       if (error) {
@@ -1073,6 +1070,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
 
   const nextChargeLabel = (() => {
     if (!subscription) return null;
+    if (subscription.cancel_at_period_end) return `Renewal cancelled · returns to Free ${formatNextCharge(subscription.trial_ends_at || subscription.current_period_ends_at) || "at the end of this period"}`;
     if (subscription.status === "trial" || subscription.status === "trialing") {
       return formatNextCharge(subscription.trial_ends_at) ? `First charge after trial · ${formatNextCharge(subscription.trial_ends_at)}` : "First charge after trial";
     }
@@ -1254,86 +1252,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
         {!IS_APP_STORE && <section data-tab="billing">
           <h2 className="settings-section-title mb-3">💳 Plan & billing</h2>
           <Card className="p-4">
-            {/* Current plan header */}
-            <div className="flex items-start gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0">
-                <Users size={18} color="var(--color-accent)" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-medium text-[14.5px] text-[var(--color-ink)]">
-                  {planFeature ? planFeature.name : "FamOS Free"}
-                  {subStatusBadge && <span className="ml-2 inline-block rounded-full bg-[var(--color-accent-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--color-accent)]">{subStatusBadge.label}</span>}
-                </p>
-                <p className="text-[12.5px] text-[var(--color-ink-soft)] mt-0.5">
-                  {planFeature ? planFeature.tagline : "Calendar, Tasks, Shopping, Chat and Kitchen Watch are free"}
-                </p>
-              </div>
-              {!planFeature && (
-                <div className="text-right">
-                  <p className="font-[var(--font-display)] text-[22px] font-bold text-[var(--color-ink)]">$0</p>
-                  <p className="text-[11px] text-[var(--color-ink-faint)]">free</p>
-                </div>
-              )}
-            </div>
-
-            {/* Stripe checkout is intentionally absent from the Mac App Store build. */}
-            {IS_MAC_APP_STORE ? (
-              <div className="flex items-start gap-2 rounded-xl bg-[var(--color-surface-sunken)] px-3 py-3 mb-4 text-[12.5px] text-[var(--color-ink-soft)]">
-                <ShieldCheck size={15} className="mt-0.5 shrink-0 text-[var(--color-accent)]" />
-                <span>This Mac app reflects the plan access already associated with your FamOS account.</span>
-              </div>
-            ) : <>
-            <div className="flex items-center gap-2 mb-4" role="group" aria-label="Billing cadence">
-              <span className="text-[12.5px] font-medium text-[var(--color-ink-soft)]">Pay</span>
-              <div className="billing-cadence-toggle">
-                <button type="button" className={billingInterval === "monthly" ? "selected" : ""} onClick={() => setBillingInterval("monthly")}>Monthly</button>
-                <button type="button" className={billingInterval === "yearly" ? "selected" : ""} onClick={() => setBillingInterval("yearly")}>Yearly · save 17%</button>
-              </div>
-            </div>
-
-            {/* Plan cards with pricing */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-              {/* Free plan */}
-              <div className={`rounded-xl border ${!planFeature ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)]' : 'border-[var(--color-border)] bg-[var(--color-surface)]'} p-3`}>
-                <p className="font-semibold text-[14px] text-[var(--color-ink)]">FamOS Free</p>
-                <p className="font-[var(--font-display)] text-[24px] font-bold text-[var(--color-ink)] mt-1">$0</p>
-                <p className="text-[11px] text-[var(--color-ink-faint)]">forever free</p>
-                <p className="text-[12px] text-[var(--color-ink-soft)] mt-2">Core household tools</p>
-              </div>
-
-              {/* Plus plan */}
-              <div className={`rounded-xl border ${planFeature?.id === 'plus' ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)]' : 'border-[var(--color-border)] bg-[var(--color-surface)]'} p-3`}>
-                <p className="font-semibold text-[14px] text-[var(--color-ink)]">FamOS Plus</p>
-                <p className="font-[var(--font-display)] text-[24px] font-bold text-[var(--color-accent)] mt-1">${billingInterval === "yearly" ? "149" : "14.99"}<span className="text-[12px] font-normal text-[var(--color-ink-faint)]">/{billingInterval === "yearly" ? "yr" : "mo"}</span></p>
-                <p className="text-[11px] text-[var(--color-ink-faint)]">{billingInterval === "yearly" ? "$12.42/mo equivalent" : "$149/year (save 17%)"}</p>
-                <p className="text-[12px] text-[var(--color-ink-soft)] mt-2">Calendar sync, recipes, meal planning</p>
-                {(!planFeature || planFeature.id !== 'plus') && (
-                  <button type="button" className="mt-3 w-full rounded-lg bg-[var(--color-accent)] text-white text-[13px] font-semibold py-2 px-3 hover:opacity-90 transition-opacity disabled:opacity-40" onClick={() => addPaidFeature('plus', billingInterval)} disabled={billingBusy !== null}>
-                    {billingBusy === "plus" ? "Processing…" : `Upgrade to Plus (${billingInterval === "yearly" ? "yearly" : "monthly"})`}
-                  </button>
-                )}
-                {planFeature?.id === 'plus' && (
-                  <span className="mt-3 block text-center text-[12px] font-semibold text-[var(--color-accent)]">Current plan</span>
-                )}
-              </div>
-
-              {/* Pro plan */}
-              <div className={`rounded-xl border ${planFeature?.id === 'pro' ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)]' : 'border-[var(--color-border)] bg-[var(--color-surface)]'} p-3`}>
-                <p className="font-semibold text-[14px] text-[var(--color-ink)]">FamOS Pro</p>
-                <p className="font-[var(--font-display)] text-[24px] font-bold text-[var(--color-accent)] mt-1">${billingInterval === "yearly" ? "199" : "19.99"}<span className="text-[12px] font-normal text-[var(--color-ink-faint)]">/{billingInterval === "yearly" ? "yr" : "mo"}</span></p>
-                <p className="text-[11px] text-[var(--color-ink-faint)]">{billingInterval === "yearly" ? "$19.99/mo equivalent" : "$199/year (save 17%)"}</p>
-                <p className="text-[12px] text-[var(--color-ink-soft)] mt-2">Higher limits, priority support</p>
-                {(!planFeature || planFeature.id !== 'pro') && (
-                  <button type="button" className="mt-3 w-full rounded-lg bg-[var(--color-accent)] text-white text-[13px] font-semibold py-2 px-3 hover:opacity-90 transition-opacity disabled:opacity-40" onClick={() => addPaidFeature('pro', billingInterval)} disabled={billingBusy !== null}>
-                    {billingBusy === "pro" ? "Processing…" : `Upgrade to Pro (${billingInterval === "yearly" ? "yearly" : "monthly"})`}
-                  </button>
-                )}
-                {planFeature?.id === 'pro' && (
-                  <span className="mt-3 block text-center text-[12px] font-semibold text-[var(--color-accent)]">Current plan</span>
-                )}
-              </div>
-            </div>
-            </>}
+            <BillingPlans subscription={subscription} loaded={subscriptionLoaded} error={subscriptionError} isOwner={isMasterOwner && !IS_MAC_APP_STORE} busy={billingBusy} interval={billingInterval} onInterval={setBillingInterval} onCheckout={addPaidFeature} onManage={openBillingPortal}/>
 
             {/* Feature comparison table */}
             <div className="overflow-x-auto">
@@ -1440,7 +1359,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
               </div>
             )}
 
-            {!IS_MAC_APP_STORE && <SecondaryButton onClick={openBillingPortal} disabled={billingBusy !== null} className="mt-3">
+            {!IS_MAC_APP_STORE && <SecondaryButton onClick={openBillingPortal} disabled={!isMasterOwner || billingBusy !== null || !subscriptionLoaded || subscriptionError} className="mt-3">
               {billingBusy === "portal" ? "Opening billing portal…" : "Manage billing"}
             </SecondaryButton>}
             {!IS_MAC_APP_STORE && billingError && <div className="text-[12px] text-[var(--color-warn)] mt-2">{billingError}</div>}
