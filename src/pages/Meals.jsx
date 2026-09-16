@@ -960,6 +960,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
         {features.recipes&&recipeBookOpen&&<RecipeBook onClose={()=>setRecipeBookOpen(false)} onCook={openSavedRecipe}/>}
         <div className="meal-range-toggle" aria-label="Meal planning range"><button className={horizon===7?"selected":""} onClick={()=>setHorizon(7)}>1 week</button><button className={horizon===14?"selected":""} onClick={()=>setHorizon(14)}>2 weeks</button></div>
         <button className="meal-plan-share" onClick={shareMealPlan} aria-label="Share meal plan" title="Share the meal plan"><Share2 size={15}/> Share</button>
+        {household?.role==='owner'&&features.family_packs!==false&&<button className="meal-plan-share" onClick={()=>window.location.assign('/packs?kind=meals')}><Share2 size={15}/> Share Family Pack</button>}
       </div>
 
       {listView}

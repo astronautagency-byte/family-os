@@ -1,16 +1,26 @@
 import {it,expect,vi,afterEach} from 'vitest';
 import {render,screen,cleanup,fireEvent,within,waitFor} from '@testing-library/react';
 import RecipeBook from '../RecipeBook';
-const mocks=vi.hoisted(()=>({remove:vi.fn(),invoke:vi.fn(),insert:vi.fn(),read:vi.fn(),row:{id:'recipe',created_by:'alex',title:'Pancakes',recipe:{ingredients:['Flour'],instructions:['Mix'],readyInMinutes:15,sourceUrl:'https://example.com/pancakes',sourceName:'Example Kitchen',thumbnail:'https://example.com/photo.jpg'}}}));
+const mocks=vi.hoisted(()=>({remove:vi.fn(),invoke:vi.fn(),insert:vi.fn(),update:vi.fn(),read:vi.fn(),row:{id:'recipe',created_by:'alex',title:'Pancakes',recipe:{ingredients:['Flour'],instructions:['Mix'],readyInMinutes:15,sourceUrl:'https://example.com/pancakes',sourceName:'Example Kitchen',thumbnail:'https://example.com/photo.jpg'}}}));
 vi.mock('../../context/AuthContext',()=>({useAuth:()=>({user:{id:'alex'},household:{id:'home'}})}));
 vi.mock('../../context/FamilyContext',()=>({useFamily:()=>({meals:[],setMealForSlot:vi.fn()})}));
 vi.mock('../../lib/recipeImport',async importOriginal=>({...await importOriginal(),readRecipePhotos:(...args)=>mocks.read(...args)}));
 vi.mock('../../lib/supabase',()=>({supabase:{functions:{invoke:(...args)=>mocks.invoke(...args)},from:()=>({
  select:()=>({eq:()=>({order:async()=>({data:[mocks.row]})})}),
  delete:()=>{const chain={eq:vi.fn(()=>chain),select:()=>mocks.remove()};return chain;},
+ update:payload=>{mocks.update(payload);const chain={eq:()=>chain,select:()=>({single:async()=>({data:{...mocks.row,...payload}})})};return chain;},
  insert:payload=>{mocks.insert(payload);return {select:()=>({single:async()=>({data:{id:'new',...payload}})})};}
 })}}));
 afterEach(()=>{cleanup();vi.clearAllMocks();});
+it('edits the saved household copy without inserting another recipe',async()=>{
+ render(<RecipeBook onClose={()=>{}}/>);fireEvent.click(await screen.findByRole('button',{name:'Edit recipe'}));
+ expect(screen.getByLabelText('Recipe name')).toHaveValue('Pancakes');
+ fireEvent.change(screen.getByLabelText('Ingredients — one per line, including quantities'),{target:{value:'2 cups flour'}});
+ fireEvent.click(screen.getByRole('button',{name:'Save changes'}));
+ await waitFor(()=>expect(screen.queryByRole('button',{name:'Save changes'})).toBeNull());
+ expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({recipe:expect.objectContaining({ingredients:['2 cups flour'],sourceUrl:'https://example.com/pancakes'})}));
+ expect(mocks.insert).not.toHaveBeenCalled();
+});
 it('uses labelled inputs, source links, thumbnails and shared icon actions',async()=>{
  const onCook=vi.fn(),onClose=vi.fn();render(<RecipeBook onCook={onCook} onClose={onClose}/>);
  const open=await screen.findByRole('button',{name:'Open recipe'});

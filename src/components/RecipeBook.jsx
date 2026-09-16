@@ -1,7 +1,7 @@
 import ConfirmAction from './ConfirmAction';
 import RecipeThumbnail from './RecipeThumbnail';
 import {useHouseholdFeatures} from '../context/HouseholdFeaturesContext';
-import {useEffect,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import {useAuth} from '../context/AuthContext';
 import {useFamily} from '../context/FamilyContext';
 import {todayISO} from '../lib/dates';
@@ -17,6 +17,9 @@ export default function RecipeBook({onClose,onCook,standalone=false}){
  const Shell=standalone?InlineRecipeBook:Modal;
  const {meals=[],setMealForSlot}=useFamily();
  const [deleting,setDeleting]=useState(null),[deleteError,setDeleteError]=useState(''),[preparing,setPreparing]=useState(false);
+ const [editingId,setEditingId]=useState(null);
+ const editorRef=useRef(null);
+ useEffect(()=>{if(editingId)editorRef.current?.querySelector('input')?.focus();},[editingId]);
  const [plan,setPlan]=useState(null),[planDate,setPlanDate]=useState(todayISO()),[planSlot,setPlanSlot]=useState('dinner');
  const [recipes,setRecipes]=useState([]),[draft,setDraft]=useState(null),[url,setUrl]=useState(''),[photos,setPhotos]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[search,setSearch]=useState(''),[loaded,setLoaded]=useState(false);
  useEffect(()=>{let cancelled=false;if(!household?.id){setError('Sign in to a household to use Recipe Book.');return;}
@@ -28,9 +31,11 @@ export default function RecipeBook({onClose,onCook,standalone=false}){
  }catch(e){setError(e.message);}finally{setBusy(false);}}
  async function save(){setBusy(true);setError('');try{
   const recipe=draftToRecipe(draft);
-  if(recipes.some(r=>r.title.trim().toLowerCase()===recipe.title.toLowerCase()))throw Error('A recipe with this name is already in your book. Give this version a distinct name before saving.');
-  const {data,error}=await supabase.from('household_recipes').insert({household_id:household.id,created_by:user.id,title:recipe.title,recipe:{...recipe,sourcePhotos:photos}}).select().single();if(error)throw error;
-  setRecipes(current=>[data,...current]);setDraft(null);setPhotos([]);setUrl('');
+  if(recipes.some(r=>r.id!==editingId&&r.title.trim().toLowerCase()===recipe.title.toLowerCase()))throw Error('A recipe with this name is already in your book. Give this version a distinct name before saving.');
+  const payload={title:recipe.title,recipe:{...recipe,sourcePhotos:photos}};
+  const query=editingId?supabase.from('household_recipes').update(payload).eq('id',editingId).eq('household_id',household.id).eq('created_by',user.id):supabase.from('household_recipes').insert({household_id:household.id,created_by:user.id,...payload});
+  const {data,error}=await query.select().single();if(error)throw error;
+  setRecipes(current=>editingId?current.map(row=>row.id===editingId?data:row):[data,...current]);if(editingId)setPlan(current=>current?.id===editingId?data:current);setEditingId(null);setDraft(null);setPhotos([]);setUrl('');
  }catch(e){setError(e.message || 'Could not save. Your recipe is still here.');}finally{setBusy(false);}}
  async function deleteRecipe(){
   if(!deleting||busy)return;
@@ -46,7 +51,7 @@ export default function RecipeBook({onClose,onCook,standalone=false}){
  }
  const visible=recipes.filter(r=>(r.title+' '+(r.recipe.ingredients || []).join(' ')).toLowerCase().includes(search.toLowerCase()));
  return <Shell open title="Recipe Book" onClose={()=>!busy&&!preparing&&onClose?.()}><div className="recipe-book">
-  <header className="recipe-book-welcome"><span><BookOpen size={18}/> YOUR FAMILY RECIPE BOOK</span><h3>Your family’s next favourite.</h3><p>Turn a link or a recipe photo into something you can cook again.</p></header>
+  <header className="recipe-book-welcome"><span><BookOpen size={18}/> YOUR FAMILY RECIPE BOOK</span><h3>Your family’s next favourite.</h3><p>Turn a link or a recipe photo into something you can cook again.</p>{household?.role==='owner'&&features.family_packs!==false&&<a href="/packs?kind=recipes">Share recipes with another family</a>}</header>
   {error&&<p role="alert">{error}</p>}
   {preparing&&<p role="status">Preparing photos…</p>}
   {loaded&&<fieldset disabled={busy||preparing}>
@@ -60,18 +65,18 @@ export default function RecipeBook({onClose,onCook,standalone=false}){
    </section>:<section><h3><ScanText size={20}/> Review before saving</h3><p className="recipe-book-note">Check every quantity, temperature, and step against the original. Missing or unclear details must be corrected before cooking.</p>
     {safeRecipeUrl(draft.sourceUrl)&&<a href={safeRecipeUrl(draft.sourceUrl)} target="_blank" rel="noopener noreferrer">View original recipe</a>}
     <div className="recipe-book-photos">{photos.map((photo,i)=><img key={i} src={photo} alt={`Original recipe page ${i+1}`}/>)}</div>
-    <form onSubmit={e=>{e.preventDefault();save();}}>
+    <form ref={editorRef} onSubmit={e=>{e.preventDefault();save();}}>
      <label>Recipe name<input required maxLength="200" value={draft.title} onChange={e=>setDraft({...draft,title:e.target.value})}/></label>
      <div className="recipe-book-actions"><label>Servings<input type="number" min="1" value={draft.servings || ''} onChange={e=>setDraft({...draft,servings:e.target.value})}/></label><label>Total minutes<input type="number" min="1" value={draft.readyInMinutes || ''} onChange={e=>setDraft({...draft,readyInMinutes:e.target.value})}/></label></div>
      <label>Ingredients — one per line, including quantities<textarea required rows="7" value={draft.ingredients} onChange={e=>setDraft({...draft,ingredients:e.target.value})}/></label>
      <label>Cooking steps — one per line<textarea required rows="8" value={draft.instructions} onChange={e=>setDraft({...draft,instructions:e.target.value})}/></label>
      <label>Notes and unclear details<textarea rows="3" value={draft.notes} onChange={e=>setDraft({...draft,notes:e.target.value})}/></label>
-     <div className="recipe-book-actions"><PrimaryButton type="submit"><Bookmark size={17}/> Save to Recipe Book</PrimaryButton><SecondaryButton type="button" onClick={()=>setDraft(null)}>Back to source</SecondaryButton></div>
+     <div className="recipe-book-actions"><PrimaryButton type="submit"><Bookmark size={17}/> {editingId?'Save changes':'Save to Recipe Book'}</PrimaryButton><SecondaryButton type="button" onClick={()=>{setDraft(null);if(editingId){setEditingId(null);setPhotos([]);}}}>{editingId?'Cancel editing':'Back to source'}</SecondaryButton></div>
     </form>
    </section>}
    <section><h3><BookOpen size={20}/> Your recipes</h3><label><span className="recipe-book-label"><Search size={16}/> Find a recipe</span><input type="search" placeholder="Search by name or ingredient" value={search} onChange={e=>setSearch(e.target.value)}/></label>
     {!visible.length&&<p>{recipes.length?'No recipes match your search.':'Your family’s recipe collection starts here.'}</p>}
-    <div className="recipe-book-grid">{visible.map(row=><article key={row.id}><RecipeThumbnail recipe={row.recipe}/><span className="recipe-book-category"><BookOpen size={16}/> FAMILY RECIPE</span><h4>{row.title}</h4>{safeRecipeUrl(row.recipe.sourceUrl)&&<a className="recipe-book-source" href={safeRecipeUrl(row.recipe.sourceUrl)} target="_blank" rel="noopener noreferrer"><ExternalLink size={14}/>{row.recipe.sourceName || new URL(row.recipe.sourceUrl).hostname}</a>}<p className="recipe-book-meta"><ListChecks size={15}/>{row.recipe.ingredients?.length || 0} ingredients{row.recipe.readyInMinutes?` · ${row.recipe.readyInMinutes} min`:''}</p><div className="recipe-book-card-actions"><SecondaryButton onClick={()=>{onClose?.();onCook({...row.recipe,id:row.id});}}><ChefHat size={17}/> Open recipe</SecondaryButton>{features.meals&&<SecondaryButton onClick={()=>setPlan(row)}><CalendarPlus size={17}/> Plan meal</SecondaryButton>}{row.created_by===user?.id&&<SecondaryButton className="recipe-book-delete" onClick={()=>{setDeleting(row);setDeleteError('');}}><Trash2 size={16}/> Delete recipe</SecondaryButton>}</div>{row.recipe.sourcePhotos?.length>0&&<details><summary>Original photos</summary><div className="recipe-book-photos">{row.recipe.sourcePhotos.map((p,i)=><img key={i} src={p} alt={`Source page ${i+1}`}/>)}</div></details>}</article>)}</div>
+    <div className="recipe-book-grid">{visible.map(row=><article key={row.id}><RecipeThumbnail recipe={row.recipe}/><span className="recipe-book-category"><BookOpen size={16}/> FAMILY RECIPE</span><h4>{row.title}</h4>{safeRecipeUrl(row.recipe.sourceUrl)&&<a className="recipe-book-source" href={safeRecipeUrl(row.recipe.sourceUrl)} target="_blank" rel="noopener noreferrer"><ExternalLink size={14}/>{row.recipe.sourceName || new URL(row.recipe.sourceUrl).hostname}</a>}<p className="recipe-book-meta"><ListChecks size={15}/>{row.recipe.ingredients?.length || 0} ingredients{row.recipe.readyInMinutes?` · ${row.recipe.readyInMinutes} min`:''}</p><div className="recipe-book-card-actions"><SecondaryButton onClick={()=>{onClose?.();onCook({...row.recipe,id:row.id});}}><ChefHat size={17}/> Open recipe</SecondaryButton>{features.meals&&<SecondaryButton onClick={()=>setPlan(row)}><CalendarPlus size={17}/> Plan meal</SecondaryButton>}{row.created_by===user?.id&&<><SecondaryButton onClick={()=>{setEditingId(row.id);setDraft(recipeToDraft({...row.recipe,title:row.title}));setPhotos(row.recipe.sourcePhotos||[]);setError('');}}><Pencil size={16}/> Edit recipe</SecondaryButton><SecondaryButton className="recipe-book-delete" onClick={()=>{setDeleting(row);setDeleteError('');}}><Trash2 size={16}/> Delete recipe</SecondaryButton></>}</div>{row.recipe.sourcePhotos?.length>0&&<details><summary>Original photos</summary><div className="recipe-book-photos">{row.recipe.sourcePhotos.map((p,i)=><img key={i} src={p} alt={`Source page ${i+1}`}/>)}</div></details>}</article>)}</div>
    </section>
   </fieldset>}
  <ConfirmAction open={!!deleting} onClose={()=>{setDeleting(null);setDeleteError('');}} onConfirm={deleteRecipe} busy={busy} title="Delete recipe?" confirmLabel="Delete recipe" copy={<>{`Remove “${deleting?.title || ''}” from your family's Recipe Book? This cannot be undone. Meals already planned from it keep their saved copy.`}{deleteError&&<span role="alert">{deleteError}</span>}</>}/>

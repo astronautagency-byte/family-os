@@ -41,6 +41,7 @@ import {useHouseholdFeatures} from "./context/HouseholdFeaturesContext";
 import {resolveFeatures,featureRoute} from "./lib/householdFeatures";
 import {allowedTab, isChildAccount} from "./lib/childExperience";
 const RecipeBookPage = lazy(() => import("./pages/RecipeBookPage"));
+const FamilyPacks = lazy(() => import("./pages/FamilyPacks"));
 const Rewards = lazy(() => import("./components/RewardBank"));
 const Tasks = lazy(() => import("./pages/Tasks"));
 const Settings = lazy(() => import("./pages/Settings"));
@@ -233,7 +234,7 @@ const PageErrorFallback = ({ retry, reloadLatest, goToday }) => {
   );
 };
 const VALID_TABS = ["recipes","rewards","today","calendar","meals","tasks","groceries","kitchen","chat","famai","settings"];
-const PUBLIC_ROUTES = ["privacy", "terms", "contact", "pricing", "signin", "signup", "download"];
+const PUBLIC_ROUTES = ["privacy", "terms", "contact", "pricing", "signin", "signup", "download", "packs"];
 const ROUTE_ALIASES = { "sign-in": "signin", "lsign-in": "signin", "sign-up": "signup", "partners": "partner", "app/admin": "admin" };
 const VALID_ROUTES = [...VALID_TABS, "landing", "admin", "partner", "partners", ...PUBLIC_ROUTES];
 const FEATURES_PATH_REGEX = /^\/features(?:\/([a-z-]+))?\/?$/i;
@@ -265,6 +266,8 @@ function ensureCorrectDomain(session) {
   // isolated per origin. Never redirect while the marketing origin is clearing
   // a stale session left behind from an earlier visit.
   if (signedOutHandoff) return;
+  // Shared pack tokens live in the fragment; keep previews on their current origin.
+  if (pathRoute() === 'packs') return;
 
   // The public homepage is canonical at https://fam-os.app/. Keep the old
   // /landing path working for existing bookmarks, but remove it from the URL.
@@ -352,6 +355,16 @@ export default function App() {
   const shellRef = useRef(null);
   const { configured, session, household, householdProfile, memberProfile, loading, passwordRecovery, onboardingRequired, accountReady, founderWelcomeSeen, featureTourSeen, markFounderWelcomeSeen, markFeatureTourSeen } = useAuth();
   const childMode = isChildAccount(household, memberProfile);
+  useEffect(() => {
+    if (!session || !household || onboardingRequired || loading || pathRoute() === 'packs') return;
+    try {
+      const token=sessionStorage.getItem('famos:pending-pack');
+      if (/^[a-f0-9]{64}$/.test(token || '')) {
+        sessionStorage.removeItem('famos:pending-pack');
+        window.location.assign(`/packs#${token}`);
+      }
+    } catch { /* The original link remains usable when storage is unavailable. */ }
+  }, [session,household,onboardingRequired,loading]);
   const preferences = useHouseholdFeatures();
   const enabledFeatures = resolveFeatures(preferences.features,runtimeConfig.features);
   const visibleTab = featureRoute(tab, childMode, enabledFeatures);
@@ -771,6 +784,7 @@ export default function App() {
   // relying on an external-browser handoff that can be blocked by the macOS
   // App Sandbox while leaving the browser/PWA authentication flow unchanged.
   if (configured && !session && IS_APP_STORE && isTauriRuntime()) return <SignIn key="native-signin" initialCreating={false} />;
+  if (publicRoute === "packs" && !["suspended", "disabled"].includes(runtimeConfig.status)) return <Suspense fallback={<PageFallback />}><FamilyPacks /></Suspense>;
   if (publicRoute === "admin") return <Suspense fallback={<PageFallback />}><Admin /></Suspense>;
   if (publicRoute === "partner") return <Suspense fallback={<PageFallback />}><Partner /></Suspense>;
   if (publicRoute === "features") return <Suspense fallback={<PageFallback />}><Features /></Suspense>;

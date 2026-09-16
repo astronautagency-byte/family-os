@@ -4,6 +4,7 @@ export const PAGE_OPTIONS = [
 ];
 export const FEATURE_OPTIONS = [
  ['fam_ai','FamAI'],['insights','Insights'],['celebrations','Celebrations'],['routine_suggestions','Routine suggestions'],
+ ['family_packs','Family Packs'],
 ];
 export const DEFAULT_FEATURES = Object.fromEntries([...PAGE_OPTIONS,...FEATURE_OPTIONS].map(([key])=>[key,true]));
 export const normalizeFeatures = value => Object.fromEntries(Object.keys(DEFAULT_FEATURES).map(key=>[key,value?.[key]!==false]));
