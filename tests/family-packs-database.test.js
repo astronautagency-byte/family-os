@@ -23,7 +23,10 @@ test('Family Packs database permissions, sanitization, atomic imports and revoca
  insert into public.profiles values('${owner}'),('${recipient}'),('${child}');
  insert into public.households values('${h1}'),('${h2}');
  insert into public.household_members values('${h1}','${owner}','owner'),('${h2}','${recipient}','owner'),('${h1}','${child}','member');`);
+ // Match Supabase's default direct role grants, not only PostgreSQL PUBLIC grants.
+ await db.exec('alter default privileges in schema public grant execute on functions to anon,authenticated');
  await db.exec(readFileSync(new URL('../supabase/migrations/202609160001_family_packs.sql',import.meta.url),'utf8'));
+ await db.exec(readFileSync(new URL('../supabase/migrations/202609160002_family_pack_function_permissions.sql',import.meta.url),'utf8'));
  const as=async(user,role='authenticated')=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[user||'']);await db.exec(`set role ${role}`);};
  const publish=async p=>(await db.query('select public.publish_family_pack($1,$2) as token',[h1,JSON.stringify(p)])).rows[0].token;
  const preview=async token=>(await db.query('select public.preview_family_pack($1) as pack',[token])).rows[0].pack;
@@ -36,6 +39,7 @@ test('Family Packs database permissions, sanitization, atomic imports and revoca
   await as(null,'anon');assert.deepEqual(await preview(token),{version:1,kind:'tasks',title:'Weekly reset',items:[{title:'Wash dishes'}]});
   await assert.rejects(db.query('select * from public.family_packs'),/permission denied/);
   await assert.rejects(db.query('select public.publish_family_pack($1,$2)',[h1,'{}']),/permission denied/);
+  await assert.rejects(db.query('select public.import_family_pack($1,$2,null)',[token,h2]),/permission denied/);
   assert.equal(await preview('bad'),null);
  });
  await t.test('children and unrelated owners cannot publish or revoke household packs',async()=>{

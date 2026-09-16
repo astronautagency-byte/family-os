@@ -23,7 +23,7 @@ Preview is anonymous. Sharing and importing have no subscription check or extra 
 
 ## Deployment requirement
 
-Apply `supabase/migrations/202609160001_family_packs.sql` **before** releasing the web bundle. It depends on existing task lists, recipe book, household feature preferences, and the owner-check helper from RewardBank. No migration or production release was performed during implementation.
+Apply `supabase/migrations/202609160001_family_packs.sql` and `202609160002_family_pack_function_permissions.sql` **before** releasing the web bundle. They depend on existing task lists, recipe book, household feature preferences, and the owner-check helper from RewardBank. The second migration removes Supabase's default direct anonymous execution grants from write functions; only preview is anonymously callable.
 
 ## Verification
 
