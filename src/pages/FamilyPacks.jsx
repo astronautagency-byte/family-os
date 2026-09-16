@@ -28,7 +28,7 @@ export default function FamilyPacks() {
  const {user,household}=useAuth();
  const {features,loading:featuresLoading}=useHouseholdFeatures();
  const owner=household?.role==='owner';
- const [token]=useState(()=>window.location.hash.slice(1));
+ const [token,setToken]=useState(()=>window.location.hash.slice(1));
  const [preview,setPreview]=useState(null),[previewLoading,setPreviewLoading]=useState(!!token);
  const [kind,setKind]=useState(()=>{const requested=new URLSearchParams(window.location.search).get('kind');return Object.hasOwn(PACK_KINDS,requested)?requested:'tasks';}),[candidates,setCandidates]=useState([]),[selected,setSelected]=useState([]);
  const [draft,setDraft]=useState(null),[reviewed,setReviewed]=useState(false),[title,setTitle]=useState('');
@@ -36,6 +36,11 @@ export default function FamilyPacks() {
  const [error,setError]=useState(''),[status,setStatus]=useState(''),[start,setStart]=useState(todayISO()),[imported,setImported]=useState(false);
  const [revoke,setRevoke]=useState(null);
  const enabled=features.family_packs!==false&&features[destination[kind]]!==false;
+ useEffect(()=>{
+  const change=()=>{const next=window.location.hash.slice(1);setToken(next);setPreview(null);setPreviewLoading(!!next);setImported(false);setError('');setStatus('');};
+  window.addEventListener('hashchange',change);
+  return()=>window.removeEventListener('hashchange',change);
+ },[]);
  useEffect(()=>{
   // Public bearer links should not be indexed. No analytics event contains a token.
   const meta=document.createElement('meta');meta.name='robots';meta.content='noindex, nofollow';document.head.append(meta);

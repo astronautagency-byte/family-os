@@ -37,6 +37,13 @@ it('imports only on explicit click and confirms a server-confirmed copy',async()
 it('unavailable links do not offer import',async()=>{
  window.history.replaceState({},'',`/packs#${token}`);state.rpc.mockResolvedValue({data:null,error:null});render(<FamilyPacks/>);expect(await screen.findByRole('alert')).toHaveTextContent('expired or was revoked');expect(screen.queryByRole('button',{name:'Use this with my family'})).not.toBeInTheDocument();
 });
+it('opens a received link when Family Packs is already open in the same tab',async()=>{
+ state.auth={};state.rpc.mockResolvedValue({data:pack,error:null});render(<FamilyPacks/>);
+ window.history.replaceState({},'',`/packs#${token}`);fireEvent(window,new HashChangeEvent('hashchange'));
+ await screen.findByText('Wash dishes');expect(state.rpc).toHaveBeenCalledWith('preview_family_pack',{t:token});
+ window.history.replaceState({},'','/packs#invalid');fireEvent(window,new HashChangeEvent('hashchange'));
+ expect(await screen.findByRole('alert')).toHaveTextContent('not valid');expect(screen.queryByText('Wash dishes')).not.toBeInTheDocument();
+});
 it('meal import sends an explicit date and keeps the preview after a conflict',async()=>{
  window.history.replaceState({},'',`/packs#${token}`);state.rpc.mockImplementation(name=>Promise.resolve(name==='preview_family_pack'?{data:{kind:'meals',title:'Weeknight meals',items:[{title:'Pasta',day:0,slot:'dinner'}]}}:{error:{message:'A meal already exists. Nothing was imported.'}}));render(<FamilyPacks/>);
  const button=await screen.findByRole('button',{name:'Use this with my family'});expect(state.rpc).toHaveBeenCalledTimes(1);fireEvent.click(button);
