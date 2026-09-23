@@ -4,7 +4,7 @@ const mocks=vi.hoisted(()=>({auth:{},invoke:vi.fn(),rpc:vi.fn()}));
 vi.mock('../context/AuthContext',()=>({useAuth:()=>mocks.auth}));
 vi.mock('../lib/supabase',()=>({supabase:{functions:{invoke:mocks.invoke},rpc:mocks.rpc}}));
 vi.mock('../lib/onboardingEmails',()=>({sendWelcomeEmail:vi.fn().mockResolvedValue(undefined)}));
-import {HouseholdOnboarding} from './Auth';
+import {HouseholdOnboarding,SignIn} from './Auth';
 const key='family-os:onboarding-draft:v2:house_test:user_test';
 beforeEach(()=>{
   cleanup();localStorage.clear();vi.clearAllMocks();
@@ -12,6 +12,19 @@ beforeEach(()=>{
   mocks.auth={household:{id:'house_test',role:'owner'},session:{user:{id:'user_test',email:'test@example.invalid'}},saveHouseholdProfile:vi.fn().mockResolvedValue(undefined),markOnboardingComplete:vi.fn(),skipOnboardingInvites:vi.fn(),invitePartner:vi.fn().mockResolvedValue(undefined)};
 });
 function atStep(step){localStorage.setItem(key,JSON.stringify({ownerStep:step,onboardingFamilyMembers:[{firstName:'Test Parent',relationship:'parent',birthday:''}]}));render(<HouseholdOnboarding/>);}
+describe('compact authentication',()=>{
+  it('keeps one brand image and the sign-in controls without a hero illustration',()=>{
+    const {container}=render(<SignIn/>);
+    expect(screen.getByRole('heading',{name:'Welcome back'})).toBeInTheDocument();
+    expect(screen.getByRole('img',{name:'FamOS'})).toBeInTheDocument();
+    expect(container.querySelectorAll('img')).toHaveLength(1);
+    expect(screen.getByLabelText('Email address')).toBeInTheDocument();
+    expect(screen.getByRole('button',{name:'Sign in',exact:true})).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button',{name:'New here? Create an account'}));
+    expect(screen.getByRole('heading',{name:'Create your FamOS account'})).toBeInTheDocument();
+    expect(container.querySelectorAll('img')).toHaveLength(1);
+  });
+});
 describe('owner onboarding flow',()=>{
   it('requires a name before continuing and discloses card/renewal before setup',()=>{
     render(<HouseholdOnboarding/>);

@@ -53,9 +53,9 @@ function resizeAvatarImage(file) {
 
 const newInviteMember = () => ({ name: "", email: "", phone: "", smsConsent: false });
 
-function Shell({ children, wide = false }) {
+function Shell({ children, wide = false, compact = false }) {
   return (
-    <main className="minimal-auth">
+    <main className={`minimal-auth${compact ? " minimal-auth-compact" : ""}`}>
       <div className={`minimal-auth-inner ${wide ? "minimal-auth-inner-wide" : ""}`}>
         <img src="/brand/famos-logo.png" alt="FamOS" className="minimal-auth-logo" />
         {children}
@@ -131,13 +131,12 @@ export function SignIn({ initialCreating = false }) {
   }
 
   return (
-    <Shell>
-      <FamilyIllustration variant="welcome" className="family-login-art" eager />
+    <Shell compact>
       <h1 className="minimal-auth-title">{creating ? "Create your FamOS account" : "Welcome back"}</h1>
       <p className="minimal-auth-subtitle">
         {creating
           ? "Create an account. You can connect Google Calendar during setup."
-          : "Use the email and password for your FamOS account."}
+          : "Sign in to your family’s space."}
       </p>
       <Card className="minimal-auth-card !bg-transparent !border-0 !shadow-none">
         <form onSubmit={submit}>

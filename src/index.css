@@ -842,6 +842,10 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 /* Minimal auth — Airbnb-style centered form */
 .minimal-auth{min-height:100vh;background:#FAFAFA;display:flex;align-items:center;justify-content:center;padding:var(--space-12) var(--space-5)}
 .minimal-auth-inner{width:100%;max-width:440px;text-align:center}
+.minimal-auth.minimal-auth-compact{background:var(--color-canvas);padding:32px 20px;min-height:100svh}
+.minimal-auth-compact .minimal-auth-logo{width:64px;height:64px;margin:0 auto 24px;border-radius:16px}
+.minimal-auth-compact .minimal-auth-title{font-size:clamp(28px,5vw,34px);line-height:1.15;margin-bottom:8px}
+.minimal-auth-compact .minimal-auth-subtitle{margin-bottom:24px}
 .minimal-auth-logo{width:100px;height:100px;object-fit:contain;border-radius:var(--radius-xl);margin:0 auto 20px}
 .minimal-auth-title{font:700 clamp(32px,5vw,44px)/1.08 var(--font-display);letter-spacing:-.04em;color:var(--color-ink);margin-bottom:10px}
 .minimal-auth-card,.minimal-auth .kinship-card.minimal-auth-card{padding:0 !important;border:none !important;box-shadow:none !important;background:transparent !important;background-color:transparent !important;text-align:left}
