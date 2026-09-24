@@ -119,6 +119,7 @@ export default function AddressAutocomplete({ label = "Home address", value = ""
         <MapPin size={17} />
         <input
           className="form-control"
+          style={{paddingInlineStart:46}}
           value={value}
           placeholder={placeholder}
           autoComplete="street-address"

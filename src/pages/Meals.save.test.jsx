@@ -2,12 +2,28 @@ import {it,expect,vi,afterEach} from 'vitest';
 import {render,fireEvent,screen,waitFor,cleanup,act} from '@testing-library/react';
 import Meals from './Meals';
 import {todayISO} from '../lib/dates';
+import {supabase} from '../lib/supabase';
+vi.mock('../lib/supabase',()=>({supabase:{functions:{invoke:vi.fn()}},invokeEdgeFunction:vi.fn()}));
 const mocks=vi.hoisted(()=>({save:vi.fn(),family:{members:[],memberById:{},meals:[],groceries:[],refreshData:async()=>{}}}));
 vi.mock('../context/FamilyContext',()=>({useFamily:()=>({...mocks.family,setMealForSlot:mocks.save})}));
 vi.mock('../context/AuthContext',()=>({useAuth:()=>({household:null,user:null,householdProfileExtra:null})}));
 vi.mock('../hooks/useKitchenInventory',()=>({default:()=>({items:[],ingredientNames:[],removeItem:vi.fn()})}));
 vi.mock('../components/NativeAdBanner',()=>({default:()=>null}));
 afterEach(()=>{cleanup();vi.clearAllMocks();mocks.family.members=[];mocks.family.memberById={};mocks.family.meals=[];});
+it('imports a recipe link and saves the snapshot into the selected slot',async()=>{
+ const recipe={title:'Lemon pasta',ingredients:['200g pasta'],instructions:['Boil pasta.'],thumbnail:'https://example.com/pasta.jpg',sourceUrl:'https://example.com/recipe'};
+ const invoke=vi.spyOn(supabase.functions,'invoke').mockResolvedValue({data:{recipe},error:null});
+ mocks.save.mockResolvedValue(undefined);
+ render(<Meals/>);
+ fireEvent.click(document.querySelector('.meal-card-add-slot-btn'));
+ fireEvent.change(screen.getByLabelText('Recipe URL (optional)'),{target:{value:recipe.sourceUrl}});
+ fireEvent.click(screen.getByRole('button',{name:'Import recipe from link'}));
+ await waitFor(()=>expect(screen.getByLabelText('What are we cooking?').value).toBe(recipe.title));
+ expect(mocks.save).not.toHaveBeenCalled();
+ fireEvent.click(screen.getByRole('button',{name:'Save meal'}));
+ await waitFor(()=>expect(mocks.save).toHaveBeenCalledWith(todayISO(),'breakfast',expect.objectContaining({recipeSnapshot:recipe,thumbnail:recipe.thumbnail})));
+ invoke.mockRestore();
+});
 it('shows each cook once per meal without duplicating avatars in the day header',()=>{
  const member={id:'alex',name:'Alex',initials:'A',color:'plum'};
  mocks.family.members=[member];mocks.family.memberById={alex:member};

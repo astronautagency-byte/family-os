@@ -277,6 +277,8 @@ export default function Meals({ entitlements = null, goTo } = {}) {
   const [previewMeal, setPreviewMeal] = useState(null);
   const [draft, setDraft] = useState({ title: "", notes: "", cookIds: [] });
   const [manualSaving, setManualSaving] = useState(false);
+  const [recipeUrl, setRecipeUrl] = useState('');
+  const [recipeImporting, setRecipeImporting] = useState(false);
   const [manualSaveError, setManualSaveError] = useState("");
   const [showSavedRecipes, setShowSavedRecipes] = useState(false);
   const [cookMeal, setCookMeal] = useState(null);
@@ -520,9 +522,10 @@ export default function Meals({ entitlements = null, goTo } = {}) {
   const mealFor = (date, slot) => meals.find((m) => m.date === date && m.slot === slot);
 
   const openEditor = (date, slot) => {
+    setRecipeUrl('');
     setManualSaveError("");
     const existing = mealFor(date, slot);
-    setDraft({ title: existing?.title ?? "", notes: existing?.notes ?? "", cookIds: existing?.cookIds ?? [] });
+    setDraft({ title: existing?.title ?? "", notes: existing?.notes ?? "", cookIds: existing?.cookIds ?? [], recipeSnapshot: existing?.recipeSnapshot ?? null, thumbnail: existing?.thumbnail ?? '' });
     setShowSavedRecipes(false);
     setEditing({ date, slot, mealId: existing?.id || null });
   };
@@ -661,6 +664,24 @@ export default function Meals({ entitlements = null, goTo } = {}) {
     setShowSavedRecipes(false);
     } catch(error) {setManualSaveError(error?.message || "Your meal could not be saved.");}
     finally {setManualSaving(false);}
+  };
+
+  const importMealRecipe = async () => {
+    if (recipeImporting || !editing) return;
+    setManualSaveError('');
+    try {
+      const url = new URL(recipeUrl.trim());
+      if (!['https:', 'http:'].includes(url.protocol)) throw Error('Paste a valid recipe webpage URL.');
+      setRecipeImporting(true);
+      const {data,error} = await supabase.functions.invoke('import-recipe', {body:{url:url.href}});
+      if (error) throw Error('Could not import this recipe. Try another link or enter the meal manually.');
+      if (data?.error) throw Error(data.error);
+      const recipe = data?.recipe;
+      if (!recipe?.title || !recipe.ingredients?.length || !recipe.instructions?.length) throw Error('No complete recipe found. Try another link or enter the meal manually.');
+      setDraft(d => ({...d, title:recipe.title, recipeSnapshot:recipe, thumbnail:recipe.thumbnail || ''}));
+    } catch (error) {
+      setManualSaveError(error instanceof TypeError ? 'Paste a valid recipe webpage URL.' : error.message);
+    } finally { setRecipeImporting(false); }
   };
 
   const save = async () => {
@@ -1027,8 +1048,11 @@ export default function Meals({ entitlements = null, goTo } = {}) {
           </div>
         </div>
       </Modal>
-      <Modal open={!!editing} onClose={() => {if(!manualSaving)setEditing(null);}} title={editing ? `${SLOT_META[editing.slot].label} · ${formatDayLabel(editing.date)}` : ""}>
-        <fieldset disabled={manualSaving} style={{border:0,padding:0,margin:0,minWidth:0}}>
+      <Modal open={!!editing} onClose={() => {if(!manualSaving && !recipeImporting)setEditing(null);}} title={editing ? `${SLOT_META[editing.slot].label} · ${formatDayLabel(editing.date)}` : ""}>
+        <fieldset disabled={manualSaving || recipeImporting} style={{border:0,padding:0,margin:0,minWidth:0}}>
+        <TextField label="Recipe URL (optional)" type="url" placeholder="https://…" value={recipeUrl} onChange={e=>setRecipeUrl(e.target.value)} />
+        <SecondaryButton onClick={importMealRecipe} disabled={!recipeUrl.trim() || recipeImporting}>{recipeImporting ? 'Importing recipe…' : 'Import recipe from link'}</SecondaryButton>
+        <p className="setup-help" role="status">{draft.recipeSnapshot ? `${draft.recipeSnapshot.ingredients?.length || 0} ingredients imported. Review the meal below, then save.` : 'Paste a recipe link to fill this meal. Review before saving to the selected day.'}</p>
         <TextField
           label="What are we cooking?"
           placeholder="e.g. Sheet-pan chicken fajitas"
