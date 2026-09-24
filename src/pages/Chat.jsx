@@ -289,7 +289,7 @@ export default function Chat() {
 
       {(sendError || dataError) && <p className="px-5 py-2 text-[12px] text-[var(--color-warn)]">{sendError || dataError}</p>}
 
-      <form onSubmit={submit} className="chat-mobile-composer" style={{position:'sticky',bottom:0,zIndex:10,display:'flex',alignItems:'center',gap:8,padding:'8px 12px',background:'var(--color-surface)',borderTop:'1px solid var(--color-border)'}}>
+      <form onSubmit={submit} className="chat-mobile-composer" style={{position:'relative',zIndex:10,display:'flex',alignItems:'center',gap:8,padding:'8px 12px',background:'var(--color-surface)',borderTop:'1px solid var(--color-border)'}}>
         <div className="shrink-0">{memberById[currentUserId] && <Avatar member={memberById[currentUserId]} size="sm" />}</div>
         <input
           value={text}

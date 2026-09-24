@@ -3,13 +3,28 @@ import {render,fireEvent,screen,waitFor,cleanup,act} from '@testing-library/reac
 import Meals from './Meals';
 import {todayISO} from '../lib/dates';
 import {supabase} from '../lib/supabase';
-vi.mock('../lib/supabase',()=>({supabase:{functions:{invoke:vi.fn()}},invokeEdgeFunction:vi.fn()}));
+vi.mock('../lib/supabase',()=>({supabase:{functions:{invoke:vi.fn()},from:vi.fn()},invokeEdgeFunction:vi.fn()}));
 const mocks=vi.hoisted(()=>({save:vi.fn(),family:{members:[],memberById:{},meals:[],groceries:[],refreshData:async()=>{}}}));
 vi.mock('../context/FamilyContext',()=>({useFamily:()=>({...mocks.family,setMealForSlot:mocks.save})}));
-vi.mock('../context/AuthContext',()=>({useAuth:()=>({household:null,user:null,householdProfileExtra:null})}));
+vi.mock('../context/AuthContext',()=>({useAuth:()=>({household:{id:'home'},user:{id:'parent'},householdProfileExtra:null})}));
 vi.mock('../hooks/useKitchenInventory',()=>({default:()=>({items:[],ingredientNames:[],removeItem:vi.fn()})}));
 vi.mock('../components/NativeAdBanner',()=>({default:()=>null}));
 afterEach(()=>{cleanup();vi.clearAllMocks();mocks.family.members=[];mocks.family.memberById={};mocks.family.meals=[];});
+it('does not show the cook-from-kitchen shortcut',()=>{
+ render(<Meals/>);
+ expect(screen.queryByRole('button',{name:/Cook from what you have/i})).toBeNull();
+});
+it('saves imported meal recipe details to the household Recipe Book',async()=>{
+ const recipe={title:'Pasta',ingredients:['Pasta'],instructions:['Boil'],sourceUrl:'https://example.com/pasta'};
+ mocks.family.meals=[{id:'meal',date:todayISO(),slot:'breakfast',title:'Pasta',cookIds:[],recipeSnapshot:recipe}];
+ const insert=vi.fn().mockResolvedValue({error:null});
+ const query={select:vi.fn().mockReturnThis(),eq:vi.fn().mockReturnThis(),limit:vi.fn().mockResolvedValue({data:[],error:null}),insert};
+ supabase.from.mockReturnValue(query);
+ render(<Meals/>);
+ fireEvent.click(screen.getByRole('button',{name:'Save recipe',exact:true}));
+ await waitFor(()=>expect(insert).toHaveBeenCalledWith(expect.objectContaining({household_id:'home',created_by:'parent',recipe:expect.objectContaining(recipe)})));
+ expect(await screen.findByText('Saved to Recipe Book.')).toBeDefined();
+});
 it('imports a recipe link and saves the snapshot into the selected slot',async()=>{
  const recipe={title:'Lemon pasta',ingredients:['200g pasta'],instructions:['Boil pasta.'],thumbnail:'https://example.com/pasta.jpg',sourceUrl:'https://example.com/recipe'};
  const invoke=vi.spyOn(supabase.functions,'invoke').mockResolvedValue({data:{recipe},error:null});

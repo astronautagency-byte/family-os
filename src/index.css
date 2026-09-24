@@ -8753,7 +8753,7 @@ input:focus, textarea:focus, select:focus {
   height:100dvh;
   height:100vh;
   height:calc(var(--dvh, 100vh));
-  padding-bottom:calc(64px + env(safe-area-inset-bottom, 0px));
+  padding-bottom:0;
   overflow-y:auto;
   overflow-x:hidden;
 }
@@ -8783,6 +8783,12 @@ input:focus, textarea:focus, select:focus {
 }
 @supports (height: 100dvh) {
   .chat-page-shell { height: 100dvh; }
+}
+@media(max-width:1023px){
+  .app-shell .app-content:has(.chat-page-shell){height:100dvh;display:flex;flex-direction:column;overflow:hidden;padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+  .app-shell .app-content>.pull-to-refresh-host:has(.chat-page-shell){flex:1;min-height:0}
+  .app-shell .app-content .chat-page-shell{height:100%;min-height:0;padding-bottom:0;overflow:hidden}
+  .chat-page-shell>.chat-mobile-composer{margin:0;flex:0 0 auto}
 }
 .chat-page-shell > .flex-1,
 .chat-page-shell > div:last-of-type{

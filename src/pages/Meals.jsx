@@ -464,6 +464,8 @@ export default function Meals({ entitlements = null, goTo } = {}) {
   const [rouletteCuisine, setRouletteCuisine] = useState(null); // null = any cuisine
   const [savedRecipes, setSavedRecipes] = useState(() => readStoredJson(SAVED_RECIPES_KEY, []));
   const [recipeBookOpen,setRecipeBookOpen]=useState(false);
+  const [recipeSaveBusy,setRecipeSaveBusy]=useState(false);
+  const [recipeSaveMessage,setRecipeSaveMessage]=useState('');
   const [planningRecipe, setPlanningRecipe] = useState(null);
   const [dietaryPreferences] = useState(() => {
     const onboardingPreferences = householdProfileExtra ? {
@@ -791,10 +793,28 @@ export default function Meals({ entitlements = null, goTo } = {}) {
   const savedRecipeIds = useMemo(() => new Set(savedRecipes.map((recipe) => recipeKey(recipe))), [savedRecipes]);
   const cookRecipeSaved = cookRecipe ? savedRecipeIds.has(recipeKey(cookRecipe)) : false;
 
-  const saveRecipeToLibrary = (recipeToSave = cookRecipe) => {
-    if (!recipeToSave?.title) return;
-    const saved = normaliseSavedRecipe({ ...recipeToSave, savedById: user?.id || null });
-    setSavedRecipes((current) => [saved, ...current.filter((recipe) => recipeKey(recipe) !== saved.id)]);
+  const saveRecipeToLibrary = async (recipeToSave = cookRecipe) => {
+    if (!recipeToSave?.title || recipeSaveBusy) return;
+    setRecipeSaveMessage('');
+    const saved = normaliseSavedRecipe({ ...(recipeToSave.recipeSnapshot || recipeToSave), savedById: user?.id || null });
+    if (!saved.ingredients.length || !saved.instructions.length) {
+      setRecipeSaveMessage('This meal has no recipe details yet. Import a recipe URL in Edit, or open Cook Mode before saving a recipe.');
+      return;
+    }
+    setRecipeSaveBusy(true);
+    try {
+      if (!household?.id || !user?.id) throw Error('Sign in to your household to save to Recipe Book.');
+      const {data:existing,error:lookupError}=await supabase.from('household_recipes').select('id').eq('household_id',household.id).eq('created_by',user.id).eq('title',saved.title).limit(1);
+      if (lookupError) throw lookupError;
+      if (existing?.length) {setRecipeSaveMessage('This recipe is already in Recipe Book.');return;}
+      const {sourcePhotos,...recipe}=saved;
+      const {error}=await supabase.from('household_recipes').insert({household_id:household.id,created_by:user.id,title:saved.title,recipe});
+      if (error) throw error;
+      setSavedRecipes((current) => [saved, ...current.filter((recipe) => recipeKey(recipe) !== saved.id)]);
+      setRecipeSaveMessage('Saved to Recipe Book.');
+    } catch (error) {
+      setRecipeSaveMessage(`Could not save recipe: ${error.message || 'Please try again.'}`);
+    } finally {setRecipeSaveBusy(false);}
   };
 
   const removeSavedRecipe = (id) => {
@@ -944,7 +964,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
                             <ChefHat size={14} /> Cook Mode
                           </button>
                         )}
-                        <button style={{display:features.recipes?undefined:"none"}} className="meal-card-btn meal-card-btn-outline" onClick={() => saveRecipeToLibrary(meal)}>
+                        <button disabled={recipeSaveBusy} style={{display:features.recipes?undefined:"none"}} className="meal-card-btn meal-card-btn-outline" onClick={() => saveRecipeToLibrary(meal)}>
                           <Bookmark size={14} /> Save recipe
                         </button>
                         <div className="meal-card-slot-actions meal-card-slot-actions-right">
@@ -976,7 +996,6 @@ export default function Meals({ entitlements = null, goTo } = {}) {
 
       <div className="meal-plan-toolbar px-5" aria-label="Meal plan controls">
         <button className="meal-slot-tool meal-surprise-action" onClick={()=>rouletteForSlot(todayISO(), 'dinner')}><Dices size={15}/> Find Meal Ideas</button>
-        {features.kitchen && <button className="meal-plan-share" onClick={()=>rouletteForSlot(todayISO(), 'dinner', true)}><ChefHat size={15}/> Cook from what you have</button>}
         {features.recipes && <button className="meal-plan-share" onClick={()=>setRecipeBookOpen(true)}><Bookmark size={15}/> Recipe Book</button>}
         {features.recipes&&recipeBookOpen&&<RecipeBook onClose={()=>setRecipeBookOpen(false)} onCook={openSavedRecipe}/>}
         <div className="meal-range-toggle" aria-label="Meal planning range"><button className={horizon===7?"selected":""} onClick={()=>setHorizon(7)}>1 week</button><button className={horizon===14?"selected":""} onClick={()=>setHorizon(14)}>2 weeks</button></div>
@@ -986,6 +1005,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
 
       {listView}
 
+      {recipeSaveMessage && <p role="status" className="setup-help">{recipeSaveMessage}</p>}
       {features.recipes && savedRecipes.length > 0 && (
         <section className="saved-recipes-section" aria-label="Saved recipes">
           <div className="saved-recipes-head">
@@ -1323,7 +1343,8 @@ export default function Meals({ entitlements = null, goTo } = {}) {
             <div className="cook-focus-topbar">
               <button onClick={() => setCookMeal(null)}><ArrowLeft size={18} /> Back to meals</button>
               <div className="cook-focus-topbar-actions">
-                <button style={{display:features.recipes?undefined:"none"}} className={`recipe-save-button ${cookRecipeSaved ? "saved" : ""}`} onClick={() => saveRecipeToLibrary(cookRecipe)} disabled={!cookRecipe.instructions.length} title={cookRecipe.instructions.length ? "Save recipe to your library" : "Recipe is still loading"}><Bookmark size={16} /> {cookRecipeSaved ? "Saved" : "Save recipe"}</button>
+                <button style={{display:features.recipes?undefined:"none"}} className={`recipe-save-button ${cookRecipeSaved ? "saved" : ""}`} onClick={() => saveRecipeToLibrary(cookRecipe)} disabled={recipeSaveBusy || !cookRecipe.instructions.length} title={cookRecipe.instructions.length ? "Save recipe to your library" : "Recipe is still loading"}><Bookmark size={16} /> {recipeSaveBusy ? 'Saving…' : cookRecipeSaved ? "Saved" : "Save recipe"}</button>
+                {recipeSaveMessage && <p role="status">{recipeSaveMessage}</p>}
                 <button onClick={() => { setCookMeal(null); openEditor(cookMeal.date, cookMeal.slot); }}>Edit meal</button>
               </div>
             </div>
