@@ -1274,17 +1274,41 @@ export function FamilyProvider({ children, tabletMode = false }) {
   // ---- Broadcasts (recipient-only announcements pinned to the home screen) ----
   const broadcastDismissKey = `famos:dismissed-broadcasts:${currentUserId || "local"}`;
   const [dismissedBroadcastIds, setDismissedBroadcastIds] = useState([]);
+  const [broadcastDismissalsReady, setBroadcastDismissalsReady] = useState(null);
   useEffect(() => {
+    let cancelled=false;
+    let cached=[];
+    setBroadcastDismissalsReady(null);
     try {
       const stored = JSON.parse(localStorage.getItem(broadcastDismissKey) || "[]");
-      setDismissedBroadcastIds(Array.isArray(stored) ? stored : []);
-    } catch { setDismissedBroadcastIds([]); }
-  }, [broadcastDismissKey]);
+      cached=Array.isArray(stored)?stored:[];
+    } catch {}
+    setDismissedBroadcastIds(cached);
+    const load=async()=>{
+      if(remote){
+        const {data,error}=await supabase.from('broadcast_dismissals').select('message_id').eq('user_id',currentUserId);
+        if(cancelled)return;
+        if(error){setDataError('Could not load dismissed broadcasts. Refresh to retry.');return;}
+        const merged=[...new Set([...cached,...(data||[]).map(row=>row.message_id)])];
+        setDismissedBroadcastIds(merged);
+        try{localStorage.setItem(broadcastDismissKey,JSON.stringify(merged));}catch{}
+        // Preserve dismissals made before server persistence was introduced.
+        const known=new Set((data||[]).map(row=>row.message_id));
+        for(const id of cached.filter(id=>!known.has(id)&&/^[0-9a-f-]{36}$/i.test(id))){
+          if(cancelled)return;
+          await supabase.from('broadcast_dismissals').upsert({user_id:currentUserId,message_id:id},{onConflict:'user_id,message_id'});
+        }
+      }
+      if(!cancelled)setBroadcastDismissalsReady(broadcastDismissKey);
+    };
+    load().catch(()=>{if(!cancelled)setDataError('Could not load dismissed broadcasts. Refresh to retry.');});
+    return()=>{cancelled=true;};
+  }, [broadcastDismissKey,remote,currentUserId]);
   const broadcasts = useMemo(
-    () => messages
+    () => broadcastDismissalsReady!==broadcastDismissKey ? [] : messages
       .filter((message) => message.broadcast && message.senderId !== currentUserId && !dismissedBroadcastIds.includes(message.id))
       .sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt)),
-    [messages, currentUserId, dismissedBroadcastIds]
+    [messages, currentUserId, dismissedBroadcastIds,broadcastDismissalsReady,broadcastDismissKey]
   );
   const broadcastMessage = async (text, voice = null) => {
     const body = (text || "").trim() || (voice ? 'Voice note' : '');
@@ -1324,8 +1348,12 @@ export function FamilyProvider({ children, tabletMode = false }) {
   };
   const clearBroadcast = async (id) => {
     if (!id) return;
+    if(remote){
+      const {error}=await supabase.from('broadcast_dismissals').upsert({user_id:currentUserId,message_id:id},{onConflict:'user_id,message_id'});
+      if(error){setDataError('Could not dismiss this broadcast. Please try again.');return;}
+    }
     setDismissedBroadcastIds((current) => {
-      const next = [...new Set([...current, id])].slice(-100);
+      const next = [...new Set([...current, id])];
       try { localStorage.setItem(broadcastDismissKey, JSON.stringify(next)); } catch {}
       return next;
     });
