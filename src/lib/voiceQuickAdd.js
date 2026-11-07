@@ -1,4 +1,5 @@
 import * as chrono from 'chrono-node';
+export const capitalizeFirstWord = value => String(value || '').trim().replace(/^(\P{L}*)(\p{L})/u, (_, prefix, letter) => prefix + letter.toLocaleUpperCase());
 const localInput = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 const normalize = input => String(input || '').trim().replace(/[.!?]+$/, '').trim().replace(/^(?:(?:hey\s+famos|famos)[,\s]+)?(?:(?:can|could|would) you\s+|(?:i'd|i would) like you to\s+)?(?:please\s+)?/i, '').replace(/\s+please$/i, '').trim();
 /** Interpret explicit additions only. Ambiguous destinations and schedules are not guessed. */
@@ -24,7 +25,7 @@ export function parseVoiceQuickAdd(input, { groceryLists = [], taskLists = [], n
     let recurrence='none'; if(/\b(?:every|each)\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|week)\b/i.test(text))recurrence='weekly';else if(/\b(?:every|each)\s+day\b|\bdaily\b/i.test(text))recurrence='daily';else if(/\b(?:every|each)\s+month\b|\bmonthly\b/i.test(text))recurrence='monthly';else if(/\b(?:every|each)\s+year\b|\byearly\b/i.test(text))recurrence='yearly';else if(/\b(?:every|each)\b/i.test(text))return null;
     const hasDate=parsed && (parsed.start.isCertain('day') || parsed.start.isCertain('weekday')); const hasTime=parsed?.start.isCertain('hour');
     const start=hasDate&&hasTime?localInput(parsed.start.date()):''; const end=start?localInput(parsed.end?.date() || new Date(parsed.start.date().getTime()+60*60*1000)):'';
-    return {type:'event',name:title.slice(0,120),start,end,recurrence,assumedDuration: Boolean(start&&!parsed.end)};
+    return {type:'event',name:capitalizeFirstWord(title.slice(0,120)),start,end,recurrence,assumedDuration: Boolean(start&&!parsed.end)};
   }
   return null;
 }

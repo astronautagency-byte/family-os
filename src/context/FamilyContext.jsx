@@ -1,3 +1,4 @@
+import { reconcileCreatedEvent } from '../lib/eventReconciliation';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { nextRoutineDate } from '../lib/famai/routines';
 import {
@@ -1078,16 +1079,16 @@ export function FamilyProvider({ children, tabletMode = false }) {
 
   // ---- Events ----
   const addEvent = async (event) => {
-    const tempId = makeId("evt");
-    // Optimistic: show the event instantly.
+    const tempId = remote && typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : makeId("evt");
+    // Match the realtime record to the optimistic record whenever UUIDs are available.
     setEvents((prev) => [...prev, { id: tempId, source: "local", ...event }]);
     if (remote) {
       try {
-        const { data, error } = await supabase.from("events").insert({ household_id: household.id, title: event.title, starts_at: event.start, ends_at: event.end, location: event.location || "", recurrence: event.recurrence || "none", recurrence_until: event.recurrenceUntil || null, created_by: user.id }).select().single();
+        const { data, error } = await supabase.from("events").insert({ ...(remote && !tempId.startsWith("evt_") ? { id: tempId } : {}), household_id: household.id, title: event.title, starts_at: event.start, ends_at: event.end, location: event.location || "", recurrence: event.recurrence || "none", recurrence_until: event.recurrenceUntil || null, created_by: user.id }).select().single();
         if (error) throw error;
         if (event.memberIds?.length) await supabase.from("event_participants").insert(event.memberIds.map((userId) => ({ event_id: data.id, user_id: userId })));
         // Replace optimistic item with server-confirmed data.
-        setEvents((prev) => prev.map((item) => item.id === tempId ? { ...mapEvent(data), memberIds: event.memberIds || [] } : item));
+        setEvents((prev) => reconcileCreatedEvent(prev, tempId, { ...mapEvent(data), memberIds: event.memberIds || [] }));
         sendHouseholdPush({ title: "Family calendar updated", body: event.title, tag: `event-${data.id}`, url: "/#calendar" }, event.memberIds || []);
       } catch (error) {
         setEvents((prev) => prev.filter((item) => item.id !== tempId));

@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {reconcileCreatedEvent} from '../src/lib/eventReconciliation.js';
+test('reconciles the realtime event arriving before the save response',()=>{const a={id:'pending',title:'Haircut'},b={id:'server',title:'Haircut'};assert.deepEqual(reconcileCreatedEvent([a,b],'pending',b),[b]);});
+test('preserves other entries and handles realtime after the response',()=>{const a={id:'pending'},b={id:'server'},other={id:'other'};const result=reconcileCreatedEvent([other,a],'pending',b);assert.deepEqual(result,[other,b]);assert.ok(result.some(x=>x.id==='server'));});
+test('deduplicates optimistic and realtime events with the same UUID',()=>{const saved={id:'uuid',title:'Haircut'};assert.deepEqual(reconcileCreatedEvent([{id:'uuid'},saved],'uuid',saved),[saved]);});
