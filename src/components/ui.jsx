@@ -3,6 +3,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, Info, TriangleAlert, X } from "./icons";
 import { lockBodyScroll } from "../lib/bodyScrollLock";
+import FamilyIllustration from "./FamilyIllustration";
 
 export function colorVar(colorId) {
   const found = FAMILY_COLORS.find((c) => c.id === colorId);
@@ -667,10 +668,10 @@ export function Stepper({ value, onChange, min = 1, max = 99 }) {
   );
 }
 
-export function EmptyState({ icon, title, subtitle, actionLabel, onAction }) {
+export function EmptyState({ icon, illustration, title, subtitle, actionLabel, onAction }) {
   return (
     <div className="app-empty-state flex flex-col items-center justify-center text-center py-12 px-6">
-      {icon && <div className="mb-3 text-[var(--color-ink-faint)]">{icon}</div>}
+      {illustration ? <FamilyIllustration variant={illustration} className="empty-state-art" sizes="96px" /> : icon && <div className="mb-3 text-[var(--color-ink-faint)]">{icon}</div>}
       <p className="font-medium text-[var(--color-ink)] mb-1">{title}</p>
       {subtitle && <p className="text-sm text-[var(--color-ink-soft)] max-w-[26ch]">{subtitle}</p>}
       {actionLabel && onAction && <button type="button" className="empty-state-action" onClick={onAction}>{actionLabel}</button>}

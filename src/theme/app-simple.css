@@ -77,7 +77,9 @@
 .app-shell .reference-dashboard .today-daily-meal-actions button { width: auto; min-height: 44px; padding: 8px 10px; border: 0; border-radius: 12px; background: var(--color-surface); color: var(--color-accent-strong); }
 .app-shell .reference-dashboard .today-daily-meal-copy strong { overflow-wrap: anywhere; }
 .app-shell .reference-dashboard .today-daily-meal-icon { width: 40px; height: 40px; border-radius: 12px; background: var(--color-meals-soft); }
-.today-empty-icon { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 18px; background: var(--color-shopping-soft); color: var(--color-shopping-strong); }
+.app-shell img.empty-state-art { display: block; width: 96px; height: 96px; max-width: 100%; flex: 0 0 auto; object-fit: contain; border-radius: 18px; }
+.app-shell :is(.app-empty-state,.calendar-empty,.kw-empty,.reference-agenda-empty,.inventory-empty) img.empty-state-art { margin: 0 auto 10px; }
+.app-shell .location-empty img.empty-state-art { width: 72px; height: 72px; }
 
 /* Location actions and household updates use a simple, linear flow. */
 .app-shell .family-location-content { max-width: 760px; gap: 20px; }

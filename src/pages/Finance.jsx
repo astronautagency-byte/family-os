@@ -269,7 +269,7 @@ export default function Finance() {
             <span className="text-[12px] text-[var(--color-ink-faint)]">{periodExpenses.length} logged</span>
           </div>
           <Card className="p-1 bg-finance-soft border-finance">
-            {periodExpenses.length === 0 ? <EmptyState icon={<WalletCards size={25} />} title={`No expenses this ${financePeriod === "monthly" ? "month" : "week"}`} subtitle="Either wonderfully thrifty or nobody has logged the snack run yet." /> : (
+            {periodExpenses.length === 0 ? <EmptyState illustration="finance" title={`No expenses this ${financePeriod === "monthly" ? "month" : "week"}`} subtitle="Either wonderfully thrifty or nobody has logged the snack run yet." /> : (
               <ul>{periodExpenses.map((expense) => {
                 const category = CATEGORIES.find((item) => item.id === expense.category) || CATEGORIES.at(-1);
                 return (

@@ -10,6 +10,7 @@ import { categorizeGroceryItem } from "../lib/groceryCategories";
 import { isIngredientOnList } from "../lib/mealIngredientCache";
 import PullToRefresh from "../components/PullToRefresh";
 import PageHeader from "../components/PageHeader";
+import FamilyIllustration from "../components/FamilyIllustration";
 import usePageAdd from '../hooks/usePageAdd';
 import QuantityUnitFields from '../components/QuantityUnitFields';
 import GroceryIllustration from "../components/GroceryIllustration";
@@ -265,10 +266,10 @@ export default function KitchenWatch() {
       </section>;
     })}
 
-    {watchedItems.length === 0 && <div className="kw-empty"><Refrigerator size={32}/><h3>Your kitchen is empty</h3><p>Add fresh food to start tracking expiry dates.</p><PrimaryButton onClick={() => openDraft()}>Add your first item</PrimaryButton></div>}
+    {watchedItems.length === 0 && <div className="kw-empty"><FamilyIllustration variant="kitchen" className="empty-state-art" sizes="96px"/><h3>Your kitchen is empty</h3><p>Add fresh food to start tracking expiry dates.</p><PrimaryButton onClick={() => openDraft()}>Add your first item</PrimaryButton></div>}
     {error && !adding && <p role="alert" className="kw-error">{error}</p>}
 
-    {watchedItems.length > 0 && filteredItems.length === 0 && <div className="kw-empty"><Search size={24}/><h3>No items in this view</h3><p>{query ? `No items match “${query}” with these filters.` : 'Try another storage location or category.'}</p><button type="button" className="empty-state-action" onClick={() => {setQuery('');setActiveLocation('all');setActiveCategory('all');}}>Clear filters</button></div>}
+    {watchedItems.length > 0 && filteredItems.length === 0 && <div className="kw-empty"><FamilyIllustration variant="kitchen" className="empty-state-art" sizes="96px"/><h3>No items in this view</h3><p>{query ? `No items match “${query}” with these filters.` : 'Try another storage location or category.'}</p><button type="button" className="empty-state-action" onClick={() => {setQuery('');setActiveLocation('all');setActiveCategory('all');}}>Clear filters</button></div>}
 
     <Modal open={adding} onClose={() => { if (!saving) { setAdding(false); setError(""); setEditingItemId(null); } }} title={editingItemId ? "Change date" : "Add fresh food"}>
       <div className="kw-item-form">

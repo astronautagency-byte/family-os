@@ -593,7 +593,7 @@ export default function Today({ goTo }) {
               </button>
             </div>
             {todaysEvents.length === 0 ? (
-              <EmptyState title="No events today" subtitle="See what’s ahead or make a plan together." actionLabel="Open calendar" onAction={() => goTo('calendar')} />
+              <EmptyState illustration="calendar" title="No events today" subtitle="See what’s ahead or make a plan together." actionLabel="Open calendar" onAction={() => goTo('calendar')} />
             ) : (
               <div className="event-carousel-wrapper"><div className="event-carousel today-event-carousel">
                 {todaysEvents.slice(0, 5).map((ev) => {
@@ -698,7 +698,7 @@ export default function Today({ goTo }) {
               </button>
             </div>
             {activeGroceries.length === 0 ? (
-              <EmptyState icon={<span className="today-empty-icon"><ShoppingCart size={24}/></span>} title="Your list is ready" subtitle="Add anything your family needs for the next trip." actionLabel="Open shopping" onAction={() => goTo('groceries')} />
+              <EmptyState illustration="groceries" title="Your list is ready" subtitle="Add anything your family needs for the next trip." actionLabel="Open shopping" onAction={() => goTo('groceries')} />
             ) : (
               <>
                 <div className="flex flex-wrap gap-2 mb-3">
@@ -735,7 +735,7 @@ export default function Today({ goTo }) {
             </div>}
             {homeTasks.length === 0 ? (
               <div className="today-compact-empty">
-                <EmptyState title={taskLists.length ? "Your lists are clear" : "No tasks yet"} subtitle={taskLists.length ? "Nothing open right now." : "Create a list for the things your family keeps passing around."} />
+                <EmptyState illustration="tasks" title={taskLists.length ? "Your lists are clear" : "No tasks yet"} subtitle={taskLists.length ? "Nothing open right now." : "Create a list for the things your family keeps passing around."} />
               </div>
             ) : (
               <ul className="grid md:grid-cols-2 gap-2">

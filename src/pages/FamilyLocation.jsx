@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { CheckCircle2, MapPin, Navigation, RefreshCw, ShieldCheck } from '../components/icons';
 import { Avatar, PrimaryButton, SecondaryButton } from '../components/ui';
 import PageHeader from '../components/PageHeader';
+import FamilyIllustration from '../components/FamilyIllustration';
 import { useAuth } from '../context/AuthContext';
 import { useFamily } from '../context/FamilyContext';
 import { supabase } from '../lib/supabase';
@@ -125,7 +126,7 @@ export default function FamilyLocation() {
           <small>Check-ins are shown for 24 hours.</small>
         </section>
         <section className="family-location-list" aria-labelledby="family-location-heading"><h2 id="family-location-heading"><MapPin size={20} aria-hidden="true"/> Family locations</h2>
-          {locations.length ? locations.map(location => <article className="family-location-member" key={location.user_id}><Avatar size="lg" member={memberById[location.user_id] || { name: 'Family member' }}/><div className="family-location-member-details"><strong>{memberById[location.user_id]?.name || 'Family member'}{location.user_id === user.id ? ' · You' : ''}</strong><small>Updated {new Date(location.updated_at).toLocaleString()} · Approx. {Math.round(location.accuracy_m)} m accuracy</small></div><a href={`https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}`} target="_blank" rel="noopener noreferrer" aria-label={`Open ${memberById[location.user_id]?.name || 'family member'} location in Google Maps`}><MapPin size={16}/> Open map</a></article>) : <div className="location-empty"><span><MapPin size={24} aria-hidden="true"/></span><div><strong>No locations shared yet</strong><p>Family members can choose to share when they’re ready.</p></div></div>}
+          {locations.length ? locations.map(location => <article className="family-location-member" key={location.user_id}><Avatar size="lg" member={memberById[location.user_id] || { name: 'Family member' }}/><div className="family-location-member-details"><strong>{memberById[location.user_id]?.name || 'Family member'}{location.user_id === user.id ? ' · You' : ''}</strong><small>Updated {new Date(location.updated_at).toLocaleString()} · Approx. {Math.round(location.accuracy_m)} m accuracy</small></div><a href={`https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}`} target="_blank" rel="noopener noreferrer" aria-label={`Open ${memberById[location.user_id]?.name || 'family member'} location in Google Maps`}><MapPin size={16}/> Open map</a></article>) : <div className="location-empty"><FamilyIllustration variant="family" className="empty-state-art" sizes="80px"/><div><strong>No locations shared yet</strong><p>Family members can choose to share when they’re ready.</p></div></div>}
           <small>Opening a map sends that location to Google Maps.</small>
         </section>
       </>}

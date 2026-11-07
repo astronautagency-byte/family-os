@@ -7,6 +7,7 @@ import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
 import { Avatar, Card, Checkbox, DateField, EmptyState, Modal, PrimaryButton, SecondaryButton, Stepper, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
+import FamilyIllustration from "../components/FamilyIllustration";
 import QuantityUnitFields from '../components/QuantityUnitFields';
 import StapleStarter from '../components/StapleStarter';
 import {mergeStarterStaples} from '../data/starterStaples';
@@ -1155,7 +1156,7 @@ export default function Groceries() {
           <div className="inventory-item-copy"><GroceryItemImage item={item} memberById={memberById}/><div><span>{item.category || "Other"}</span><strong>{item.name}</strong>{item.brand && <small>{item.brand}</small>}{expiry && <em>{expiry.label}</em>}</div></div>
           <DateField compact label="Use by" value={item.expiresOn} onChange={(expiresOn) => updateInventoryItem(item.id, { expiresOn })}/>
           <div className="inventory-item-actions"><div className="inventory-quantity" aria-label={`${item.name} quantity`}><button type="button" onClick={() => changeInventoryQuantity(item, -1)} disabled={Number(item.quantity) <= 1} aria-label={`Decrease ${item.name} quantity`}><Minus size={12}/></button><strong>{item.quantity}{item.unit ? ` ${item.unit}` : ""}</strong><button type="button" onClick={() => changeInventoryQuantity(item, 1)} aria-label={`Increase ${item.name} quantity`}><Plus size={12}/></button></div>{expiry?.state === "expired" && <button type="button" disabled={onList} onClick={() => addMissingItem(item.name)}><RotateCcw size={13}/>{onList ? "On list" : "Replace"}</button>}<button type="button" onClick={() => removeInventoryItem(item.id)} aria-label={`Mark ${item.name} used up`}><Check size={13}/>Used up</button></div>
-        </article>;})}</div> : <div className="inventory-empty"><span>{inventoryQuery || inventoryStatus !== "all" ? <Search size={20}/> : <Refrigerator size={20}/>}</span><strong>{inventoryQuery || inventoryStatus !== "all" ? "No matching fresh items" : `No fresh food being watched in the ${inventoryLocation}`}</strong><p>{inventoryQuery || inventoryStatus !== "all" ? "Try another search or expiry filter." : <>Use <b>Add fresh item</b> for dairy, meat, produce, deli, or bakery food. Checked perishables from Shopping also appear here for a quick review.</>}</p>{inventoryQuery || inventoryStatus !== "all" ? <button type="button" onClick={() => { setInventoryQuery(""); setInventoryStatus("all"); }}>Clear filters</button> : null}</div>}
+        </article>;})}</div> : <div className="inventory-empty"><FamilyIllustration variant="kitchen" className="empty-state-art" sizes="96px"/><strong>{inventoryQuery || inventoryStatus !== "all" ? "No matching fresh items" : `No fresh food being watched in the ${inventoryLocation}`}</strong><p>{inventoryQuery || inventoryStatus !== "all" ? "Try another search or expiry filter." : <>Use <b>Add fresh item</b> for dairy, meat, produce, deli, or bakery food. Checked perishables from Shopping also appear here for a quick review.</>}</p>{inventoryQuery || inventoryStatus !== "all" ? <button type="button" onClick={() => { setInventoryQuery(""); setInventoryStatus("all"); }}>Clear filters</button> : null}</div>}
       </section>
 
       <Modal open={inventoryAdding} onClose={() => { if (!inventorySaving) { setInventoryAdding(false); setInventoryError(""); } }} title="Add fresh food to Kitchen Watch">
@@ -1272,7 +1273,7 @@ export default function Groceries() {
         <div onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={dropStaple} className={`rounded-2xl transition-all ${dragging ? "ring-2 ring-[var(--color-accent)] bg-[var(--color-accent-soft)] p-2" : ""}`}>
           {dragging && <p className="text-center text-[12px] font-semibold text-[var(--color-accent)] py-3">Drop here to add to your list</p>}
         {groceries.length === 0 ? (
-          <EmptyState icon={<ShoppingCart size={32}/>} title="Your shopping list is ready" subtitle="Add what your family needs. Everyone can update the same list." actionLabel="Add shopping item" onAction={openNew} />
+          <EmptyState illustration="groceries" title="Your shopping list is ready" subtitle="Add what your family needs. Everyone can update the same list." actionLabel="Add shopping item" onAction={openNew} />
         ) : (
           Object.entries(grouped).map(([cat, items]) =>
             items.length === 0 ? null : (

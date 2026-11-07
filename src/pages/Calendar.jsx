@@ -10,6 +10,7 @@ import { expandRecurringEvents } from "../lib/eventRecurrence";
 import { combineCalendarSources } from '../lib/calendarSources';
 import { AvatarStack, DateField, Modal, PrimaryButton, SecondaryButton, SegmentedControl, SelectField, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
+import FamilyIllustration from "../components/FamilyIllustration";
 import CalendarImageImport from '../components/CalendarImageImport';
 import ReferenceAgenda from '../components/ReferenceAgenda';
 import PageAddButton from '../components/PageAddButton';
@@ -1253,7 +1254,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
             </div>
             {dayEvents.length === 0 ? (
               <div className="calendar-empty">
-                <div className="calendar-empty-icon"><CalendarDays size={28} /></div>
+                <FamilyIllustration variant="calendar" className="empty-state-art" sizes="96px" />
                 <strong>No events on this day</strong>
                 <p>Add a plan and choose who’s joining.</p>
                 <button type="button" className="empty-state-action" onClick={() => openAdd()}>Add event</button>
