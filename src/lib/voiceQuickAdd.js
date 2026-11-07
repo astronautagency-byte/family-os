@@ -6,16 +6,16 @@ const normalize = input => String(input || '').trim().replace(/[.!?]+$/, '').tri
 export function parseVoiceQuickAdd(input, { groceryLists = [], taskLists = [], now = new Date() } = {}) {
   const text = normalize(input);
   let match = text.match(/^(?:add|put)\s+(.+?)\s+(?:to|on)\s+(?:my\s+|the\s+|our\s+)?(?:grocery|groceries|shopping)(?:\s+list)?$/i);
-  if (match) return { type: 'grocery', name: match[1].trim().slice(0,120) };
+  if (match) return { type: 'grocery', ...voiceGroceryFields(match[1]) };
   match = text.match(/^(?:add|put)\s+(.+?)\s+(?:to|on)\s+(?:my\s+|the\s+|our\s+)?(.+?)\s+list$/i);
   if (match) { const needle = match[2].trim().toLowerCase(); const choices = [...groceryLists.map(x=>({...x,type:'grocery'})),...taskLists.map(x=>({...x,type:'task'}))].filter(x=>x.name?.trim().toLowerCase()===needle); if (choices.length === 1) return {type:choices[0].type,name:match[1].trim().slice(0,120),listId:choices[0].id,listName:choices[0].name}; return null; }
   match = text.match(/^(?:add|create|make)\s+(?:a\s+)?task(?:\s+(?:to|called|named))?\s+(.+)$/i);
-  if (match) return {type:'task',name:match[1].trim().slice(0,120)};
+  if (match) {const parsed=chrono.parse(match[1],now,{forwardDate:true})[0];const hasDay=parsed && (parsed.start.isCertain('day')||parsed.start.isCertain('weekday'));const name=hasDay?match[1].replace(parsed.text,'').replace(/\b(?:by|on|for)\s*$/i,'').trim():match[1].trim();return {type:'task',name:name.slice(0,120),...(hasDay?{due:localInput(parsed.start.date()).slice(0,10)}:{})};}
   match = text.match(/^(?:create|make|add)\s+(?:a\s+)?(shopping|grocery|task)\s+list\s+(?:called|named)\s+(.+)$/i);
   if (match) return {type:match[1].toLowerCase()==='task'?'taskList':'groceryList',name:match[2].trim().slice(0,120)};
   match=text.match(/^(?:plan|add|schedule)\s+(.+?)\s+(?:for|as)\s+(breakfast|lunch|dinner)(?:\s+(.*))?$/i);
   if(match){const day=match[3]?chrono.parse(match[3],now,{forwardDate:true})[0]:null;const date=day&&(day.start.isCertain('day')||day.start.isCertain('weekday'))?localInput(day.start.date()).slice(0,10):'';return {type:'meal',name:match[1].trim().slice(0,120),slot:match[2].toLowerCase(),date};}
-  if (/^(?:add|create|schedule|put)\s+/i.test(text) && /\b(?:calendar|event|appointment)\b/i.test(text)) {
+  if (/^(?:add|create|schedule|put)\s+/i.test(text) && (/\b(?:calendar|event|appointment)\b/i.test(text) || /^schedule\s+/i.test(text))) {
     if (/\bevery\s+other\b|\bbiweekly\b|\bweekdays\b|\bevery\s+\d+\b|\buntil\b|\bthrough\b/i.test(text)) return null;
     const parsed=chrono.parse(text,now,{forwardDate:true})[0];
     let title=text.replace(/^(?:add|create|schedule|put)\s+(?:an?\s+)?/i,'');
@@ -91,4 +91,44 @@ export function voiceEventQuestion(action) {
   if(action.ambiguousTime)return `Is ${action.ambiguousTime.hour}:${String(action.ambiguousTime.minute).padStart(2,'0')} AM or PM?`;
   if(!action.start)return `What time is ${action.name}?`;
   return '';
+}
+
+/** Convert a single AI proposal to an editable draft. Never execute model output. */
+export function prepareMiaVoiceAction(actions, request, {groceryLists=[],taskLists=[]}={}) {
+  if(!/\b(add|put|create|make|plan|schedule)\b/i.test(normalize(request)) || /\b(delete|remove|buy|purchase|send)\b/i.test(request))return null;
+  if(!Array.isArray(actions)||actions.length!==1 || /\b(?:and|then|also)\s+(?:add|put|create|make|plan|schedule|set|remind|send)\b/i.test(request))return null;
+  const direct=parseVoiceQuickAdd(request,{groceryLists,taskLists});
+  if(/\b(?:to|on|in)\s+(?:(?:my|our|the)\s+)?(?!grocery\b|groceries\b|shopping\b)\w+(?:\s+\w+)?\s+list\b/i.test(request) && !direct?.listId)return null;
+  const {type,args={}}=actions[0] || {};
+  const name=String(type==='add_grocery'?args.name||'':args.title||'').trim();
+  if(!name || name.length>120)return null;
+  const validDate=value=>typeof value==='string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(new Date(value+'T12:00:00Z').getTime()) && new Date(value+'T12:00:00Z').toISOString().slice(0,10)===value;
+  if(type==='add_grocery') {
+    if(args.list_id || args.list_name)return null; // Never redirect a named list to the default list.
+    const quantity=Number(args.quantity??1);if(!Number.isFinite(quantity)||quantity<=0||quantity>10000)return null;
+    return {type:'grocery',name,quantity,unit:String(args.unit||'').slice(0,30)};
+  }
+  if(type==='add_task') {
+    if(args.assignee_name || args.assignee_id || (args.task_type && args.task_type!=='home') || args.recurring || args.list_id || args.list_name)return null;
+    if(args.due_date && !validDate(args.due_date))return null;
+    return {type:'task',name,...(args.due_date?{due:args.due_date}:{})};
+  }
+  if(type==='plan_meal') {
+    if(args.cook_names?.length || !['breakfast','lunch','dinner'].includes(args.slot) || !validDate(args.date))return null;
+    return {type:'meal',name,date:args.date,slot:args.slot,notes:String(args.notes||'').slice(0,1000)};
+  }
+  if(type==='add_event') {
+    // Keep the parser's ambiguity checks, recurrence and user-supplied dates/times.
+    const parsed=parseVoiceQuickAdd(request,{groceryLists,taskLists});
+    if(parsed?.type==='event' && !args.member_names?.length)return {...parsed,destination:'family',location:String(args.location||'').slice(0,200)};
+  }
+  return null;
+}
+
+function voiceGroceryFields(input) {
+ const words={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10};
+ const match=String(input).trim().match(/^(\d+(?:\.\d+)?|one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:(bags?|bottles?|cartons?|cans?|boxes?|packs?|kg|kilograms?|grams?|litres?|liters?|lbs?|pounds?)\s+(?:of\s+)?)?(.+)$/i);
+ if(!match)return {name:String(input).trim().slice(0,120)};
+ const quantity=words[match[1].toLowerCase()] || Number(match[1]);
+ return {name:match[3].trim().slice(0,120),quantity,unit:match[2]||''};
 }

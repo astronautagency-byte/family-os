@@ -89,7 +89,7 @@ it('does not claim to listen before microphone startup and recovers a silent sta
  vi.useFakeTimers();try{setupSpeech();window.SpeechRecognition=class{constructor(){mocks.instances.push(this)}start(){}abort(){}};
  render(<VoiceQuickAdd/>);fireEvent.click(screen.getByRole('button',{name:'Talk to Mia, voice assistant'}));fireEvent.click(screen.getByRole('button',{name:'Start continuous conversation'}));
  expect(screen.queryByText('I’m listening…')).toBeNull();expect(screen.getAllByText(/Connecting microphone/).length).toBeGreaterThan(0);
- act(()=>vi.advanceTimersByTime(3000));expect(screen.getByRole('alert').textContent).toContain('microphone didn’t start');expect(screen.getByRole('button',{name:'Start continuous conversation'})).toBeDefined();
+ act(()=>vi.advanceTimersByTime(8000));expect(screen.getByRole('alert').textContent).toContain('microphone didn’t start');expect(screen.getByRole('button',{name:'Start continuous conversation'})).toBeDefined();
  act(()=>mocks.instances[0].onstart());expect(screen.queryByText('I’m listening…')).toBeNull();
  }finally{vi.useRealTimers()}
 });
@@ -99,4 +99,37 @@ it('reuses a repeated AI reply within a conversation instead of regenerating aud
  await act(async()=>mocks.audio.onended());await waitFor(()=>expect(mocks.instances).toHaveLength(2));
  act(()=>mocks.instances[1].onresult({results:[[{transcript:'add lemons to my grocery list'}]]}));await act(async()=>{await Promise.resolve()});
  expect(mocks.speak.mock.calls.filter(([x])=>x.text==='Should I add lemons to your shopping list?')).toHaveLength(1);expect(mocks.grocery).not.toHaveBeenCalled();
+});
+
+it('keeps a longer utterance alive when interim speech continues past fifteen seconds',()=>{
+ vi.useFakeTimers();try{setupSpeech();render(<VoiceQuickAdd/>);fireEvent.click(screen.getByRole('button',{name:'Talk to Mia, voice assistant'}));fireEvent.click(screen.getByRole('button',{name:'Tap to speak'}));
+ act(()=>vi.advanceTimersByTime(14000));const fragment=[{transcript:'please add lemons'}];fragment.isFinal=false;
+ act(()=>mocks.instances[0].onresult({results:[fragment]}));act(()=>vi.advanceTimersByTime(16000));
+ expect(mocks.instances[0].aborted).not.toBe(true);expect(screen.queryByRole('alert')).toBeNull();
+ act(()=>mocks.instances[0].onresult({results:[[{transcript:'add lemons to my shopping list'}]]}));expect(screen.getByLabelText('Shopping item').value).toBe('lemons');expect(mocks.grocery).not.toHaveBeenCalled();
+ }finally{vi.useRealTimers()}
+});
+it('reconnects a brief no-speech interruption without ending conversation or saving',()=>{
+ vi.useFakeTimers();try{setupSpeech();render(<VoiceQuickAdd/>);fireEvent.click(screen.getByRole('button',{name:'Talk to Mia, voice assistant'}));fireEvent.click(screen.getByRole('button',{name:'Start continuous conversation'}));
+ act(()=>mocks.instances[0].onerror({error:'no-speech'}));act(()=>vi.advanceTimersByTime(400));expect(mocks.instances).toHaveLength(2);expect(screen.getByRole('button',{name:'End conversation'})).toBeDefined();expect(screen.queryByRole('alert')).toBeNull();expect(mocks.grocery).not.toHaveBeenCalled();
+ act(()=>mocks.instances[1].onerror({error:'no-speech'}));act(()=>vi.advanceTimersByTime(400));act(()=>mocks.instances[2].onerror({error:'no-speech'}));expect(screen.getByRole('alert').textContent).toContain('paused');expect(screen.getByRole('button',{name:'Start continuous conversation'})).toBeDefined();
+ }finally{vi.useRealTimers()}
+});
+it('uses the Mia avatar in an in-flow header launcher',()=>{
+ const slot=document.createElement('span');slot.id='mia-launcher-slot';document.body.append(slot);
+ try{render(<VoiceQuickAdd/>);const launcher=screen.getByRole('button',{name:'Talk to Mia, voice assistant'});expect(slot.contains(launcher)).toBe(true);expect(launcher.querySelector('img').getAttribute('src')).toBe('/illustrations/mia-assistant.png');expect(launcher.querySelector('.mia-energy')).toBeNull();}finally{slot.remove()}
+});
+it('prepares and saves an AI meal proposal only after review',async()=>{
+ mocks.ai.mockResolvedValueOnce({message:'Prepared',actions:[{type:'plan_meal',args:{title:'Salmon bowl',date:'2026-11-08',slot:'dinner',notes:'Gluten-free'}}]});setupSpeech();render(<VoiceQuickAdd/>);fireEvent.click(screen.getByRole('button',{name:'Talk to Mia, voice assistant'}));fireEvent.click(screen.getByRole('button',{name:'Tap to speak'}));
+ act(()=>mocks.instances[0].onresult({results:[[{transcript:'add that salmon bowl tomorrow please'}]]}));await waitFor(()=>expect(screen.getByRole('textbox',{name:'Meal'}).value).toBe('Salmon bowl'));expect(mocks.meal).not.toHaveBeenCalled();fireEvent.click(screen.getByRole('button',{name:'Yes, add it'}));await waitFor(()=>expect(mocks.meal).toHaveBeenCalledWith('2026-11-08','dinner',{title:'Salmon bowl',notes:'Gluten-free',cookIds:[]}));
+});
+it('preserves a reviewed AI task due date through saving',async()=>{
+ mocks.ai.mockResolvedValueOnce({message:'Prepared',actions:[{type:'add_task',args:{title:'Take out recycling',due_date:'2026-11-08'}}]});setupSpeech();render(<VoiceQuickAdd/>);fireEvent.click(screen.getByRole('button',{name:'Talk to Mia, voice assistant'}));fireEvent.click(screen.getByRole('button',{name:'Tap to speak'}));
+ act(()=>mocks.instances[0].onresult({results:[[{transcript:'put take out recycling in tasks for tomorrow'}]]}));await waitFor(()=>expect(screen.getByLabelText('Due date').value).toBe('2026-11-08'));expect(mocks.task).not.toHaveBeenCalled();fireEvent.click(screen.getByRole('button',{name:'Yes, add it'}));await waitFor(()=>expect(mocks.task).toHaveBeenCalledWith(expect.objectContaining({title:'Take out recycling',due:'2026-11-08'})));
+});
+it('does not speak an AI success claim when nothing was saved',async()=>{
+ mocks.ai.mockResolvedValueOnce({message:'I added all those meals to your calendar.',actions:[]});setupSpeech();render(<VoiceQuickAdd/>);fireEvent.click(screen.getByRole('button',{name:'Talk to Mia, voice assistant'}));fireEvent.click(screen.getByRole('button',{name:'Tap to speak'}));act(()=>mocks.instances[0].onresult({results:[[{transcript:'could you help with dinner'}]]}));await waitFor(()=>expect(screen.getByText(/Nothing has been saved/)).toBeDefined());expect(mocks.meal).not.toHaveBeenCalled();expect(mocks.speak.mock.calls.at(-1)[0].text).not.toContain('I added');
+});
+it('keeps a failed meal save as a draft and never announces success',async()=>{
+ mocks.meal.mockRejectedValueOnce(new Error('offline'));setupSpeech();render(<VoiceQuickAdd/>);fireEvent.click(screen.getByRole('button',{name:'Talk to Mia, voice assistant'}));fireEvent.click(screen.getByRole('button',{name:'Tap to speak'}));act(()=>mocks.instances[0].onresult({results:[[{transcript:'plan tacos for dinner tomorrow'}]]}));fireEvent.click(screen.getByRole('button',{name:'Yes, add it'}));await waitFor(()=>expect(screen.getByRole('alert').textContent).toContain('couldn’t save'));expect(screen.getByRole('textbox',{name:'Meal'}).value).toBe('tacos');expect(mocks.speak.mock.calls.some(([s])=>s.text.startsWith('Done.'))).toBe(false);
 });

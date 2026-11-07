@@ -50,6 +50,7 @@ export default function AppTopBar({ onOpenSettings, onNavigate, onOpenFamAI, dar
       <div className="topbar-wordmark"><img src="/icons/famos-app-icon.png" alt=""/><strong>Fam<span>OS</span></strong>{tabletMode&&<em>{household?.name || "Shared display"}</em>}</div>
     </div>
     <div className="topbar-actions">
+      <span id="mia-launcher-slot"/>
       <button className="m3-icon-button" aria-label={`${bellCount} unread notifications`} aria-expanded={open} onClick={()=>setOpen(v=>!v)}><Bell/>{bellCount>0&&<i>{bellCount>9?"9+":bellCount}</i>}</button>
 
       {onOpenFamAI&&!tabletMode&&<button className="topbar-fam-ai m3-icon-button" aria-label="Open Fam AI assistant" title="Fam AI" onClick={onOpenFamAI} type="button"><Sparkles/></button>}

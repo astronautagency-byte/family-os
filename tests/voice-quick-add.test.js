@@ -31,3 +31,19 @@ test('retains the screenshot appointment details after a natural greeting',()=>{
  const draft=parseVoiceQuickAdd('Hi Mia can you add an appointment to my calendar for 330 for a haircut today',{now:new Date('2026-11-07T10:00:00')});
  assert.equal(draft.name,'Haircut');assert.equal(draft.eventDate,'2026-11-07');assert.equal(draft.ambiguousTime.hour,3);assert.equal(draft.ambiguousTime.minute,30);
 });
+
+test('preserves spoken grocery quantities and task dates in editable drafts',()=>{
+ assert.deepEqual(parseVoiceQuickAdd('add three lemons to my shopping list'),{type:'grocery',name:'lemons',quantity:3,unit:''});
+ assert.deepEqual(parseVoiceQuickAdd('add 2 cartons of milk to my shopping list'),{type:'grocery',name:'milk',quantity:2,unit:'cartons'});
+ assert.deepEqual(parseVoiceQuickAdd('add task call the dentist tomorrow',{now:new Date(2026,10,7,10)}),{type:'task',name:'call the dentist',due:'2026-11-08'});
+});
+test('AI drafts reject unsupported changes, invalid dates and named list redirection',async()=>{
+ const {prepareMiaVoiceAction:prepare}=await import('../src/lib/voiceQuickAdd.js');
+ assert.equal(prepare([{type:'add_grocery',args:{name:'towels'}}],'add towels to my camping list'),null);
+ assert.equal(prepare([{type:'add_task',args:{title:'Dentist',assignee_name:'Alex'}}],'add a dentist task assigned to Alex'),null);
+ assert.equal(prepare([{type:'plan_meal',args:{title:'Tacos',slot:'dinner',date:'2026-02-31'}}],'plan tacos'),null);
+ assert.equal(prepare([{type:'add_grocery',args:{name:'Milk'}}],'suggest groceries'),null);
+ assert.equal(prepare([{type:'add_grocery',args:{name:'Milk'}}],'add milk and send a message'),null);
+ assert.equal(prepare([{type:'delete_event',args:{title:'Dentist'}}],'delete dentist'),null);
+ assert.deepEqual(prepare([{type:'plan_meal',args:{title:'Tacos',slot:'dinner',date:'2026-11-08'}}],'add those tacos tomorrow'),{type:'meal',name:'Tacos',date:'2026-11-08',slot:'dinner',notes:''});
+});

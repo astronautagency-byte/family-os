@@ -43,3 +43,18 @@
 .voice-quick-fab[data-mia-state="listening"]{border-color:#9ed7c38c}.voice-quick-fab[data-mia-state="speaking"]{border-color:#c4b4f0b3}
 .voice-quick-fab[data-mia-state="listening"] .voice-quick-fab-avatar{box-shadow:none}
 @media(prefers-reduced-motion:reduce){.voice-quick-fab .mia-voice-wave i{animation:none!important}}
+
+/* Keep Mia in the header so no calendar, list or bottom navigation is covered. */
+#mia-launcher-slot{display:flex;align-items:center;flex:none}
+.voice-quick-fab{position:relative;inset:auto;min-height:44px;width:44px;height:44px;padding:3px;gap:0;flex:none;box-shadow:0 2px 10px #09091226}
+.voice-quick-fab-avatar{width:36px;height:36px;overflow:hidden;border-radius:50%;background:linear-gradient(145deg,#fff3e2,#e8dcff)}
+.voice-quick-fab-avatar img{width:100%;height:100%;transform:scale(1.4) translateY(5%);clip-path:none;object-fit:contain}
+.voice-quick-fab .mia-launcher-copy,.voice-quick-fab .mia-voice-wave{display:none}
+.voice-quick-fab:hover{transform:none}
+.mia-capabilities{font-size:13px;color:var(--color-ink-soft)}
+.mia-grocery-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.voice-quick-modal{scroll-padding-top:24px}
+.voice-quick-conversation{max-height:45dvh;overflow-y:auto;overscroll-behavior:contain;align-content:start}
+.voice-quick-prompt{overflow-wrap:anywhere}
+#mia-launcher-slot .voice-quick-fab{padding:3px;border-radius:50%;color:#f5f5f7}
+#mia-launcher-slot .voice-quick-fab:hover{background:linear-gradient(125deg,#24202f,#09090d 70%);transform:none}
