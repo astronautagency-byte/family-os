@@ -52,9 +52,14 @@ export default function AppTopBar({ onOpenSettings, onNavigate, onOpenFamAI, dar
     <div className="topbar-actions">
       <button className="m3-icon-button" aria-label={`${bellCount} unread notifications`} aria-expanded={open} onClick={()=>setOpen(v=>!v)}><Bell/>{bellCount>0&&<i>{bellCount>9?"9+":bellCount}</i>}</button>
 
-      {onOpenFamAI&&!tabletMode&&<button className="topbar-fam-ai m3-icon-button" aria-label="Open Fam AI assistant" title="Fam AI — ask anything" onClick={onOpenFamAI} type="button"><Sparkles/></button>}
-      {(tabletModeAvailable||tabletMode)&&<button className={`tablet-mode-button m3-icon-button ${tabletMode ? "is-active" : ""}`} aria-label={tabletMode?"Exit tablet mode":"Turn on tablet mode"} aria-pressed={tabletMode} title={tabletMode?"Exit tablet mode":"Tablet mode: shared household display"} onClick={onToggleTabletMode} type="button"><Tablet/></button>}
-      <button className="theme-toggle-button m3-icon-button" aria-label={darkMode?"Switch to light mode":"Switch to dark mode"} aria-pressed={darkMode} onClick={onToggleDarkMode} type="button">{darkMode?<Sun/>:<Moon/>}</button>
+      <details className="topbar-utilities page-actions-menu">
+        <summary aria-label="More app controls">More</summary>
+        <div className="page-actions-menu-list" onClick={event => { if (event.target.closest('button')) event.currentTarget.parentElement.removeAttribute('open'); }}>
+          {onOpenFamAI&&!tabletMode&&<button type="button" onClick={onOpenFamAI}><Sparkles size={18}/> Open Fam AI</button>}
+          {(tabletModeAvailable||tabletMode)&&<button type="button" aria-pressed={tabletMode} onClick={onToggleTabletMode}><Tablet size={18}/>{tabletMode?'Exit tablet mode':'Turn on tablet mode'}</button>}
+          <button type="button" aria-pressed={darkMode} onClick={onToggleDarkMode}>{darkMode?<Sun size={18}/>:<Moon size={18}/>} {darkMode?'Switch to light mode':'Switch to dark mode'}</button>
+        </div>
+      </details>
     </div>
     {open&&<div className="notification-feed"><div className="notification-title"><div><strong>Notifications</strong><span>{bellCount?`${bellCount} unread`:"You’re up to date"}</span></div><div>{bellCount>0&&<button className="mark-read" onClick={()=>{if(messageNotice)markChatRead?.();markRead(unread.map(item=>item.id))}}>Mark read</button>}<button onClick={()=>setOpen(false)} aria-label="Close notifications"><X/></button></div></div>{(messageNotice||notices.length)?<>{messageNotice&&<button className={`notification-row is-unread ${messageNotice.tone}`} onClick={openChat}><span><messageNotice.Icon/></span><div><strong>{messageNotice.title}</strong><small>{messageNotice.detail}</small></div></button>}{notices.map(({id,title,detail,Icon,tab,tone})=><button className={`notification-row ${readIds.includes(id)?"is-read":"is-unread"} ${tone}`} key={id} onClick={()=>{markRead([id]);onNavigate(tab);setOpen(false)}}><span><Icon/></span><div><strong>{title}</strong><small>{detail}</small></div></button>)}</>:<p className="notification-empty">You’re all caught up.</p>}</div>}
   </header>;

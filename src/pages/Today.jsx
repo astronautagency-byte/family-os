@@ -11,7 +11,6 @@ import { Avatar, AvatarStack, Card, Checkbox, EmptyState } from "../components/u
 import PageHeader from "../components/PageHeader";
 import TodayCustomizer from "../components/TodayCustomizer";
 import TodayAtAGlance from "../components/TodayAtAGlance";
-import FamilyCardRail from '../components/FamilyCardRail';
 import PullToRefresh from "../components/PullToRefresh";
 import { supabase } from "../lib/supabase";
 import { eventDateLocal, formatTime, fullDateLabel, greetingInfo, todayISO } from "../lib/dates";
@@ -434,16 +433,8 @@ export default function Today({ goTo }) {
 
       {nextSuggestion && !editingDashboard && <div className="today-next-wrap px-5"><button type="button" className={`today-next today-next--${nextSuggestion.page}`} onClick={() => goTo(nextSuggestion.page)}><span className="today-next-icon"><Sparkles size={20}/></span><span className="today-next-copy"><small>Up next</small><strong>{nextSuggestion.title}</strong><span>{nextSuggestion.detail}</span></span><span className="today-next-action">{nextSuggestion.action} <ChevronRight size={16}/></span></button></div>}
 
-      <details className="reference-home-overview px-5"><summary>Family overview</summary>
+      <details className="reference-home-overview px-5"><summary>Family members</summary>
         <div className="reference-family-strip" aria-label="Your family">{members.map(member => <div key={member.id}><Avatar member={member} size="lg"/><span>{member.name?.split(' ')[0]}</span></div>)}<button type="button" onClick={() => goTo('settings')} aria-label="Manage family members">+</button></div>
-        <FamilyCardRail title="Your family, at a glance" onSelect={goTo} cards={[
-          { id: 'calendar', label: 'Today’s schedule', title: `${todaysEvents.length} event${todaysEvents.length === 1 ? '' : 's'} today`, detail: todaysEvents[0]?.title || 'No events scheduled.', action: 'Open calendar' },
-          { id: 'tasks', label: 'Tasks', title: `${openTasks.length} task${openTasks.length === 1 ? '' : 's'} to do`, detail: openTasks.length ? 'See what needs doing.' : 'No open tasks.', action: 'View tasks' },
-          { id: 'meals', label: 'Dinner', title: meals.find(meal => meal.date === today && meal.slot === 'dinner')?.title || 'Plan dinner', detail: 'See your family meal plan.', action: 'Open meal plan' },
-          { id: 'groceries', label: 'Shopping list', title: `${activeGroceries.length} item${activeGroceries.length === 1 ? '' : 's'} to pick up`, detail: 'Your shared list.', action: 'Open shopping' },
-          { id: 'kitchen', label: 'Kitchen Watch', title: expiryAlerts.length ? `${expiryAlerts.length} item${expiryAlerts.length === 1 ? '' : 's'} to use soon` : 'See what’s in your kitchen', detail: 'Use what you have before buying more.', action: 'Open kitchen' },
-          { id: 'chat', label: 'Family chat', title: 'Keep everyone in the loop', detail: 'A place for plans and quick check-ins.', action: 'Open chat' },
-        ].filter(card => features[card.id] !== false && !hiddenDashboardCards.includes(({calendar:'schedule',chat:'messages'})[card.id] || card.id))} />
       </details>
       <div className="px-5"><ProductUpdateBanner /></div>
 

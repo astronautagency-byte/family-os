@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { MapPin, Navigation, RefreshCw, ShieldCheck } from '../components/icons';
-import { Avatar, Card, PrimaryButton, SecondaryButton } from '../components/ui';
+import { MapPin, Navigation, RefreshCw } from '../components/icons';
+import { Avatar, PrimaryButton, SecondaryButton } from '../components/ui';
 import PageHeader from '../components/PageHeader';
 import { useAuth } from '../context/AuthContext';
 import { useFamily } from '../context/FamilyContext';
@@ -111,7 +111,7 @@ export default function FamilyLocation() {
   return <div className="family-location-page pb-28">
     <PageHeader title="Family location" subtitle="Share your location when it helps your family." />
     <main className="family-location-content">
-      <Card className="family-location-intro"><span className="family-location-icon"><ShieldCheck size={22}/></span><div><h2>Share on your terms</h2><p>Only household members can see a location. Sharing is optional and updates while this page is open. It stops when you leave or put the app in the background; a last location may remain visible for up to 30 minutes if the app closes unexpectedly.</p><p>FamOS keeps only your latest location. This is not an emergency service.</p></div></Card>
+      <div className="family-location-intro"><p>Only your household can see your location. It updates while this page is open and stops when you leave or background the app.</p><details><summary>How location sharing works</summary><p>Sharing is optional. FamOS keeps only your latest location; it may remain visible for up to 30 minutes if the app closes unexpectedly. FamOS is not an emergency service.</p></details></div>
       {!household?.id || !user?.id || !supabase ? <p>Sign in to a household to use family location.</p> : <>
         <div className="family-location-actions">
           {sharing || active.current ? <SecondaryButton disabled={busy} onClick={stop}>Stop sharing</SecondaryButton> : <PrimaryButton disabled={busy} onClick={start}><Navigation size={17}/> {busy ? 'Getting your location…' : 'Share my location'}</PrimaryButton>}

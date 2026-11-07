@@ -7,11 +7,18 @@
 .app-shell .topbar-actions { gap: 4px; margin-left: auto; }
 .app-shell .topbar-actions .m3-icon-button { width: 44px; height: 44px; border: 0; background: transparent; box-shadow: none; }
 .app-shell .app-content .family-page-header { border: 0; margin-bottom: 8px; }
+.app-shell .family-page-header .page-header-content { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.app-shell .family-page-header .page-header-content > div:first-child { flex: 1; min-width: 0; }
 .app-shell .app-content .page-title { font-size: clamp(27px, 2.3vw, 34px); letter-spacing: -.035em; }
 .app-shell .family-page-header .family-header-art { width: 64px; height: 56px; }
 .app-shell .primary-nav { border: 0; box-shadow: none; background: var(--color-surface); }
 .app-shell .nav-item.is-active { background: var(--color-surface-sunken) !important; }
 .app-shell .nav-item.is-active .nav-icon { background: transparent; }
+.app-shell .kinship-card { box-shadow: none; border-color: var(--color-border); }
+.app-shell .m3-button, .modal-card .m3-button { box-shadow: none; letter-spacing: 0; }
+.app-shell .m3-button-outlined, .modal-card .m3-button-outlined { border-color: var(--color-border); }
+.app-shell .illustrated-icon-box { box-shadow: none; }
+.app-shell .topbar-utilities > summary { min-height: 44px; border: 0; background: transparent; padding-inline: 12px; font-weight: 600; }
 
 /* Compact Today summary: four real shortcuts in one grouped surface. */
 .app-shell .today-glance { margin-bottom: 24px; }
@@ -48,6 +55,16 @@
 .app-shell .calendar-page .calendar-hero.apple-calendar-toolbar { background: var(--color-canvas) !important; border-radius: 0; }
 .app-shell .kw-page .kw-group-header { background: transparent; padding: 4px 0 10px; }
 .app-shell .recipe-book-welcome { background: var(--color-surface-sunken); }
+
+/* Location actions and household updates use a simple, linear flow. */
+.app-shell .family-location-content { max-width: 760px; gap: 20px; }
+.app-shell .family-location-page .family-location-intro { display: block; padding: 0; background: transparent; border: 0; }
+.family-location-intro p { max-width: 65ch; margin: 0; font-size: 14px; line-height: 1.5; color: var(--color-ink-soft); }
+.family-location-intro details { margin-top: 8px; }
+.family-location-intro summary { width: fit-content; color: var(--color-accent-strong); font-size: 14px; font-weight: 600; cursor: pointer; }
+.family-location-intro details p { margin-top: 8px; }
+.app-shell .family-location-page .family-location-checkins { padding: 20px 0; border-radius: 0; border-block: 1px solid var(--color-border); background: transparent; }
+.app-shell .family-location-page .family-location-member { padding: 14px 0; border: 0; border-bottom: 1px solid var(--color-border); border-radius: 0; background: transparent; }
 
 @media (max-width: 767px) {
   .app-shell .topbar-brand-group { display: none; }
