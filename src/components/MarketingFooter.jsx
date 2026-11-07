@@ -18,6 +18,6 @@ export default function MarketingFooter({signedIn=false}) {
     <li><a href={signedIn?'https://home.fam-os.app/today':'https://home.fam-os.app/sign-in'}>{signedIn?'Open FamOS':'Sign in'}</a></li>
    </ul></nav>
   </div>
-  <div className="features-footer-bottom"><span>© {new Date().getFullYear()} FamOS, Inc.</span><nav aria-label="Legal"><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav></div>
+  <div className="features-footer-bottom"><span>© {new Date().getFullYear()} Astronaut Digital Inc.</span><nav aria-label="Legal"><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav></div>
  </footer>
 }
