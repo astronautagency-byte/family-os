@@ -9,6 +9,7 @@ it('filters assigned tasks and restores everyone',()=>{
  mocks.members=[{id:'a',name:'Alex'},{id:'b',name:'Katie'}];
  mocks.tasks=[{id:'1',title:'Water plants',done:false,assigneeIds:['a']},{id:'2',title:'Feed cat',done:false,assigneeIds:['b']}];
  render(<Tasks/>);
+ fireEvent.click(screen.getByText('Search & filters'));
  fireEvent.change(screen.getByLabelText('Assigned to'),{target:{value:'b'}});
  expect(screen.getByText('Feed cat')).toBeDefined();
  expect(screen.queryByText('Water plants')).toBeNull();
@@ -44,6 +45,7 @@ it('makes completed tasks searchable and reopenable',()=>{
  expect(screen.queryByRole('button',{name:'Complete Mow lawn'})).toBeNull();
  fireEvent.click(screen.getByRole('button',{name:'Reopen Pack lunch'}));
  expect(mocks.toggle).toHaveBeenCalledWith('a');
+ fireEvent.click(screen.getByText('Search & filters'));
  fireEvent.change(screen.getByRole('searchbox'),{target:{value:'missing'}});
  expect(screen.getByText('No matching tasks')).toBeDefined();
 });
@@ -53,4 +55,16 @@ it('requires confirmation before deleting a task',()=>{
  fireEvent.click(screen.getByRole('button',{name:'Delete Pack lunch'}));
  expect(screen.getByRole('dialog')).toBeDefined();
  expect(mocks.remove).not.toHaveBeenCalled();
+});
+it('keeps empty lists and reset accessible without crowding the task list',()=>{
+ mocks.tasks=[{id:'1',title:'Water plants',done:false,taskType:'home'}];
+ render(<Tasks/>);
+ expect(screen.queryByRole('tab',{name:/Errands/})).toBeNull();
+ fireEvent.click(screen.getByRole('button',{name:'Show empty lists'}));
+ expect(screen.getByRole('tab',{name:/Errands/})).toBeDefined();
+ fireEvent.click(screen.getByRole('button',{name:'Hide empty lists'}));
+ expect(screen.queryByRole('tab',{name:/Errands/})).toBeNull();
+ fireEvent.click(screen.getByText('More'));
+ fireEvent.click(screen.getByRole('button',{name:'Reset tasks'}));
+ expect(screen.getByRole('dialog')).toBeDefined();
 });

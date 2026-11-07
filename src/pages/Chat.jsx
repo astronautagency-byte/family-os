@@ -142,7 +142,8 @@ export default function Chat() {
   });
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
+    const list = endRef.current?.parentElement;
+    if (list) list.scrollTop = list.scrollHeight;
   }, [threadMessages.length, activeThread]);
 
   // Viewing the chat clears the unread badge. Only marks read on the first
@@ -242,7 +243,7 @@ export default function Chat() {
         </div>
       </div>
 
-      <div className="px-5 py-3 flex-1 overflow-y-auto space-y-3">
+      <div className="chat-message-list px-5 py-3 overflow-y-auto space-y-3" aria-label="Messages">
         {threadMessages.map((message) => {
           const sender = memberById[message.senderId];
           const mine = message.senderId === currentUserId;
@@ -293,6 +294,7 @@ export default function Chat() {
         <div className="shrink-0">{memberById[currentUserId] && <Avatar member={memberById[currentUserId]} size="sm" />}</div>
         <input
           value={text}
+          aria-label={activeThread === "household" ? "Message everyone" : activeMember ? `Message ${activeMember.name}` : "Message"}
           onChange={(e) => setText(e.target.value)}
           placeholder={activeThread === "household" ? "Tell everyone…" : activeMember ? `Message ${activeMember.name}` : "Select a family member"}
           disabled={activeThread !== "household" && !activeMember}

@@ -19,6 +19,7 @@ import { useAuth } from "./context/AuthContext";
 import { AuthLoading, HouseholdOnboarding, ResetPassword, SignIn } from "./pages/Auth";
 import { supabase } from "./lib/supabase";
 import { classifySharedContent, SHARED_RECIPE_KEY, sharedRecipeTitle } from "./lib/sharedContent";
+import { readPartnerImport, PARTNER_IMPORT_KEY, EVENT_IMPORT_KEY } from "./lib/partnerShare";
 import ErrorBoundary from "./components/ErrorBoundary";
 import FeaturePaywall from "./components/FeaturePaywall";
 import { PREMIUM_FEATURE_IDS } from "./data/billingCatalog";
@@ -736,6 +737,29 @@ export default function App() {
   // MUST stay above the conditional-returns block below or this hook's slot
   // appears only after sign-in, breaking the Rules of Hooks (render 1 runs
   // the 16 hooks above and returns early as Landing; render 2 needs 17).
+  // Preserve a reviewed partner import while the visitor signs in or completes setup.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has("famos_add")) return;
+    const intent = readPartnerImport(params);
+    if (intent) { try { sessionStorage.setItem(PARTNER_IMPORT_KEY, JSON.stringify(intent)); } catch { return; } }
+    for (const key of ["famos_add", "title", "start", "end", "location", "url"]) params.delete(key);
+    history.replaceState(history.state, "", `${location.pathname}${params.size ? `?${params}` : ""}${location.hash}`);
+  }, []);
+  useEffect(() => {
+    if (!session || !household || onboardingRequired || loading || preferences.loading) return;
+    try {
+      const raw = sessionStorage.getItem(PARTNER_IMPORT_KEY);
+      if (!raw) return;
+      const intent = JSON.parse(raw);
+      const page = intent.kind === "event" ? "calendar" : "meals";
+      if (childMode || enabledFeatures[page] === false) return;
+      if (intent.kind === "event") sessionStorage.setItem(EVENT_IMPORT_KEY, raw);
+      else sessionStorage.setItem(SHARED_RECIPE_KEY, JSON.stringify({ title:intent.title, url:intent.url }));
+      sessionStorage.removeItem(PARTNER_IMPORT_KEY);
+      setTab(page);
+    } catch { /* Storage may be unavailable in private browsing. */ }
+  }, [session, household, onboardingRequired, loading, preferences.loading, enabledFeatures, childMode]);
   const COOK_INTENT_KEY = "famos:cook-intent:v1";
   useEffect(() => {
     if (!session) return;

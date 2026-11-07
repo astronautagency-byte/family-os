@@ -2,13 +2,14 @@ import { todaySuggestions } from '../lib/todaySuggestions';
 import {useHouseholdFeatures} from "../context/HouseholdFeaturesContext";
 import { combineCalendarSources } from '../lib/calendarSources';
 import { expandRecurringEvents } from '../lib/eventRecurrence';
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Bell, CalendarPlus, ChefHat, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, Coffee, Droplets, ExternalLink, GripVertical, LayoutGrid, ListChecks, LoaderCircle, MapPin, MessageCircle, Moon, PartyPopper, Refrigerator, RotateCcw, ShoppingCart, Soup, Sun, Ticket, Trash2, TriangleAlert, Wind, Sparkles } from "../components/icons";
+import { useEffect, useMemo, useState } from "react";
+import { Bell, CalendarPlus, ChefHat, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, Coffee, Droplets, ExternalLink, LayoutGrid, ListChecks, LoaderCircle, MapPin, MessageCircle, Moon, PartyPopper, Refrigerator, ShoppingCart, Soup, Sun, Ticket, Trash2, TriangleAlert, Wind, Sparkles } from "../components/icons";
 // ChefHat is already imported above for the Cook button icon.
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, AvatarStack, Card, Checkbox, EmptyState } from "../components/ui";
 import PageHeader from "../components/PageHeader";
+import TodayCustomizer from "../components/TodayCustomizer";
 import FamilyCardRail from '../components/FamilyCardRail';
 import PullToRefresh from "../components/PullToRefresh";
 import { supabase } from "../lib/supabase";
@@ -48,7 +49,7 @@ const DASHBOARD_CARDS = [
   { id: "messages", label: "Messages" },
   { id: "tasks", label: "Tasks" },
 ];
-const defaultDashboardOrder = DASHBOARD_CARDS.map((card) => card.id);
+const defaultDashboardOrder = ["schedule", "tasks", "meals", "groceries", "weather", "kitchen", "messages"];
 const readDashboardOrder = () => {
   if (typeof window === "undefined") return defaultDashboardOrder;
   try {
@@ -68,16 +69,6 @@ function WeatherGlyph({ kind, isDay = true, size = 20 }) {
   const meta = weatherKind(kind);
   const Icon = isDay ? meta.day : meta.night;
   return <Icon size={size} />;
-}
-
-function DashboardMoveHandle({ id, label, order, onMove }) {
-  const index = order.indexOf(id);
-  return <div className="today-card-move-handle" aria-label={`Move ${label}`}>
-    <GripVertical size={16} aria-hidden="true"/>
-    <span>Drag {label}</span>
-    <button type="button" onClick={() => onMove(id, -1)} disabled={index === 0} aria-label={`Move ${label} earlier`}><ArrowUp size={14}/></button>
-    <button type="button" onClick={() => onMove(id, 1)} disabled={index === order.length - 1} aria-label={`Move ${label} later`}><ArrowDown size={14}/></button>
-  </div>;
 }
 
 // Open-Meteo WMO weather codes → our kind vocabulary (used only in the keyless fallback).
@@ -171,7 +162,6 @@ export default function Today({ goTo }) {
       return typeof saved === "object" ? saved : {};
     } catch { return {}; }
   });
-  const draggedDashboardCard = useRef(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") window.localStorage.setItem(DASHBOARD_ORDER_KEY, JSON.stringify(dashboardOrder));
@@ -193,42 +183,15 @@ export default function Today({ goTo }) {
   const toggleDashboardCard = (id) => setHiddenDashboardCards((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   const moveDashboardCard = (id, direction) => {
     setDashboardOrder((current) => {
-      const from = current.indexOf(id);
-      const to = from + direction;
-      if (from < 0 || to < 0 || to >= current.length) return current;
+      const enabled = current.filter(dashboardEnabled);
+      const target = enabled[enabled.indexOf(id) + direction];
+      if (!target) return current;
       const next = [...current];
+      const from = next.indexOf(id), to = next.indexOf(target);
       [next[from], next[to]] = [next[to], next[from]];
       return next;
     });
   };
-  const dashboardDragProps = (id) => ({
-    draggable: editingDashboard,
-    "data-dashboard-card": id,
-    onDragStart: (event) => {
-      if (!editingDashboard) return;
-      draggedDashboardCard.current = id;
-      event.dataTransfer.effectAllowed = "move";
-      event.dataTransfer.setData("text/plain", id);
-      event.currentTarget.classList.add("is-dragging");
-    },
-    onDragOver: (event) => { if (editingDashboard) { event.preventDefault(); event.dataTransfer.dropEffect = "move"; } },
-    onDrop: (event) => {
-      if (!editingDashboard) return;
-      event.preventDefault();
-      const source = draggedDashboardCard.current || event.dataTransfer.getData("text/plain");
-      if (!source || source === id) return;
-      setDashboardOrder((current) => {
-        const next = current.filter((cardId) => cardId !== source);
-        next.splice(next.indexOf(id), 0, source);
-        return next;
-      });
-    },
-    onDragEnd: (event) => {
-      event.currentTarget.classList.remove("is-dragging");
-      draggedDashboardCard.current = null;
-    },
-  });
-  const moveHandle = (id) => editingDashboard ? <DashboardMoveHandle id={id} label={DASHBOARD_CARDS.find((card) => card.id === id)?.label || id} order={dashboardOrder} onMove={moveDashboardCard}/> : null;
 
   useEffect(() => {
     if ((pauseReminders && !features.kitchen) || !expiryAlerts.length || notificationPermission !== "granted" || typeof window === "undefined") return;
@@ -468,7 +431,7 @@ export default function Today({ goTo }) {
 
       {nextSuggestion && !editingDashboard && <div className="today-next-wrap px-5"><button type="button" className={`today-next today-next--${nextSuggestion.page}`} onClick={() => goTo(nextSuggestion.page)}><span className="today-next-icon"><Sparkles size={20}/></span><span className="today-next-copy"><small>Up next</small><strong>{nextSuggestion.title}</strong><span>{nextSuggestion.detail}</span></span><span className="today-next-action">{nextSuggestion.action} <ChevronRight size={16}/></span></button></div>}
 
-      <div className="reference-home-overview px-5">
+      <details className="reference-home-overview px-5"><summary>Family overview</summary>
         <div className="reference-family-strip" aria-label="Your family">{members.map(member => <div key={member.id}><Avatar member={member} size="lg"/><span>{member.name?.split(' ')[0]}</span></div>)}<button type="button" onClick={() => goTo('settings')} aria-label="Manage family members">+</button></div>
         <FamilyCardRail title="Your family, at a glance" onSelect={goTo} cards={[
           { id: 'calendar', label: 'Today’s schedule', title: `${todaysEvents.length} event${todaysEvents.length === 1 ? '' : 's'} today`, detail: todaysEvents[0]?.title || 'No events scheduled.', action: 'Open calendar' },
@@ -478,7 +441,7 @@ export default function Today({ goTo }) {
           { id: 'kitchen', label: 'Kitchen Watch', title: expiryAlerts.length ? `${expiryAlerts.length} item${expiryAlerts.length === 1 ? '' : 's'} to use soon` : 'See what’s in your kitchen', detail: 'Use what you have before buying more.', action: 'Open kitchen' },
           { id: 'chat', label: 'Family chat', title: 'Keep everyone in the loop', detail: 'A place for plans and quick check-ins.', action: 'Open chat' },
         ].filter(card => features[card.id] !== false && !hiddenDashboardCards.includes(({calendar:'schedule',chat:'messages'})[card.id] || card.id))} />
-      </div>
+      </details>
       <div className="px-5"><ProductUpdateBanner /></div>
 
       {/* TODO: Enable when email parser is ready to deploy */false && <div className="px-5"><EmailInbox compact /></div>}
@@ -504,13 +467,12 @@ export default function Today({ goTo }) {
         </div>
       )}
 
-      {editingDashboard && <div className="today-customize-panel mx-5"><div className="today-customize-hint"><span><GripVertical size={15}/> Choose what appears, then drag cards to rearrange them.</span><button type="button" onClick={() => { setDashboardOrder(defaultDashboardOrder); setHiddenDashboardCards([]); setCardSizes({}); }}><RotateCcw size={14}/> Reset</button></div><div className="today-card-toggles">{DASHBOARD_CARDS.filter(card=>dashboardEnabled(card.id)).map((card) => { const visible = !hiddenDashboardCards.includes(card.id); return <label key={card.id}><input type="checkbox" checked={visible} onChange={() => toggleDashboardCard(card.id)}/><span aria-hidden="true"/><strong>{card.label}</strong></label>; })}</div></div>}
+      <TodayCustomizer open={editingDashboard} onClose={() => setEditingDashboard(false)} cards={dashboardOrder.filter(dashboardEnabled).map((id) => DASHBOARD_CARDS.find((item) => item.id === id))} hidden={hiddenDashboardCards} onToggle={toggleDashboardCard} onMove={moveDashboardCard} onReset={() => { setDashboardOrder(defaultDashboardOrder); setHiddenDashboardCards([]); setCardSizes({}); }} />
 
       <NativeAdBanner placement={AD_PLACEMENTS.HOME} />
 
       <div className="px-5 mt-2 today-bento-grid">
-        <Card className={`weather-now-card p-4 ${editingDashboard ? "is-customizing" : ""}`} style={dashboardPosition("weather")} {...dashboardDragProps("weather")}>
-          {moveHandle("weather")}
+        <Card className={`weather-now-card p-4 `} style={dashboardPosition("weather")}>
           {weather?.alerts?.length > 0 && (
             <div className="weather-alerts">
               {weather.alerts.map((alert, index) => (
@@ -543,8 +505,7 @@ export default function Today({ goTo }) {
           {features.calendar && disruptedEvents.length > 0 && <button onClick={() => goTo("calendar")} className="weather-event-warning"><CloudRain size={16} /><span><strong>Weather may affect {disruptedEvents.length} event{disruptedEvents.length === 1 ? "" : "s"} today</strong><small>{disruptedEvents.map((event) => event.title).join(", ")}</small></span><ChevronRight size={16} /></button>}
           {weatherError && <small className="address-autocomplete-warning">{weatherError}</small>}
         </Card>
-        <section className={`today-bento-kitchen ${editingDashboard ? "is-customizing" : ""}`} aria-labelledby="kitchen-watch-title" style={dashboardPosition("kitchen")} {...dashboardDragProps("kitchen")}>
-          {moveHandle("kitchen")}
+        <section className={`today-bento-kitchen `} aria-labelledby="kitchen-watch-title" style={dashboardPosition("kitchen")}>
           <Card className="p-0 overflow-hidden border-0 shadow-sm">
             {/* Kitchen Watch header */}
             <div className="px-4 pt-4 pb-2">
@@ -625,8 +586,7 @@ export default function Today({ goTo }) {
             </button>
           </Card>
         </section>
-        <section className={`today-bento-schedule ${editingDashboard ? "is-customizing" : ""}`} style={dashboardPosition("schedule")} {...dashboardDragProps("schedule")}>
-          {moveHandle("schedule")}
+        <section className={`today-bento-schedule `} style={dashboardPosition("schedule")}>
           <Card className="today-flow-card p-4">
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
@@ -677,8 +637,7 @@ export default function Today({ goTo }) {
         </section>
 
         <section className="m3-grid lg:grid-cols-2 today-bento-meal-grid">
-          <Card className={`today-meals-card p-4 ${editingDashboard ? "is-customizing" : ""}`} style={dashboardPosition("meals")} {...dashboardDragProps("meals")}>
-            {moveHandle("meals")}
+          <Card className={`today-meals-card p-4 `} style={dashboardPosition("meals")}>
             <div className="flex items-center gap-3 mb-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Meals</p>
@@ -733,8 +692,7 @@ export default function Today({ goTo }) {
             </div>
           </Card>
 
-          <Card className={`today-groceries-card p-4 ${editingDashboard ? "is-customizing" : ""}`} style={dashboardPosition("groceries")} {...dashboardDragProps("groceries")}>
-            {moveHandle("groceries")}
+          <Card className={`today-groceries-card p-4 `} style={dashboardPosition("groceries")}>
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Shopping</p>
@@ -766,8 +724,7 @@ export default function Today({ goTo }) {
           </Card>
         </section>
 
-        <section className={`today-bento-tasks ${editingDashboard ? "is-customizing" : ""}`} style={dashboardPosition("tasks")} {...dashboardDragProps("tasks")}>
-          {moveHandle("tasks")}
+        <section className={`today-bento-tasks `} style={dashboardPosition("tasks")}>
           <Card className="today-tasks-card p-4 bg-family-soft">
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
@@ -805,8 +762,7 @@ export default function Today({ goTo }) {
             )}
           </Card>
         </section>
-        <section className={`today-bento-messages ${editingDashboard ? "is-customizing" : ""}`} aria-labelledby="latest-family-messages" style={dashboardPosition("messages")} {...dashboardDragProps("messages")}>
-          {moveHandle("messages")}
+        <section className={`today-bento-messages `} aria-labelledby="latest-family-messages" style={dashboardPosition("messages")}>
           <Card className="today-messages-card p-4">
             <div className="flex items-center justify-between gap-3 mb-3">
               <div><p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Family chat</p><h2 id="latest-family-messages" className="ui-section-title">Latest messages</h2></div>

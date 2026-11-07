@@ -10,3 +10,8 @@ body .calendar-hero .family-header-art {display:block;width:88px;height:72px;obj
  body .family-page-header .family-header-art,body .calendar-hero .family-header-art{display:block;width:60px;height:56px}
  body .family-page-header .page-header-aside{gap:8px;max-width:38%}
 }
+@media(max-width:600px){
+ body .family-page-header .page-header-aside{max-width:none}
+ body .family-page-header .page-header-actions{flex-wrap:wrap}
+ .today-customize-trigger{white-space:nowrap}
+}

@@ -91,3 +91,11 @@ it('does not close the editor until the save succeeds',async()=>{
   await act(async()=>resolve());
   await waitFor(()=>expect(screen.queryByLabelText('What are we cooking?')).toBeNull());
 });
+it('opens a shared recipe URL for review and does not import or save automatically',()=>{
+ sessionStorage.setItem('famos:shared-recipe:v1', JSON.stringify({title:'Shared pasta',url:'https://example.com/pasta'}));
+ render(<Meals/>);
+ expect(screen.getByLabelText('Recipe URL (optional)').value).toBe('https://example.com/pasta');
+ expect(screen.getByLabelText('What are we cooking?').value).toBe('Shared pasta');
+ expect(mocks.save).not.toHaveBeenCalled();
+ expect(sessionStorage.getItem('famos:shared-recipe:v1')).toBeNull();
+});

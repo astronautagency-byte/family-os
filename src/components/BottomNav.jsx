@@ -1,5 +1,8 @@
-import { BookOpen, Gift, CalendarDays, CheckSquare, CookingPot, Home, MessageCircle, Refrigerator, ShoppingCart, MoreHorizontal, Settings, Sparkles } from "./icons";
+import { BookOpen, Gift, CalendarDays, CheckSquare, CookingPot, Home, MessageCircle, Refrigerator, ShoppingCart, Download, MoreHorizontal, Settings, Sparkles } from "./icons";
 import { useState } from "react";
+import { DESKTOP_DOWNLOAD_LABEL, DESKTOP_DOWNLOAD_PAGE_URL } from "../lib/downloads";
+import { openExternalUrl } from "../lib/desktopRuntime";
+import { IS_APP_STORE } from "../lib/distribution";
 import { Modal } from './ui';
 import { useFamily } from "../context/FamilyContext";
 import { DEFAULT_SHORTCUTS, CHILD_SHORTCUTS, resolveShortcuts, readShortcuts } from '../lib/navigationShortcuts';
@@ -80,6 +83,7 @@ export default function BottomNav({ active, onChange, onOpenAI, features = {}, t
         })}
       </div>
       {tabletMode && <p className="nav-foot">Shared family display · Tablet mode</p>}
+      {!childMode && !IS_APP_STORE && <button className="nav-foot nav-download" onClick={() => openExternalUrl(DESKTOP_DOWNLOAD_PAGE_URL)}><Download size={15}/>{DESKTOP_DOWNLOAD_LABEL}</button>}
       {!childMode && features.family_packs !== false && <a className="nav-foot" href="/packs">Family Packs · Share with other families</a>}
     </nav>
     <nav className={`reference-mobile-nav ${childMode ? "child-mobile-nav" : ""}`} aria-label="Mobile navigation" style={{gridTemplateColumns:`repeat(${shortcuts.length+1},minmax(0,1fr))`}}>
@@ -100,6 +104,7 @@ export default function BottomNav({ active, onChange, onOpenAI, features = {}, t
         <button type="button" onClick={editShortcuts}><span className="reference-action-icon"><Settings size={22}/></span><strong>Customize shortcuts</strong></button>
         {!childMode && onOpenAI && features.fam_ai !== false && <button type="button" onClick={() => { setSheet(null); onOpenAI(); }}><span className="reference-action-icon tone-chat"><Sparkles size={22}/></span><strong>Ask Fam AI</strong></button>}
         {!childMode && <button type="button" onClick={() => navigate('settings')}><span className="reference-action-icon tone-calendar"><Settings size={22}/></span><strong>Settings & family</strong></button>}
+        {!childMode && !IS_APP_STORE && <button type="button" onClick={() => { setSheet(null); openExternalUrl(DESKTOP_DOWNLOAD_PAGE_URL); }}><span className="reference-action-icon"><Download size={22}/></span><strong>{DESKTOP_DOWNLOAD_LABEL}</strong></button>}
         {!childMode && features.family_packs !== false && <button type="button" onClick={() => window.location.assign('/packs')}><span className="reference-action-icon"><Gift size={22}/></span><strong>Family Packs</strong></button>}
       </div>
       </>}

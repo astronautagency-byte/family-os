@@ -1,3 +1,4 @@
+import { EVENT_IMPORT_KEY, eventImportDraft } from "../lib/partnerShare";
 import { useEffect, useRef, useMemo, useState } from "react";
 import { CalendarDays, CalendarPlus, ChevronDown, ChevronLeft, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, ExternalLink, Eye, EyeOff, LoaderCircle, MapPin, Moon, Pencil, Plus, RefreshCw, Search, Settings2, Share2, Sparkles, Sun, Ticket, Trash2, TriangleAlert, Users, X } from "../components/icons";
 import gsap from "gsap";
@@ -742,6 +743,11 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
   };
 
   // Quick-capture: free-form text → parsed draft → openAdd with prefill.
+  useEffect(() => {
+    const raw = sessionStorage.getItem(EVENT_IMPORT_KEY);
+    if (!raw) return;
+    try { openAdd(eventImportDraft(JSON.parse(raw))); } finally { sessionStorage.removeItem(EVENT_IMPORT_KEY); }
+  }, []); // A partner link opens an editable draft, never saves automatically.
   usePageAdd('calendar', () => openAdd());
   // Cuts the add-event path from ~6 taps (FAB → fields → save) to 2:
   // FAB + Enter. The parse is best-effort — bad input still opens the

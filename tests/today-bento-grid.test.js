@@ -31,13 +31,11 @@ test("Today fills empty states with useful kitchen and family context", () => {
 
 test("Today lets each user persist and rearrange home cards", () => {
   assert.match(today, /famos:today-card-order:v1/);
-  assert.match(today, /Choose what appears, then drag cards to rearrange them/);
+  assert.match(today, /<TodayCustomizer/);
   assert.match(today, /famos:today-card-hidden:v1/);
   assert.match(today, /toggleDashboardCard/);
   assert.match(today, /moveDashboardCard/);
-  assert.match(today, /dashboardDragProps/);
-  assert.match(today, /onDragStart/);
-  assert.match(today, /onDrop/);
+  assert.match(today, /onMove=\{moveDashboardCard\}/);
   assert.match(today, /dashboardPosition\("weather"\)/);
   assert.match(today, /dashboardPosition\("schedule"\)/);
   assert.match(today, /dashboardPosition\("meals"\)/);
@@ -45,8 +43,8 @@ test("Today lets each user persist and rearrange home cards", () => {
   assert.match(today, /dashboardPosition\("kitchen"\)/);
   assert.match(today, /dashboardPosition\("messages"\)/);
   assert.match(today, /dashboardPosition\("tasks"\)/);
-  assert.match(css, /grid-auto-flow:row dense/);
-  assert.match(css, /\.today-card-move-handle/);
+  assert.match(css, /grid-auto-flow:row;/);
+  assert.match(css, /\.today-editor-row/);
 });
 
 test("bento motion is restrained and respects reduced motion", () => {

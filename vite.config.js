@@ -3,7 +3,9 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  // Multiple preview servers must not overwrite each other's optimized React bundles.
+  ...(command === "serve" ? { cacheDir: `node_modules/.vite-famos/${process.pid}` } : {}),
   build: {
     manifest: true,
     target: ['es2018', 'safari13'],
@@ -107,4 +109,4 @@ export default defineConfig({
       }
     })
   ]
-})
+}))

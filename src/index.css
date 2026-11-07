@@ -1522,7 +1522,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}butto
 /* Today bento — operational hierarchy inspired by a family noticeboard.
    The DOM order remains the mobile reading order; only wider screens gain
    varied spans, so keyboard and screen-reader navigation stay predictable. */
-.reference-dashboard .today-bento-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-auto-flow:row dense;gap:14px;align-items:stretch}
+.reference-dashboard .today-bento-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-auto-flow:row;gap:14px;align-items:stretch}
 .today-customize-trigger{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;padding:0 14px;border:1px solid var(--color-border-strong);border-radius:10px;background:var(--color-surface);color:var(--color-ink-soft);font-size:13px;font-weight:650;transition:background-color 160ms ease,border-color 160ms ease,color 160ms ease}
 .today-customize-trigger:hover,.today-customize-trigger.active{border-color:var(--color-accent);background:var(--color-accent-soft);color:var(--color-accent-strong)}
 .today-customize-trigger:focus-visible,.today-customize-hint button:focus-visible,.today-card-move-handle button:focus-visible{outline:3px solid color-mix(in srgb,var(--color-accent) 28%,transparent);outline-offset:2px}
@@ -9310,3 +9310,26 @@ input:focus, textarea:focus, select:focus {
 .grocery-checked-suggestions>div{display:flex;flex-wrap:wrap;gap:8px}
 .grocery-checked-suggestions button{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 12px;border:1px solid var(--color-border);border-radius:var(--radius-control);background:var(--color-surface-sunken);color:var(--color-ink);font-size:12px;font-weight:650}
 .grocery-quick-add-error{color:var(--color-warn);font-size:12px;margin:8px 0}
+
+/* Today customization: one compact, touch-friendly list. */
+.today-editor-intro{margin:-4px 0 18px;color:var(--color-ink-soft);font-size:14px;line-height:1.5}
+.today-editor-list{display:grid;border:1px solid var(--color-border);border-radius:var(--radius-card);overflow:hidden}
+.today-editor-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--color-surface);border-bottom:1px solid var(--color-border)}
+.today-editor-row:last-child{border-bottom:0}.today-editor-row label{display:flex;align-items:center;gap:12px;flex:1;min-width:0;cursor:pointer}.today-editor-row input{width:20px;height:20px;flex:none;accent-color:var(--color-accent)}.today-editor-row label span{display:grid;gap:2px;font-weight:700;font-size:14px;color:var(--color-ink)}.today-editor-row small{font-size:12px;font-weight:400;color:var(--color-ink-soft)}
+.today-editor-move{display:flex;gap:4px}.today-editor-move button{display:grid;place-items:center;width:40px;height:40px;border:1px solid var(--color-border);border-radius:var(--radius-control);color:var(--color-ink-soft);background:var(--color-surface)}.today-editor-move button:disabled{opacity:.3}.today-editor-move button:focus-visible,.today-editor-actions button:focus-visible{outline:3px solid color-mix(in srgb,var(--color-accent) 30%,transparent);outline-offset:2px}
+.today-editor-actions{display:flex;justify-content:space-between;gap:12px;margin-top:20px}.today-editor-actions button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 18px;border:1px solid var(--color-border);border-radius:var(--radius-control);color:var(--color-ink-soft);font-weight:700;background:var(--color-surface)}.today-editor-actions button:last-child{min-width:108px;border-color:var(--color-accent);background:var(--color-accent);color:var(--color-on-accent)}
+
+/* A quieter daily starting point: the detailed cards lead, extras are optional. */
+.reference-home-overview{margin-bottom:16px}
+.reference-home-overview>summary{display:flex;align-items:center;gap:8px;width:max-content;min-height:40px;color:var(--color-ink-soft);font-size:13px;font-weight:650;cursor:pointer;list-style:none}
+.reference-home-overview>summary::-webkit-details-marker{display:none}
+.reference-home-overview>summary::after{content:"";width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg) translateY(-2px);transition:transform .15s ease}
+.reference-home-overview[open]>summary::after{transform:rotate(225deg) translate(-2px,-1px)}
+.reference-home-overview>summary:focus-visible{outline:3px solid var(--color-accent);outline-offset:3px;border-radius:4px}
+.reference-dashboard .today-next{background:var(--color-surface);border-color:var(--color-border);box-shadow:none}
+.reference-dashboard .today-bento-grid{gap:16px}
+.nav-download{display:flex;align-items:center;gap:8px;text-align:left;border:0;background:transparent;color:var(--color-ink-soft);cursor:pointer}
+@media(max-width:600px){.reference-home-overview{margin-bottom:8px}.reference-dashboard .today-bento-grid{gap:12px}}
+@media(prefers-reduced-motion:reduce){.reference-home-overview>summary::after{transition:none}}
+.task-more-options{position:relative}.task-more-options summary{display:flex;align-items:center;min-height:40px;padding:0 14px;border:1px solid var(--color-border);border-radius:var(--radius-control);background:var(--color-surface);color:var(--color-ink-soft);font-size:13px;font-weight:650;cursor:pointer;list-style:none}.task-more-options summary::-webkit-details-marker{display:none}.task-more-options[open]>.task-toolbar-reset{position:absolute;z-index:5;top:calc(100% + 6px);left:0;white-space:nowrap;box-shadow:var(--shadow-sm);background:var(--color-surface)}.task-empty-lists-toggle{min-height:36px;padding:0 4px;color:var(--color-ink-soft);font-size:12px;font-weight:650;text-decoration:underline;text-underline-offset:3px}.task-empty-lists-toggle:focus-visible,.task-more-options summary:focus-visible{outline:3px solid var(--color-accent);outline-offset:2px}
+.task-status-segments{max-width:560px}.task-filter-disclosure>summary{width:max-content;min-height:38px;display:flex;align-items:center;gap:4px;color:var(--color-ink-soft);font-size:13px;font-weight:650;cursor:pointer;list-style:none}.task-filter-disclosure>summary::-webkit-details-marker{display:none}.task-filter-disclosure>summary::after{content:"";width:7px;height:7px;margin-left:5px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg) translateY(-2px)}.task-filter-disclosure[open]>summary::after{transform:rotate(225deg)}.task-filter-content{display:flex;align-items:center;flex-wrap:wrap;gap:12px;padding:8px 0}.task-filter-content .task-search{flex:1 1 220px}.task-filter-content .task-person-filter{margin:0}.task-filter-disclosure>summary:focus-visible{outline:3px solid var(--color-accent);outline-offset:2px}

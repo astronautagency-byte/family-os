@@ -117,3 +117,14 @@
  .app-shell .calendar-month-weekdays { padding-block:8px; }
  .app-shell .reference-tasks .task-board-row { padding:12px 0; column-gap:8px; }
 }
+
+/* Keep the composer close to the conversation instead of stretching empty space. */
+.app-shell .app-content .chat-page-shell { height:auto; min-height:0; overflow:visible; }
+.app-shell .app-content .chat-page-shell > .chat-message-list { flex:0 1 auto; min-height:0; max-height:min(48dvh, 480px); overflow-y:auto; overscroll-behavior:contain; }
+.app-shell .chat-mobile-composer { flex:0 0 auto; margin:0; }
+@media(max-width:1023px){
+ .app-shell .app-content:has(.chat-page-shell) { height:auto!important; min-height:0!important; overflow:visible!important; padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))!important; }
+ .app-shell .app-content>.pull-to-refresh-host:has(.chat-page-shell) { flex:none; height:auto!important; overflow:visible!important; }
+ .app-shell .app-content .chat-page-shell { height:auto; overflow:visible; }
+ .app-shell .app-content .chat-page-shell > .chat-message-list { max-height:min(45dvh, 400px); }
+}

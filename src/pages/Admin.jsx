@@ -28,9 +28,9 @@ function AdminLogin({ onSignedIn }) {
   const submit = async (event) => {
     event.preventDefault(); setBusy(true); setError("");
     const { data: resolvedEmail, error: resolveError } = await supabase.rpc("admin_login_email", { login_name: login.trim() });
-    if (resolveError || !resolvedEmail) { setError("That admin username or email is not recognized."); setBusy(false); return; }
+    if (resolveError || !resolvedEmail) { setError("Unable to sign in. Check your credentials and try again."); setBusy(false); return; }
     const { error: signInError } = await supabase.auth.signInWithPassword({ email: resolvedEmail, password });
-    if (signInError) setError(signInError.message); else onSignedIn();
+    if (signInError) setError("Unable to sign in. Check your credentials and try again."); else onSignedIn();
     setBusy(false);
   };
   const requestReset = async (event) => {
@@ -51,9 +51,8 @@ function AdminLogin({ onSignedIn }) {
     } finally { setBusy(false); }
   };
   return <main className={`admin-login ${themeClass}`} data-color-scheme={colorScheme}><form onSubmit={recovering ? requestReset : submit} className="admin-login-card">
-    <img src="/icons/famos-app-icon.png" alt="FamOS" />
-    <span className="admin-kicker"><ShieldCheck size={14} /> FamOS operations</span>
-    <h1>{recovering ? "Reset admin password" : "Admin sign in"}</h1><p>{recovering ? "We’ll email a secure reset link to the authorized admin account." : "Secure access for authorized FamOS operators."}</p>
+    <div className="admin-login-brand"><img src="/icons/famos-app-icon.png" alt="" /><div><strong>FamOS</strong><span>Operations</span></div></div>
+    <div className="admin-login-intro"><h1>{recovering ? "Reset your password" : "Welcome back"}</h1><p>{recovering ? "Enter your admin username or email and we’ll send a reset link." : "Sign in to manage FamOS operations."}</p></div>
     {resetSent ? <div className="admin-recovery-sent"><Mail size={20}/><strong>Check your inbox</strong><span>If that admin account exists, its secure reset link is on the way.</span></div> : <>
     <TextField label="Admin username or email" value={login} onChange={(event) => setLogin(event.target.value)} autoComplete="username" required />
     {!recovering && <TextField label="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required />}
@@ -251,7 +250,7 @@ function SaaSOperations({ onOpenHousehold, onOpenSupport }) {
   const load = async () => { setBusy("load"); const { data, error: loadError } = await supabase.rpc("admin_saas_operations_snapshot"); if (loadError) setError(loadError.message); else { setSnapshot(data || {}); setError(""); } setBusy(""); };
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const resetUsage = async (row) => { setBusy(`${row.household_id}-${row.metric}`); const { error: resetError } = await supabase.rpc("admin_reset_household_api_usage", { target_household: row.household_id, target_metric: row.metric }); if (resetError) setError(resetError.message); else await load(); setBusy(""); };
-  if (!snapshot && busy) return <Card className="admin-panel admin-stripe-state"><RefreshCw className="spin"/><strong>Building today’s operations queue…</strong></Card>;
+  if (!snapshot) return <Card className="admin-panel admin-stripe-state">{error ? <><div className="admin-error" role="alert">Operations data is unavailable: {error}</div><SecondaryButton onClick={load}>Try again</SecondaryButton></> : <><RefreshCw className="spin"/><strong>Loading operations…</strong></>}</Card>;
   return <div className="admin-operations">{error && <div className="admin-error">{error}</div>}<section className="admin-metrics-grid">
     <Metric icon={CreditCard} label="Past due" value={snapshot?.pastDue || 0} detail="Billing follow-up" tone="rose"/><Metric icon={Clock3} label="Trials ending" value={snapshot?.trialsEnding7d || 0} detail="Within 7 days" tone="yellow"/><Metric icon={MessageCircle} label="Support SLA" value={snapshot?.overdueSupport || 0} detail="Waiting over 24 hours" tone="fam"/><Metric icon={Gauge} label="Usage risk" value={snapshot?.usageAtRisk || 0} detail="At least 80% consumed" tone="mint"/>
   </section><div className="admin-operations-toolbar"><div><span className="admin-kicker"><ShieldCheck size={13}/>Daily control room</span><p>Work the queues from left to right: revenue risk, customer support, then usage exceptions.</p></div><SecondaryButton onClick={load} disabled={!!busy}><RefreshCw className={busy === "load" ? "spin" : ""} size={15}/>Refresh</SecondaryButton></div>
@@ -559,6 +558,10 @@ export default function Admin() {
   const [search, setSearch] = useState(""); const [userSearch, setUserSearch] = useState(""); const [selected, setSelected] = useState(null);
   const [range, setRange] = useState(90); const [error, setError] = useState(""); const [deleteTarget, setDeleteTarget] = useState(null); const [deleteBusy, setDeleteBusy] = useState(false); const [deleteError, setDeleteError] = useState("");
   const [supportMessages, setSupportMessages] = useState([]);
+  const [dashboardLoaded, setDashboardLoaded] = useState(false);
+  const [dashboardBusy, setDashboardBusy] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [mobileMore, setMobileMore] = useState(false);
   const [supportSearch, setSupportSearch] = useState("");
   const [supportCategoryFilter, setSupportCategoryFilter] = useState("");
   const [supportStatusFilter, setSupportStatusFilter] = useState("");
@@ -576,14 +579,16 @@ export default function Admin() {
     if (accessError || !data) setError(accessError?.message || "This account is not authorized for FamOS administration."); setChecking(false);
   };
   const load = async () => {
+    setDashboardBusy(true);
     const [summaryResult, familyResult, userResult, analyticsResult, auditResult] = await Promise.all([
       supabase.rpc("admin_dashboard_overview"), supabase.rpc("admin_list_households", { search_text: search, page_limit: 200, page_offset: 0 }),
       supabase.rpc("admin_list_users", { search_text: userSearch, page_limit: 300, page_offset: 0 }), supabase.rpc("admin_analytics_snapshot", { range_days: range }),
       supabase.from("admin_audit_log").select("*").order("created_at", { ascending: false }).limit(100),
     ]);
     const firstError = summaryResult.error || familyResult.error || userResult.error || analyticsResult.error || auditResult.error;
-    if (firstError) setError(firstError.message); else setError("");
-    setOverview(summaryResult.data || {}); setHouseholds(familyResult.data || []); setUsers(userResult.data || []); setAnalytics(analyticsResult.data || {}); setAudit(auditResult.data || []);
+    if (firstError) { setError(`Some dashboard data could not be refreshed: ${firstError.message}`); } else { setError(""); setLastUpdated(new Date()); }
+    if (!summaryResult.error) setOverview(summaryResult.data || {}); if (!familyResult.error) setHouseholds(familyResult.data || []); if (!userResult.error) setUsers(userResult.data || []); if (!analyticsResult.error) setAnalytics(analyticsResult.data || {}); if (!auditResult.error) setAudit(auditResult.data || []);
+    setDashboardLoaded(!summaryResult.error && !analyticsResult.error); setDashboardBusy(false);
   };
   useEffect(() => { check(); }, []);
   useEffect(() => { if (allowed) load(); }, [allowed, search, userSearch, range]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -627,8 +632,10 @@ export default function Admin() {
   const activePercent = overview.households ? Math.round(Number(analytics.activeHouseholds30d || 0) / Number(overview.households) * 100) : 0;
   return <div className={`admin-shell ${themeClass}`} data-color-scheme={colorScheme}>    <aside><div className="admin-brand"><span className="admin-brand-icon"><img src="/brand/famos-icon.png" alt="FamOS" /></span><strong>Fam<span>OS</span></strong><small>Admin</small></div><nav>{nav.map(([key, label, Icon, badge]) => <button key={key} className={section === key ? "active" : ""} onClick={() => setSection(key)}><Icon size={18} />{badge ? <span className="admin-dot" /> : null}{label}{badge ? <span className="admin-badge">{badge}</span> : null}</button>)}</nav><button className="admin-signout" onClick={async () => { await supabase.auth.signOut(); setSession(null); }}><LogOut size={17} /> Sign out</button></aside>
     <main><header className="admin-topbar"><div><span className="admin-kicker"><ShieldCheck size={13} /> Operations center</span><h1>{nav.find(([key]) => key === section)?.[1]}</h1></div><div className="admin-topbar-actions">{["overview", "revenue"].includes(section) && <select aria-label="Statistics period" value={range} onChange={(event) => setRange(Number(event.target.value))}><option value="7">7 days</option><option value="14">14 days</option><option value="30">30 days</option><option value="90">90 days</option><option value="180">6 months</option><option value="365">12 months</option><option value="730">24 months</option></select>}<div className="admin-operator"><span>{session.user.email?.[0]?.toUpperCase()}</span><small>{session.user.email}</small></div></div></header>
-      {error && <div className="admin-error">{error}</div>}
-      {section === "overview" && <><section className="admin-metrics-grid">
+      {error && <div className="admin-error" role="alert">{error}</div>}
+      {section === "overview" && <div className="admin-overview-intro"><div><strong>Your operations at a glance</strong><span>{lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit" })}` : "Dashboard data has not loaded yet"}</span></div><button type="button" onClick={() => { load(); setSupportRefreshKey((prev) => prev + 1); }} disabled={dashboardBusy}><RefreshCw size={16} className={dashboardBusy ? "spin" : ""}/>{dashboardBusy ? "Refreshing…" : "Refresh"}</button></div>}
+      {section === "overview" && !dashboardLoaded && <div className="admin-panel admin-overview-loading" role="status">{dashboardBusy ? "Loading dashboard data…" : "Dashboard metrics are unavailable. Try refreshing."}</div>}
+      {section === "overview" && dashboardLoaded && <><div className="admin-quick-links" aria-label="Operations shortcuts"><button onClick={() => setSection("operations")}><Gauge size={18}/><span><strong>Operations queue</strong><small>Review billing, support and usage</small></span><ChevronRight size={16}/></button><button onClick={() => setSection("support")}><MessageCircle size={18}/><span><strong>Support inbox</strong><small>View and manage family requests</small></span><ChevronRight size={16}/></button><button onClick={() => setSection("audit")}><ShieldCheck size={18}/><span><strong>Admin activity</strong><small>Review the audit log</small></span><ChevronRight size={16}/></button></div><section className="admin-metrics-grid">
         <Metric icon={Building2} label="Total families" value={number(overview.households)} detail={`${analytics.activeHouseholds30d || 0} active in 30d`} />
         <Metric icon={Users} label="Total users" value={number(overview.users)} detail={`${overview.activeUsers30d || 0} signed in recently`} tone="mint" />
         <Metric icon={CircleDollarSign} label="MRR" value={money(overview.mrrCents, overview.currency)} detail={`${money(overview.arrCents, overview.currency)} ARR`} tone="yellow" />
@@ -662,7 +669,7 @@ export default function Admin() {
       {section === "flags" && <Card className="admin-panel"><PanelHead eyebrow="Per-family controls" title="Feature management" icon={Settings2} /><p className="admin-section-copy">Open a family to configure calendars, meals, groceries, tasks, chat, Fam AI, finance, and communication entitlements.</p><HouseholdTable households={households} onOpen={setSelected} search={search} setSearch={setSearch} /></Card>}
       {section === "audit" && <Card className="admin-table-card"><div className="admin-table-tools"><div><small>Security</small><h2>Admin activity</h2></div></div><div className="admin-audit-list">{audit.map((entry) => <article key={entry.id}><span><ShieldCheck size={15} /></span><div><strong>{entry.action.replaceAll("_", " ")}</strong><small>{entry.admin_email} · {entry.target_type} {entry.target_id}</small></div><time>{date(entry.created_at)}</time></article>)}{!audit.length && <div className="admin-empty">No admin actions yet.</div>}</div></Card>}
       {section === "account" && <AdminAccount session={session} onSessionChanged={async () => { const { data } = await supabase.auth.getSession(); setSession(data.session); }} />}
-    </main><nav className="admin-mobile-nav">{[nav[0], nav[1], nav[2], nav[4], nav[6], nav[8]].map(([key, label, Icon]) => <button key={key} className={section === key ? "active" : ""} onClick={() => setSection(key)}><Icon /><small>{label}</small></button>)}</nav>
+    </main>{mobileMore && <div className="admin-mobile-more" id="admin-mobile-more"><div className="admin-mobile-more-head"><strong>More sections</strong><button onClick={() => setMobileMore(false)} aria-label="Close more sections">×</button></div>{nav.filter(([key]) => !["overview", "operations", "families", "support"].includes(key)).map(([key, label, Icon]) => <button key={key} onClick={() => { setSection(key); setMobileMore(false); }} aria-current={section === key ? "page" : undefined}><Icon size={18}/>{label}<ChevronRight size={16}/></button>)}<button onClick={async () => { await supabase.auth.signOut(); setSession(null); }}><LogOut size={18}/>Sign out</button></div>}<nav className="admin-mobile-nav" aria-label="Admin navigation">{[nav[0], nav[1], nav[2], nav[8]].map(([key, label, Icon]) => <button key={key} className={section === key ? "active" : ""} aria-current={section === key ? "page" : undefined} onClick={() => { setSection(key); setMobileMore(false); }}><Icon /><small>{label}</small></button>)}<button className={mobileMore ? "active" : ""} aria-expanded={mobileMore} aria-controls="admin-mobile-more" onClick={() => setMobileMore(!mobileMore)}><Settings2/><small>More</small></button></nav>
     <ConfirmDelete target={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={confirmDelete} busy={deleteBusy} error={deleteError} />
   </div>;
 }

@@ -546,6 +546,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
       if (!raw) return;
       window.sessionStorage.removeItem(SHARED_RECIPE_KEY);
       const shared = JSON.parse(raw);
+      setRecipeUrl(shared.url || "");
       setDraft({ title: shared.title || "Shared recipe", notes: shared.url || shared.text || "", cookIds: [] });
       setShowSavedRecipes(false);
       setEditing({ date: todayISO(), slot: "dinner", mealId: null, shared: true });
