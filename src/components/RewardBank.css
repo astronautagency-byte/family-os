@@ -7,7 +7,7 @@
 .reward-bank-star-presets { display:flex; flex-wrap:wrap; gap:8px; align-items:end; }
 .reward-bank-star-presets button { display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 14px; border:1px solid var(--color-border); border-radius:var(--radius-control); background:var(--color-surface); color:var(--color-ink); }
 .reward-bank-star-presets button[aria-pressed=true] { background:var(--star-paper); border-color:var(--star-ink); color:var(--star-ink); }
-.reward-bank-page .reward-bank-catalog article { margin-top:16px; padding:20px; border:1px solid var(--color-border); border-left:5px solid var(--star-gold); border-radius:var(--radius-card,16px); }
+.reward-bank-page .reward-bank-catalog article { margin-top:16px; padding:20px; border:1px solid var(--color-border); border-radius:var(--radius-card,16px); }
 .reward-bank-page .reward-bank-catalog article:last-child { border-bottom:1px solid var(--color-border); }
 .reward-bank-page .reward-bank-catalog strong { font-family:var(--font-display); font-size:20px; }
 .reward-bank-page .reward-bank-star-cost { display:flex; font-weight:650; margin-top:10px; }
@@ -65,10 +65,6 @@
 .reward-bank-error{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px;border:1px solid var(--color-warn);border-radius:var(--radius-control);margin-bottom:16px}.reward-bank-error p{margin:0;color:var(--color-warn)}
 @media(max-width:760px){.reward-bank-paused{padding:20px;gap:16px}.reward-bank-paused .reward-bank-star-seal{width:58px;height:58px;border-radius:18px}.reward-bank-paused .reward-bank-star-seal svg{width:30px}.reward-bank-active-head{align-items:flex-start;flex-direction:column}}
 /* Warm star-themed surfaces make the reward journey easier to scan. */
-.reward-bank-paused{background:color-mix(in srgb,var(--color-fam-marigold) 12%,var(--color-surface));border-color:color-mix(in srgb,var(--color-fam-marigold) 30%,var(--color-border));border-radius:24px 24px 24px 8px}
-.reward-bank-paused .reward-bank-star-seal{transform:rotate(-9deg);box-shadow:0 6px 0 color-mix(in srgb,var(--color-fam-marigold) 22%,transparent)}
-.reward-bank-page .reward-bank .reward-bank-people{background:color-mix(in srgb,var(--color-fam-sky) 7%,var(--color-surface));border-color:color-mix(in srgb,var(--color-fam-sky) 22%,var(--color-border))}
-.reward-bank-page .reward-bank .reward-bank-jars{background:color-mix(in srgb,var(--color-fam-marigold) 10%,var(--color-surface));border-color:color-mix(in srgb,var(--color-fam-marigold) 28%,var(--color-border))}
-.reward-bank-page .reward-bank .reward-bank-create{background:color-mix(in srgb,var(--color-fam-coral) 7%,var(--color-surface));border-color:color-mix(in srgb,var(--color-fam-coral) 22%,var(--color-border))}
-.reward-bank-page .reward-bank-catalog{border-top:4px solid var(--star-gold)}
-@media(prefers-reduced-motion:no-preference){.reward-bank-paused .reward-bank-star-seal{transition:transform 220ms ease}.reward-bank-paused:hover .reward-bank-star-seal{transform:rotate(0deg) scale(1.04)}}
+.reward-bank-paused{background:color-mix(in srgb,var(--color-fam-marigold) 9%,var(--color-surface));border-color:var(--color-border);border-radius:var(--radius-card,16px)}
+.reward-bank-paused .reward-bank-star-seal{transform:none;box-shadow:none}
+.reward-bank-page .reward-bank .reward-bank-jars{background:color-mix(in srgb,var(--color-fam-marigold) 7%,var(--color-surface))}

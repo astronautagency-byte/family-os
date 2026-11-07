@@ -2,22 +2,17 @@ import { todaySuggestions } from '../lib/todaySuggestions';
 import {useHouseholdFeatures} from "../context/HouseholdFeaturesContext";
 import { combineCalendarSources } from '../lib/calendarSources';
 import { expandRecurringEvents } from '../lib/eventRecurrence';
-import { fireConfetti as fireBrandConfetti } from '../lib/confetti';
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Bell, CalendarPlus, ChefHat, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, Coffee, Droplets, ExternalLink, GripVertical, LayoutGrid, ListChecks, LoaderCircle, MapPin, Megaphone, MessageCircle, Moon, PartyPopper, Refrigerator, RotateCcw, ShoppingCart, Soup, Sun, Ticket, Trash2, TriangleAlert, Wind, X, Sparkles } from "../components/icons";
+import { ArrowDown, ArrowUp, Bell, CalendarPlus, ChefHat, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, Coffee, Droplets, ExternalLink, GripVertical, LayoutGrid, ListChecks, LoaderCircle, MapPin, MessageCircle, Moon, PartyPopper, Refrigerator, RotateCcw, ShoppingCart, Soup, Sun, Ticket, Trash2, TriangleAlert, Wind, Sparkles } from "../components/icons";
 // ChefHat is already imported above for the Cook button icon.
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
-import { BROADCAST_REACTIONS, useFamily } from "../context/FamilyContext";
+import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, AvatarStack, Card, Checkbox, EmptyState } from "../components/ui";
 import PageHeader from "../components/PageHeader";
-import { BroadcastAudio } from '../components/BroadcastVoice';
-import BroadcastComposer from '../components/BroadcastComposer';
 import FamilyCardRail from '../components/FamilyCardRail';
 import PullToRefresh from "../components/PullToRefresh";
 import { supabase } from "../lib/supabase";
-import { dailyEncouragement, eventDateLocal, formatTime, fullDateLabel, greetingInfo, todayISO } from "../lib/dates";
+import { eventDateLocal, formatTime, fullDateLabel, greetingInfo, todayISO } from "../lib/dates";
 import useKitchenInventory from "../hooks/useKitchenInventory";
 import { expiringInventory, inventoryExpiryStatus } from "../lib/inventoryExpiry";
 import NativeAdBanner from "../components/NativeAdBanner";
@@ -120,73 +115,6 @@ const eventType = (event) => {
   return "family";
 };
 
-// Tap-to-prepend emoji "stickers" used to live INSIDE the input box but the
-// family-feedback round flagged them as noisy — replaced with a single
-// announcement icon that matches the rest of the site's icon vocabulary
-// (40×40 rounded-12 accent-soft tile + accent-colored lucide icon).
-
-// Friendly rotating placeholders shown when the input is empty and unfocused.
-// Mirrors the spirit of the deleted Quick-start chips but stays inline as a
-// single line of hint copy. Cycles every 4.5s; pauses on focus / typed text.
-const BROADCAST_PLACEHOLDERS = [
-  "Say hi to the family",
-  "What's happening tonight?",
-  "Big news — share it",
-  "Heads up, family",
-  "Tell everyone you're thinking of them",
-];
-
-
-
-function BroadcastBanner({ item, sender, reactions, currentUserId, onReact, onClear }) {
-  const ref = useRef(null);
-  useGSAP(() => {
-    if (!ref.current) return undefined;
-    const media = gsap.matchMedia();
-    media.add("(prefers-reduced-motion: no-preference)", () => {
-      gsap.fromTo(ref.current, { autoAlpha: 0, y: -20, scale: 0.92 }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.6, ease: "back.out(1.7)" });
-      // Stagger reaction buttons in after the banner lands
-      const buttons = ref.current.querySelectorAll(".broadcast-reaction");
-      gsap.fromTo(buttons, { autoAlpha: 0, scale: 0.6 }, { autoAlpha: 1, scale: 1, duration: 0.35, stagger: 0.08, ease: "back.out(2)", delay: 0.3 });
-    });
-    return () => media.revert();
-  }, { scope: ref });
-
-  return (
-    <div className="broadcast-banner" ref={ref}>
-      <div className="broadcast-banner-accent" />
-      {sender ? <Avatar member={sender} size="md" /> : <span className="broadcast-banner-icon"><Megaphone size={18} /></span>}
-      <div className="broadcast-banner-body">
-        <div className="broadcast-banner-meta">
-          <strong>{sender?.name || "Family"}</strong>
-          <span className="broadcast-banner-time">{formatTime(item.sentAt)}</span>
-        </div>
-        {(!item.voicePath || item.text !== 'Voice note') && <p>{item.text}</p>}
-        {item.voicePath && <BroadcastAudio path={item.voicePath} />}
-        <div className="broadcast-reactions">
-          {BROADCAST_REACTIONS.map((emoji) => {
-            const list = reactions.filter((reaction) => reaction.reaction === emoji);
-            const mine = list.some((reaction) => reaction.memberId === currentUserId);
-            return (
-              <button
-                key={emoji}
-                className={`broadcast-reaction ${mine ? "reacted" : ""} ${list.length ? "" : "empty"}`}
-                onClick={() => onReact(item.id, emoji)}
-                aria-label={`React ${emoji}${list.length ? ` (${list.length})` : ""}`}
-                aria-pressed={mine}
-              >
-                <span aria-hidden="true">{emoji}</span>
-                {list.length > 0 && <em>{list.length}</em>}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-      <button className="broadcast-banner-clear" onClick={() => onClear(item.id)} aria-label="Clear broadcast"><X size={16} /></button>
-    </div>
-  );
-}
-
 export default function Today({ goTo }) {
   const {sharedGoogleCalendarIds=[]}=useFamily();
   const {features,pauseReminders}=useHouseholdFeatures();
@@ -225,7 +153,7 @@ export default function Today({ goTo }) {
   const isTrial = (subscription?.status === "trial" || subscription?.status === "trialing") && trialDaysLeft > 0 && !promoUnlocked;
   const isExpired = subscription?.status === "canceled" || (subscription?.status === "trial" && trialDaysLeft === 0);
 
-  const { members, memberById, events, googleEvents, feedEvents, meals, tasks, taskLists = [], groceries, messages, addGrocery, toggleTask, tabletMode, broadcasts, broadcastMessage, clearBroadcast, reactionsByMessage, reactToBroadcast, currentUserId, refreshData, syncGoogleCalendarNow, googleConnected, notificationPermission, requestNotifications } = useFamily();
+  const { members, memberById, events, googleEvents, feedEvents, meals, tasks, taskLists = [], groceries, messages, addGrocery, toggleTask, tabletMode, currentUserId, refreshData, syncGoogleCalendarNow, googleConnected, notificationPermission, requestNotifications } = useFamily();
   const { profile, user, household, householdProfileExtra } = useAuth();
   const { items: inventoryItems, removeItem: removeInventoryItem } = useKitchenInventory(household?.id, user?.id);
   const expiryAlerts = useMemo(() => expiringInventory(inventoryItems), [inventoryItems]);
@@ -233,16 +161,6 @@ export default function Today({ goTo }) {
   const [remindedIds, setRemindedIds] = useState(() => new Set());
   const [weather, setWeather] = useState(null);
   const [weatherError, setWeatherError] = useState("");
-  const [broadcastText, setBroadcastText] = useState("");
-  const [broadcastMode, setBroadcastMode] = useState('text');
-  const [voiceText,setVoiceText]=useState('');
-  const [broadcastSuccess, setBroadcastSuccess] = useState('');
-  const broadcastLock = useRef(false);
-  const [broadcastVoice, setBroadcastVoice] = useState(null);
-  const [voiceRecording, setVoiceRecording] = useState(false);
-  const [broadcasting, setBroadcasting] = useState(false);
-  const [broadcastError, setBroadcastError] = useState("");
-  const [broadcastFocused, setBroadcastFocused] = useState(false);
   const [editingDashboard, setEditingDashboard] = useState(false);
   const [dashboardOrder, setDashboardOrder] = useState(readDashboardOrder);
   const [hiddenDashboardCards, setHiddenDashboardCards] = useState(readHiddenDashboardCards);
@@ -253,9 +171,7 @@ export default function Today({ goTo }) {
       return typeof saved === "object" ? saved : {};
     } catch { return {}; }
   });
-  const composeContainerRef = useRef(null);
   const draggedDashboardCard = useRef(null);
-  const [placeholderIdx, setPlaceholderIdx] = useState(0);
 
   useEffect(() => {
     if (typeof window !== "undefined") window.localStorage.setItem(DASHBOARD_ORDER_KEY, JSON.stringify(dashboardOrder));
@@ -269,13 +185,6 @@ export default function Today({ goTo }) {
 
   const dashboardPosition = (id) => {
     if(!dashboardEnabled(id))return {display:"none"};
-    if (id === "broadcast") {
-      return { 
-        order: dashboardOrder.indexOf(id) + 1, 
-        display: hiddenDashboardCards.includes(id) ? "none" : undefined,
-        gridColumn: "1 / -1",
-      };
-    }
     return { 
       order: dashboardOrder.indexOf(id) + 1, 
       display: hiddenDashboardCards.includes(id) ? "none" : undefined,
@@ -369,35 +278,6 @@ export default function Today({ goTo }) {
     }), 2000);
   };
 
-  // Cycle through friendly placeholders while the composer is "true empty"
-  // (no focus, no text). The moment a user touches it, the cycling stops so
-  // the placeholder never competes with what they're typing.
-  useEffect(() => {
-    if (broadcastFocused || broadcastText.length > 0) return undefined;
-    const id = setInterval(() => {
-      setPlaceholderIdx((prev) => (prev + 1) % BROADCAST_PLACEHOLDERS.length);
-    }, 4500);
-    return () => clearInterval(id);
-  }, [broadcastFocused, broadcastText]);
-
-  const fireConfetti = () => { if (features.celebrations !== false) fireBrandConfetti(28, 1600); };
-
-
-
-  const postBroadcast = async (event) => {
-    event.preventDefault();
-    if ((broadcastMode==='text' ? !broadcastText.trim() : !broadcastVoice) || broadcastLock.current || voiceRecording) return;
-    broadcastLock.current=true;
-    setBroadcasting(true); setBroadcastError(""); setBroadcastSuccess('');
-    try {
-      await broadcastMessage(broadcastMode==='text' ? broadcastText.trim() : voiceText.trim(), broadcastMode==='voice' ? broadcastVoice : null);
-      if(broadcastMode==='text') setBroadcastText(''); else {setBroadcastVoice(null);setVoiceText('');}
-      setBroadcastSuccess(broadcastMode==='text'?'Text broadcast sent to your household.':'Voice note sent to your household.');
-      fireConfetti();
-    }
-    catch (error) { setBroadcastError(error.message || "Could not broadcast right now."); }
-    finally { broadcastLock.current=false; setBroadcasting(false); }
-  };
   const WEATHER_CACHE_KEY = "famos:weather-cache:v1";
   const loadWeatherCache = () => {
     try {
@@ -580,22 +460,21 @@ export default function Today({ goTo }) {
     <PullToRefresh onRefresh={refreshAll}>
     <div className="pb-28 reference-dashboard famos-noscroll">
       <PageHeader
-        eyebrow={fullDateLabel(today)}
         title={tabletMode ? `${greetingLabel}, family` : `${greetingLabel}${greetingName ? `, ${greetingName}` : ""}`}
-        subtitle={dailyEncouragement(today)}
+        subtitle={fullDateLabel(today)}
         illustration="home"
         action={<button type="button" className={`today-customize-trigger ${editingDashboard ? "active" : ""}`} onClick={() => setEditingDashboard((current) => !current)} aria-expanded={editingDashboard}><LayoutGrid size={16}/>{editingDashboard ? "Done" : "Customize"}</button>}
       />
 
-      {nextSuggestion && !editingDashboard && <div className="today-next-wrap px-5"><button type="button" className={`today-next today-next--${nextSuggestion.page}`} onClick={() => goTo(nextSuggestion.page)}><span className="today-next-icon"><Sparkles size={20}/></span><span className="today-next-copy"><small>A helpful next step</small><strong>{nextSuggestion.title}</strong><span>{nextSuggestion.detail}</span></span><span className="today-next-action">{nextSuggestion.action} <ChevronRight size={16}/></span></button></div>}
+      {nextSuggestion && !editingDashboard && <div className="today-next-wrap px-5"><button type="button" className={`today-next today-next--${nextSuggestion.page}`} onClick={() => goTo(nextSuggestion.page)}><span className="today-next-icon"><Sparkles size={20}/></span><span className="today-next-copy"><small>Up next</small><strong>{nextSuggestion.title}</strong><span>{nextSuggestion.detail}</span></span><span className="today-next-action">{nextSuggestion.action} <ChevronRight size={16}/></span></button></div>}
 
       <div className="reference-home-overview px-5">
         <div className="reference-family-strip" aria-label="Your family">{members.map(member => <div key={member.id}><Avatar member={member} size="lg"/><span>{member.name?.split(' ')[0]}</span></div>)}<button type="button" onClick={() => goTo('settings')} aria-label="Manage family members">+</button></div>
         <FamilyCardRail title="Your family, at a glance" onSelect={goTo} cards={[
-          { id: 'calendar', label: 'Today’s schedule', title: `${todaysEvents.length} event${todaysEvents.length === 1 ? '' : 's'} today`, detail: todaysEvents[0]?.title || 'A little room to breathe.', action: 'Open calendar' },
-          { id: 'tasks', label: 'Shared responsibilities', title: `${openTasks.length} task${openTasks.length === 1 ? '' : 's'} to do`, detail: openTasks.length ? 'Small jobs. A lighter load for everyone.' : 'You’re all caught up.', action: 'View tasks' },
-          { id: 'meals', label: 'What’s for dinner?', title: meals.find(meal => meal.date === today && meal.slot === 'dinner')?.title || 'Make a dinner plan', detail: 'Bring everyone to the table.', action: 'Open meal plan' },
-          { id: 'groceries', label: 'Your shopping list', title: `${activeGroceries.length} item${activeGroceries.length === 1 ? '' : 's'} to pick up`, detail: 'Remember it once. Share it with everyone.', action: 'Open shopping' },
+          { id: 'calendar', label: 'Today’s schedule', title: `${todaysEvents.length} event${todaysEvents.length === 1 ? '' : 's'} today`, detail: todaysEvents[0]?.title || 'No events scheduled.', action: 'Open calendar' },
+          { id: 'tasks', label: 'Tasks', title: `${openTasks.length} task${openTasks.length === 1 ? '' : 's'} to do`, detail: openTasks.length ? 'See what needs doing.' : 'No open tasks.', action: 'View tasks' },
+          { id: 'meals', label: 'Dinner', title: meals.find(meal => meal.date === today && meal.slot === 'dinner')?.title || 'Plan dinner', detail: 'See your family meal plan.', action: 'Open meal plan' },
+          { id: 'groceries', label: 'Shopping list', title: `${activeGroceries.length} item${activeGroceries.length === 1 ? '' : 's'} to pick up`, detail: 'Your shared list.', action: 'Open shopping' },
           { id: 'kitchen', label: 'Kitchen Watch', title: expiryAlerts.length ? `${expiryAlerts.length} item${expiryAlerts.length === 1 ? '' : 's'} to use soon` : 'See what’s in your kitchen', detail: 'Use what you have before buying more.', action: 'Open kitchen' },
           { id: 'chat', label: 'Family chat', title: 'Keep everyone in the loop', detail: 'A place for plans and quick check-ins.', action: 'Open chat' },
         ].filter(card => features[card.id] !== false && !hiddenDashboardCards.includes(({calendar:'schedule',chat:'messages'})[card.id] || card.id))} />
@@ -630,31 +509,6 @@ export default function Today({ goTo }) {
       <NativeAdBanner placement={AD_PLACEMENTS.HOME} />
 
       <div className="px-5 mt-2 today-bento-grid">
-        <section className="broadcast-home" aria-label="Family broadcast">
-          <div className="broadcast-confetti-host" ref={composeContainerRef}>
-            <BroadcastComposer mode={broadcastMode} onModeChange={value=>{setBroadcastMode(value);setBroadcastError('');setBroadcastSuccess('');}}
-              text={broadcastText} onTextChange={setBroadcastText} voice={broadcastVoice} onVoiceChange={setBroadcastVoice}
-              recording={voiceRecording} onRecordingChange={setVoiceRecording} sending={broadcasting} onSubmit={postBroadcast} voiceText={voiceText} onVoiceTextChange={setVoiceText}
-              placeholder={BROADCAST_PLACEHOLDERS[placeholderIdx]} onFocus={()=>setBroadcastFocused(true)} onBlur={()=>setBroadcastFocused(false)}/>
-          </div>
-          {broadcastError && <p className="broadcast-compose-error" role="alert">{broadcastError}</p>}
-          {broadcastSuccess && <p role="status">{broadcastSuccess}</p>}
-          {broadcasts.length > 0 && (
-            <div className="broadcast-banner-list">
-              {broadcasts.map((item) => (
-                <BroadcastBanner
-                  key={item.id}
-                  item={item}
-                  sender={memberById[item.senderId]}
-                  reactions={reactionsByMessage[item.id] || []}
-                  currentUserId={currentUserId}
-                  onReact={reactToBroadcast}
-                  onClear={clearBroadcast}
-                />
-              ))}
-            </div>
-          )}
-        </section>
         <Card className={`weather-now-card p-4 ${editingDashboard ? "is-customizing" : ""}`} style={dashboardPosition("weather")} {...dashboardDragProps("weather")}>
           {moveHandle("weather")}
           {weather?.alerts?.length > 0 && (
@@ -696,7 +550,7 @@ export default function Today({ goTo }) {
             <div className="px-4 pt-4 pb-2">
               <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#D94F4F] mb-1">Track what's expiring</p>
               <h2 id="kitchen-watch-title" className="ui-section-title">Kitchen Watch</h2>
-              <p className="text-[12px] text-[var(--color-ink-soft)] mt-1">A few taps now can prevent a kitchen-table summit later.</p>
+              <p className="text-[12px] text-[var(--color-ink-soft)] mt-1">See what needs to be used soon.</p>
             </div>
             {/* Expiring soon banner */}
             {expiryAlerts.length > 0 && (
@@ -962,7 +816,7 @@ export default function Today({ goTo }) {
               const sender = memberById[message.senderId];
               const direct = Boolean(message.recipientId);
               return <button type="button" key={message.id} onClick={() => goTo("chat")}><Avatar member={sender || { name: "Family" }} size="sm"/><span><strong>{sender?.name || "Family member"}{direct ? " · Direct" : ""}</strong><small>{message.text}</small></span><time>{new Date(message.sentAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</time></button>;
-            })}</div> : <button type="button" className="today-message-empty" onClick={() => goTo("chat")}><MessageCircle size={18}/><span><strong>The family chat is quiet</strong><small>Start a conversation without turning it into a broadcast.</small></span></button>}
+            })}</div> : <button type="button" className="today-message-empty" onClick={() => goTo("chat")}><MessageCircle size={18}/><span><strong>The family chat is quiet</strong><small>Send a message to your family.</small></span></button>}
           </Card>
         </section>
       </div>

@@ -15,6 +15,7 @@
 .page-add-button:focus-visible,.reference-mobile-nav button:focus-visible { outline:2px solid var(--color-accent-strong,#00764E); outline-offset:3px; }
 .app-shell .calendar-hero.apple-calendar-toolbar { padding:24px var(--layout-page-gutter) 16px; gap:16px; background:var(--color-surface); border:0; }
 .app-shell .calendar-hero-actions { gap:8px; }
+.app-shell .calendar-hero-actions .calendar-import-button{min-width:44px;min-height:44px}
 .app-shell .apple-calendar-controls { gap:12px; margin-bottom:16px; }
 .app-shell .apple-date-strip { gap:4px; margin-block:16px; }
 .app-shell .apple-date-strip button.selected { background:var(--color-accent); color:var(--color-on-accent); border-radius:12px; }
@@ -39,8 +40,11 @@
   .app-shell .app-content :is(.reference-groceries,.reference-tasks,.kw-page,.reference-meals) .page-subtitle { display:none; }
   .page-add-button { width:44px; height:44px; padding:10px; background:transparent; color:var(--color-accent-strong,#00764E); }
   .page-add-button>span { display:none; }
-  .app-shell .calendar-hero.apple-calendar-toolbar { padding:16px; flex-wrap:wrap; }
-  .app-shell .calendar-hero-date { min-width:0; flex:1; }
+  .app-shell .calendar-hero.apple-calendar-toolbar { padding:16px; flex-wrap:wrap; gap:12px; }
+  .app-shell .calendar-hero-date { min-width:0; flex:1 1 150px; }
+  .app-shell .calendar-hero-actions { gap:6px; margin-left:auto; }
+  .app-shell .calendar-hero-actions .calendar-import-button {width:44px;height:44px;padding:0;display:grid;place-items:center;}
+  .app-shell .calendar-hero-actions .calendar-import-button span {display:none;}
   .app-shell .apple-month-nav { gap:4px; }
   .app-shell .calendar-hero-dayname { font-size:19px; }
   .app-shell .apple-calendar-navigation { display:none; }

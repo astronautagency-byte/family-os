@@ -41,6 +41,9 @@
  .app-shell *, .m3-dialog-layer * {animation:none!important;transition:none!important;scroll-behavior:auto!important;}
 }
 @media(max-width:600px) {
+ .app-shell .app-topbar {gap:12px;padding-inline:16px}
+ .app-shell .topbar-wordmark img {display:none}
+ .app-shell .topbar-actions {gap:4px}
  /* The title and compact art share a row; complete action controls wrap below. */
  .app-shell .app-content .family-page-header .page-header-content {display:flex;flex-wrap:wrap;gap:12px;}
  .app-shell .app-content .family-page-header .page-header-aside {display:flex;max-width:100%;gap:12px;}

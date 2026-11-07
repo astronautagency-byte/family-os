@@ -39,12 +39,12 @@ export default function RewardBank({onNavigate} = {}) {
  const chores=(data?.chores || []).filter(c=>parent || c.child_id===user?.id);
  const requests=(data?.redemptions || []).filter(r=>parent || r.child_id===user?.id);
  return <div className="reward-bank-page">
-  <PageHeader title="RewardBank" titleIcon={<Gift size={26}/>} subtitle={parent ? 'Turn family contributions into something to look forward to.' : 'Your chores. Your stars. Your next reward.'}/>
+  <PageHeader title="RewardBank" titleIcon={<Gift size={26}/>} subtitle={parent ? 'Manage chore stars and family rewards.' : 'See your stars and choose rewards.'}/>
   <div className="reward-bank">
    {error&&<div className="reward-bank-error" role="alert"><p>{error}</p><SecondaryButton disabled={busy} onClick={()=>setVersion(v=>v+1)}>Try again</SecondaryButton></div>}
    {!data&&!error&&<p role="status">Loading RewardBank…</p>}
    {data&&<fieldset disabled={busy}>
-    {!enabled?<div className="reward-bank-paused"><span className="reward-bank-star-seal" aria-hidden="true"><Star size={40}/></span><div><h2>{parent?'Make chores more rewarding':'RewardBank is paused'}</h2><p>{parent?'Set a star value for chores and let your children save up for rewards you choose.':'Ask your household owner to enable RewardBank when you’re ready to collect stars.'}</p><p className="reward-bank-note">Existing stars and requests stay safe while RewardBank is off.</p>{parent&&<PrimaryButton type="button" onClick={()=>command('enable',{enabled:true})}>Enable RewardBank</PrimaryButton>}</div></div>:<>
+    {!enabled?<div className="reward-bank-paused"><span className="reward-bank-star-seal" aria-hidden="true"><Star size={40}/></span><div><h2>{parent?'Start earning stars':'RewardBank is paused'}</h2><p>{parent?'Set stars for chores and choose rewards for your children.':'Ask your household owner to turn on RewardBank.'}</p><p className="reward-bank-note">Existing stars and requests are saved while RewardBank is off.</p>{parent&&<PrimaryButton type="button" onClick={()=>command('enable',{enabled:true})}>Enable RewardBank</PrimaryButton>}</div></div>:<>
      <div className="reward-bank-active-head"><div><h2>{parent?'Stars and rewards':'Your stars and rewards'}</h2><p className="reward-bank-note">{parent?'Choose chores, approve stars and create rewards.':'Complete chores, collect stars and choose a reward.'}</p></div>{features.tasks&&onNavigate&&<SecondaryButton type="button" onClick={()=>onNavigate('tasks')}><CheckSquare size={18}/> Go to Tasks</SecondaryButton>}</div>
      {parent&&<label className="reward-bank-switch"><input type="checkbox" checked={true} onChange={()=>command('enable',{enabled:false})}/> RewardBank is enabled</label>}
      {parent&&<section className="reward-bank-people"><h3>Children taking part</h3>

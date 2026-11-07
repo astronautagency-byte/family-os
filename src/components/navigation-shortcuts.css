@@ -6,3 +6,7 @@
 .shortcut-reset {border:1px solid var(--color-border);color:var(--color-ink);background:var(--color-surface)}
 .reference-mobile-nav > button {min-width:0}
 .reference-mobile-nav > button > span {max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.reference-action-list {gap:4px}
+.reference-action-list>button {min-height:56px;padding:10px 12px;border-color:transparent;background:transparent}
+.reference-action-list>button:hover {background:var(--color-surface-sunken)}
+.reference-action-list>button:focus-visible {outline:2px solid var(--color-accent-strong);outline-offset:2px}

@@ -10,7 +10,6 @@ import { combineCalendarSources } from '../lib/calendarSources';
 import { AvatarStack, DateField, Modal, PrimaryButton, SecondaryButton, SegmentedControl, SelectField, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import CalendarImageImport from '../components/CalendarImageImport';
-import FamilyIllustration from '../components/FamilyIllustration';
 import ReferenceAgenda from '../components/ReferenceAgenda';
 import PageAddButton from '../components/PageAddButton';
 import usePageAdd from '../hooks/usePageAdd';
@@ -1124,7 +1123,6 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
             <span className="calendar-hero-month">{dayName} · {dayEventCount} event{dayEventCount === 1 ? "" : "s"}</span>
           </div>
           <div className="calendar-hero-actions">
-            <FamilyIllustration variant="calendar" className="family-header-art" />
             {LOCAL_EVENT_FINDER_ENABLED && <button className="calendar-hero-action calendar-hero-action-settings" onClick={() => {
               setDiscovering(true);
               const initialCities = discoverCities.length ? discoverCities : (discoverLocation ? [discoverLocation] : []);
@@ -1150,7 +1148,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
             <button className="calendar-hero-action" onClick={() => setCalendarManagerOpen(true)} aria-label="Manage calendars">
               <Settings2 size={17} />
             </button>
-            <SecondaryButton onClick={() => setImageImportOpen(true)}><CalendarPlus size={17}/> Import image</SecondaryButton>
+            <SecondaryButton className="calendar-import-button" onClick={() => setImageImportOpen(true)} aria-label="Import image" title="Import image"><CalendarPlus size={18}/><span>Import image</span></SecondaryButton>
             <PageAddButton label="Add event" onClick={() => openAdd()}/>
           </div>
         </div>

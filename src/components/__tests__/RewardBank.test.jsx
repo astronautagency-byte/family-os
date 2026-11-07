@@ -55,7 +55,7 @@ it('offers a clear action when paused and retains its data',async()=>{
  mocks.rows.settings=[{enabled:false}]; mocks.rpc.mockResolvedValue({error:null});
  try {render(<RewardBank/>); fireEvent.click(await screen.findByRole('button',{name:'Enable RewardBank'}));
  await waitFor(()=>expect(mocks.rpc).toHaveBeenCalledWith('rewardbank_command',{h:'home',action:'enable',payload:{enabled:true}}));
- expect(screen.getByText(/Existing stars and requests stay safe/)).toBeInTheDocument();
+ expect(screen.getByText(/Existing stars and requests are saved/)).toBeInTheDocument();
  expect(screen.queryByRole('button',{name:'Refresh RewardBank'})).toBeNull();
  } finally {mocks.rows.settings=[{enabled:true}];}
 });

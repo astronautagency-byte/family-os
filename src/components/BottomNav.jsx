@@ -79,7 +79,7 @@ export default function BottomNav({ active, onChange, onOpenAI, features = {}, t
           );
         })}
       </div>
-      <p className="nav-foot">{tabletMode ? "Shared family display · Tablet mode" : "Families run better on FamOS."}</p>
+      {tabletMode && <p className="nav-foot">Shared family display · Tablet mode</p>}
       {!childMode && features.family_packs !== false && <a className="nav-foot" href="/packs">Family Packs · Share with other families</a>}
     </nav>
     <nav className={`reference-mobile-nav ${childMode ? "child-mobile-nav" : ""}`} aria-label="Mobile navigation" style={{gridTemplateColumns:`repeat(${shortcuts.length+1},minmax(0,1fr))`}}>
@@ -96,11 +96,11 @@ export default function BottomNav({ active, onChange, onOpenAI, features = {}, t
         <button type="button" className="primary-button" onClick={saveShortcuts}>Save shortcuts</button>
       </div>:<>
       <div className="reference-action-list">
-        {visibleTabs.filter(tab => !selected.includes(tab.id)).map(({id, label, icon: Icon, hint}) => <button type="button" key={id} onClick={() => navigate(id)}><span className={`reference-action-icon tone-${id}`}><Icon size={23}/></span><span><strong>{label}</strong><small>{hint}</small></span></button>)}
-        <button type="button" onClick={editShortcuts}><span className="reference-action-icon"><Settings size={23}/></span><span><strong>Customize shortcuts</strong><small>Choose your four bottom tabs</small></span></button>
-        {!childMode && onOpenAI && features.fam_ai !== false && <button type="button" onClick={() => { setSheet(null); onOpenAI(); }}><span className="reference-action-icon tone-chat"><Sparkles size={23}/></span><span><strong>Ask Fam AI</strong><small>Get help planning your day</small></span></button>}
-        {!childMode && <button type="button" onClick={() => navigate('settings')}><span className="reference-action-icon tone-calendar"><Settings size={23}/></span><span><strong>Settings & family</strong><small>People, preferences, and support</small></span></button>}
-        {!childMode && features.family_packs !== false && <button type="button" onClick={() => window.location.assign('/packs')}><span className="reference-action-icon"><Gift size={23}/></span><span><strong>Family Packs</strong><small>Share routines, recipes, meals, and lists</small></span></button>}
+        {visibleTabs.filter(tab => !selected.includes(tab.id)).map(({id, label, icon: Icon}) => <button type="button" key={id} onClick={() => navigate(id)}><span className={`reference-action-icon tone-${id}`}><Icon size={22}/></span><strong>{label}</strong></button>)}
+        <button type="button" onClick={editShortcuts}><span className="reference-action-icon"><Settings size={22}/></span><strong>Customize shortcuts</strong></button>
+        {!childMode && onOpenAI && features.fam_ai !== false && <button type="button" onClick={() => { setSheet(null); onOpenAI(); }}><span className="reference-action-icon tone-chat"><Sparkles size={22}/></span><strong>Ask Fam AI</strong></button>}
+        {!childMode && <button type="button" onClick={() => navigate('settings')}><span className="reference-action-icon tone-calendar"><Settings size={22}/></span><strong>Settings & family</strong></button>}
+        {!childMode && features.family_packs !== false && <button type="button" onClick={() => window.location.assign('/packs')}><span className="reference-action-icon"><Gift size={22}/></span><strong>Family Packs</strong></button>}
       </div>
       </>}
     </Modal></>
