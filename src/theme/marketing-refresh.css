@@ -33,3 +33,21 @@
 .landing-page .landing-hero-editorial .landing-hero-ctas button+button {color:var(--color-ink)!important;background:var(--color-surface,#fff);border:1px solid var(--color-border);text-shadow:none;}
 
 @media(max-width:700px){.landing-page .landing-hero-editorial .landing-hero-ctas{flex-direction:row;justify-content:flex-start;gap:12px}.landing-page .landing-hero-editorial .landing-trust{align-items:flex-start;flex-direction:column;gap:10px}}
+
+/* Keep the editorial hero on one left edge at every breakpoint. */
+.landing-page .landing-hero-editorial .landing-hero-copy{display:flex;flex-direction:column;align-items:flex-start;width:100%;min-width:0;text-align:left}
+.landing-page .landing-hero-editorial .landing-hero-copy h1,
+.landing-page .landing-hero-editorial .landing-hero-copy>p{margin-left:0;margin-right:0;text-align:left}
+.landing-page .landing-hero-editorial .landing-hero-ctas{display:flex;justify-content:flex-start;align-items:stretch;gap:12px;flex-wrap:wrap}
+.landing-page .landing-hero-editorial .landing-hero-ctas button{display:inline-flex;align-items:center;justify-content:center;gap:10px;text-decoration:none;box-shadow:none}
+.landing-page .landing-hero-editorial .landing-hero-ctas button:first-child{background:#b84226!important;border-color:#b84226;color:#fff!important}
+.landing-page .landing-hero-editorial .landing-hero-ctas button+button{border-color:var(--color-border-strong);text-decoration:none}
+.landing-page .landing-hero-editorial .landing-hero-ctas button:first-child:hover{background:#94331e!important;border-color:#94331e}
+.landing-page .landing-hero-editorial .landing-hero-ctas button+button:hover{background:var(--color-surface-sunken);border-color:var(--color-border-strong);color:var(--color-ink)!important}
+.landing-page .landing-hero-editorial .landing-hero-ctas button:focus-visible{outline:3px solid var(--color-accent);outline-offset:3px}
+@media(max-width:700px){
+ .landing-page .landing-hero-editorial{padding-top:40px!important}
+ .landing-page .landing-hero-editorial .landing-hero-ctas{width:100%}
+ .landing-page .landing-hero-editorial .landing-hero-ctas button{flex:0 1 auto}
+}
+@media(max-width:380px){.landing-page .landing-hero-editorial .landing-hero-ctas button:first-child{min-width:0!important;flex:1 1 150px}}
