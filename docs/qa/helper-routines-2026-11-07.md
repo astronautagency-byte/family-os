@@ -20,5 +20,7 @@
 - Existing routine trigger regression passed (weekday, monthly boundary, stop repeating, duplicate completion).
 - Production build passed with existing warnings; focused lint has existing context/hooks warnings.
 - Isolated mobile Chrome preview tested Tasks, Family settings and helper spaces at 320/360/390/768 px; helper invitation modal at 320/390/768 px. Long list names and 174-character unbroken instructions were used. Measured document/modal horizontal bounds passed. Screenshots are in working-project `docs/qa/helper-routines-2026-11-07/`.
-- Live database with temporary sample household: list routine configuration, read-only family calendar plus shared routine, passcode login, task instructions, hidden private task, allowed completion observed by owner, exactly one next occurrence, tomorrow excluded, and revocation blocking an existing session all passed. Temporary household/owner removed; no SMS sent this review.
+- Canonical live app and database with temporary sample household: list routine configuration, read-only family calendar plus shared routine, passcode login, task instructions, hidden private task, allowed completion observed by owner, exactly one next occurrence, tomorrow excluded, and revocation blocking an existing session all passed. Temporary household/owner removed; no SMS sent this review.
 - Physical Safari layout verification has not been repeated for this change. These responsive checks use Chrome emulation.
+
+Canonical app bundle matches the tested production build (`index-DheLp0eT.js`).

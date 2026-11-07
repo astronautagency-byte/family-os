@@ -14,7 +14,7 @@ Deno.serve(async req=>{
   const body=await req.json();if(!/^[a-f0-9]{64}$/.test(body.token||'')||typeof body.passcode!=='string'||body.passcode.length>64)return json({error:'Invalid invitation'},400);
   const {data,error:claimError}=await admin.rpc('claim_helper_sms',{access_id:body.id,actor:user.id,token:body.token,passcode:body.passcode});
   if(claimError)return json({error:claimError.message},400);claim=data.id;
-  const message=`FamOS helper invitation. Open https://home.fam-os.app/helpers#invite=${body.token}&guest=1 and enter passcode: ${body.passcode}\nPrivate access to selected lists only. Keep this message private. Reply STOP to opt out.`;
+  const message=`FamOS helper invitation. Open https://home.fam-os.app/helpers#invite=${body.token}&guest=1 and enter passcode: ${body.passcode}\nPrivate access to selected lists and calendars only. Keep this message private. Reply STOP to opt out.`;
   let accepted=false;
   const key=Deno.env.get('AWS_ACCESS_KEY_ID'),secret=Deno.env.get('AWS_SECRET_ACCESS_KEY');
   if(key&&secret){try{const sns=new SNSClient({region:Deno.env.get('AWS_REGION')||'ca-central-1',credentials:{accessKeyId:key,secretAccessKey:secret}});const r=await sns.send(new PublishCommand({PhoneNumber:data.phone,Message:message,MessageAttributes:{'AWS.SNS.SMS.SMSType':{DataType:'String',StringValue:'Transactional'}}}));accepted=!!r.MessageId;}catch{/* Try the configured alternate provider without logging private message data. */}}
