@@ -26,3 +26,7 @@ html:has(.fai-page),body:has(.fai-page main#main-content):not([data-scroll-locke
 .fai-story-heading h2{font-size:clamp(42px,4.05vw,58px)}.fai-story-heading h2>span{display:block;white-space:nowrap;color:inherit}.fai-story-heading h2>span:last-child{color:#bab4f4}
 @media(max-width:700px){.fai-story-heading{display:block}.fai-story-heading h2{font-size:34px}.fai-story-heading>p{font-size:10px;line-height:1.7;max-width:310px;margin:17px 0 0}.fai-story-heading>p br{display:none}.fai-story-heading>p br:after{content:" "}.fai-story-stage{margin-top:22px}.fai-story-sticky{min-height:770px}.fai-motion-off .fai-story-sticky{min-height:800px}}
 @media(max-width:360px){.fai-story-heading h2{font-size:31px}}
+
+/* Keep explanatory copy readable at link-preview and phone viewing sizes. */
+.fai-section-head>p,.fai-demo-sidebar>p,.fai-chat-feature-copy>p{font-size:15px}.fai-faq details p{font-size:14px}.fai-offer>p{font-size:13px}.fai-selection-summary p{font-size:12px}
+@media(max-width:700px){.fai-hero-title>p{font-size:14px}.fai-section-head>p,.fai-demo-sidebar>p,.fai-chat-feature-copy>p{font-size:14px}.fai-control p{font-size:13px}.fai-offer li{font-size:12px}}
