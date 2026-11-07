@@ -613,7 +613,8 @@ export default function Meals({ entitlements = null, goTo } = {}) {
         selectedCuisine: chosenCuisine || "",
         offset: Number(data?.offset || 0),
         pageSize: Number(data?.number || 12),
-        totalResults: Number(data?.totalResults || list.length),
+        totalResults: Number(data?.totalResults ?? list.length),
+        providerLimited: Boolean(data?.providerLimited),
       });
     } catch (error) {
       setRouletteError(friendlyRecipeSearchError(error));
@@ -1187,6 +1188,8 @@ export default function Meals({ entitlements = null, goTo } = {}) {
                     ? `Found ${rouletteOptions.recipes.length} ${rouletteOptions.slot} idea${rouletteOptions.recipes.length === 1 ? "" : "s"} using what is already in your kitchen.`
                     : `Showing ${rouletteOptions.recipes.length}${rouletteOptions.totalResults > rouletteOptions.recipes.length ? ` of ${rouletteOptions.totalResults}` : ""} ${rouletteOptions.slot} recipe${rouletteOptions.recipes.length === 1 ? "" : "s"} for ${rouletteOptions.cuisine}. Pick the one that sounds good.`}
               </p>
+              {rouletteOptions.providerLimited && <p className="roulette-picker-intro">Showing saved results while the recipe service is temporarily limited.</p>}
+              {!rouletteBusy && !rouletteError && rouletteOptions.recipes.length < 5 && rouletteOptions.selectedCuisine && <p className="roulette-picker-intro">Want more ideas? Choose Any cuisine and search again. Your dietary preferences will stay applied.</p>}
               {rouletteError && <p className="roulette-picker-error" role="alert">{rouletteError}</p>}
               <div className={`roulette-picker-list ${rouletteBusy ? "is-refreshing" : ""}`} aria-busy={rouletteBusy}>
                 {rouletteOptions.recipes.map((recipe, index) => (

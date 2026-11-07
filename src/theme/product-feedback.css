@@ -27,3 +27,19 @@
 }
 :root[data-famos-theme="dark"] .m3-dialog {color:var(--color-ink)!important;background:var(--color-surface)!important;}
 :root[data-famos-theme="dark"] .modal-close-button {color:var(--color-ink)!important;background:var(--color-surface-sunken)!important;}
+
+/* Calendar visibility controls: one compact disclosure with clear selection states. */
+.app-shell .calendar-sources-primary { margin: 12px 0; padding: 0; border: 1px solid var(--color-border); border-radius: 16px; background: var(--color-surface); overflow: hidden; }
+.app-shell .calendar-sources-trigger { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; padding: 12px 16px; color: var(--color-ink); cursor: pointer; list-style: none; }
+.app-shell .calendar-sources-trigger::-webkit-details-marker { display: none; }
+.app-shell .calendar-sources-trigger > span { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.app-shell .calendar-sources-trigger strong { font-size: 14px; }
+.app-shell .calendar-sources-trigger small { color: var(--color-ink-soft); font-size: 12px; }
+.app-shell .calendar-sources-trigger > svg { color: var(--color-ink-soft); transition: transform .2s; flex: none; }
+.app-shell .calendar-sources-primary[open] .calendar-sources-trigger > svg { transform: rotate(180deg); }
+.app-shell .calendar-sources-primary .calendar-sources-heading { margin: 0; padding: 12px 16px 2px; border-top: 1px solid var(--color-border); }
+.app-shell .calendar-sources-primary .calendar-sources-heading > span { font-size: 11px; }
+.app-shell .calendar-sources-primary .calendar-sources-heading > button { min-height: 36px; font-size: 12px; }
+.app-shell .calendar-sources-primary .calendar-sources-tabs { flex-wrap: wrap; overflow: visible; gap: 8px; padding: 6px 16px 16px; }
+.app-shell .calendar-sources-primary .calendar-sources-tab { min-height: 40px; max-width: 100%; font-size: 12px; }
+.app-shell .calendar-sources-primary .calendar-sources-tab > span { overflow: hidden; text-overflow: ellipsis; }

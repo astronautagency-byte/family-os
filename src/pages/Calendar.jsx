@@ -1178,8 +1178,8 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
           </div>
           {sources.length > 1 && (
             <details className="calendar-sources calendar-sources-primary">
-              <summary className="setup-starter-trigger">Calendars · {sourceFilter === null ? 'All visible' : `${sourceFilter.length} selected`}</summary>
-              <div className="calendar-sources-heading"><span>Calendars</span><button type="button" onClick={() => setCalendarManagerOpen(true)}>Manage</button></div>
+              <summary className="calendar-sources-trigger"><span><CalendarDays size={17} aria-hidden="true" /><strong>Calendars</strong><small>{sourceFilter === null ? 'All visible' : `${sourceFilter.length} selected`}</small></span><ChevronDown size={18} aria-hidden="true" /></summary>
+              <div className="calendar-sources-heading"><span>Show calendars</span><button type="button" onClick={() => setCalendarManagerOpen(true)}>Manage</button></div>
               <div className="calendar-sources-tabs" role="group" aria-label="Overlay calendars">
                 {sources.map(source => {
                   const count = source.id === "all" ? allEvents.length : allEvents.filter(event => sourceId(event) === source.id).length;

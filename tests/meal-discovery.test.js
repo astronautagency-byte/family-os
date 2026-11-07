@@ -56,7 +56,7 @@ test("Cook Mode retains the exact fully expanded suggestion", () => {
 test("old title-only recipe caches cannot reopen an empty Cook Mode", () => {
   assert.match(mealsSource, /if \(!key \|\| !isCookModeReady\(recipe\)\) return/);
   assert.match(mealsSource, /return isCookModeReady\(recipe\) \? recipe : null/);
-  assert.match(recipeSearchSource, /famos:recipe-search-cache:v2/);
+  assert.match(recipeSearchSource, /famos:recipe-search-cache:v3/);
 });
 
 test("removed kitchen-only meal discovery is not offered", () => {

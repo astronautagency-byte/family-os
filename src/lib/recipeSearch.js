@@ -2,7 +2,7 @@ import { invokeEdgeFunction } from "./supabase";
 
 // v2 only stores the post-August-2026 cookable contract: every recipe has
 // both ingredients and usable step-by-step instructions.
-const CACHE_KEY = "famos:recipe-search-cache:v2";
+const CACHE_KEY = "famos:recipe-search-cache:v3";
 const FRESH_FOR_MS = 12 * 60 * 60 * 1000;
 const STALE_FOR_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_ENTRIES = 40;
@@ -47,7 +47,7 @@ const cachedFallback = (cache, payload, now) => {
       if (!id || seen.has(id)) continue;
       seen.add(id);
       recipes.push(recipe);
-      if (recipes.length === 3) return { recipes, source: "cache", cached: true, providerLimited: true };
+      if (recipes.length === 12) return { recipes, source: "cache", cached: true, providerLimited: true };
     }
   }
   return recipes.length ? { recipes, source: "cache", cached: true, providerLimited: true } : null;
