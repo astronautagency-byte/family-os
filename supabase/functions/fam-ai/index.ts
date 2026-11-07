@@ -1,3 +1,5 @@
+import {minimalAiContext,minimalAiMessages} from '../_shared/aiContext.js';
+import {aiPrivacyDenial} from '../_shared/aiPrivacy.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { consumeUsage, usageLimitResponse } from "../_shared/usage.ts";
@@ -35,13 +37,17 @@ function structuredEnvelope(message:string,intent:string,confidence:number,entit
 
 Deno.serve(async request=>{
  if(request.method==="OPTIONS")return new Response("ok",{headers:cors});
+ const privacyDenied=await aiPrivacyDenial(request,cors);if(privacyDenied)return privacyDenied;
  try{
   const authorization=request.headers.get("Authorization"); if(!authorization)return new Response(JSON.stringify({error:"Sign-in required."}),{status:401,headers:{...cors,"Content-Type":"application/json","Cache-Control":"no-store"}});
   const supabase=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_ANON_KEY")!,{global:{headers:{Authorization:authorization}}});
   const {data:{user},error}=await supabase.auth.getUser(); if(error||!user)return new Response(JSON.stringify({error:"Invalid session."}),{status:401,headers:{...cors,"Content-Type":"application/json","Cache-Control":"no-store"}});
   const usage=await consumeUsage(request,"famai_queries"); if(!usage.allowed)return usageLimitResponse(usage,cors);
   const xaiKey=Deno.env.get("XAI_API_KEY"); const groqKey=Deno.env.get("GROQ_API_KEY"); if(!xaiKey&&!groqKey)throw new Error("Fam AI's server credential is not configured yet.");
-  const {messages=[],context={}}=await request.json();
+  const {messages:rawMessages=[],context:rawContext={}}=await request.json();
+  const messages=minimalAiMessages(rawMessages);
+  if(!messages.length)return new Response(JSON.stringify({error:"A short request is required."}),{status:400,headers:{...cors,"Content-Type":"application/json","Cache-Control":"no-store"}});
+  const context=minimalAiContext(rawContext);
 
   const lastUser=(messages as any[]).filter((m:any)=>m.role==="user").pop()?.content as string||"";
   if(RED_PATTERNS.some((re)=>re.test(lastUser))){
@@ -77,7 +83,7 @@ Rules:
 - If the request is unrelated to the household (general knowledge, celebrity, world events), use OUT_OF_SCOPE with a brief message.
 - The user is currently on screen: ${context.screen||"today"}.
 
-Household context (compact): ${JSON.stringify(context)}`;
+Request context (no automatic household snapshot): ${JSON.stringify(context)}`;
 
   // NOTE: `response_format: {type:"json_object"}` is deliberately NOT sent
   // alongside `tools` — OpenAI-compatible providers (xAI and Groq) reject

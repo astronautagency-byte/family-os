@@ -1,3 +1,4 @@
+vi.mock('../AiPrivacyGate',()=>({default:({children})=>children}));
 import {afterEach,expect,it,vi} from 'vitest';
 import {render,screen,fireEvent,waitFor,cleanup,act} from '@testing-library/react';
 import VoiceQuickAdd from '../VoiceQuickAdd';

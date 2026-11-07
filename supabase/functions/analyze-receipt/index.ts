@@ -1,3 +1,4 @@
+import {aiPrivacyDenial} from '../_shared/aiPrivacy.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { consumeUsage, usageLimitResponse } from "../_shared/usage.ts";
@@ -15,6 +16,7 @@ function normalizeCategory(category = "") {
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: cors });
+ const privacyDenied=await aiPrivacyDenial(request,cors);if(privacyDenied)return privacyDenied;
   try {
     const usage = await consumeUsage(request, "premium_api_operations");
     if (!usage.allowed) return usageLimitResponse(usage, cors);

@@ -1,8 +1,11 @@
+import {aiPrivacyDenial} from '../_shared/aiPrivacy.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {authenticatedHousehold,consumeUsage,usageLimitResponse} from '../_shared/usage.ts';
 const headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-client-info','Access-Control-Allow-Methods':'POST,OPTIONS'};
 Deno.serve(async request=>{
  if(request.method==='OPTIONS')return new Response('ok',{headers});
+ if(Deno.env.get('OPENAI_TRANSCRIPTION_PRIVACY_APPROVED')!=='true')return Response.json({error:'Automatic transcription is paused while privacy controls are reviewed. You can type a transcript instead.',code:'TRANSCRIPTION_PRIVACY_REVIEW'},{status:503,headers});
+ const privacyDenied=await aiPrivacyDenial(request,headers);if(privacyDenied)return privacyDenied;
  if(request.method!=='POST')return new Response('Method not allowed',{status:405,headers});
  try {
   await authenticatedHousehold(request);

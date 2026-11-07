@@ -1,0 +1,18 @@
+import {useEffect,useState} from 'react';
+import {supabase} from '../lib/supabase';
+import './ai-privacy.css';
+
+export default function AiPrivacyGate({children,onCancel,onPause}) {
+ const [choice,setChoice]=useState(null),[editing,setEditing]=useState(false),[adult,setAdult]=useState(false),[processing,setProcessing]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ useEffect(()=>{let active=true;supabase?.rpc('ai_privacy_choices',{action:'status'}).then(({data,error})=>{if(!active)return;if(error)setError('Could not load your AI privacy choices. Please try again.');else setChoice(data);});return()=>{active=false;};},[]);
+ const update=async action=>{if(action==='withdraw')onPause?.();setBusy(true);setError('');try{const {data,error}=await supabase.rpc('ai_privacy_choices',{action,adult_confirmed:adult,processing_confirmed:processing});if(error)throw error;setChoice(data);setEditing(false);setAdult(false);setProcessing(false);}catch{setError('Your choice could not be saved. AI remains unavailable until it is verified.');}finally{setBusy(false);}};
+ if(choice?.accepted && !editing)return <><button type="button" className="ai-privacy-manage" onClick={()=>{onPause?.();setEditing(true);}}>AI privacy choices</button>{children || <p className="ai-privacy-status">AI processing is enabled for your account.</p>}</>;
+ return <section className="ai-privacy-panel" aria-label="AI privacy choices"><h2>Choose whether to use AI</h2><p>AI is optional and currently available only to adults aged 18 or older. Your calendar, lists and other ordinary household features remain available without enabling AI.</p>
+ <p>Requests, replies and the files you choose for AI processing are sent to Groq or xAI. Mia’s microphone uses your device or browser’s speech-recognition service, which may process audio remotely. Don’t include children’s personal information, precise locations or sensitive health details.</p>
+ <p>FamOS no longer automatically sends a household snapshot to AI Chat. Your own messages can still contain personal information. Review every proposed change before saving.</p>
+ <p><a href="/privacy" target="_blank" rel="noreferrer">Privacy policy</a> · <a href="/terms" target="_blank" rel="noreferrer">Terms</a></p>
+ {choice?.eligible===false ? <p role="status">AI is unavailable for this account’s age or household role. A parent’s permission does not enable under-18 AI access.</p> : choice && !choice.accepted ? <><label><input type="checkbox" checked={adult} onChange={e=>setAdult(e.target.checked)}/>I confirm that I am 18 or older.</label><label><input type="checkbox" checked={processing} onChange={e=>setProcessing(e.target.checked)}/>I choose to enable optional AI processing as described above. I can withdraw this choice here or in Settings → Account → AI privacy.</label><button type="button" disabled={busy || !adult || !processing} onClick={()=>update('accept')}>{busy?'Saving…':'Enable AI for my account'}</button></> : !choice && !error ? <p role="status">Checking your privacy choices…</p> : null}
+ {choice?.accepted && <><p>Withdrawing stops future AI requests from your account. It does not erase existing chats, saved items or information already processed. Contact support for a deletion request.</p><button type="button" disabled={busy} onClick={()=>update('withdraw')}>Withdraw AI processing permission</button><button type="button" disabled={busy} onClick={()=>setEditing(false)}>Keep my current choice</button></>}
+ {error && <><p role="alert">{error}</p><button type="button" disabled={busy} onClick={()=>update('status')}>Retry</button></>}{onCancel && <button type="button" className="ai-privacy-manage" onClick={onCancel}>Close</button>}
+ </section>;
+}

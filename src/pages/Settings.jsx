@@ -1,3 +1,4 @@
+import AiPrivacyGate from '../components/AiPrivacyGate';
 import FamilyHelpers from '../components/FamilyHelpers';
 import CustomizeFamOS from "../components/CustomizeFamOS";
 import BillingPlans from '../components/BillingPlans';
@@ -1507,11 +1508,13 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
             <div className="flex items-start gap-3 mb-3">
               <ShieldCheck size={17} className="mt-0.5 shrink-0" color="var(--color-ink-faint)" />
               <p className="text-[13px] text-[var(--color-ink-soft)] leading-relaxed">
-                FamOS keeps a few small shortcuts in this browser's localStorage so it can skip a network round-trip on repeat searches. None of that data leaves your device unless you sign in.
+                FamOS uses browser storage for sign-in and preferences. Household content is stored in the cloud when signed in; optional integrations and AI may send selected data to service providers. Review the privacy policy for your choices.
               </p>
             </div>
           </Card>
         </section>
+
+        {configured && <section data-tab="account"><h2 className="settings-section-title mb-3">AI privacy</h2><AiPrivacyGate/></section>}
 
         {configured && <section data-tab="account">
           <h2 className="settings-section-title mb-3"><Mail size={20} aria-hidden="true"/> Login email</h2>

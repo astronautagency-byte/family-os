@@ -1,3 +1,4 @@
+import AiPrivacyGate from './AiPrivacyGate';
 import { createPortal } from 'react-dom';
 import { unlockMiaAudio } from '../lib/miaVoice';
 import { useEffect, useRef, useState } from 'react';
@@ -188,7 +189,7 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
       <span className="mia-voice-wave" aria-hidden="true"><i/><i/><i/><i/></span>
     </button>;
   return <>{launcherTarget ? createPortal(launcher,launcherTarget) : launcher}
-    <Modal open={open} onClose={close} title="Talk to Mia" className="voice-quick-modal"><div className="voice-quick-content">
+    <Modal open={open} onClose={close} title="Talk to Mia" className="voice-quick-modal"><AiPrivacyGate onCancel={close} onPause={endConversation}><div className="voice-quick-content">
       <div className="voice-quick-conversation" data-mia-state={miaState} aria-live="polite"><span className="voice-quick-orb"><img src="/illustrations/mia-assistant.png" alt="" /></span><span className="voice-assistant-label"><span className="mia-status-dot" aria-hidden="true"/>Mia · {miaState === 'idle' ? 'FamOS AI assistant' : miaStateLabel}</span><p className="voice-quick-prompt">{listening && !action && !conversation.current.length ? 'I’m listening…' : message}</p>{transcript && <p className="voice-quick-heard">You: “{transcript}”</p>}</div>
       <button type="button" className="voice-conversation-toggle" aria-pressed={conversationMode} onClick={() => { if (conversationMode) endConversation(); else { setVoiceRecovery(false); continuous.current = true; setConversationMode(true);  start(actionRef.current?.ambiguousTime ? 'period' : actionRef.current ? ((actionRef.current.type === 'event' && !actionRef.current.start) || (actionRef.current.type === 'meal' && !actionRef.current.date) ? 'followup' : 'confirm') : conversation.current.length ? 'followup' : 'request'); } }}>{conversationMode ? 'End conversation' : 'Start continuous conversation'}</button>
       {conversationMode && <p className="voice-conversation-status">{startingMic ? 'Connecting microphone…' : listening ? 'Listening for your reply' : thinking ? 'Thinking…' : preparingVoice ? 'Preparing Mia’s voice…' : speaking ? 'Mia is speaking…' : 'Getting ready to listen…'}</p>}
@@ -203,5 +204,5 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
       {action && !action.ambiguousTime && ((action.type === 'event' && !action.start) || (action.type === 'meal' && !action.date)) && <><TextField label="Your reply" value={followup} onChange={e => setFollowup(e.target.value)} placeholder="e.g. tomorrow at 3 PM"/><SecondaryButton disabled={!followup.trim() || thinking} onClick={() => continueConversation(followup)}>Send reply</SecondaryButton></>}
       {!action && <><button type="button" className="voice-quick-type" onClick={() => setTyping(!typing)}>{typing ? 'Hide typing' : 'Type instead'}</button>{typing && <><TextField label="Your request" value={transcript} onChange={e => setTranscript(e.target.value)} placeholder="Can you add lemons to my grocery list?"/><SecondaryButton disabled={listening || !transcript.trim()} onClick={() => conversation.current.length ? continueConversation(transcript) : review(transcript)}>Review request</SecondaryButton></>}</>}
       <p className="voice-quick-privacy">In continuous conversation, the microphone resumes after each response until you end it, the app is backgrounded, or Mia pauses after inactivity. Your speech is processed to understand your request and generate a reply. FamOS doesn’t save audio. The microphone is on only while listening. Mia uses an AI-generated voice.</p>
-    </div></Modal></>;
+    </div></AiPrivacyGate></Modal></>;
 }

@@ -11,6 +11,8 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: cors });
   }
 
+  if(Deno.env.get('INBOUND_AI_PRIVACY_APPROVED')!=='true')return new Response(JSON.stringify({error:'Automatic email extraction is paused for privacy review.'}),{status:503,headers:{...cors,'Content-Type':'application/json','Cache-Control':'no-store'}});
+
   try {
     // Parse SendGrid inbound webhook form data
     const contentType = req.headers.get("content-type") || "";

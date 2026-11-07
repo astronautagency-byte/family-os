@@ -1,3 +1,4 @@
+import {aiPrivacyDenial} from '../_shared/aiPrivacy.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {consumeUsage,usageLimitResponse} from '../_shared/usage.ts';
 const headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-client-info'};
@@ -5,6 +6,7 @@ const safeUrl=(v:unknown)=>{try{const u=new URL(String(v || ''));return u.protoc
 const text=(v:unknown,max=10000)=>typeof v==='string'?v.replace(/<[^>]*>/g,' ').trim().slice(0,max):'';
 Deno.serve(async request=>{
  if(request.method==='OPTIONS')return new Response('ok',{headers});
+ const privacyDenied=await aiPrivacyDenial(request,headers);if(privacyDenied)return privacyDenied;
  if(request.method!=='POST')return new Response('Method not allowed',{status:405,headers});
  try {
   const raw=await request.text();if(raw.length>4500000)throw Error('Photos are too large. Use up to three photos under 1 MB each.');

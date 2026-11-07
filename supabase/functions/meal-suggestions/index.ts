@@ -1,3 +1,4 @@
+import {aiPrivacyDenial} from '../_shared/aiPrivacy.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { consumeUsage, usageLimitResponse } from "../_shared/usage.ts";
 
@@ -8,6 +9,7 @@ const corsHeaders = {
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+ const privacyDenied=await aiPrivacyDenial(request,corsHeaders);if(privacyDenied)return privacyDenied;
   try {
     const usage = await consumeUsage(request, "premium_api_operations");
     if (!usage.allowed) return usageLimitResponse(usage, corsHeaders);

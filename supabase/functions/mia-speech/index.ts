@@ -1,9 +1,11 @@
+import {aiPrivacyDenial} from '../_shared/aiPrivacy.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { consumeUsage, usageLimitResponse } from '../_shared/usage.ts';
 import { synthesizeMiaSpeech, validateSpeechText } from '../_shared/miaSpeech.js';
 const headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type','Content-Type':'application/json','Cache-Control':'private, no-store'};
 Deno.serve(async request=>{
   if(request.method==='OPTIONS')return new Response('ok',{headers});
+ const privacyDenied=await aiPrivacyDenial(request,headers);if(privacyDenied)return privacyDenied;
   if(request.method!=='POST')return new Response(JSON.stringify({error:'POST required'}),{status:405,headers});
   if(!request.headers.get('Authorization'))return new Response(JSON.stringify({error:'Sign-in required.'}),{status:401,headers});
   try{

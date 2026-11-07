@@ -1,3 +1,4 @@
+import AiPrivacyGate from '../components/AiPrivacyGate';
 import {useHouseholdFeatures} from "../context/HouseholdFeaturesContext";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -56,8 +57,6 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
     tasks,
     groceries,
     events,
-    googleEvents,
-    feedEvents,
     meals,
     addTask,
     addGrocery,
@@ -319,7 +318,6 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
       appendAssistant({ role: "assistant", content: "Fam AI needs the FamOS cloud connection before it can respond to that. The household assistant can still handle list, schedule, task and grocery requests offline." });
       return;
     }
-    const allEvents = [...(events || []), ...(googleEvents || []), ...(feedEvents || [])];
     const { data, error: invokeError } = await supabase.functions.invoke("fam-ai", {
       body: {
         messages: [...messages.map((m) => ({ role: m.role, content: m.aiContent || m.content })), { role: "user", content: text }],
@@ -328,18 +326,6 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
           today: todayISO(),
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           screen,
-          family: members.map((member) => member.name),
-          members: members.map((member) => ({ id: member.id, name: member.name, role: member.role })),
-          tasks: (features.tasks?tasks:[]).filter((task) => !task.done).slice(0, 40).map((task) => ({ title: task.title, due: task.due, assignee: task.assigneeId ? members.find((m) => m.id === task.assigneeId)?.name : null, taskType: task.taskType, recurrence: task.recurring, steps: task.recurring?.startsWith('routine:') ? task.notes : undefined })),
-          groceries: (features.groceries?groceries:[]).filter((item) => !item.checked).slice(0, 60).map((item) => ({ name: item.name, category: item.category, quantity: item.quantity, unit: item.unit })),
-          upcomingEvents: (features.calendar?allEvents:[])
-            .filter((item) => item.start && item.start >= new Date(`${todayISO()}T00:00:00`).toISOString())
-            .sort((a, b) => a.start.localeCompare(b.start))
-            .slice(0, 50)
-            .map((item) => ({ title: item.title, start: item.start, end: item.end, location: item.location, source: item.source })),
-          plannedMeals: (features.meals?meals:[]).filter((item) => item.date >= todayISO()).slice(0, 42).map((item) => ({ date: item.date, slot: item.slot, title: item.title, notes: item.notes })),
-          kitchenWatch: (features.kitchen?kitchenWatchItems || []:[]).slice(0, 30).map((item) => ({ name: item.name, category: item.category, expiry_date: item.expiresOn, quantity: item.quantity, location: item.location })),
-          pendingActions: pending.map((action) => ({ type: action.type, args: action.args })),
         },
       },
     });
@@ -492,7 +478,7 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
       >
         <X size={18} />
       </button>
-      <div className="fam-ai-page famos-noscroll">
+      <AiPrivacyGate onCancel={()=>setOpen(false)}><div className="fam-ai-page famos-noscroll">
         {showSidebar && (
           <aside className="fam-ai-sidebar">
             <div className="fam-ai-sidebar-header">
@@ -713,7 +699,7 @@ export default function FamAI({ open: propOpen, onClose, screen = "" }) {
         {!welcomeState && <div className="fam-ai-composer-foot"><span><Sparkles size={11}/> Ask naturally</span><p>Deterministic first — only complex requests reach the cloud.</p><kbd>↵ Send · ⇧↵ New line</kbd></div>}
       </form>
       </main>
-      </div>
+      </div></AiPrivacyGate>
     </div>
   );
 
