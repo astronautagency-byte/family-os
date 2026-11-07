@@ -63,3 +63,15 @@ it('opens the camera and lets a family select only the events they want',async()
   await waitFor(()=>expect(addEvent).toHaveBeenCalledTimes(1));
   expect(addEvent.mock.calls[0][0].title).toBe('Game');
 });
+it('keeps the selected photo available after extraction fails',async()=>{
+  readRecipePhotos.mockResolvedValue(['data:image/jpeg;base64,YQ==']);
+  invokeEdgeFunction.mockRejectedValueOnce(Error('Image reader unavailable'));
+  render(<CalendarImageImport onClose={()=>{}} addEvent={vi.fn()}/>);
+  fireEvent.change(screen.getByLabelText(/Choose event or calendar photos/),{target:{files:[new File(['photo'],'calendar.png',{type:'image/png'})]}});
+  await screen.findByAltText('Selected source image 1');
+  fireEvent.change(screen.getByLabelText(/Month and year/),{target:{value:'2026-11'}});
+  fireEvent.click(screen.getByRole('button',{name:'Read images'}));
+  expect(await screen.findByRole('alert')).toHaveTextContent('Image reader unavailable');
+  expect(screen.getByAltText('Selected source image 1')).toBeInTheDocument();
+  expect(screen.getByRole('button',{name:'Read images'})).toBeEnabled();
+});

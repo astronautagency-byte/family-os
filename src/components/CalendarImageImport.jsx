@@ -62,7 +62,7 @@ export default function CalendarImageImport({ onClose, addEvent, events = [] }) 
     } catch (e) { setError(`${added ? `${added} saved. ` : ''}${e.message || 'Could not save events.'} Saved events will not be added again when you retry.`); }
     finally { locked.current = false; setBusy(''); }
   }
-  return <Modal open onClose={() => {if (!locked.current) onClose();}} title="Add events from images">
+  return <Modal open onClose={() => {if (!locked.current) onClose();}} title="Add events from images" className="calendar-image-modal">
     <div className="calendar-image-import">
       <p>Upload an invitation, event flyer, or a photo of a calendar. Review and edit the events before adding them to your family’s FamOS calendar.</p>
       <div className="calendar-image-sources">

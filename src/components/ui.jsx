@@ -272,7 +272,7 @@ export function Checkbox({ checked, onChange, color, label = "Toggle selection" 
 }
 
 const openModalStack = [];
-export function Modal({ open, onClose, title, children }) {
+export function Modal({ open, onClose, title, children, className = "" }) {
   const dialogRef = useRef(null);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -309,7 +309,7 @@ export function Modal({ open, onClose, title, children }) {
   return createPortal(
     <div className="m3-dialog-layer fixed inset-0 z-50 flex items-end sm:items-center justify-center" role="presentation">
       <div className="m3-scrim absolute inset-0" onClick={onClose} />
-      <div ref={dialogRef} tabIndex={-1} className="modal-card m3-dialog relative bg-[var(--color-surface)] w-full sm:max-w-sm px-7 pt-7 pb-12 sm:p-8 safe-bottom fade-up max-h-[85vh] overflow-y-auto" role="dialog" aria-modal="true" aria-label={title || "Dialog"}>
+      <div ref={dialogRef} tabIndex={-1} className={`modal-card m3-dialog relative bg-[var(--color-surface)] w-full sm:max-w-sm px-7 pt-7 pb-12 sm:p-8 safe-bottom fade-up max-h-[85vh] overflow-y-auto ${className}`} role="dialog" aria-modal="true" aria-label={title || "Dialog"}>
         <div className="w-10 h-1 bg-[var(--color-border-strong)] rounded-full mx-auto mb-4 sm:hidden" />
         <div className="modal-heading">
           {title && <h3 className="font-[var(--font-display)]">{title}</h3>}
