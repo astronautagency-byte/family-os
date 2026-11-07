@@ -18,7 +18,6 @@
 .app-shell .today-glance-grid{gap:10px;overflow:visible;border:0;background:transparent}
 .app-shell .today-glance-card{position:relative;border-radius:18px;background:var(--glance-bg);color:#172b29;min-height:120px;gap:10px}
 .app-shell .today-glance-icon{background:#ffffffb8;color:#172b29}
-.app-shell .today-glance-emoji{position:absolute;right:16px;top:15px;font-size:20px;line-height:1}
 .app-shell .today-glance-card:hover{background:var(--glance-bg);box-shadow:0 6px 16px #172b291a}
 :root[data-famos-theme="dark"] .app-shell .today-glance-card{background:var(--glance-bg);color:#f3f7f5}
 :root[data-famos-theme="dark"] .app-shell .today-glance-icon{background:#ffffff24;color:#f3f7f5}
@@ -26,7 +25,3 @@
 @media(max-width:700px){.app-shell .today-glance-card{min-height:110px}}
 @media(max-width:340px){.app-shell .reference-dashboard .today-next{grid-template-columns:38px minmax(0,1fr);column-gap:10px;padding-left:14px;padding-right:52px}.app-shell .reference-dashboard .today-next-icon{width:38px;height:38px}}
 @media(prefers-reduced-motion:no-preference){.app-shell .today-glance-card{transition:transform 160ms ease,box-shadow 160ms ease}.app-shell .today-glance-card:hover{transform:translateY(-2px)}}
-.app-shell .empty-art-wrap{position:relative;display:grid;place-items:center;margin-bottom:4px}
-.app-shell .empty-art-wrap .empty-state-art{margin:0}
-.app-shell .empty-art-accent{position:absolute;right:-10px;top:-5px;display:grid;place-items:center;width:34px;height:34px;border:2px solid var(--color-surface);border-radius:50%;background:#fff1cf;font-size:17px;line-height:1;box-shadow:0 3px 8px #273e321a}
-:root[data-famos-theme="dark"] .app-shell .empty-art-accent{background:#5b4723}

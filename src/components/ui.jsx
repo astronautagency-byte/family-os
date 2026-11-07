@@ -669,10 +669,9 @@ export function Stepper({ value, onChange, min = 1, max = 99 }) {
 }
 
 export function EmptyState({ icon, illustration, title, subtitle, actionLabel, onAction }) {
-  const accents = { tasks: "✨", groceries: "🍋", meals: "🍽️", calendar: "☀️", chat: "💬", rewards: "⭐", kitchen: "🥕" };
   return (
     <div className="app-empty-state flex flex-col items-center justify-center text-center py-12 px-6">
-      {illustration ? <div className="empty-art-wrap"><FamilyIllustration variant={illustration} className="empty-state-art" sizes="96px" />{accents[illustration] && <span className="empty-art-accent" aria-hidden="true">{accents[illustration]}</span>}</div> : icon && <div className="mb-3 text-[var(--color-ink-faint)]">{icon}</div>}
+      {illustration ? <FamilyIllustration variant={illustration} className="empty-state-art" sizes="96px" /> : icon && <div className="mb-3 text-[var(--color-ink-faint)]">{icon}</div>}
       <p className="font-medium text-[var(--color-ink)] mb-1">{title}</p>
       {subtitle && <p className="text-sm text-[var(--color-ink-soft)] max-w-[26ch]">{subtitle}</p>}
       {actionLabel && onAction && <button type="button" className="empty-state-action" onClick={onAction}>{actionLabel}</button>}
