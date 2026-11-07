@@ -25,7 +25,7 @@ export const ONBOARDING_FALLBACK = { src: "/features/app-shots/01-signin.png", a
 export const FEATURE_HERO = {
   today: {
     screenshot: { src: "/hero-mockups/tablet-mode.png", alt: "FamOS tablet mode dashboard" },
-    pills: ["Day-first bento", "Kitchen reminders", "All daily meals", "Family broadcasts"],
+    pills: ["Day-first bento", "Kitchen reminders", "All daily meals", "Shared family view"],
     cards: [],
   },
   calendar: {
@@ -50,7 +50,7 @@ export const FEATURE_HERO = {
   },
   chat: {
     screenshot: { src: "/hero-mockups/chat.png", alt: "FamOS family chat" },
-    pills: ["Broadcasts · reactions", "Direct messages", "Smart shortcuts", "Quiet by default"],
+    pills: ["Shared conversations", "Direct messages", "Smart shortcuts", "Quiet by default"],
     cards: [],
   },
   "fam-ai": {
@@ -90,12 +90,12 @@ export const FEATURES = [
     name: "Today",
     eyebrow: "HOME DASHBOARD",
     title: "Your day at a glance. Whole household, one screen.",
-    lede: "The calm, organized home base. Broadcasts, weather, every meal, open tasks, and kitchen items that need attention — so everyone stays on the same page without the back-and-forth.",
+    lede: "The calm, organized home base. Events, meals, open tasks, and kitchen items that need attention — so everyone stays on the same page without the back-and-forth.",
     icon: Sparkles,
     tone: "lilac",
     pill: "Home",
     bullets: [
-      { icon: Megaphone,  title: "Household updates",       copy: "Tap, type, send. Everyone sees a celebration banner with one-tap emoji reactions — perfect for quick updates that don't need a notification storm." },
+      { icon: Megaphone,  title: "Family chat",       copy: "Keep shared conversations close to the plans and tasks your household uses." },
       { icon: BellRing,   title: "Instant sync",            copy: "Anything anyone changes — update, task, meal, list — shows up on every phone in under a second. No refresh needed." },
       { icon: ChefHat,    title: "One-tap dinner",          copy: "If dinner is planned, the home screen jumps you straight into Cook Mode with hands-free voice navigation. No menu hunting." },
       { icon: Refrigerator, title: "Kitchen watch",          copy: "See what's expired or needs using soon, then put a replacement back on the shopping list in one tap." },
@@ -116,7 +116,7 @@ export const FEATURES = [
       { headline: "One-tap dinner", copy: "Dinner planned? The hero CTA jumps straight into Cook Mode. One tap. No friction." },
     ],
     ctaHeadline: "Your day at a glance. Whole household, one screen.",
-    ctaCopy: "Subscribe and unlock the Today dashboard immediately — broadcasts, weather, today's schedule, every meal, tasks, and kitchen reminders on one page.",
+    ctaCopy: "Subscribe and unlock the Today dashboard immediately — today's schedule, meals, tasks, and kitchen reminders on one page.",
   },
   {
     id: "calendar",
@@ -260,14 +260,14 @@ export const FEATURES = [
     tone: "peach",
     pill: "Chat",
     bullets: [
-      { icon: Megaphone,   title: "Household updates",       copy: "A quick heads-up on everyone's dashboard. No notification storm." },
+      { icon: Megaphone,   title: "Family conversations",       copy: "Share an update in the household chat." },
       { icon: Users,       title: "Direct messages",  copy: "Talk to one partner without the kids group-chat ping. Reactions, attachments, and read receipts still work the same way." },
       { icon: ShoppingCart, title: "Smart suggestions", copy: "Mention 'we need butter' (or any grocery, task, or event) and FamOS suggests the right shortcut — tap to push it straight into the right list." },
       { icon: BellRing,    title: "Quiet by default", copy: "Notifications fire only for things that matter: a direct message to you, a household update, or a deadline. The rest stays in the chat." },
     ],
     preview: {
       title: "Family chat",
-      kicker: "3 UNREAD · 1 BROADCAST",
+      kicker: "FAMILY CONVERSATION",
       pills: ["⚡ Suggestion: 'butter' → grocery", "2 active threads"],
       rows: [
         { avatar: "M", name: "Mia",      meta: "Can you grab milk?",        accent: "sky" },
@@ -288,7 +288,7 @@ export const FEATURES = [
     name: "Fam AI",
     eyebrow: "YOUR FAMILY ASSISTANT",
     title: "Your family's quiet helper.",
-    lede: "Fam AI reads what's on the calendar, the list, and the meal plan — and answers in plain words. Always asks before changing anything, so you stay in control.",
+    lede: "Fam AI reads what's on the calendar, the list, and the meal plan — and answers in plain words. Ask for help with everyday plans.",
     icon: Sparkles,
     tone: "lilac",
     pill: "Fam AI",
@@ -296,7 +296,7 @@ export const FEATURES = [
       { icon: ChefHat,       title: "Meal ideas from your groceries", copy: "Based on ingredients you already have, fresh recipes show up on the dashboard with what's required vs. what's optional." },
       { icon: ListChecks,    title: "Plan tonight in one sentence",   copy: "Type 'help me plan dinner tonight' and you get a recipe that matches the slot, the person, and the weather." },
       { icon: Coins,         title: "Weekly recap",                   copy: "A Sunday summary of what got done, what slipped, and what's coming up. Send it to the family chat with one tap." },
-      { icon: Mic,           title: "Stays quiet until asked",        copy: "Hands-free voice inside Cook Mode. Fam AI never edits the calendar or list without your explicit say-so." },
+      { icon: Mic,           title: "Stays quiet until asked",        copy: "Hands-free voice inside Cook Mode. Voice tools are available when you choose to use them." },
     ],
     preview: {
       title: "Fam AI",
@@ -311,7 +311,7 @@ export const FEATURES = [
     tips: [
       { headline: "Cook with what's in the kitchen", copy: "Type what you have. Fam AI finds meals you can cook right now." },
       { headline: "Plan tonight in one sentence", copy: "Type 'help me plan dinner tonight' and you get a recipe that matches the slot, the person, and the day's weather — confirmed, not silently changed." },
-      { headline: "Stays quiet until asked", copy: "Fam AI never edits the calendar or shopping list without your confirmation — you're always in control, never silently overwritten." },
+      { headline: "Stays quiet until asked", copy: "Review important details in your household plan." },
     ],
     ctaHeadline: "Your family's quiet helper.",
     ctaCopy: "Try Fam AI free for 30 days — meal ideas from your groceries, calendar summaries, and weekly recaps that respect the family plan.",

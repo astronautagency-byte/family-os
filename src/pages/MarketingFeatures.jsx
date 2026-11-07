@@ -2,13 +2,13 @@ import {useEffect} from 'react';
 import MarketingNav from '../components/MarketingNav';
 import MarketingFooter from '../components/MarketingFooter';
 import MarketingProductPreview from '../components/MarketingProductPreview';
-import {ArrowRight, Check, CalendarDays, ChefHat, ListChecks, BookOpen, Refrigerator, MessageCircle, Users, Star, Sparkles, ShoppingCart, Tablet, MapPin} from '../components/icons';
+import {ArrowRight, Check, CalendarDays, ChefHat, ListChecks, BookOpen, Refrigerator, MessageCircle, Users, Star, Sparkles, ShoppingCart, Tablet, MapPin, Mic} from '../components/icons';
 import {ALL_MARKETING_PAGES, MARKETING_PAGES, SEARCH_PAGES, marketingPageForPath} from '../data/marketingPages';
 import '../landing.css';
 import '../landing-theme.css';
 import '../feature.css';
 import '../theme/marketing-pages.css';
-const icons = {location:MapPin,today:Sparkles,calendar:CalendarDays,meals:ChefHat,tasks:ListChecks,recipes:BookOpen,kitchen:Refrigerator,chat:MessageCircle,family:Users,rewards:Star,'fam-ai':Sparkles,shopping:ShoppingCart,tablet:Tablet};
+const icons = {voice:Mic,location:MapPin,today:Sparkles,calendar:CalendarDays,meals:ChefHat,tasks:ListChecks,recipes:BookOpen,kitchen:Refrigerator,chat:MessageCircle,family:Users,rewards:Star,'fam-ai':Sparkles,shopping:ShoppingCart,tablet:Tablet};
 export const publicPageMeta = (path) => {
  const page = marketingPageForPath(path);
  return {title:page ? `${page.title} | FamOS` : 'Family Organizer Features: Calendar, Meals & Tasks | FamOS',description:page?.description || 'Explore FamOS shared calendars, meal planning, recipes, chores, rewards, shopping lists and family chat. Choose the tools that fit your household.',canonical:`https://fam-os.app${page?.path || '/features'}`};
@@ -32,7 +32,7 @@ function Metadata({path}) {
  },[path]);
  return null;
 }
-const captureForPage={today:'today',calendar:'calendar',meals:'meals',tasks:'tasks',shopping:'shopping',recipes:'recipes',kitchen:'kitchen',chat:'chat',rewards:'rewards',family:'settings','fam-ai':'ai',tablet:'today','calendar-sync':'calendar','calendar-photo-import':'calendar'};
+const captureForPage={voice:'voice',today:'today',calendar:'calendar',meals:'meals',tasks:'tasks',shopping:'shopping',recipes:'recipes',kitchen:'kitchen',chat:'chat',rewards:'rewards',family:'settings','fam-ai':'ai',tablet:'today','calendar-sync':'calendar','calendar-photo-import':'calendar'};
 function PageVisual({page}) {
  const photo=['meals','recipes','shopping','kitchen'].includes(page.id)?'cooking':'family';
  const capture=page.capture || captureForPage[page.id] || 'today';

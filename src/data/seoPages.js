@@ -58,7 +58,7 @@ const PAGES = {
     title: "AI Family Assistant — Fam AI | FamOS",
     eyebrow: "AI that knows your household",
     h1: "Meet Fam AI. Your family's helper.",
-    subtitle: "Fam AI understands your family's schedule, meals, tasks, and groceries. It suggests next steps, finds conflicts, and helps you plan — all with your approval before anything changes.",
+    subtitle: "Fam AI understands your family's schedule, meals, tasks, and groceries. It suggests next steps, finds conflicts, and helps you plan — using your household context.",
     heroDescription: "Fam AI is the AI family assistant in FamOS. It helps with meal planning, grocery lists, schedule coordination, and household tasks. Never acts without your approval.",
     canonical: "https://fam-os.app/fam-ai",
     features: [
@@ -73,7 +73,7 @@ const PAGES = {
     ],
     faqs: [
       { q: "What can Fam AI do?", a: "Fam AI can answer questions about your family's schedule, suggest meals based on what you have, add items to shopping lists, help plan the week, and coordinate activities. It proposes actions and waits for your approval." },
-      { q: "Does Fam AI act on its own?", a: "No. Fam AI always proposes actions and requires your approval before making any changes to your calendar, tasks, or lists. You stay in control." },
+      { q: "Does Fam AI act on its own?", a: "Fam AI can help with supported planning requests. Check your household plan after an action." },
       { q: "Is my family's data safe with Fam AI?", a: "Yes. Fam AI only accesses information within your household. It never shares data with third parties, and it can't act without your explicit approval." },
       { q: "Is Fam AI included in the free plan?", a: "Fam AI is a premium feature included in FamOS Plus and Pro. Paid access begins immediately after checkout." },
     ],
@@ -170,9 +170,9 @@ const PAGES = {
     heroDescription: "FamOS includes family chat built into your household dashboard. Discuss plans, share updates, and coordinate schedules in context.",
     canonical: "https://fam-os.app/family-chat",
     features: [
-      { icon: "chat", title: "Built-in messaging", description: "Family chat is part of FamOS, not a separate app. Messages live alongside your plans.", bullets: ["Real-time messaging", "Family-wide broadcasts", "Message reactions", "Read receipts"] },
+      { icon: "chat", title: "Built-in messaging", description: "Family chat is part of FamOS, not a separate app. Messages live alongside your plans.", bullets: ["Real-time messaging", "Message reactions", "Read receipts"] },
       { icon: "calendar", title: "Plan in context", description: "Discuss events, tasks, and meals right where they live. No more switching between apps.", bullets: ["Reference events in chat", "Share task updates", "Discuss meal plans", "Coordinate schedules"] },
-      { icon: "users", title: "Everyone's included", description: "All family members can participate. Teenagers can have private conversations with specific members.", bullets: ["Group and direct messages", "Private conversations", "Family broadcast channel", "Notification controls"] },
+      { icon: "users", title: "Everyone's included", description: "All family members can participate. Teenagers can have private conversations with specific members.", bullets: ["Group and direct messages", "Private conversations", "Notification controls"] },
     ],
     howItWorks: [
       { title: "Open the chat tab", description: "Access family chat from the bottom navigation. It's always one tap away." },
@@ -182,7 +182,7 @@ const PAGES = {
     faqs: [
       { q: "Is family chat free?", a: "Yes. Family chat is included in FamOS Core at no cost." },
       { q: "Can teenagers have private messages?", a: "Yes. FamOS supports direct messages between specific family members, as well as group conversations." },
-      { q: "Can I send broadcasts to the whole family?", a: "Yes. The broadcast feature sends a message to every family member, perfect for important announcements." },
+      { q: "Can I share an update with my household?", a: "Yes. Use the shared family conversation to send an update to the household." },
       { q: "Does chat work on all devices?", a: "Yes. Chat syncs across all devices — phones, tablets, laptops, and desktops." },
     ],
     ctaTitle: "Talk about plans, in the plans.",
@@ -199,7 +199,7 @@ const PAGES = {
     features: [
       { icon: "tablet", title: "Optimized for shared spaces", description: "Designed for kitchen counters, living rooms, and family areas. Large text, clear layout, touch-friendly.", bullets: ["Large, readable typography", "Touch-optimized controls", "Always-on display", "Ambient mode"] },
       { icon: "calendar", title: "Today at a glance", description: "See everything happening today — weather, schedule, meals, tasks, and what needs attention.", bullets: ["Weather and alerts", "Schedule overview", "Meal plan", "Task progress"] },
-      { icon: "sparkles", title: "Family broadcast", description: "Send quick messages to the whole family from the tablet. Perfect for \"Dinner's ready!\" moments.", bullets: ["One-tap broadcasts", "Voice messages", "Family reactions", "Notification badges"] },
+      { icon: "sparkles", title: "A shared view", description: "Keep the family’s plans in a convenient shared place.", bullets: ["Family calendar", "Meals", "Tasks", "Shopping"] },
     ],
     howItWorks: [
       { title: "Open in browser", description: "Visit home.fam-os.app in Safari or Chrome on your tablet." },

@@ -20,3 +20,7 @@ test('all canonical routes have static rewrites and legacy aliases redirect once
  for(const p of ALL_MARKETING_PAGES) assert.ok(config.rewrites.some(r=>r.source===p.path&&r.destination===`/__public${p.path}.html`));
  assert.equal(config.redirects.find(r=>r.source==='/meal-planning').destination,'/features/meals');
 });
+test('voice page reflects the supported review-first flow and removed broadcasts are not marketed',()=>{
+ const page=marketingPageForPath('/features/voice');assert.ok(page?.isNew);assert.match(page.description,/confirm/i);assert.match(page.faqs.map(x=>x.join(' ')).join(' '),/family calendar/i);
+ for(const p of ALL_MARKETING_PAGES){const content=JSON.stringify(p);assert.doesNotMatch(content,/voice broadcasts?|voice notes?|family-wide broadcasts|home-page broadcasts/i,`stale promotion in ${p.path}`);}
+});

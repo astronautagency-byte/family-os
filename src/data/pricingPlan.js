@@ -12,7 +12,7 @@ export const PRICING_PLAN = {
         "Tasks and custom lists",
         "Basic manual meal planning",
         "Grocery lists & favourites",
-        "Family chat & broadcasts",
+        "Family chat",
         "Kitchen Watch & expiry reminders",
         "Basic ride requests",
         "Manual event creation",

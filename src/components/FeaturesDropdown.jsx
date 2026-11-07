@@ -6,6 +6,7 @@ import { IS_MAC_APP_STORE } from "../lib/distribution";
 // One-line value propositions for the mega-menu grid, matching the human,
 // solution-first copy used across the landing page.
 const MENU_TAGLINES = {
+  voice: "Say it, review it, add it",
   today: "The whole household's day on one screen",
   meals: "Plan meals, cook hands-free",
   calendar: "Every calendar, one calm view",

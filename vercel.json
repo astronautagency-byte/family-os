@@ -104,6 +104,10 @@
       "destination": "/__public/calendar-photo-import.html"
     },
     {
+      "source": "/features/voice",
+      "destination": "/__public/features/voice.html"
+    },
+    {
       "source": "/features/today",
       "destination": "/__public/features/today.html"
     },
