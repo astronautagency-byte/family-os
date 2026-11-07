@@ -676,3 +676,4 @@
   .feature-hero-stage-tablet{max-width:780px;min-height:620px}
   .feature-hero-stage-tablet .feature-hero-phone{width:min(740px,100%)}
 }
+.feature-new-badge{display:inline-flex;align-items:center;vertical-align:middle;margin-left:6px;padding:4px 8px;border-radius:999px;background:#e5f3e9;color:#235e39;font-size:11px;font-weight:750;line-height:1.2;letter-spacing:0;text-transform:none;white-space:nowrap}

@@ -1,7 +1,7 @@
 import MarketingProductPreview from '../components/MarketingProductPreview';
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, useAnimate, useInView, useScroll, useSpring, useTransform, useReducedMotion, MotionConfig, stagger } from "framer-motion";
-import { ArrowRight, Baby, BellRing, Bot, CalendarDays, Check, CheckSquare, ChefHat, FileInput, Gift, GraduationCap, Heart, LoaderCircle, LockKeyhole, MessageCircle, Palette, Refrigerator, ShieldCheck, ShoppingCart, Smartphone, Sparkles, Users } from "../components/icons";
+import { ArrowRight, Baby, BellRing, Bot, CalendarDays, Check, CheckSquare, ChefHat, FileInput, Gift, GraduationCap, Heart, LoaderCircle, LockKeyhole, MapPin, MessageCircle, Palette, Refrigerator, ShieldCheck, ShoppingCart, Smartphone, Sparkles, Users } from "../components/icons";
 import "../landing.css";
 import "../landing-theme.css";
 import "../theme/marketing-refresh.css";
@@ -266,6 +266,7 @@ export default function Landing({ signedIn = false }) {
       <section className="landing-features" id="features"><SectionHead eyebrow="Everything in sync" note="FamOS keeps schedules, meals, lists, and tasks easy to find.">Plan the week<br/>with less back-and-forth.</SectionHead><motion.div className="landing-feature-grid" {...revealGroup}>{features.map(({title,copy,icon:Icon,art,tone})=><motion.article className={`landing-feature ${tone}`} key={title} variants={fadeUp} {...hoverLift}><div className="landing-feature-top"><span><Icon/></span><FamilyIllustration variant={art === "shopping" ? "groceries" : art}/></div><h3>{title}</h3><p>{copy}</p></motion.article>)}</motion.div></section>
 
 
+      <section className="landing-location-feature"><div className="landing-location-icon"><MapPin size={25}/></div><div><span className="feature-new-badge">New</span><h2>A little closer, wherever you are.</h2><p>Choose when to share your location, or send your household an “I’m okay” check-in.</p><a href="/features/location">Explore Family location <ArrowRight size={17}/></a></div></section>
       <section className="landing-product"><SectionHead eyebrow="See it work" note="Choose a feature to preview the flow.">See how<br/>FamOS works.</SectionHead><div className="product-tabs" role="tablist">{features.map(({label,title,icon:Icon},index)=>[0,1,3].includes(index) && <button role="tab" aria-selected={feature===index} className={feature===index?"active":""} onClick={()=>setFeature(index)} key={title}><Icon/>{label}</button>)}</div><motion.div className="product-stage" {...revealBlock}><motion.div key={`stage-copy-${feature}`} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, ease: EASE }}><p>{features[feature].title}</p><h3>{features[feature].previewHeadline}</h3><span className="product-stage-copy">{features[feature].copy}</span><ul><li><Check/> Shared across your household</li><li><Check/> Context-aware next steps</li><li><Check/> Review before anything changes</li></ul></motion.div><ProductPreview key={`preview-${feature}`} feature={feature}/></motion.div></section>
 
       <section className="landing-ai landing-ai-clean" id="how-it-works">

@@ -108,6 +108,10 @@
       "destination": "/__public/features/today.html"
     },
     {
+      "source": "/features/location",
+      "destination": "/__public/features/location.html"
+    },
+    {
       "source": "/features/calendar",
       "destination": "/__public/features/calendar.html"
     },

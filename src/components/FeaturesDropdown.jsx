@@ -261,7 +261,7 @@ const FeaturesDropdown = ({ active = false, label = "Features", currentId = null
                   <Icon size={18} />
                 </span>
                 <span className="features-dropdown-item-copy">
-                  <strong>{feature.name}</strong>
+                  <strong>{feature.name} {feature.isNew && <span className="feature-new-badge">New</span>}</strong>
                   <small>{feature.pill}</small>
                 </span>
                 <span className="features-dropdown-item-link">Learn more <ChevronRight size={13} aria-hidden="true" /></span>

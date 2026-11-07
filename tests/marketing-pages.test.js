@@ -10,7 +10,10 @@ test('each public topic has a unique canonical route, title and useful content',
   assert.equal(marketingPageForPath(p.path+'/'),p);
   for(const id of p.related) assert.ok(ALL_MARKETING_PAGES.some(q=>q.id===id),`${p.id} has broken related link ${id}`);
  }
- assert.equal(MARKETING_PAGES.length,12);
+ const location = MARKETING_PAGES.find(p => p.id === 'location');
+ assert.equal(location?.path, '/features/location');
+ assert.equal(location?.isNew, true);
+ assert.match(location.description, /while the location page is open/i);
 });
 test('all canonical routes have static rewrites and legacy aliases redirect once',()=>{
  const config=JSON.parse(readFileSync(new URL('../vercel.json',import.meta.url)));
