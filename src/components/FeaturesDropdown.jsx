@@ -251,7 +251,7 @@ const FeaturesDropdown = ({ active = false, label = "Features", currentId = null
             return (
               <a
                 key={feature.id}
-                href={`/features/${feature.id}`}
+                href={feature.path || (feature.id === "fam-ai" ? "/fam-ai" : `/features/${feature.id}`)}
                 className={`features-dropdown-item${isCurrent ? " is-current" : ""}`}
                 role="menuitem"
                 data-tone={feature.tone}

@@ -24,3 +24,9 @@ test('voice page reflects the supported review-first flow and removed broadcasts
  const page=marketingPageForPath('/features/voice');assert.ok(page?.isNew);assert.match(page.description,/confirm/i);assert.match(page.faqs.map(x=>x.join(' ')).join(' '),/family calendar/i);
  for(const p of ALL_MARKETING_PAGES){const content=JSON.stringify(p);assert.doesNotMatch(content,/voice broadcasts?|voice notes?|family-wide broadcasts|home-page broadcasts/i,`stale promotion in ${p.path}`);}
 });
+
+test('FamAI uses one canonical destination and the old feature URL redirects',async()=>{
+ const {publicPaths}=await import('../src/data/publicMeta.js');const page=MARKETING_PAGES.find(p=>p.id==='fam-ai');assert.equal(page.path,'/fam-ai');assert.equal(publicPaths.filter(p=>p==='/fam-ai').length,1);assert.ok(!publicPaths.includes('/features/fam-ai'));
+ const config=JSON.parse(readFileSync(new URL('../vercel.json',import.meta.url)));for(const path of ['/features/fam-ai','/features/fam-ai/']){const redirect=config.redirects.find(r=>r.source===path);assert.equal(redirect.destination,'/fam-ai');assert.equal(redirect.permanent,true);}
+ assert.ok(!config.rewrites.some(r=>r.source==='/features/fam-ai'));
+});

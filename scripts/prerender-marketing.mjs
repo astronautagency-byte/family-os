@@ -15,7 +15,7 @@ try {
  const styles=new Set();
  const visit=(e)=>{for(const c of e?.css||[])styles.add(c);for(const k of e?.imports||[])visit(manifest[k]);};
  visit(entry);
- const paths=['/features',...ALL_MARKETING_PAGES.map(p=>p.path)];
+ const paths=['/features',...ALL_MARKETING_PAGES.filter(p=>p.id!=='fam-ai').map(p=>p.path)];
  const withMeta=(html,meta)=>html.replace(/<title>[\s\S]*?<\/title>/,`<title>${escape(meta.title)}</title>`)
    .replace(/(<meta name="description" content=")[^"]*/,`$1${escape(meta.description)}`)
    .replace(/(<link rel="canonical" href=")[^"]*/,`$1${escape(meta.canonical)}`)

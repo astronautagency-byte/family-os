@@ -14,7 +14,7 @@ const extra={
  '/terms':{name:'FamOS terms',title:'Terms of Service | FamOS',description:'Read the terms that apply when you use FamOS, including account responsibilities, subscriptions and acceptable use.',capture:'settings'}
 };
 const captures={voice:'voice',location:'location',today:'today',calendar:'calendar',meals:'meals',tasks:'tasks',shopping:'shopping',recipes:'recipes',kitchen:'kitchen',chat:'chat','fam-ai':'ai',rewards:'rewards',family:'settings',tablet:'today','calendar-sync':'calendar','calendar-photo-import':'calendar',compare:'calendar','vs-skylight':'calendar','vs-cozi':'calendar','vs-familywall':'calendar'};
-export const publicPaths=['/', '/features','/pricing','/download','/contact','/privacy','/terms','/fam-ai',...ALL_MARKETING_PAGES.map(p=>p.path)];
+export const publicPaths=[...new Set(['/', '/features','/pricing','/download','/contact','/privacy','/terms','/fam-ai',...ALL_MARKETING_PAGES.map(p=>p.path)])];
 export function publicMeta(path){
  path=path==='/'?'/':path.replace(/\/$/,''); const page=ALL_MARKETING_PAGES.find(p=>p.path===path); const item=extra[path]|| (page?{name:page.name,title:titles[page.id]||`${page.title} | FamOS`,description:page.description,capture:captures[page.id]}:null);
  if(!item)return null; const key=path==='/'?'home':path.slice(1).replaceAll('/','-'); const image=item.imagePath?`${origin}${item.imagePath}`:`${origin}/marketing/social/${key}-v2.jpg`;return {...item,canonical:`${origin}${path}`,image,imageAlt:item.imageAlt || (item.capture?`FamOS ${item.name} preview with a family photo and a sample of the app`:`FamOS ${item.name} preview with a family photo`)};

@@ -272,7 +272,7 @@ const ModuleNav = ({ currentId }) => {
           {others.map((feature) => {
             const Icon = feature.icon;
             return (
-              <a key={feature.id} href={`/features/${feature.id}`}>
+              <a key={feature.id} href={feature.path || (feature.id === "fam-ai" ? "/fam-ai" : `/features/${feature.id}`)}>
                 <span><Icon size={15} /></span>
                 {feature.name}
                 <ChevronRight className="arrow" size={13} />
@@ -400,7 +400,7 @@ const FeaturesIndex = () => {
               <a
                 key={feature.id}
                 id={feature.id}
-                href={`/features/${feature.id}`}
+                href={feature.path || (feature.id === "fam-ai" ? "/fam-ai" : `/features/${feature.id}`)}
                 className="features-index-card"
                 data-tone={feature.tone}
               >

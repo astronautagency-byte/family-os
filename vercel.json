@@ -215,10 +215,6 @@
       "destination": "/__public/features/chat.html"
     },
     {
-      "source": "/features/fam-ai",
-      "destination": "/__public/features/fam-ai.html"
-    },
-    {
       "source": "/features/rewards",
       "destination": "/__public/features/rewards.html"
     },
@@ -249,6 +245,16 @@
     {
       "source": "/family-dashboard",
       "destination": "/features/tablet",
+      "permanent": true
+    },
+    {
+      "source": "/features/fam-ai",
+      "destination": "/fam-ai",
+      "permanent": true
+    },
+    {
+      "source": "/features/fam-ai/",
+      "destination": "/fam-ai",
       "permanent": true
     }
   ]

@@ -1,6 +1,6 @@
 import {COMPARISON_PAGES, COMPARISON_HUB} from './comparisonPages.js';
 // One canonical page per distinct family need. This data also builds static HTML and the sitemap.
-const page = (id, name, title, intro, art, sections, steps, faqs, related, capture) => ({id,name,path:`/features/${id}`,title,description:intro,art,sections,steps,faqs,related,capture});
+const page = (id, name, title, intro, art, sections, steps, faqs, related, capture) => ({id,name,path:id==='fam-ai'?'/fam-ai':`/features/${id}`,title,description:intro,art,sections,steps,faqs,related,capture});
 export const MARKETING_PAGES = [
  {...page('location','Family location','Stay a little closer with family location','Choose when to share your location with your household and send a simple “I’m okay” check-in. Sharing is optional and updates while the location page is open.','family',[
  ['Share when it helps','Each family member chooses whether to share their own location and can stop at any time. Only members of the household can see a shared location.'],

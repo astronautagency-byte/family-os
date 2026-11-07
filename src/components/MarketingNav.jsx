@@ -271,7 +271,7 @@ const MarketingNav = ({ signedIn = false, currentId = null }) => {
                   return (
                     <a
                       key={feature.id}
-                      href={`/features/${feature.id}`}
+                      href={feature.path}
                       className="marketing-drawer-accordion-item"
                       role="menuitem"
                       onClick={closeDrawer}
