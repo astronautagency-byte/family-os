@@ -18,6 +18,7 @@ import { addDays, formatDayLabel, todayISO } from "../lib/dates";
 import { canonicalIngredientName, isIngredientOnList } from "../lib/mealIngredientCache";
 import { invokeEdgeFunction, supabase } from "../lib/supabase";
 import { searchRecipes } from "../lib/recipeSearch";
+import { rankMealIdeas } from "../lib/mealPersonalization";
 import { getRecipeCost, formatCost, getIngredientSubstitutes } from "../lib/spoonacularFeatures";
 import useVoiceCommands, { requestScreenWakeLock } from "../hooks/useVoiceCommands";
 import useKitchenInventory from "../hooks/useKitchenInventory";
@@ -303,11 +304,19 @@ export default function Meals({ entitlements = null, goTo } = {}) {
   // flour-covered hand never has to tap the phone screen.
   const wakeLockRef = useRef(null);
   const finishCookMode = useCallback(() => {
+    if (household?.id && cookRecipe?.title) {
+      try {
+        const key = `famos:cooked-meals:v1:${household.id}`;
+        const history = JSON.parse(window.localStorage.getItem(key) || "[]");
+        const entry = { title: cookRecipe.title, cookedAt: new Date().toISOString() };
+        window.localStorage.setItem(key, JSON.stringify([entry, ...(Array.isArray(history) ? history : [])].slice(0, 50)));
+      } catch { /* Cooking must work even when device storage is unavailable. */ }
+    }
     const recipeNames = new Set((cookRecipe?.ingredients || []).map((item) => canonicalIngredientName(typeof item === "string" ? item : item?.name)).filter(Boolean));
     const matched = inventoryItems.filter((item) => recipeNames.has(canonicalIngredientName(item.name)));
     setCookMeal(null);
     if (features.kitchen && matched.length) { setConsumeReview(matched); setConsumeSelection(matched.map((item) => item.id)); }
-  }, [cookRecipe?.ingredients, inventoryItems,features.kitchen]);
+  }, [cookRecipe, household?.id, inventoryItems,features.kitchen]);
   const advanceCookStep = useCallback((delta) => {
     setCookStep((step) => {
       const total = cookRecipe?.instructions?.length || 0;
@@ -459,6 +468,8 @@ export default function Meals({ entitlements = null, goTo } = {}) {
 
   // Check if meal planning is allowed (requires active subscription or trial)
   const canPlanMeals = entitlements?.features?.meals !== false;
+  const [personalizeIdeas, setPersonalizeIdeas] = useState(true);
+  const [ideaSignals, setIdeaSignals] = useState({ saved: [], cooked: [] });
   const [rouletteBusy, setRouletteBusy] = useState(false);
   const [rouletteError, setRouletteError] = useState("");
   const [rouletteCosts, setRouletteCosts] = useState({}); // { [recipeId]: costData }
@@ -564,6 +575,16 @@ export default function Meals({ entitlements = null, goTo } = {}) {
     if(kitchenOnly && !features.kitchen)return;
     setRouletteBusy(true);
     setRouletteError("");
+    // Load signals only from the signed-in household; they never leave FamOS
+    // in a recipe provider request.
+    let cooked = [];
+    try { const history = JSON.parse(window.localStorage.getItem(`famos:cooked-meals:v1:${household?.id}`) || "[]"); cooked = Array.isArray(history) ? history : []; } catch { /* optional */ }
+    if (household?.id) {
+      try {
+        const { data } = await supabase.from("household_recipes").select("title").eq("household_id", household.id).limit(100);
+        setIdeaSignals({ saved: data || [], cooked });
+      } catch { setIdeaSignals({ saved: [], cooked }); }
+    } else setIdeaSignals({ saved: [], cooked: [] });
     const chosenCuisine = cuisineOverride !== undefined ? cuisineOverride : rouletteCuisine;
     const query = filters.query ?? "";
     const extraDiet = filters.diet ?? "";
@@ -1191,8 +1212,10 @@ export default function Meals({ entitlements = null, goTo } = {}) {
               {rouletteOptions.providerLimited && <p className="roulette-picker-intro">Showing saved results while the recipe service is temporarily limited.</p>}
               {!rouletteBusy && !rouletteError && rouletteOptions.recipes.length < 5 && rouletteOptions.selectedCuisine && <p className="roulette-picker-intro">Want more ideas? Choose Any cuisine and search again. Your dietary preferences will stay applied.</p>}
               {rouletteError && <p className="roulette-picker-error" role="alert">{rouletteError}</p>}
+              <label className="meal-personalize-toggle"><input type="checkbox" checked={personalizeIdeas} onChange={(event) => setPersonalizeIdeas(event.target.checked)} /> <span>Suggestions based on your meals</span></label>
+              <small className="meal-personalize-help">Uses your household’s saved and planned meals, plus meals finished on this device. Your history stays in FamOS.</small>
               <div className={`roulette-picker-list ${rouletteBusy ? "is-refreshing" : ""}`} aria-busy={rouletteBusy}>
-                {rouletteOptions.recipes.map((recipe, index) => (
+                {(personalizeIdeas ? rankMealIdeas(rouletteOptions.recipes, { ...ideaSignals, planned: meals }) : rouletteOptions.recipes.map(recipe => ({ recipe, reason: "" }))).map(({ recipe, reason }, index) => (
                   <button
                     key={`${recipe.title}-${index}`}
                     className="roulette-picker-card"
@@ -1237,6 +1260,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
                     )}
                     <div className="roulette-picker-copy">
                       <strong>{recipe.title}</strong>
+                      {reason && <small className="meal-personalize-reason">{reason}</small>}
                       <small>
                         {recipe.readyInMinutes ? `${recipe.readyInMinutes} min` : ""}
                         {recipe.servings ? ` · Serves ${recipe.servings}` : ""}

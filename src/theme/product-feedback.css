@@ -43,3 +43,8 @@
 .app-shell .calendar-sources-primary .calendar-sources-tabs { flex-wrap: wrap; overflow: visible; gap: 8px; padding: 6px 16px 16px; }
 .app-shell .calendar-sources-primary .calendar-sources-tab { min-height: 40px; max-width: 100%; font-size: 12px; }
 .app-shell .calendar-sources-primary .calendar-sources-tab > span { overflow: hidden; text-overflow: ellipsis; }
+
+.meal-personalize-toggle { display:flex; align-items:center; gap:9px; margin:12px 0 3px; color:var(--color-ink); font-size:13px; font-weight:650; }
+.meal-personalize-toggle input { width:18px; height:18px; accent-color:var(--color-accent); }
+.meal-personalize-help { display:block; margin-bottom:12px; color:var(--color-ink-soft); line-height:1.45; }
+.roulette-picker-copy .meal-personalize-reason { color:var(--color-accent-strong); font-weight:650; }
