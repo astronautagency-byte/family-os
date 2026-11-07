@@ -1,6 +1,7 @@
+import MiaVoiceOrb from './MiaVoiceOrb';
 import { unlockMiaAudio } from '../lib/miaVoice';
 import { useEffect, useRef, useState } from 'react';
-import { Mic, MicOff, Sparkles } from './icons';
+import { Mic, MicOff } from './icons';
 import { Modal, PrimaryButton, SecondaryButton, TextField } from './ui';
 import { useFamily } from '../context/FamilyContext';
 import { useAuth } from '../context/AuthContext';
@@ -180,9 +181,9 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
   startRef.current = start;
   if (hidden) return null;
   const miaState = startingMic ? 'connecting' : listening ? 'listening' : speaking ? 'speaking' : thinking || preparingVoice ? 'thinking' : 'idle';
-  const miaStateLabel = { idle: 'Your family AI', connecting:'Connecting microphone…', listening: 'Listening…', speaking: 'Speaking…', thinking: 'Thinking…', live: 'Live conversation' }[miaState];
+  const miaStateLabel = { idle: 'Your home assistant', connecting:'Connecting microphone…', listening: 'Listening…', speaking: 'Speaking…', thinking: 'Thinking…', live: 'Live conversation' }[miaState];
   return <><button data-mia-state={miaState} className="voice-quick-fab" type="button" onClick={() => setOpen(true)} aria-label="Talk to Mia, voice assistant" aria-haspopup="dialog" aria-expanded={open}>
-      <span className="voice-quick-fab-avatar" aria-hidden="true"><img src="/illustrations/mia-assistant.png" alt="" width="512" height="512" draggable="false" /><span className="mia-avatar-spark"><Sparkles size={10}/></span></span>
+      <span className="voice-quick-fab-avatar" aria-hidden="true"><MiaVoiceOrb animated/></span>
       <span className="mia-launcher-copy"><span>Talk to Mia</span><small>{miaStateLabel}</small></span>
       <span className="mia-voice-wave" aria-hidden="true"><i/><i/><i/><i/></span>
     </button>

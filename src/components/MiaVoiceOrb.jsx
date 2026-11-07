@@ -1,0 +1,2 @@
+import './mia-voice-orb.css';
+export default function MiaVoiceOrb({className='',animated=false}){return <div className={`mia-energy ${animated?'mia-energy-animated':''} ${className}`} aria-hidden="true"><div className="mia-energy-field"/><div className="mia-energy-core"/><svg viewBox="0 0 300 300" className="mia-energy-lines">{Array.from({length:8},(_,i)=><ellipse key={i} cx="150" cy="150" rx={82+i*4} ry={26+i*5} transform={`rotate(${i*22.5} 150 150)`}/>)}</svg><div className="mia-energy-highlight"/></div>}

@@ -1,3 +1,4 @@
+import VoiceOrb from '../components/MiaVoiceOrb';
 import {useRef, useState} from 'react';
 import {motion, useReducedMotion, useScroll, useTransform} from 'framer-motion';
 import {ArrowRight, ArrowUp, CalendarDays, Check, ChefHat, CheckSquare, MessageCircle, Mic, Pause, Play, Plus, ShieldCheck, ShoppingCart, Sparkles, Volume2} from '../components/icons';
@@ -14,7 +15,7 @@ const examples=[
 ];
 const offers=[{id:'chat',price:'4.99',name:'AI Chat',Icon:MessageCircle,copy:'For the ideas worth talking through.',features:['Text conversations & helpful suggestions','Meal, task and shopping plans','Review before anything is saved']},{id:'voice',price:'7.99',name:'Mia Voice',Icon:Mic,copy:'For the moments your hands are full.',features:['Natural, expressive AI voice','Follow-up conversations','Spoken confirmation before saving']},{id:'both',price:'9.99',name:'Chat + Voice',Icon:Sparkles,copy:'Your home assistant. Both ways.',features:['Everything in AI Chat','Everything in Mia Voice','One household, your choice']}];
 
-function VoiceOrb({className=''}){return <div className={`mia-energy ${className}`} aria-hidden="true"><div className="mia-energy-field"/><div className="mia-energy-core"/><svg viewBox="0 0 300 300" className="mia-energy-lines">{Array.from({length:8},(_,i)=><ellipse key={i} cx="150" cy="150" rx={82+i*4} ry={26+i*5} transform={`rotate(${i*22.5} 150 150)`}/>)}</svg><div className="mia-energy-highlight"/></div>}
+
 function Wave(){return <span className="fai-signal" aria-hidden="true">{Array.from({length:25},(_,i)=><i key={i} style={{'--amplitude':`${8+Math.sin(i*1.6)**2*21}px`,'--delay':`${i*-.09}s`}}/>)}</span>}
 function EventCard({example=examples[0],compact=false}){const Icon=example.Icon;return <div className={`fai-event-card ${compact?'is-compact':''}`}><span className={`fai-app-icon ${example.tone}`}><Icon size={compact?19:23}/></span><div><strong>{example.title}</strong><span>{example.detail}</span></div><span className="fai-card-status"><Check size={13}/> Review</span></div>}
 function Phone({chat=false,className=''}){return <div className={`fai-phone ${chat?'fai-phone-chat':'fai-phone-voice'} ${className}`}>

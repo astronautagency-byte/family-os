@@ -29,11 +29,17 @@
 @media(prefers-reduced-motion:reduce){.voice-quick-fab,.voice-quick-conversation .voice-quick-orb{transition:none}.voice-quick-fab:hover,.voice-quick-fab:active{transform:none}.voice-quick-fab .mia-voice-wave i,.voice-quick-conversation .voice-quick-orb,.voice-quick-conversation .mia-status-dot{animation:none!important}}
 .mia-natural-voice{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:13px;color:var(--color-ink-soft)}.mia-natural-voice input{width:18px;height:18px;accent-color:var(--color-accent)}.mia-natural-voice small{flex-basis:100%;font-size:11px;line-height:1.5}
 
-/* The launcher stays alive while idle and changes rhythm with each voice turn. */
-.voice-quick-fab{isolation:isolate;overflow:hidden;background:linear-gradient(115deg,#152c55,#234784 55%,#392c65);border-color:#adceff69;box-shadow:0 9px 26px #10254b40,inset 0 1px 0 #d9eaff42;min-height:66px}
-.voice-quick-fab::before{content:"";position:absolute;z-index:-1;inset:-100% -35%;background:conic-gradient(from 0deg,transparent 0deg,#9edfff26 65deg,transparent 110deg,#c6bdff1f 240deg,transparent 310deg);animation:mia-launcher-orbit 9s linear infinite;pointer-events:none}
-.voice-quick-fab::after{content:"";position:absolute;left:-60%;top:0;width:40%;height:100%;background:linear-gradient(100deg,transparent,#e5f6ff24,transparent);transform:skewX(-18deg);animation:mia-launcher-sheen 8s ease-in-out infinite;pointer-events:none}
-.voice-quick-fab-avatar{border-color:#d4e9ff;background:linear-gradient(145deg,#e5f1ff,#d8d5ff);box-shadow:0 0 0 3px #a7ccff26}.mia-avatar-spark{background:#336bba;border-color:#d4e9ff}
-.voice-quick-fab .mia-voice-wave i{background:#bae8ff;animation:mia-wave 1.8s ease-in-out infinite alternate}.voice-quick-fab:not([data-mia-state="idle"]) .mia-voice-wave i{animation-duration:.65s}.voice-quick-fab[data-mia-state="connecting"] .mia-voice-wave i,.voice-quick-fab[data-mia-state="thinking"] .mia-voice-wave i{animation-duration:1s}.voice-quick-fab[data-mia-state="listening"]{border-color:#a7e7d1}.voice-quick-fab[data-mia-state="speaking"]{border-color:#c9bfff}.voice-quick-fab:hover .voice-quick-fab-avatar{transform:rotate(-5deg)}
-@keyframes mia-launcher-orbit{to{transform:rotate(360deg)}}@keyframes mia-launcher-sheen{0%,65%{left:-60%;opacity:0}70%{opacity:1}90%,100%{left:140%;opacity:0}}
-@media(prefers-reduced-motion:reduce){.voice-quick-fab::before,.voice-quick-fab::after,.voice-quick-fab .mia-voice-wave i{animation:none!important}.voice-quick-fab:hover .voice-quick-fab-avatar{transform:none}}
+/* Shared FamAI voice identity: obsidian, silver and luminous lilac. */
+.voice-quick-fab{isolation:isolate;overflow:hidden;min-height:66px;gap:10px;padding:6px 19px 6px 7px;background:linear-gradient(125deg,#19171f,#09090d 70%);border:1px solid #bcb2df45;box-shadow:0 10px 28px #09091238,inset 0 1px 0 #ffffff14;color:#f5f5f7}
+.voice-quick-fab::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 10% 50%,#8d72d524,transparent 60%)}
+.voice-quick-fab:hover{border-color:#c5b9f185;box-shadow:0 13px 32px #0909124d,inset 0 1px 0 #ffffff1f}
+.voice-quick-fab-avatar{width:52px;height:52px;overflow:visible;background:transparent;border:0;box-shadow:none}
+.voice-quick-fab-avatar .mia-energy{width:66px;height:66px;max-width:none;margin:-7px;pointer-events:none}
+.voice-quick-fab-avatar .mia-energy-field{filter:blur(5px)}
+.mia-launcher-copy>span{font-weight:650;color:#f5f5f7;letter-spacing:-.025em}.mia-launcher-copy small{font-size:10px;color:#b7b0c8;font-weight:450;letter-spacing:0}
+.voice-quick-fab .mia-voice-wave i{background:#c0b7ee;animation:mia-wave 1.8s ease-in-out infinite alternate}
+.voice-quick-fab:not([data-mia-state="idle"]) .mia-voice-wave i{animation-duration:.65s}
+.voice-quick-fab[data-mia-state="connecting"] .mia-voice-wave i,.voice-quick-fab[data-mia-state="thinking"] .mia-voice-wave i{animation-duration:1.1s}
+.voice-quick-fab[data-mia-state="listening"]{border-color:#9ed7c38c}.voice-quick-fab[data-mia-state="speaking"]{border-color:#c4b4f0b3}
+.voice-quick-fab[data-mia-state="listening"] .voice-quick-fab-avatar{box-shadow:none}
+@media(prefers-reduced-motion:reduce){.voice-quick-fab .mia-voice-wave i{animation:none!important}}
