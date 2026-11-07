@@ -615,13 +615,15 @@ export function AuthProvider({ children }) {
     if (!email) throw new Error("Please enter an email address.");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Please enter a valid email address.");
     const { error } = await supabase.auth.updateUser({ email });
-    if (error) throw error;
-    // Update email in household_members table
-    const { user } = await supabase.auth.getUser();
-    if (user) {
-      await supabase.from("household_members").update({ email }).eq("user_id", user.id);
+    if (error) {
+      if (typeof error.message !== 'string' || !error.message.trim() || error.message.trim() === '{}' || error.status >= 500) {
+        throw new Error('We could not send the confirmation email. Please try again later or contact support.');
+      }
+      throw error;
     }
-    return { message: "A confirmation link has been sent to your new email address. Please click the link to complete the change." };
+    // The address remains pending until Supabase completes its confirmation
+    // flow. The database trigger syncs the profile only after auth.users changes.
+    return { message: "Check your current and new email addresses for confirmation links. Your login email changes after any required confirmations are complete." };
   };
 
   const requestPasswordReset = async (email) => {

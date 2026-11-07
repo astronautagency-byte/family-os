@@ -22,8 +22,8 @@ import { IS_APP_STORE, IS_MAC_APP_STORE } from "../lib/distribution";
 const SETTINGS_TABS = [
   ["appearance", "Appearance"],
   ["family", "Family"],
-  ["billing", "Plan & billing"],
   ["account", "Account"],
+  ["billing", "Plan & billing"],
   ["integrations", "Integrations"],
   ["support", "Support"],
 ].filter(([id]) => !IS_APP_STORE || id !== "billing");
@@ -1511,10 +1511,10 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
         {configured && <section data-tab="account">
           <h2 className="settings-section-title mb-3"><Mail size={20} aria-hidden="true"/> Login email</h2>
           <Card className="p-4">
-            <p className="text-[12.5px] text-[var(--color-ink-soft)] mb-3">Your current email is <strong>{user?.email}</strong>. We'll send a confirmation link to the new address before it becomes active.</p>
+            <p className="text-[12.5px] text-[var(--color-ink-soft)] mb-3">Your current email is <strong>{user?.email}</strong>. To change it, enter a new address and check both your current and new inboxes for any required confirmation links.</p>
             <TextField type="email" label="New email address" placeholder="you@example.com" value={newEmail} onChange={(e) => { setNewEmail(e.target.value); setEmailStatus(""); }} autoComplete="email" />
             <PrimaryButton disabled={emailBusy || !newEmail.trim() || newEmail.trim().toLowerCase() === (user?.email || "").toLowerCase()} onClick={async () => { setEmailBusy(true); setEmailStatus(""); try { const result = await updateEmail(newEmail); setEmailStatus(result.message || "Check your new email to confirm the change."); setNewEmail(""); } catch (e) { setEmailStatus(e.message); } finally { setEmailBusy(false); } }}>{emailBusy ? "Sending confirmation…" : "Change email"}</PrimaryButton>
-            {emailStatus && <p className="text-[12px] text-[var(--color-ink-soft)] mt-2 whitespace-pre-line">{emailStatus}</p>}
+            {emailStatus && <p role="status" aria-live="polite" className="text-[12px] text-[var(--color-ink-soft)] mt-2 whitespace-pre-line">{emailStatus}</p>}
           </Card>
         </section>}
 

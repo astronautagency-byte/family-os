@@ -1,4 +1,4 @@
-import { BookOpen, Gift, CalendarDays, CheckSquare, CookingPot, Home, MessageCircle, Refrigerator, ShoppingCart, Download, MoreHorizontal, Settings, Sparkles } from "./icons";
+import { BookOpen, Gift, CalendarDays, CheckSquare, CookingPot, Home, MapPin, MessageCircle, Refrigerator, ShoppingCart, Download, MoreHorizontal, Settings, Sparkles } from "./icons";
 import { useState } from "react";
 import { DESKTOP_DOWNLOAD_LABEL, DESKTOP_DOWNLOAD_PAGE_URL } from "../lib/downloads";
 import { openExternalUrl } from "../lib/desktopRuntime";
@@ -22,6 +22,7 @@ const TABS = [
   { id: "groceries", label: "Shopping", icon: ShoppingCart, hint: "Shared shopping list" },
   { id: "kitchen", label: "Kitchen", icon: Refrigerator, hint: "Freshness and replacement reminders" },
   { id: "chat", label: "Chat", icon: MessageCircle, hint: "Family messages" },
+  { id: "location", label: "Location", icon: MapPin, hint: "Optional family location sharing" },
 ];
 
 const FEATURE_KEYS = { recipes:"recipes", rewards:"rewards", calendar: "calendar", meals: "meals", tasks: "tasks", groceries: "groceries", kitchen: "kitchen", chat: "chat" };
@@ -35,7 +36,7 @@ export default function BottomNav({ active, onChange, onOpenAI, features = {}, t
   const navigate = (id) => { setSheet(null); onChange(id); };
   const { unreadMessageCount = 0 } = useFamily();
   const visibleTabs = TABS.filter((tab) => {
-    return (childMode ? ["calendar","tasks","rewards","chat"].includes(tab.id) : true) && features[FEATURE_KEYS[tab.id] || tab.id] !== false;
+    return (childMode ? ["calendar","tasks","rewards","chat","location"].includes(tab.id) : true) && features[FEATURE_KEYS[tab.id] || tab.id] !== false;
   });
   const defaults = childMode ? CHILD_SHORTCUTS : DEFAULT_SHORTCUTS;
   const available = visibleTabs.map(tab => tab.id);

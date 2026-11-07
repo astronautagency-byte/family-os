@@ -1,6 +1,6 @@
 export const PAGE_OPTIONS = [
  ['calendar','Calendar'],['tasks','Tasks'],['groceries','Shopping'],['kitchen','Kitchen'],
- ['meals','Meal Planning'],['recipes','Recipe Book'],['rewards','RewardBank'],['chat','Chat'],
+ ['meals','Meal Planning'],['recipes','Recipe Book'],['rewards','RewardBank'],['chat','Chat'],['location','Family location'],
 ];
 export const FEATURE_OPTIONS = [
  ['fam_ai','FamAI'],['insights','Insights'],['celebrations','Celebrations'],['routine_suggestions','Routine suggestions'],
@@ -16,7 +16,7 @@ export function resolveFeatures(saved={}, runtime={}) {
  return Object.fromEntries(Object.keys(DEFAULT_FEATURES).map(key=>[key,saved[key]!==false && runtime[key]!==false]));
 }
 export function featureRoute(tab, child, features=DEFAULT_FEATURES) {
- const permitted = child ? ['calendar','tasks','rewards','chat'] : ['today',...PAGE_OPTIONS.map(([key])=>key),'settings','famai'];
+ const permitted = child ? ['calendar','tasks','rewards','chat','location'] : ['today',...PAGE_OPTIONS.map(([key])=>key),'settings','famai'];
  if(permitted.includes(tab) && features[tab==='famai'?'fam_ai':tab]!==false) return tab;
  return child ? permitted.find(key=>features[key]!==false) || 'child-empty' : 'today';
 }

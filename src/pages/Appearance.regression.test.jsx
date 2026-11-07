@@ -1,5 +1,5 @@
 import { it, expect, vi, afterEach } from 'vitest';
-import { render, fireEvent, cleanup } from '@testing-library/react';
+import { render, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { writeFileSync } from 'node:fs';
 import Settings from './Settings';
 import Meals from './Meals';
@@ -7,13 +7,28 @@ import KitchenWatch from './KitchenWatch';
 import BottomNav from '../components/BottomNav';
 import BillingPlans from '../components/BillingPlans';
 
-vi.mock('../context/AuthContext', () => ({useAuth:()=>({configured:false,user:{id:'parent',email:'parent@example.test'},household:{name:'Sample family'},memberProfile:{role:'Parent'}})}));
+const auth = vi.hoisted(() => ({ value: { configured:false,user:{id:'parent',email:'parent@example.test'},household:{name:'Sample family'},memberProfile:{role:'Parent'} } }));
+vi.mock('../context/AuthContext', () => ({useAuth:()=>auth.value}));
 vi.mock('../context/FamilyContext', () => ({useFamily:()=>({members:[],memberById:{},meals:[],groceries:[],taskLists:[],refreshData:async()=>{},googleClientId:'sample',googleConnected:true,googleStatus:'synced',googleEvents:[],googleCalendars:[{id:'family',summary:'Family Shared',primary:true,backgroundColor:'#0891B2'}],googleCalendarColors:{},selectedGoogleCalendarIds:['family'],sharedGoogleCalendarIds:['family'],calendarFeeds:[]})}));
 vi.mock('../hooks/useKitchenInventory',()=>({default:()=>({items:[],ingredientNames:[],addItem:vi.fn(),updateItem:vi.fn(),removeItem:vi.fn()})}));
 vi.mock('../components/NativeAdBanner',()=>({default:()=>null}));
 vi.mock('../components/EmailInbox',()=>({default:()=>null}));
 vi.mock('../lib/supabase',()=>({supabase:null}));
 afterEach(cleanup);
+
+it('lets a signed-in user request an email change and shows confirmation instructions', async () => {
+ window.matchMedia=vi.fn(()=>({matches:false,addEventListener:vi.fn(),removeEventListener:vi.fn()}));
+ const updateEmail=vi.fn().mockResolvedValue({message:'Check both inboxes for confirmation links.'});
+ auth.value={...auth.value,configured:true,updateEmail};
+ try {
+  const view=render(<Settings colorScheme="forest"/>);
+  fireEvent.click(view.getByRole('tab',{name:'Account'}));
+  fireEvent.change(view.getByLabelText('New email address'),{target:{value:'new@example.test'}});
+  fireEvent.click(view.getByRole('button',{name:'Change email'}));
+  await waitFor(()=>expect(updateEmail).toHaveBeenCalledWith('new@example.test'));
+  expect(view.getByRole('status').textContent).toContain('Check both inboxes');
+ } finally { auth.value={...auth.value,configured:false}; }
+});
 
 it('renders the real settings, meal toolbar and kitchen form for visual regression',()=>{
  window.matchMedia=vi.fn(()=>({matches:false,addEventListener:vi.fn(),removeEventListener:vi.fn()}));

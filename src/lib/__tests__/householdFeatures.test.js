@@ -17,7 +17,7 @@ it('cannot override service-disabled pages and always retains adult settings',()
 });
 it('child fallback respects disabled pages including all-off state',()=>{
  expect(featureRoute('settings',true,{...DEFAULT_FEATURES,calendar:false})).toBe('tasks');
- expect(featureRoute('settings',true,{calendar:false,tasks:false,rewards:false,chat:false})).toBe('child-empty');
+ expect(featureRoute('settings',true,{calendar:false,tasks:false,rewards:false,chat:false,location:false})).toBe('child-empty');
 });
 it('pauses only when explicitly requested, including legacy hash links',()=>{
  const notice={url:'/#tasks'};

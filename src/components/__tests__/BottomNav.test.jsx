@@ -4,7 +4,7 @@ import BottomNav from '../BottomNav';
 vi.mock('../../context/FamilyContext', () => ({ useFamily: () => ({ unreadMessageCount: 2 }) }));
 beforeEach(()=>localStorage.clear());
 it('removes disabled destinations from child navigation',()=>{
- const {getByRole}=render(<BottomNav childMode active="chat" onChange={vi.fn()} features={{calendar:false,tasks:false,rewards:false}}/>);
+ const {getByRole}=render(<BottomNav childMode active="chat" onChange={vi.fn()} features={{calendar:false,tasks:false,rewards:false,location:false}}/>);
  expect(within(getByRole('navigation',{name:'Mobile navigation'})).getAllByRole('button').map(b=>b.textContent)).toEqual(['Chat (2)','More']);
 });
 it('gives children only permitted destinations and a restricted customization menu',()=>{
@@ -13,7 +13,7 @@ it('gives children only permitted destinations and a restricted customization me
  const mobile=within(getByRole('navigation',{name:'Mobile navigation'}));
  expect(mobile.getAllByRole('button').map(b=>b.textContent)).toEqual(['Calendar','Tasks','Rewards','Chat (2)','More']);
  const desktop=within(getByRole('navigation',{name:'FamOS navigation'}));
- expect(desktop.getAllByRole('button')).toHaveLength(4);
+ expect(desktop.getAllByRole('button')).toHaveLength(5);
  fireEvent.click(mobile.getByRole('button',{name:'Rewards'}));
  expect(change).toHaveBeenCalledWith('rewards');
 });
@@ -48,7 +48,7 @@ it('never exposes adult pages through child customization',()=>{
  const dialog=within(view.getByRole('dialog'));
  expect(dialog.queryByRole('button',{name:/Settings & family|Ask Fam AI/})).toBeNull();
  fireEvent.click(dialog.getByRole('button',{name:/Customize shortcuts/}));
- expect(within(view.getByRole('combobox',{name:'Shortcut 1'})).getAllByRole('option').map(o=>o.value)).toEqual(['calendar','rewards','tasks','chat']);
+ expect(within(view.getByRole('combobox',{name:'Shortcut 1'})).getAllByRole('option').map(o=>o.value)).toEqual(['calendar','rewards','tasks','chat','location']);
  fireEvent.change(view.getByRole('combobox',{name:'Shortcut 1'}),{target:{value:'chat'}});
  expect(view.getByRole('combobox',{name:'Shortcut 4'}).value).toBe('calendar');
 });

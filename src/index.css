@@ -32,6 +32,15 @@ body:not(:has(.m3-dialog-layer,.marketing-drawer.is-open,.cook-focus-screen)){
 .form-control:hover:not(:disabled){border-color:var(--color-border-focus)}
 .form-control:focus,.form-control:focus-visible,.form-control.is-open{border-color:var(--color-accent);background:var(--color-surface);box-shadow:0 0 0 3px color-mix(in srgb,var(--color-accent) 18%,transparent)}
 .form-control:disabled{cursor:not-allowed;opacity:.55}
+
+/* iOS Safari zooms into text controls smaller than 16px on focus. Keep the
+   viewport zoomable while making settings and their modal forms readable. */
+@media (max-width: 767px) {
+  body .reference-settings :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select),
+  body .m3-dialog :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
+    font-size: 16px !important;
+  }
+}
 .ui-select{appearance:none;padding-right:42px;background-image:linear-gradient(45deg,transparent 50%,var(--color-ink-faint) 50%),linear-gradient(135deg,var(--color-ink-faint) 50%,transparent);background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
 .ui-textarea{min-height:112px;resize:vertical;line-height:1.55}
 .form-hint{display:block;margin-top:6px;color:var(--color-ink-faint);font-size:12px;line-height:1.5}

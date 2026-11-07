@@ -48,6 +48,7 @@ const Rewards = lazy(() => import("./components/RewardBank"));
 const Tasks = lazy(() => import("./pages/Tasks"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Chat = lazy(() => import("./pages/Chat"));
+const FamilyLocation = lazy(() => import("./pages/FamilyLocation"));
 const FamAI = lazy(() => import("./pages/FamAI"));
 const Landing = lazy(() => import("./pages/Landing"));
 const Download = lazy(() => import("./pages/Download"));
@@ -220,7 +221,7 @@ const PageErrorFallback = ({ retry, reloadLatest, goToday }) => {
     </section>
   );
 };
-const VALID_TABS = ["recipes","rewards","today","calendar","meals","tasks","groceries","kitchen","chat","famai","settings"];
+const VALID_TABS = ["recipes","rewards","today","calendar","meals","tasks","groceries","kitchen","chat","location","famai","settings"];
 const PUBLIC_ROUTES = ["privacy", "terms", "contact", "pricing", "signin", "signup", "download", "packs"];
 const ROUTE_ALIASES = { "sign-in": "signin", "lsign-in": "signin", "sign-up": "signup", "partners": "partner", "app/admin": "admin" };
 const VALID_ROUTES = [...VALID_TABS, "landing", "admin", "partner", "partners", ...PUBLIC_ROUTES];
@@ -848,6 +849,7 @@ export default function App() {
               {visibleTab === "child-empty" && <section className="p-5"><h1>Your family space is taking a break</h1><p>Your parent can turn pages back on in Family Settings.</p></section>}
               {visibleTab === "rewards" && <Rewards onNavigate={setTab}/>}
               {visibleTab === "chat" && <Chat />}
+              {visibleTab === "location" && <FamilyLocation />}
               {visibleTab === "settings" && <Settings colorScheme={colorScheme} onColorSchemeChange={setColorScheme} />}
               </>}
             </Suspense>
