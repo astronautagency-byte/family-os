@@ -1,7 +1,7 @@
 import VoiceOrb from '../components/MiaVoiceOrb';
 import {useRef, useState} from 'react';
 import {motion, useReducedMotion, useScroll, useTransform} from 'framer-motion';
-import {ArrowRight, ArrowUp, CalendarDays, Check, ChefHat, CheckSquare, MessageCircle, Mic, Pause, Play, Plus, ShieldCheck, ShoppingCart, Sparkles, Volume2} from '../components/icons';
+import {ArrowRight, ArrowUp, CalendarDays, Check, ChefHat, CheckSquare, MessageCircle, Mic, Plus, ShieldCheck, ShoppingCart, Sparkles, Volume2} from '../components/icons';
 import MarketingNav from '../components/MarketingNav';
 import MarketingFooter from '../components/MarketingFooter';
 import '../feature.css';
@@ -39,17 +39,16 @@ function ScrollStory({motionEnabled}){
 }
 
 export default function FamAIMarketing(){
- const reduced=useReducedMotion(),hero=useRef(null);const [paused,setPaused]=useState(false),[mode,setMode]=useState('voice'),[exampleIndex,setExampleIndex]=useState(0),[selection,setSelection]=useState('both');const motionEnabled=!reduced&&!paused;
+ const reduced=useReducedMotion(),hero=useRef(null);const [mode,setMode]=useState('voice'),[exampleIndex,setExampleIndex]=useState(0),[selection,setSelection]=useState('both');const motionEnabled=!reduced;
  const example=examples[exampleIndex],offer=offers.find(o=>o.id===selection);
  const {scrollYProgress:heroProgress}=useScroll({target:hero,offset:['start start','end start']});
  const frontY=useTransform(heroProgress,[0,1],[0,-135]),backY=useTransform(heroProgress,[0,1],[0,-235]);
- const rotate=useTransform(heroProgress,[0,.7],[-9,0]),cardX=useTransform(heroProgress,[0,1],[0,100]);
+ const rotate=useTransform(heroProgress,[0,.7],[-9,0]);
  return <div className={`fai-page ${motionEnabled?'fai-motion-on':'fai-motion-off'}`}>
  <a className="fai-skip" href="#main-content">Skip to content</a><MarketingNav/>
- <button className="fai-motion-toggle" type="button" aria-pressed={paused} onClick={()=>setPaused(!paused)}>{paused||reduced?<Play size={13}/>:<Pause size={13}/>}<span>{reduced?'Reduced motion':paused?'Resume motion':'Pause motion'}</span></button>
  <main id="main-content">
  <section className="fai-hero" ref={hero}><div className="fai-hero-light"/><div className="fai-hero-title"><h1>Meet Mia.<br/><span>Life, a little lighter.</span></h1><p>Your personal AI home assistant.<br/>A natural voice. A brilliant conversation. A little less on your mind.</p><div className="fai-actions"><a href="#experience" className="fai-primary">Experience FamAI <ArrowRight size={17}/></a><a href="#addons">Find your fit <ArrowRight size={16}/></a></div></div>
- <div className="fai-hero-devices" aria-label="Illustrative Mia Voice and AI Chat phone previews"><div className="fai-device-floor"/><motion.div className="fai-hero-chat-phone" style={motionEnabled?{y:backY}:undefined}><Phone chat/></motion.div><motion.div className="fai-hero-voice-phone" style={motionEnabled?{y:frontY,rotate}:undefined}><Phone/></motion.div><motion.div className="fai-hero-floating-card" style={motionEnabled?{x:cardX,y:frontY}:undefined}><EventCard/><span><Sparkles size={13}/> A thought, ready to become a plan.</span></motion.div><span className="fai-hardware-caption fai-caption-voice"><Mic size={15}/> Mia Voice</span><span className="fai-hardware-caption fai-caption-chat"><MessageCircle size={15}/> AI Chat</span></div><div className="fai-hero-bottom"><span>Two ways to ask. One connected home.</span><a href="#in-motion">See Mia in motion <span>↓</span></a></div></section>
+ <div className="fai-hero-devices" aria-label="Illustrative Mia Voice and AI Chat phone previews"><div className="fai-device-floor"/><motion.div className="fai-hero-chat-phone" style={motionEnabled?{y:backY}:undefined}><Phone chat/></motion.div><motion.div className="fai-hero-voice-phone" style={motionEnabled?{y:frontY,rotate}:undefined}><Phone/></motion.div><span className="fai-hardware-caption fai-caption-voice"><Mic size={15}/> Mia Voice</span><span className="fai-hardware-caption fai-caption-chat"><MessageCircle size={15}/> AI Chat</span></div><div className="fai-hero-bottom"><span>Two ways to ask. One connected home.</span><a href="#in-motion">See Mia in motion <span>↓</span></a></div></section>
  <ScrollStory motionEnabled={motionEnabled}/>
  <section className="fai-experience" id="experience"><div className="fai-section-head"><h2>Made for your<br/><span>kind of everyday.</span></h2><p>The appointment you might forget.<br/>The shopping list in your head.<br/>The dinner you haven’t planned yet.</p></div>
  <div className="fai-experience-stage"><div className="fai-demo-sidebar"><div className="fai-mode-picker" role="group" aria-label="Choose assistant preview">{[['voice','Mia Voice',Mic],['chat','AI Chat',MessageCircle]].map(([id,label,Icon])=><button type="button" key={id} aria-pressed={mode===id} onClick={()=>setMode(id)}><Icon size={17}/>{label}</button>)}</div><h3>{mode==='voice'?'Just say the word.':'Big week? Start with a conversation.'}</h3><p>{mode==='voice'?'A natural conversation, with the details kept in view. Ask, refine, and confirm.':'A little thinking space. Explore ideas, shape a plan, and approve what happens next.'}</p><div className="fai-scenario-picker" role="group" aria-label="Explore assistant examples">{examples.map(({label,Icon},i)=><button type="button" key={label} aria-pressed={i===exampleIndex} onClick={()=>setExampleIndex(i)}><Icon size={18}/>{label}<ArrowRight size={15}/></button>)}</div></div>

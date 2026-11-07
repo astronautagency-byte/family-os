@@ -20,8 +20,8 @@ it('keeps approved add-on choices separate and makes unavailable checkout explic
  expect(screen.queryByRole('button',{name:/buy|subscribe|checkout/i})).toBeNull();
 });
 
-it('lets visitors pause and resume decorative motion',()=>{
- render(<FamAIMarketing/>);const control=screen.getByRole('button',{name:'Pause motion'});
- fireEvent.click(control);expect(control.getAttribute('aria-pressed')).toBe('true');expect(screen.getByRole('button',{name:'Resume motion'})).toBeDefined();
- fireEvent.click(control);expect(control.getAttribute('aria-pressed')).toBe('false');
+it('shows a single event draft in the hero without a motion-control overlay',()=>{
+ const {container}=render(<FamAIMarketing/>);
+ expect(container.querySelector('.fai-hero').textContent.match(/Haircut/g)).toHaveLength(1);
+ expect(screen.queryByRole('button',{name:/pause motion|resume motion|reduced motion/i})).toBeNull();
 });
