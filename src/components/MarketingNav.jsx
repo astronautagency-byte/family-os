@@ -1,9 +1,10 @@
+import '../theme/marketing-pages.css';
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Download, X, Home, Puzzle, CalendarDays, BarChart3, Tag, Search, User, ChevronDown, ChevronRight } from "./icons";
 import { DESKTOP_DOWNLOAD_LABEL } from "../lib/downloads";
 import FeaturesDropdown from "./FeaturesDropdown";
-import { MARKETING_FEATURES } from "../data/featureData";
+import { MARKETING_FEATURES } from "../data/marketingNavigation";
 import { lockBodyScroll } from "../lib/bodyScrollLock";
 import { IS_MAC_APP_STORE } from "../lib/distribution";
 
@@ -163,7 +164,7 @@ const MarketingNav = ({ signedIn = false, currentId = null }) => {
       <motion.nav
         className={`marketing-nav${isScrolled ? " is-scrolled" : ""}`}
         aria-label="FamOS marketing"
-        initial={{ y: -18, opacity: 0 }}
+        initial={false}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
       >
@@ -185,7 +186,7 @@ const MarketingNav = ({ signedIn = false, currentId = null }) => {
         </div>
         <div className="marketing-nav-actions">
           {!IS_MAC_APP_STORE && <a className="marketing-nav-download" href="/download" target="_blank" rel="noreferrer">
-            <Download size={15} /> <span>{DESKTOP_DOWNLOAD_LABEL}</span>
+            <Download size={15} /> <span>Use on your devices</span>
           </a>}
           {!signedIn && (
             <a className="marketing-nav-signin" href="https://home.fam-os.app/sign-in">Sign in</a>
@@ -299,7 +300,7 @@ const MarketingNav = ({ signedIn = false, currentId = null }) => {
           <div className="marketing-drawer-bottom">
             {!IS_MAC_APP_STORE && <a className="marketing-drawer-link marketing-drawer-download" href="/download" target="_blank" rel="noreferrer" onClick={closeDrawer}>
               <Download size={20} />
-              <span>{DESKTOP_DOWNLOAD_LABEL}</span>
+              <span>Use on your devices</span>
             </a>}
             {!signedIn && (
               <a className="marketing-drawer-link" href="https://home.fam-os.app/sign-in" onClick={closeDrawer}>

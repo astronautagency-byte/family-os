@@ -1,3 +1,6 @@
+import MarketingNav from '../components/MarketingNav';
+import '../landing.css';
+import '../feature.css';
 import { useState } from "react";
 import { ArrowLeft, Mail, MessageCircle, Send, ShieldCheck } from "../components/icons";
 import MarketingFooter from "../components/MarketingFooter";
@@ -35,10 +38,10 @@ export default function Contact({ signedIn = false }) {
 
   return (
     <div className="legal-page">
-      <header className="legal-nav">
+      {signedIn ? (<header className="legal-nav">
         <button className="landing-brand" onClick={() => go("landing")}><img src="/icons/famos-app-icon.png" alt="" /><strong>Fam<span>OS</span></strong></button>
         <button className="legal-back" onClick={() => go(signedIn ? "settings" : "landing")}><ArrowLeft /> {signedIn ? "Back to settings" : "Back to home"}</button>
-      </header>
+      </header>) : <MarketingNav/>}
       <main className="legal-content">
         <div className="legal-heading">
           <span><Mail /> Contact us</span>

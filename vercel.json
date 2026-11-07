@@ -1,34 +1,139 @@
 {
-  "buildCommand": "vite build",
+  "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "headers": [
     {
       "source": "/packs",
       "headers": [
-        { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
-        { "key": "Referrer-Policy", "value": "no-referrer" }
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        }
       ]
     },
     {
       "source": "/(.*).html",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
       ]
     },
     {
       "source": "/sw.js",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
       ]
     },
     {
       "source": "/assets/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     }
   ],
   "rewrites": [
-    { "source": "/((?!assets/|icons/|marketing/|illustrations/|brand/|fonts/|manifest\\.webmanifest|registerSW\\.js|notification-sw\\.js|robots\\.txt|sitemap\\.xml|favicon\\.ico|sw\\.js|workbox-).*)", "destination": "/" }
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "fam-os.app"
+        }
+      ],
+      "destination": "/__public/home.html"
+    },
+    {
+      "source": "/features",
+      "destination": "/__public/features.html"
+    },
+    {
+      "source": "/calendar-sync",
+      "destination": "/__public/calendar-sync.html"
+    },
+    {
+      "source": "/calendar-photo-import",
+      "destination": "/__public/calendar-photo-import.html"
+    },
+    {
+      "source": "/features/today",
+      "destination": "/__public/features/today.html"
+    },
+    {
+      "source": "/features/calendar",
+      "destination": "/__public/features/calendar.html"
+    },
+    {
+      "source": "/features/meals",
+      "destination": "/__public/features/meals.html"
+    },
+    {
+      "source": "/features/tasks",
+      "destination": "/__public/features/tasks.html"
+    },
+    {
+      "source": "/features/shopping",
+      "destination": "/__public/features/shopping.html"
+    },
+    {
+      "source": "/features/recipes",
+      "destination": "/__public/features/recipes.html"
+    },
+    {
+      "source": "/features/kitchen",
+      "destination": "/__public/features/kitchen.html"
+    },
+    {
+      "source": "/features/chat",
+      "destination": "/__public/features/chat.html"
+    },
+    {
+      "source": "/features/fam-ai",
+      "destination": "/__public/features/fam-ai.html"
+    },
+    {
+      "source": "/features/rewards",
+      "destination": "/__public/features/rewards.html"
+    },
+    {
+      "source": "/features/family",
+      "destination": "/__public/features/family.html"
+    },
+    {
+      "source": "/features/tablet",
+      "destination": "/__public/features/tablet.html"
+    },
+    {
+      "source": "/((?!assets/|icons/|marketing/|illustrations/|brand/|fonts/|manifest\\.webmanifest|registerSW\\.js|notification-sw\\.js|robots\\.txt|sitemap\\.xml|favicon\\.ico|sw\\.js|workbox-).*)",
+      "destination": "/"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/meal-planning",
+      "destination": "/features/meals",
+      "permanent": true
+    },
+    {
+      "source": "/family-calendar",
+      "destination": "/features/calendar",
+      "permanent": true
+    },
+    {
+      "source": "/family-dashboard",
+      "destination": "/features/tablet",
+      "permanent": true
+    }
   ]
 }

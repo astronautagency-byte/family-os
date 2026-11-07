@@ -1,3 +1,6 @@
+import MarketingNav from '../components/MarketingNav';
+import '../landing.css';
+import '../feature.css';
 import { ArrowLeft, LockKeyhole } from "../components/icons";
 import MarketingFooter from "../components/MarketingFooter";
 
@@ -9,10 +12,10 @@ const go = (route) => {
 
 export default function Privacy({ signedIn = false }) {
   return <div className="legal-page">
-    <header className="legal-nav">
+    {signedIn ? (<header className="legal-nav">
       <button className="landing-brand" onClick={()=>go("landing")}><img src="/icons/famos-app-icon.png" alt=""/><strong>Fam<span>OS</span></strong></button>
       <button className="legal-back" onClick={()=>go(signedIn?"settings":"landing")}><ArrowLeft/> {signedIn?"Back to settings":"Back to home"}</button>
-    </header>
+    </header>) : <MarketingNav/>}
     <main className="legal-content">
       <div className="legal-heading"><span><LockKeyhole/> Privacy policy</span><h1>Your family life stays yours.</h1><p>Last updated July 16, 2026</p></div>
 

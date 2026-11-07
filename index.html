@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#B8D8FF" />
     <meta name="description" content="FamOS is the shared family organizer for calendars, tasks, meals, groceries, chat, and AI-powered household planning. Works on any device—no special hardware required. Start free." />
     <meta name="robots" content="index, follow, max-image-preview:large" />
@@ -95,16 +95,6 @@
         0%, 100% { opacity: 1; transform: scale(1); }
         50% { opacity: .6; transform: scale(.96); }
       }
-      /* SEO content — hidden visually but kept for crawlers */
-      #root > .seo-static-content {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip: rect(0,0,0,0);
-        white-space: nowrap;
-        border: 0;
-      }
       /* React mounts over #root and removes the loader */
       @media (max-width: 600px) {
         .landing-page > main {
@@ -123,84 +113,9 @@
       }
     </style>
 
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "FamOS",
-        "url": "https://fam-os.app/",
-        "image": "https://fam-os.app/marketing/famos-thumbnail.jpeg",
-        "applicationCategory": "LifestyleApplication",
-        "operatingSystem": "Web, iOS, Android",
-        "description": "Families run better on FamOS—the smart home hub for organizing your family's days, tasks, meals, groceries, calendars, and more.",
-        "offers": {
-          "@type": "AggregateOffer",
-          "lowPrice": "0",
-          "highPrice": "12.99",
-          "priceCurrency": "CAD",
-          "offerCount": 3,
-          "offers": [
-            {
-              "@type": "Offer",
-              "name": "FamOS Core",
-              "price": "0",
-              "priceCurrency": "CAD",
-              "description": "Free family plan with shared calendar, tasks, grocery lists, chat, and kitchen watch for up to 5 members."
-            },
-            {
-              "@type": "Offer",
-              "name": "FamOS Plus",
-              "price": "7.99",
-              "priceCurrency": "CAD",
-              "description": "Family plan with meal planning, smart imports, advanced calendar integrations, and caregiver access."
-            },
-            {
-              "@type": "Offer",
-              "name": "FamOS Pro",
-              "price": "12.99",
-              "priceCurrency": "CAD",
-              "description": "Full-featured plan with Fam AI, unlimited activities, advanced transportation, conflict detection, and weekly game plans."
-            }
-          ]
-        },
-        "featureList": [
-          "Shared family calendar with Google Calendar sync",
-          "Family task management and chore assignment",
-          "Meal planning with recipe suggestions",
-          "Shared grocery lists with real-time sync",
-          "Kitchen watch with expiry tracking",
-          "Family chat built into the dashboard",
-          "AI-powered family assistant (Fam AI)",
-          "Tablet mode for kitchen and living room",
-          "Works on iPad, Android, phones, and desktops"
-        ]
-      }
-    </script>
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "Organization",
-        "name": "Astronaut Digital",
-        "url": "https://fam-os.app",
-        "logo": "https://fam-os.app/brand/famos-icon.png",
-        "description": "FamOS is the shared family organizer for calendars, tasks, meals, groceries, chat, and AI-powered household planning.",
-        "contactPoint": {
-          "@type": "ContactPoint",
-          "contactType": "customer support",
-          "email": "support@fam-os.app",
-          "url": "https://fam-os.app/contact"
-        }
-      }
-    </script>
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "WebSite",
-        "name": "FamOS",
-        "url": "https://fam-os.app",
-        "description": "Families run better on FamOS—the shared family organizer for calendars, tasks, meals, groceries, and household planning."
-      }
-    </script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "FamOS", "url": "https://fam-os.app/", "image": "https://fam-os.app/marketing/famos-thumbnail.jpeg", "applicationCategory": "LifestyleApplication", "operatingSystem": "Web", "description": "Families run better on FamOS—the smart home hub for organizing your family's days, tasks, meals, groceries, calendars, and more.", "featureList": ["Shared family calendar with Google Calendar sync", "Family task management and chore assignment", "Meal planning with recipe suggestions", "Shared grocery lists with real-time sync", "Kitchen watch with expiry tracking", "Family chat built into the dashboard", "AI-powered family assistant (Fam AI)", "Tablet mode for kitchen and living room", "Works on iPad, Android, phones, and desktops"]}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Organization", "name": "Astronaut Digital", "url": "https://fam-os.app", "logo": "https://fam-os.app/brand/famos-icon.png", "description": "FamOS is the shared family organizer for calendars, tasks, meals, groceries, chat, and AI-powered household planning.", "contactPoint": {"@type": "ContactPoint", "contactType": "customer support", "email": "support@fam-os.app", "url": "https://fam-os.app/contact"}}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebSite", "name": "FamOS", "url": "https://fam-os.app", "description": "Families run better on FamOS—the shared family organizer for calendars, tasks, meals, groceries, and household planning."}</script>
 
     <title>Family Organizer App — Calendars, Tasks, Meals & More | FamOS</title>
   </head>
@@ -212,26 +127,6 @@
         <strong>Fam<span>OS</span></strong>
       </div>
 
-      <!-- Crawlable static content for search engines — visually hidden from users -->
-      <div class="seo-static-content" aria-hidden="true">
-        <h1>The family organizer that keeps your whole household in sync.</h1>
-        <p>FamOS brings your family's calendar, tasks, meals, groceries, messages, and daily planning together in one shared hub. No special hardware required. Works on the devices you already own.</p>
-        <h2>One calendar for the whole family</h2>
-        <p>Shared family calendar with Google Calendar sync. See everyone's events, avoid conflicts, and plan the week together.</p>
-        <h2>Plan meals without the group chat</h2>
-        <p>Breakfast, lunch, and dinner planning with recipe suggestions. Cook Mode walks you through each step hands-free.</p>
-        <h2>A grocery list everyone can update</h2>
-        <p>Shared shopping lists with categories, quantities, and real-time sync. Add items from meal plans automatically.</p>
-        <h2>Tasks everyone can actually see</h2>
-        <p>Assign chores, track progress, and celebrate completions. Clear owners mean fewer mysterious piles.</p>
-        <h2>Your family dashboard on any screen</h2>
-        <p>Works on iPad, Android tablets, phones, laptops, and desktops. Dedicated tablet mode for the kitchen or living room.</p>
-        <h2>Meet Fam AI</h2>
-        <p>An AI assistant that understands your household. Add groceries, check schedules, plan meals, and get suggestions—all with your approval.</p>
-        <h2>Your family life stays yours.</h2>
-        <p>FamOS is built with privacy at its core. We never sell your personal information. Your family's schedules, messages, and data stay in your household space with controls for sharing and visibility.</p>
-        <p>© 2026 FamOS. All rights reserved. Privacy. Terms. Contact.</p>
-      </div>
     </div>
 
   <script type="module" src="/src/main.jsx"></script>

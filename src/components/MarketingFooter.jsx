@@ -1,4 +1,4 @@
-import { MARKETING_FEATURES } from "../data/featureData";
+import { MARKETING_FEATURES } from "../data/marketingNavigation";
 import { IS_MAC_APP_STORE } from "../lib/distribution";
 
 /* ── MarketingFooter ──────────────────────────────────────────────────────
@@ -49,6 +49,8 @@ const MarketingFooter = ({ signedIn = false }) => {
         <div>
           <h4>Company</h4>
           <ul>
+            <li><a href="/calendar-sync">Calendar sync</a></li>
+            <li><a href="/calendar-photo-import">Calendar photo import</a></li>
             <li><a href="/contact">Contact us</a></li>
             <li><a href="/privacy">Privacy</a></li>
             <li><a href="/terms">Terms</a></li>

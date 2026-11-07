@@ -244,6 +244,7 @@ const isFeaturesPath = () => FEATURES_PATH_REGEX.test(window.location.pathname.r
 const routeFromLocation = () => {
   const route = pathRoute();
   if (isFeaturesPath()) return "features";
+  if (SEO_PAGES[route]) return route;
   if ([...PUBLIC_ROUTES, "admin", "partner", "partners"].includes(route)) return route;
   if (VALID_TABS.includes(route)) return route;
   return "";

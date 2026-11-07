@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, ChevronDown, ChevronRight } from "./icons";
-import { MARKETING_FEATURES } from "../data/featureData";
+import { MARKETING_FEATURES } from "../data/marketingNavigation";
 import { IS_MAC_APP_STORE } from "../lib/distribution";
 
 // One-line value propositions for the mega-menu grid, matching the human,
@@ -220,8 +220,8 @@ const FeaturesDropdown = ({ active = false, label = "Features", currentId = null
         <div className="features-dropdown-hero">
           <div className="features-dropdown-hero-copy">
             <p className="features-dropdown-hero-eyebrow">Explore FamOS</p>
-            <h4 className="features-dropdown-hero-title">Everything FamOS does</h4>
-            <span className="features-dropdown-hero-sub">One private home for the everyday stuff — schedules, meals, lists, and the little reminders that keep a household running.</span>
+            <h4 className="features-dropdown-hero-title">Find your family’s next step</h4>
+            <span className="features-dropdown-hero-sub">Pick the tools that help your household. Start small and add more when you need them.</span>
           </div>
           <div className="features-dropdown-hero-actions">
             <a
@@ -262,7 +262,7 @@ const FeaturesDropdown = ({ active = false, label = "Features", currentId = null
                 </span>
                 <span className="features-dropdown-item-copy">
                   <strong>{feature.name}</strong>
-                  <small>{MENU_TAGLINES[feature.id] || feature.pill}</small>
+                  <small>{feature.pill}</small>
                 </span>
                 <span className="features-dropdown-item-link">Learn more <ChevronRight size={13} aria-hidden="true" /></span>
               </a>

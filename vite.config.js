@@ -5,6 +5,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   build: {
+    manifest: true,
     target: ['es2018', 'safari13'],
     cssTarget: 'safari13'
   },
