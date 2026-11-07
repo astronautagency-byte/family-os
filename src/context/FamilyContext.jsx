@@ -1787,17 +1787,8 @@ export function FamilyProvider({ children, tabletMode = false }) {
       await syncGoogleEvents(token);
     } catch (refreshError) {
       if (configured) {
-        // Use the cached Supabase provider_token as a fallback instead of
-        // triggering a full OAuth redirect. The token lasts ~1 hour and is
-        // refreshed by Supabase in the background.
-        if (googleProviderToken) {
-          setGoogleAccessTokenState(googleProviderToken);
-          await syncGoogleEvents(googleProviderToken);
-          return;
-        }
-        // No token available at all — surface the expired state so the user
-        // can manually reconnect from Settings instead of an automatic OAuth
-        // redirect on every sign-in.
+        // Supabase does not refresh Google provider tokens. Never retry with
+        // an expired credential or turn a temporary outage into a reconnect.
         const revoked = /reconnect_required|invalid[_ ]?grant/i.test(refreshError?.message || "");
         setGoogleStatus(revoked ? "expired" : "error");
         setGoogleError(revoked
@@ -1949,7 +1940,15 @@ export function FamilyProvider({ children, tabletMode = false }) {
     if (error) throw error;
   };
 
-  const disconnectGoogleCalendar = () => {
+  const disconnectGoogleCalendar = async () => {
+    if (remote && user?.id) {
+      try {
+        await invokeEdgeFunction("google-calendar-token", { action: "disconnect" });
+      } catch {
+        setGoogleError("Could not disconnect Google Calendar. Please retry; the connection is still saved.");
+        return;
+      }
+    }
     if (googleAccessToken) revokeGoogleAccessToken(googleAccessToken);
     setGoogleAccessTokenState(null);
     setGoogleConnected(false);
@@ -1959,13 +1958,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
     setGoogleLastSynced(null);
     setGoogleStatus("idle");
     setGoogleError(null);
-    // Forget the durable refresh token too — otherwise the mount-time status
-    // probe would report "connected" again on the next page load and silently
-    // re-connect the calendar the user just disconnected.
-    if (remote && user?.id) {
-      invokeEdgeFunction("google-calendar-token", { action: "disconnect" }).catch(() => {});
-      try { localStorage.removeItem("family-os:google-refresh-token"); } catch { /* best-effort */ }
-    }
+
   };
 
   // ---- Published iCal feeds (Apple/iCloud, Outlook, and other calendar providers) ----

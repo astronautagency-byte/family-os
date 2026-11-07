@@ -70,10 +70,11 @@ export const supabase = isSupabaseConfigured
     })
   : null;
 
-export async function invokeEdgeFunction(name, body) {
+export async function invokeEdgeFunction(name, body, { expectedUserId } = {}) {
   if (!supabase || !supabaseUrl || !supabaseKey) throw new Error("Supabase is not configured.");
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
   if (sessionError || !session?.access_token) throw sessionError || new Error("Your session has expired. Please sign in again.");
+  if (expectedUserId && session.user?.id !== expectedUserId) throw new Error("Account changed. Please retry from your current account.");
   let response;
   try {
     response = await fetch(`${supabaseUrl}/functions/v1/${name}`, {

@@ -24,7 +24,7 @@ const corsHeaders = {
 };
 
 const json = (body: Record<string, unknown>, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store", "Pragma": "no-cache" } });
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -48,9 +48,11 @@ Deno.serve(async (request) => {
     const body = await request.json().catch(() => ({}));
     const action = typeof body.action === "string" ? body.action : "token";
 
+    if (!["store", "status", "disconnect", "token"].includes(action)) return json({ error: "Unknown action." }, 400);
+
     if (action === "store") {
       const refreshToken = typeof body.refresh_token === "string" ? body.refresh_token.trim() : "";
-      if (!refreshToken) return json({ error: "No refresh token provided." }, 400);
+      if (!refreshToken || refreshToken.length > 8192) return json({ error: "No refresh token provided." }, 400);
       const scope = typeof body.scope === "string" ? body.scope.slice(0, 500) : "";
       const { error } = await admin.from("google_oauth_tokens").upsert({
         user_id: user.id,
@@ -58,23 +60,26 @@ Deno.serve(async (request) => {
         scope,
         updated_at: new Date().toISOString(),
       });
-      if (error) return json({ error: error.message }, 500);
+      if (error) return json({ error: "Could not save the Google connection. Please retry." }, 503);
       return json({ stored: true });
     }
 
     if (action === "status") {
-      const { data } = await admin.from("google_oauth_tokens").select("user_id").eq("user_id", user.id).maybeSingle();
+      const { data, error } = await admin.from("google_oauth_tokens").select("user_id").eq("user_id", user.id).maybeSingle();
+      if (error) return json({ error: "Could not check the Google connection. Please retry." }, 503);
       return json({ connected: Boolean(data) });
     }
 
     if (action === "disconnect") {
-      await admin.from("google_oauth_tokens").delete().eq("user_id", user.id);
+      const { error } = await admin.from("google_oauth_tokens").delete().eq("user_id", user.id);
+      if (error) return json({ error: "Could not disconnect Google. Please retry." }, 503);
       return json({ disconnected: true });
     }
 
     // action === "token": exchange the stored refresh token for a fresh access token.
     if (!clientId || !clientSecret) return json({ error: "Google client credentials are not configured." }, 503);
-    const { data: row } = await admin.from("google_oauth_tokens").select("refresh_token").eq("user_id", user.id).maybeSingle();
+    const { data: row, error: readError } = await admin.from("google_oauth_tokens").select("refresh_token").eq("user_id", user.id).maybeSingle();
+    if (readError) return json({ error: "Google connection is temporarily unavailable. Please retry." }, 503);
     if (!row?.refresh_token) return json({ error: "reconnect_required" }, 409);
 
     const refreshController = new AbortController();
@@ -105,15 +110,15 @@ Deno.serve(async (request) => {
       // invalid_grant means the refresh token was revoked/expired — the user
       // must reconnect so we can capture a new one.
       if (payload?.error === "invalid_grant") {
-        await admin.from("google_oauth_tokens").delete().eq("user_id", user.id);
+        await admin.from("google_oauth_tokens").delete().eq("user_id", user.id).eq("refresh_token", row.refresh_token);
         return json({ error: "reconnect_required" }, 409);
       }
-      return json({ error: payload?.error_description || payload?.error || "Could not refresh Google token." }, 502);
+      return json({ error: "Google token refresh is temporarily unavailable. Please retry." }, 502);
     }
 
     return json({ access_token: payload.access_token, expires_in: Number(payload.expires_in || 3600) });
   } catch (error) {
-    console.error("google-calendar-token failed", error);
-    return json({ error: error instanceof Error ? error.message : "Unexpected error." }, 500);
+    console.error("google-calendar-token failed", error instanceof Error ? error.name : "UnknownError");
+    return json({ error: "Google connection is temporarily unavailable. Please retry." }, 500);
   }
 });
