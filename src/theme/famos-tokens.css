@@ -1,14 +1,11 @@
 /* ─────────────────────────────────────────────────────────────────────────
- * FamOS design tokens — premium, Airbnb/Wander quality
+ * FamOS design tokens — a warm, accessible family planner
  *
  * Principles:
- *   - Pure white canvas (#FFFFFF), near-black ink (#111827)
- *   - Single refined accent voltage, used sparingly
- *   - Subtle surfaces with 4-8% opacity borders
- *   - Generous whitespace (8px base spacing)
- *   - Soft elevation system (3 levels max)
- *   - Consistent radius scale (4, 8, 12, 16, 24, 9999)
- *   - Modest type weights, photography/iconography carries visual weight
+ *   - Calm neutral surfaces with distinctive module colours
+ *   - The family-selected accent owns primary actions
+ *   - Clear, consistent touch targets and readable dark-mode pairs
+ *   - Soft panels, generous spacing and restrained motion
  * ─────────────────────────────────────────────────────────────────── */
 
 @theme {
@@ -47,28 +44,28 @@
   --color-good-border: #BBF7D0;
 
   /* ── Category roles (for charts, badges — never primary actions) ── */
-  --color-calendar: #2563EB;
-  --color-calendar-soft: #EFF6FF;
-  --color-meals: #F59E0B;
-  --color-meals-soft: #FFFBEB;
-  --color-tasks: #2563EB;
-  --color-tasks-soft: #EFF6FF;
-  --color-shopping: #14B8A6;
-  --color-shopping-soft: #F0FDFA;
-  --color-chat: #8B5CF6;
-  --color-chat-soft: #F5F3FF;
+  --color-calendar: #235F9A;
+  --color-calendar-soft: #E5F1FC;
+  --color-meals: #815400;
+  --color-meals-soft: #FFF1C9;
+  --color-tasks: #9B3F59;
+  --color-tasks-soft: #FBE8ED;
+  --color-shopping: #146A50;
+  --color-shopping-soft: #E1F3E9;
+  --color-chat: #604B9A;
+  --color-chat-soft: #EEEAFB;
   --color-finance: #10B981;
   --color-finance-soft: #ECFDF5;
-  --color-family: #2563EB;
-  --color-family-soft: #EFF6FF;
-  --color-calendar-strong: #1E40AF;
-  --color-meals-strong: #92400E;
-  --color-tasks-strong: #1E40AF;
-  --color-shopping-strong: #115E59;
-  --color-chat-strong: #6B21A8;
+  --color-family: #9B3F59;
+  --color-family-soft: #FBE8ED;
+  --color-calendar-strong: #235F9A;
+  --color-meals-strong: #815400;
+  --color-tasks-strong: #9B3F59;
+  --color-shopping-strong: #146A50;
+  --color-chat-strong: #604B9A;
   --color-finance-strong: #065F46;
-  --color-family-strong: #1E40AF;
-  --control-height: 44px;
+  --color-family-strong: #9B3F59;
+  --control-height: 48px;
   --control-height-sm: 36px;
   --focus-ring: 0 0 0 3px var(--color-accent-soft);
 
@@ -93,11 +90,11 @@
   --radius-section: 20px;
   --radius-pill: 9999px;
   --radius-tag: 20px;  /* labels, tabs, tokens */
-  --radius-control: 12px;  /* form controls, buttons */
-  --radius-card: 18px;  /* boxes and containers */
+  --radius-control: 14px;  /* form controls, buttons */
+  --radius-card: 22px;  /* boxes and containers */
   --radius-pill-sm: 8px;
   --radius-compact-card: 14px;
-  --radius-panel: 18px;
+  --radius-panel: 24px;
 
   /* Compatibility tokens still consumed by illustration/marketing surfaces. */
   --color-fam-coral: #E85D3D;

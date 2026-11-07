@@ -1,5 +1,5 @@
-/* One functional palette regardless of previously saved decorative schemes.
-   Member colours, event-source colours and food illustrations remain intact. */
+/* Accessible family-planner colours. The selected app accent remains
+   independent of these module colours. */
 :root[data-famos-theme], .app-shell, .app-shell[data-color-scheme] {
  --color-canvas:#F5F7F6; --color-surface:#FFFFFF; --color-surface-sunken:#EDF1EF;
  --color-ink:#172B25; --color-ink-soft:#485D55; --color-ink-faint:#596B64;
@@ -7,17 +7,18 @@
  --color-accent:#08764F; --color-accent-hover:#065E40; --color-accent-strong:#086444;
  --color-accent-soft:#E5F2EB; --color-on-accent:#FFFFFF;
  --color-danger:#B42318; --color-warn:#845400; --color-good:#08764F;
- --color-today:var(--color-accent); --color-tasks:var(--color-accent);
- --color-calendar:var(--color-accent); --color-meals:var(--color-accent);
- --color-shopping:var(--color-accent); --color-chat:var(--color-accent);
- --color-family:var(--color-accent);
- --color-tasks-soft:var(--color-surface-sunken); --color-calendar-soft:var(--color-surface-sunken);
- --color-meals-soft:var(--color-surface-sunken); --color-shopping-soft:var(--color-surface-sunken);
- --color-chat-soft:var(--color-surface-sunken); --color-family-soft:var(--color-surface-sunken);
+ --color-today:var(--color-accent); --color-tasks:#9b3f59;
+ --color-calendar:#235f9a; --color-meals:#815400;
+ --color-shopping:#146a50; --color-chat:#604b9a;
+ --color-family:#9b3f59;
+ --color-tasks-soft:#fbe8ed; --color-calendar-soft:#e5f1fc;
+ --color-meals-soft:#fff1c9; --color-shopping-soft:#e1f3e9;
+ --color-chat-soft:#eeeafb; --color-family-soft:#fbe8ed;
  --color-finance:var(--color-accent); --color-finance-soft:var(--color-surface-sunken);
- --color-calendar-strong:var(--color-accent-strong); --color-meals-strong:var(--color-accent-strong);
- --color-shopping-strong:var(--color-accent-strong); --color-chat-strong:var(--color-accent-strong);
- --color-family-strong:var(--color-accent-strong); --color-finance-strong:var(--color-accent-strong);
+ --color-calendar-strong:#235f9a; --color-meals-strong:#815400;
+ --color-tasks-strong:#9b3f59;
+ --color-shopping-strong:#146a50; --color-chat-strong:#604b9a;
+ --color-family-strong:#9b3f59; --color-finance-strong:var(--color-accent-strong);
  --color-on-vibrant:var(--color-on-accent); --color-on-status:var(--color-on-accent);
 }
 :root[data-famos-theme="dark"], .app-shell.theme-dark, .app-shell.theme-dark[data-color-scheme] {
@@ -27,8 +28,14 @@
  --color-accent:#A0E2BD; --color-accent-hover:#BEEED2; --color-accent-strong:#A0E2BD;
  --color-accent-soft:#224C38; --color-on-accent:#10271B;
  --color-danger:#FFB4AB; --color-warn:#F2D18B; --color-good:#A0E2BD;
+ --color-calendar:#acd5ff; --color-calendar-strong:#acd5ff; --color-calendar-soft:#203e50;
+ --color-tasks:#ffc5d2; --color-tasks-strong:#ffc5d2; --color-tasks-soft:#50353c;
+ --color-family:#ffc5d2; --color-family-strong:#ffc5d2; --color-family-soft:#50353c;
+ --color-meals:#ffdb88; --color-meals-strong:#ffdb88; --color-meals-soft:#4d422a;
+ --color-shopping:#a9e6c4; --color-shopping-strong:#a9e6c4; --color-shopping-soft:#24483a;
+ --color-chat:#d5c8ff; --color-chat-strong:#d5c8ff; --color-chat-soft:#39324c;
 }
-.app-shell :is(.reference-home-shortcuts>button,.reference-action-icon,.illustrated-icon-box),
+.app-shell :is(.reference-home-shortcuts>button,.reference-action-icon),
 .reference-action-list .reference-action-icon {
  background:var(--color-surface-sunken); color:var(--color-ink-soft);
  --module-soft:var(--color-surface-sunken); --module-ink:var(--color-ink-soft);

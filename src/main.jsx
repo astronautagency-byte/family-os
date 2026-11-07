@@ -14,6 +14,7 @@ import "./theme/dark-mode.css";
 import "./theme/app-polish.css";
 import "./theme/today-glance.css";
 import "./theme/app-refresh.css";
+import "./theme/app-design-system.css";
 import {HouseholdFeaturesProvider} from "./context/HouseholdFeaturesContext";
 import App from "./App.jsx";
 import {IS_APP_STORE} from "./lib/distribution";
