@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Card, Modal, PrimaryButton, SecondaryButton, TextField } from './ui';
 import ConfirmAction from './ConfirmAction';
+import HelperInvitation from './HelperInvitation';
 import { defaultAccessExpiry, HELPER_PRESETS, HELP_SERVICES, helperCall, helperInvitationUrl, localDateTime, RESOURCE_LABELS } from '../lib/familyHelpers';
 import './family-helpers.css';
 
@@ -16,7 +17,7 @@ function InviteHelper({ householdId, resources, request, onClose, onCreated }) {
     setBusy(true); setError('');
     try {
       const result = await helperCall('invite', { name, email, preset, expires_at: new Date(expiry).toISOString(), request_id: request?.id, grants: grants.map(({id,kind,permission}) => ({id,kind,permission})) }, householdId);
-      onCreated(result);
+      onCreated({...result,invitedEmail:email.trim()});
     } catch (err) { setError(err.message); } finally { setBusy(false); }
   };
   return <Modal open title={review ? 'Review helper access' : request ? 'Share this event with your helper' : 'Invite a trusted helper'} onClose={busy ? () => {} : onClose}>
@@ -39,7 +40,7 @@ function InviteHelper({ householdId, resources, request, onClose, onCreated }) {
         <ul>{grants.map(r => <li key={`${r.kind}:${r.id}`}>{r.name} — {r.permission === 'complete' ? 'View and check off items' : 'View only'}</li>)}</ul>
         <p>Future eligible items added to these resources will also be shared. Private and guardian-only items are excluded. Calendars show event titles and times only.</p>
         <p>Family chat, photos, location, finances and account settings stay private. You can revoke access at any time. Previously viewed information cannot be recalled.</p>
-        <p className="family-helper-note">We’ll create an email-bound invitation link for you to send to your helper. No email is sent automatically.</p>
+        <p className="family-helper-note">We’ll create an email-bound invitation link for you to send to your helper. You can share it by email or text after creating it. No message is sent automatically.</p>
       </>}
       {error && <p role="alert">{error}</p>}
       <div className="family-helper-actions"><SecondaryButton type="button" disabled={busy} onClick={review ? () => setReview(false) : onClose}>{review ? 'Back' : 'Cancel'}</SecondaryButton><PrimaryButton type="submit" disabled={busy || !name.trim() || !email.trim() || !expiry || grants.length === 0}>{busy ? 'Creating…' : review ? 'Create invitation link' : 'Review access'}</PrimaryButton></div>
@@ -49,6 +50,7 @@ function InviteHelper({ householdId, resources, request, onClose, onCreated }) {
 
 export default function FamilyHelpers({ householdId, isOwner }) {
   const [data,setData] = useState(null), [error,setError] = useState(''), [busy,setBusy] = useState(false), [invite,setInvite] = useState(null), [link,setLink] = useState(''), [notice,setNotice] = useState(''), [confirm,setConfirm] = useState(null);
+  const [invitedEmail,setInvitedEmail]=useState('');
   const generation=useRef(0);
   const invalidate=useCallback(() => { generation.current++; },[]);
   const load = useCallback(async () => {
@@ -87,8 +89,8 @@ export default function FamilyHelpers({ householdId, isOwner }) {
       </Card>)}
       {!!data?.audit.length && <details><summary>Recent helper activity</summary><ul>{data.audit.map(a=><li key={a.id}>{data.helpers.find(h=>h.id===a.access_id)?.name || 'Family'} · {a.action.replaceAll('_',' ')} · {new Date(a.created_at).toLocaleString()}</li>)}</ul></details>}
     </>}
-    {invite && <InviteHelper householdId={householdId} resources={data?.resources || []} request={invite.request} onClose={()=>setInvite(null)} onCreated={result=>{setInvite(null);setLink(helperInvitationUrl(result.token));load();}}/>}
-    <Modal open={!!link} title="Invitation ready" onClose={()=>setLink('')}><div className="family-helper-form"><p>Send this link privately to the helper’s invited email. They must sign in with that verified email to accept it. No email has been sent.</p><TextField label="Invitation link" readOnly value={link}/><SecondaryButton onClick={async()=>{try{await navigator.clipboard.writeText(link);setNotice('Invitation link copied.');}catch{setNotice('Select and copy the invitation link.');}}}>Copy link</SecondaryButton><p>This link is shown only now. If it is lost, revoke the pending invitation and create a new one.</p></div></Modal>
+    {invite && <InviteHelper householdId={householdId} resources={data?.resources || []} request={invite.request} onClose={()=>setInvite(null)} onCreated={result=>{setInvite(null);setInvitedEmail(result.invitedEmail);setLink(helperInvitationUrl(result.token));load();}}/>}
+    {link&&<HelperInvitation key={link} link={link} email={invitedEmail} onClose={()=>{setLink('');setInvitedEmail('');}}/>}
     <ConfirmAction open={!!confirm} title={confirm?.title || ''} copy={confirm?.copy} onClose={()=>setConfirm(null)} onConfirm={()=>run(confirm.action,confirm.payload)} busy={busy} confirmLabel="Confirm"/>
   </section>;
 }
