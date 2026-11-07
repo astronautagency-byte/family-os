@@ -1,73 +1,23 @@
-import { MARKETING_FEATURES } from "../data/marketingNavigation";
-import { IS_MAC_APP_STORE } from "../lib/distribution";
+import { IS_MAC_APP_STORE } from '../lib/distribution';
+import './marketing-footer.css';
 
-/* ── MarketingFooter ──────────────────────────────────────────────────────
- * Single canonical footer for every public marketing surface: Landing,
- * Features index, Features module pages, Privacy, Terms. Replaces the three
- * different footer variants (landing-footer / features-footer / legal-footer)
- * so a new feature module added to featureData.js automatically appears in
- * the footer's feature list. The rightmost "Company" column flips Sign in /
- * Start trial links off once the user is signed in.
- *
- * Styled by the existing .features-footer rules in src/feature.css — dark
- * surface, 4-column grid, bottom row with copyright + secondary nav. ─── */
-const MarketingFooter = ({ signedIn = false }) => {
-  // Surface the current marketing products in the footer columns; supporting
-  // catalog entries remain available as deep links. Split the list evenly so
-  // neither column runs off the page on tablet widths.
-  const half = Math.ceil(MARKETING_FEATURES.length / 2);
-  const featuresCol = MARKETING_FEATURES.slice(0, half);
-  const productCol = MARKETING_FEATURES.slice(half);
-
-  return (
-    <footer className="features-footer">
-      <div className="features-footer-inner">
-        <div>
-          <h4>FamOS</h4>
-          <p>A quieter home for everything your family does together.</p>
-        </div>
-        <div>
-          <h4>Features</h4>
-          <ul>
-            {featuresCol.map((feature) => (
-              <li key={feature.id}>
-                <a href={`/features/${feature.id}`}>{feature.name}</a>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <h4>Product</h4>
-          <ul>
-            {productCol.map((feature) => (
-              <li key={feature.id}>
-                <a href={`/features/${feature.id}`}>{feature.name}</a>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <h4>Company</h4>
-          <ul>
-            <li><a href="/fam-ai">FamAI & Mia</a></li>
-            <li><a href="/calendar-sync">Calendar sync</a></li>
-            <li><a href="/calendar-photo-import">Calendar photo import</a></li>
-            <li><a href="/compare">Compare family organizers</a></li>
-            <li><a href="/contact">Contact us</a></li>
-            <li><a href="/privacy">Privacy</a></li>
-            <li><a href="/terms">Terms</a></li>
-            {!signedIn && <li><a href="https://home.fam-os.app/sign-in">Sign in</a></li>}
-            {!signedIn && !IS_MAC_APP_STORE && <li><a href="https://home.fam-os.app/sign-up">Start free</a></li>}
-            {signedIn && <li><a href="/today">Open FamOS</a></li>}
-          </ul>
-        </div>
-      </div>
-      <div className="features-footer-bottom">
-        <span>© {new Date().getFullYear()} FamOS, Inc.</span>
-        <span><a href="/">Home</a> · <a href="/features">All features</a>{!IS_MAC_APP_STORE && <> · <a href="/#pricing">Pricing</a></>}</span>
-      </div>
-    </footer>
-  );
-};
-
-export default MarketingFooter;
+// Keep detailed feature discovery on /features instead of repeating its catalog.
+export default function MarketingFooter({signedIn=false}) {
+ return <footer className="features-footer features-footer--compact">
+  <div className="features-footer-inner">
+   <div className="marketing-footer-brand"><h4>FamOS</h4><p>A little less planning. <br/>A lot more family.</p></div>
+   <nav aria-label="Explore FamOS"><h4>Explore</h4><ul>
+    <li><a href="/features">All features</a></li>
+    <li><a href="/fam-ai">FamAI & Mia</a></li>
+    {!IS_MAC_APP_STORE&&<li><a href="/pricing">Pricing</a></li>}
+    <li><a href="/download">Use FamOS on your devices</a></li>
+   </ul></nav>
+   <nav aria-label="FamOS help and account"><h4>Help & account</h4><ul>
+    <li><a href="/contact">Contact us</a></li>
+    <li><a href="/compare">Compare organizers</a></li>
+    <li><a href={signedIn?'https://home.fam-os.app/today':'https://home.fam-os.app/sign-in'}>{signedIn?'Open FamOS':'Sign in'}</a></li>
+   </ul></nav>
+  </div>
+  <div className="features-footer-bottom"><span>© {new Date().getFullYear()} FamOS, Inc.</span><nav aria-label="Legal"><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav></div>
+ </footer>
+}
