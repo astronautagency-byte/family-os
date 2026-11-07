@@ -17,3 +17,5 @@
 .customize-actions { display:flex; flex-wrap:wrap; gap:12px; }
 .customize-famos :focus-visible { outline:2px solid var(--color-accent); outline-offset:3px; }
 @media(max-width:600px){.customize-presets{grid-template-columns:1fr}.customize-famos{padding:16px}}
+
+.customize-disclosure>summary{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:650;cursor:pointer;min-height:44px;flex-wrap:wrap}.customize-disclosure>summary small{font-size:13px;font-weight:400;color:var(--color-ink-soft)}.customize-disclosure>summary::after{content:'＋';margin-left:auto}.customize-disclosure[open]>summary::after{content:'−'}.customize-disclosure[open]>summary{margin-bottom:16px}

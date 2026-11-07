@@ -54,6 +54,10 @@ try {
   const schema=JSON.stringify({'@context':'https://schema.org','@type':'WebPage',name:meta.title,description:meta.description,url:meta.canonical}).replaceAll('<','\\u003c');
   html=html.replace('</head>',[...css].map(c=>`<link rel="stylesheet" href="/${c}">`).join('')+`<script type="application/ld+json">${schema}</script>`+'</head>');await writeFile(`dist/__public${path}.html`,html);
  }
+ // Unindexed helper entry: preserve app scripts, replace only generic marketing metadata.
+ const helperMeta={title:'Family helpers | FamOS',description:'Open your private helper space for selected task lists, shopping lists and calendars. No account needed.',canonical:'https://home.fam-os.app/helpers',image:'https://home.fam-os.app/marketing/social/helpers-v1.jpg',imageAlt:'FamOS Family helpers: private passcode access to shared task lists, shopping lists and calendars'};
+ let helperHtml=withMeta(template,helperMeta).replace('</head>','<meta name="robots" content="noindex,nofollow" /></head>');
+ await writeFile('dist/__public/helpers.html',helperHtml);
  // Existing standalone legal documents take precedence over rewrites. Preserve their content and update their head metadata.
  for(const path of ['/privacy','/terms']){
   const file=`dist${path}/index.html`,meta=publicMeta(path);let html=withMeta(await readFile(file,'utf8'),meta);

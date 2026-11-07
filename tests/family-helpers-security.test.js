@@ -8,12 +8,12 @@ const home='10000000-0000-0000-0000-000000000001', other='10000000-0000-0000-000
 const list='20000000-0000-0000-0000-000000000001', foreign='20000000-0000-0000-0000-000000000002', item='30000000-0000-0000-0000-000000000001', event='40000000-0000-0000-0000-000000000001';
 async function fixture() {
   const db=new PGlite();
-  await db.exec(`create schema auth; create role anon; create role authenticated; grant usage on schema auth to authenticated;
+  await db.exec(`create schema auth; create role anon; create role authenticated; create role service_role; grant usage on schema auth to authenticated;
     create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('test.uid',true),'')::uuid$$;
     create function auth.jwt() returns jsonb language sql stable as $$select '{}'::jsonb$$;
     create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,raw_user_meta_data jsonb default '{}');
     create publication supabase_realtime;`);
-  for (const name of ['202607120001_initial_family_os.sql','202608020001_coordination_mvp.sql','202608020002_calendars_and_task_lists.sql','202608160001_task_notes_and_shopping_lists.sql','202608160003_event_recurrence.sql','202611070008_family_helpers.sql','202611070009_family_membership_guards.sql']) {
+  for (const name of ['202607120001_initial_family_os.sql','202608020001_coordination_mvp.sql','202608020002_calendars_and_task_lists.sql','202608160001_task_notes_and_shopping_lists.sql','202608160003_event_recurrence.sql','202611070008_family_helpers.sql','202611070009_family_membership_guards.sql','202611070013_helper_passcodes.sql']) {
     let sql=await readFile(new URL(`../supabase/migrations/${name}`,import.meta.url),'utf8');
     sql=sql.replace('create extension if not exists pgcrypto;','');
     await db.exec(sql);
@@ -200,4 +200,58 @@ test('task-list grants isolate tasks, enforce check-off permission and stop imme
     await as(helper);await assert.rejects(guest('read',{id:editable.id}),/access ended/i);
     await assert.rejects(guest('complete',{id:editable.id,grant_id:resource.grant_id,item_id:visible,done:false}),/access ended/i);
   } finally {await db.close();}
+});
+
+
+test('passcode helpers need no account and sessions are scoped, rate limited and revocable',async()=>{
+ const {db,as,manage}=await fixture();
+ const create=async(permission='complete')=>{await as(owner);return (await db.query("select public.invite_helper_passcode('invite',$1,$2::jsonb) result",[home,JSON.stringify({name:'Guest cleaner',passcode:'9876543210',preset:'housekeeping',expires_at:new Date(Date.now()+86400000).toISOString(),grants:[{kind:'groceries',id:list,permission}]})])).rows[0].result;};
+ const login=async(token,passcode)=>(await db.query('select public.helper_guest_login($1,$2) result',[token,passcode])).rows[0].result;
+ const portal=async(secret,action,payload={})=>(await db.query('select public.helper_guest_portal($1,$2,$3::jsonb) result',[secret,action,JSON.stringify(payload)])).rows[0].result;
+ try{
+  const invitation=await create();
+  await assert.rejects(login(invitation.token,'9876543210'),/permission denied/i);
+  await db.exec('reset role');
+  for(let i=0;i<5;i++)assert.ok((await login(invitation.token,'bad')).error);
+  assert.match((await login(invitation.token,'9876543210')).error,/too many attempts/i);
+  await db.query("update public.helper_passcodes set locked_until=now()-interval '1 second' where access_id=$1",[invitation.id]);
+  const session=await login(invitation.token,'9876543210');assert.ok(session.secret);
+  const data=await portal(session.secret,'read');assert.equal(data.resources.length,1);assert.equal(data.resources[0].name,'Cleaning supplies');
+  const grant=data.resources[0].grant_id;
+  await portal(session.secret,'complete',{grant_id:grant,item_id:item,done:true});
+  await assert.rejects(portal(session.secret,'complete',{grant_id:grant,item_id:foreign,done:true}),/unavailable/i);
+  assert.equal((await db.query('select is_checked from public.grocery_items where id=$1',[item])).rows[0].is_checked,true);
+  assert.equal((await db.query('select count(*)::int n from auth.users')).rows[0].n,4);
+  await db.exec('set role authenticated');await as(owner);await manage('revoke',{id:invitation.id});await db.exec('reset role');
+  assert.ok((await portal(session.secret,'read')).error);assert.ok((await portal(session.secret,'complete',{grant_id:grant,item_id:item,done:false})).error);
+  const readonly=await create('view');await db.exec('reset role');const ro=await login(readonly.token,'9876543210');const r=(await portal(ro.secret,'read')).resources[0];
+  await assert.rejects(portal(ro.secret,'complete',{grant_id:r.grant_id,item_id:item,done:false}),/not permitted/i);
+  await portal(ro.secret,'logout');assert.ok((await portal(ro.secret,'read')).error);
+ }finally{await db.close();}
+});
+
+test('passcode invite SMS claims require owner, phone consent and correct credentials; expired access fails closed',async()=>{
+ const {db,as}=await fixture();
+ const payload={name:'Nanny',passcode:'MiaHelper987',phone:'+14165550123',sms_consent:true,preset:'nanny',expires_at:new Date(Date.now()+86400000).toISOString(),grants:[{kind:'groceries',id:list,permission:'view'}]};
+ const invite=async p=>(await db.query("select public.invite_helper_passcode('invite',$1,$2::jsonb) result",[home,JSON.stringify(p)])).rows[0].result;
+ const claim=async(id,actor,token,code)=>(await db.query('select public.claim_helper_sms($1,$2,$3,$4) result',[id,actor,token,code])).rows[0].result;
+ try{
+  await as(outsider);await assert.rejects(invite(payload),/owner/i);
+  await as(owner);await assert.rejects(invite({...payload,sms_consent:false}),/confirm permission/i);await assert.rejects(invite({...payload,passcode:'1234'}),/8 to 64/i);
+  const invitation=await invite(payload);
+  await assert.rejects(db.query('select * from public.helper_passcodes'),/permission denied/i);
+  await assert.rejects(claim(invitation.id,owner,invitation.token,payload.passcode),/permission denied/i);
+  await db.exec('reset role');
+  await assert.rejects(claim(invitation.id,outsider,invitation.token,payload.passcode),/unavailable/i);
+  await assert.rejects(claim(invitation.id,owner,invitation.token,'wrong'),/unavailable/i);
+  const delivery=await claim(invitation.id,owner,invitation.token,payload.passcode);assert.equal(delivery.phone,payload.phone);
+  await assert.rejects(claim(invitation.id,owner,invitation.token,payload.passcode),/recently attempted/i);
+  await db.query("update public.household_helper_access set invite_expires_at=now()-interval '1 second' where id=$1",[invitation.id]);
+  const login=async()=>(await db.query('select public.helper_guest_login($1,$2) result',[invitation.token,payload.passcode])).rows[0].result;
+  assert.ok((await login()).error);
+  await db.query("update public.household_helper_access set invite_expires_at=now()+interval '1 day' where id=$1",[invitation.id]);
+  const session=await login();assert.ok(session.secret);
+  await db.query("update public.helper_guest_sessions set expires_at=now()-interval '1 second'");
+  assert.ok((await db.query("select public.helper_guest_portal($1,'read') result",[session.secret])).rows[0].result.error);
+ }finally{await db.close();}
 });

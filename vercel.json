@@ -83,6 +83,10 @@
   ],
   "rewrites": [
     {
+      "source": "/helpers",
+      "destination": "/__public/helpers.html"
+    },
+    {
       "source": "/fam-ai",
       "destination": "/__public/fam-ai.html"
     },

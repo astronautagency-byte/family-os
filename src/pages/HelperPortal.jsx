@@ -5,6 +5,7 @@ import { helperCall, RESOURCE_LABELS } from '../lib/familyHelpers';
 import { Card, PrimaryButton, SecondaryButton, TextField } from '../components/ui';
 import ConfirmAction from '../components/ConfirmAction';
 import '../components/family-helpers.css';
+import GuestHelperPortal from './GuestHelperPortal';
 
 const PENDING_KEY='famos:helper-invitation';
 function invitationToken() {
@@ -78,7 +79,7 @@ export function HelperWorkspace({ token, clearToken }) {
   </>;
 }
 
-export default function HelperPortal() {
+function AccountHelperPortal() {
   const [token,setToken]=useState(invitationToken), [session,setSession]=useState(null), [loading,setLoading]=useState(true);
   const [email,setEmail]=useState(''), [password,setPassword]=useState(''), [error,setError]=useState(''), [notice,setNotice]=useState(''), [busy,setBusy]=useState(false);
   useEffect(()=>{
@@ -101,4 +102,10 @@ export default function HelperPortal() {
   return <main className="helper-portal"><header className="family-helper-heading"><div><a href="/">FamOS</a><h1>Family helpers</h1><p>Only what a family has chosen to share with you.</p></div>{session && <SecondaryButton onClick={async()=>{setSession(null);await supabase.auth.signOut();}}>Sign out</SecondaryButton>}</header>
     {!supabase ? <p role="alert">Family helpers is unavailable until FamOS is connected.</p> : loading ? <p role="status">Checking your account…</p> : session ? <HelperWorkspace key={session.user.id} token={token} clearToken={clearToken}/> : <Card className="p-4"><form className="family-helper-form" onSubmit={login}><h2>Sign in to view shared access</h2><p>Use the email address the family invited. You can keep your own family account.</p><TextField type="email" label="Email" value={email} required autoComplete="email" onChange={e=>setEmail(e.target.value)}/><TextField type="password" label="Password" value={password} autoComplete="current-password" onChange={e=>setPassword(e.target.value)}/><PrimaryButton type="submit" disabled={busy || !password}>{busy?'Signing in…':'Sign in'}</PrimaryButton><SecondaryButton type="button" disabled={busy || !email} onClick={e=>login(e,true)}>Email me a sign-in link</SecondaryButton><p>No password yet? Use the email sign-in link to create or verify your account.</p>{error && <p role="alert">{error}</p>}{notice && <p role="status">{notice}</p>}</form></Card>}
   </main>;
+}
+
+export default function HelperPortal(){
+ const params=new URLSearchParams(window.location.hash.slice(1));
+ const legacy=params.has('invite')&&!params.has('guest');
+ return legacy||new URLSearchParams(window.location.search).get('account')==='1'?<AccountHelperPortal/>:<GuestHelperPortal/>;
 }

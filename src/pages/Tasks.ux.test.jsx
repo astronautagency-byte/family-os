@@ -50,27 +50,25 @@ it('makes completed tasks searchable and reopenable',()=>{
  expect(screen.getByText('No matching tasks')).toBeDefined();
 });
 it('requires confirmation before deleting a task',()=>{
+ window.matchMedia=vi.fn(()=>({matches:false,addEventListener:vi.fn(),removeEventListener:vi.fn()}));
  mocks.tasks=[{id:'a',title:'Pack lunch',done:false}];
  render(<Tasks/>);
- fireEvent.click(screen.getByRole('button',{name:'Delete Pack lunch'}));
+ fireEvent.click(screen.getByText('Pack lunch').closest('button'));
+ fireEvent.click(screen.getByRole('button',{name:'Delete task',exact:true}));
  expect(screen.getByRole('dialog')).toBeDefined();
  expect(mocks.remove).not.toHaveBeenCalled();
 });
-it('keeps empty lists and reset accessible without crowding the task list',()=>{
- mocks.tasks=[{id:'1',title:'Water plants',done:false,taskType:'home'}];
- render(<Tasks/>);
- expect(screen.queryByRole('tab',{name:/Errands/})).toBeNull();
- fireEvent.click(screen.getByRole('button',{name:'Show empty lists'}));
- expect(screen.getByRole('tab',{name:/Errands/})).toBeDefined();
- fireEvent.click(screen.getByRole('button',{name:'Hide empty lists'}));
- expect(screen.queryByRole('tab',{name:/Errands/})).toBeNull();
- fireEvent.click(screen.getByText('More'));
- fireEvent.click(screen.getByRole('button',{name:'Reset tasks'}));
- expect(screen.getByRole('dialog')).toBeDefined();
+it('keeps management and progress collapsed and uses one list selector',()=>{
+ mocks.tasks=[{id:'1',title:'Water plants',done:false,taskType:'home'}];render(<Tasks/>);
+ expect(screen.getByLabelText('Task list')).toBeDefined();
+ expect(screen.getByText('Task options').closest('details').open).toBe(false);
+ expect(screen.getByText(/Your family’s progress ·/).closest('details').open).toBe(false);
+ fireEvent.click(screen.getByText('Task options'));fireEvent.click(screen.getByRole('button',{name:'Reset tasks'}));expect(screen.getByRole('dialog')).toBeDefined();
 });
 
 it('explains named-list sharing and opens Family settings without granting access',()=>{
  const goTo=vi.fn();render(<Tasks goTo={goTo}/>);
+ fireEvent.click(screen.getByText('Task options'));
  fireEvent.click(screen.getByRole('button',{name:'Share with helper'}));
  expect(screen.getByText(/Private tasks stay hidden/)).toBeDefined();
  expect(goTo).not.toHaveBeenCalled();

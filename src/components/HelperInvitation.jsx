@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { Link2, Mail, MessageCircle, Share2 } from './icons';
 import { Modal, SecondaryButton, TextField } from './ui';
 
-export default function HelperInvitation({ link, email, onClose }) {
+export default function HelperInvitation({ link, email, passcode, delivery, onClose }) {
   const [status,setStatus]=useState('');
   const [busy,setBusy]=useState(false);
   const title='Your FamOS helper invitation';
-  const text=`You’re invited to a limited shared space in FamOS. Sign in with ${email} to review and accept the invitation. The family chooses what you can access and can revoke it at any time.`;
+  const text=passcode?`You’re invited to Family helpers on FamOS. Open the private link and enter passcode: ${passcode}. No account required. Keep this invitation private.`:`You’re invited to a limited shared space in FamOS. Sign in with ${email} to review and accept the invitation. The family chooses what you can access and can revoke it at any time.`;
   const message=`${text}\n\n${link}`;
   const copy=async()=>{
     try {await navigator.clipboard.writeText(message);setStatus('Invitation copied. Paste it into a private message.');}
@@ -20,9 +20,9 @@ export default function HelperInvitation({ link, email, onClose }) {
     finally {setBusy(false);}
   };
   return <Modal open={!!link} title="Invitation ready" onClose={onClose}><div className="family-helper-form">
-    <p>Share privately by email or text. Your helper must sign in with <strong>{email}</strong> to accept. Sending the link does not grant access by itself.</p>
+    {passcode?<><p>Share this private link and passcode. No account or sign-in is required. Anyone with both can use this helper access, so share only with the intended helper.</p><TextField label="Helper passcode" readOnly value={passcode}/>{delivery&&<p role="status">{delivery}</p>}</>:<p>Share privately by email or text. Your helper must sign in with <strong>{email}</strong> to accept. Sending the link does not grant access by itself.</p>}
     <div className="share-sheet-actions">
-      <a className="share-sheet-action" href={`mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(message)}`}><Mail size={18}/><span>Share by email</span></a>
+      <a className="share-sheet-action" href={`mailto:${encodeURIComponent(email||'')}?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(message)}`}><Mail size={18}/><span>Share by email</span></a>
       <a className="share-sheet-action" href={`sms:?&body=${encodeURIComponent(message)}`}><MessageCircle size={18}/><span>Share by text message</span></a>
       {typeof navigator.share==='function'&&<SecondaryButton disabled={busy} onClick={share}><Share2 size={18}/> More sharing options</SecondaryButton>}
       <SecondaryButton onClick={copy}><Link2 size={18}/> Copy invitation</SecondaryButton>

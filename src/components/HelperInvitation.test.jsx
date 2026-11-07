@@ -34,3 +34,10 @@ it('provides manual copy instructions when clipboard access fails',async()=>{
  await waitFor(()=>expect(screen.getByRole('status').textContent).toContain('Select and copy'));
  expect(screen.getByLabelText('Invitation link').value).toBe(link);
 });
+it('shares a passcode invitation without requiring an account',()=>{
+ render(<HelperInvitation link={link+'&guest=1'} passcode="9876543210" delivery="SMS accepted for delivery." onClose={vi.fn()}/>);
+ expect(screen.getByLabelText('Helper passcode').value).toBe('9876543210');
+ const href=screen.getByRole('link',{name:'Share by text message'}).getAttribute('href');
+ expect(decodeURIComponent(href)).toContain('No account required');expect(decodeURIComponent(href)).toContain('9876543210');
+ expect(screen.getByText(/Anyone with both/)).toBeDefined();
+});

@@ -10,7 +10,7 @@ export default function CustomizeFamOS(){
  useEffect(()=>{setDraft(features);setPause(pauseReminders);},[features,pauseReminders]);
  const change=(key,value)=>{setDraft({...draft,[key]:value});setPreset('custom');setMessage('');};
  return <section data-tab="family" className="customize-famos">
-  <h2 className="settings-section-title"><Settings2 size={20}/> Customize FamOS</h2>
+  <details className="customize-disclosure"><summary><Settings2 size={20}/> Family features <small>Pages, features and layout</small></summary>
   <p>Keep what helps your family. Turn anything back on later—your data stays safe.</p>
   {!canManage&&<p>Only your household owner can change these settings for the family.</p>}
   {error&&<p role="alert">{error} <button onClick={refresh}>Retry</button></p>}
@@ -24,5 +24,5 @@ export default function CustomizeFamOS(){
    <div className="customize-actions"><PrimaryButton onClick={async()=>{setBusy(true);setFailure('');setMessage('');try{await save(draft,pause);setMessage('Saved for your family.');}catch(e){setFailure(e.message);}finally{setBusy(false);}}}>{busy?'Saving…':'Save family layout'}</PrimaryButton><SecondaryButton onClick={()=>{setDraft(features);setPause(pauseReminders);setPreset('custom');setMessage('');}}>Discard changes</SecondaryButton></div>
   </fieldset>
   {message&&<p role="status">{message}</p>}{failure&&<p role="alert">{failure}</p>}
- </section>;
+ </details></section>;
 }
