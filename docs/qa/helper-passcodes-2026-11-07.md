@@ -18,8 +18,9 @@ New helper invitations use a family-assigned passcode (8–64 characters) and pr
 - Nine database integration/security tests passed, including existing helper permissions, guest lockout, revoked/expired sessions and SMS claim authorization.
 - Fifteen focused React tests passed; six policy/AI privacy checks passed. Production build passed with existing warnings.
 - Isolated mobile Chrome at 390 × 844: Tasks, collapsed family settings, invitation form (12 events), guest entry and shared checklist. No horizontal overflow in measured task page/modal.
-- Live backend against a synthetic household: accountless login, private-task exclusion, allowed completion observed by owner, existing-session revocation, and unauthorized SMS denied. Temporary QA household and owner removed.
+- Canonical live app and backend against a synthetic household: accountless login, private-task exclusion, allowed completion observed by owner, existing-session revocation, and unauthorized SMS denied. Temporary QA household and owner removed.
 - Screenshots in the working project at `docs/qa/helper-passcode-2026-11-07/`. Chrome mobile emulation is not a physical iPhone/Safari test.
-- Automatic SMS handset test is pending. A provider acceptance response will not be reported as confirmed receipt.
+- Live app bundle matches the tested build. `/helpers` returns the custom helper image/title, noindex, no-store and no-referrer headers.
+- One consented SMS to the operator’s supplied number was accepted by the delivery service. Handset receipt remains awaiting confirmation. The test uses only a synthetic sample checklist; its access expires one hour after creation. A provider acceptance response is not confirmed receipt.
 
 This scoped verification does not close the broader compliance/fundraising readiness gate or establish an independent security audit.
