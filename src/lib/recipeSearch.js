@@ -37,6 +37,7 @@ const cachedFallback = (cache, payload, now) => {
   const candidates = Object.values(cache)
     .filter((entry) => now - entry.savedAt <= STALE_FOR_MS)
     .filter((entry) => entry.mealType === payload.mealType && entry.dietSignature === signature)
+    .filter((entry) => entry.cuisine === (payload.cuisine || "") && entry.query === (payload.query || "") && entry.ingredients === (payload.ingredients || ""))
     .sort((a, b) => b.savedAt - a.savedAt);
   const recipes = [];
   const seen = new Set();
@@ -64,7 +65,7 @@ export async function searchRecipes(payload = {}, { force = false } = {}) {
   const operation = invokeEdgeFunction("recipe-search", request)
     .then((data) => {
       if (Array.isArray(data?.recipes) && data.recipes.length) {
-        cache[key] = { data, savedAt: now, mealType: request.mealType || "", dietSignature: dietSignature(request) };
+        cache[key] = { data, savedAt: now, mealType: request.mealType || "", cuisine: request.cuisine || "", query: request.query || "", ingredients: request.ingredients || "", dietSignature: dietSignature(request) };
         writeCache(cache);
       }
       return data;

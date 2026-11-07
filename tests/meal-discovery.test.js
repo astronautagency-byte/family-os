@@ -26,8 +26,8 @@ test("meal ideas shuffle in place without another provider request", () => {
   assert.doesNotMatch(mealsSource, /Search recipes by ingredient|recipeSearchQuery/);
 });
 
-test("cuisine chips immediately rerun the active roulette with an explicit filter", () => {
-  assert.match(mealsSource, /rouletteForSlot\(rouletteOptions\.date, rouletteOptions\.slot, rouletteOptions\.kitchenOnly, cuisine\)/);
+test("meal idea filters search the selected meal, cuisine and preferences", () => {
+  assert.match(mealsSource, /rouletteForSlot\(rouletteOptions\.date, ideaSlot, rouletteOptions\.kitchenOnly, rouletteCuisine/);
   assert.match(mealsSource, /cuisine:\s*chosenCuisine === "American Comfort"/);
   assert.doesNotMatch(mealsSource, /query:\s*chosenCuisine \? `\$\{chosenCuisine\} \$\{slot\}` : slot/);
   assert.match(mealsSource, /Load more recipes/);
@@ -37,7 +37,7 @@ test("cuisine chips immediately rerun the active roulette with an explicit filte
 test("meal suggestions avoid quota-amplifying broad retries and preserve useful fallbacks", () => {
   assert.match(mealsSource, /searchRecipes\(/);
   assert.doesNotMatch(mealsSource, /broadData/);
-  assert.match(mealsSource, /savedFallback/);
+  assert.match(mealsSource, /dietaryRestrictions: restrictions/);
   assert.match(recipeSearchSource, /providerLimited:\s*true/);
   assert.match(mealsSource, /friendlyRecipeSearchError/);
   assert.doesNotMatch(mealsSource, /setRouletteError\(error\?\.message \|\| "Meal roulette/);

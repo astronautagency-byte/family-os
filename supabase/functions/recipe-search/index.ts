@@ -47,7 +47,7 @@ const normaliseRecipe = (payload) => {
     instructions: cleanInstructions(payload),
     servings: Number.isFinite(servings) && servings > 0 ? Math.round(servings) : DEFAULT_SERVINGS,
     readyInMinutes: Number.isFinite(ready) && ready > 0 ? Math.round(ready) : null,
-    cuisine: cleanText(payload.cuisines?.[0] || payload.dishTypes?.[0] || "", 60),
+    cuisine: cleanText(payload.cuisines?.[0] || "", 60),
     thumbnail: cleanText(payload.image || "", 500),
     videoUrl: cleanText(payload.videoUrl || "", 500),
     source: cleanText(payload.creditsText || "Spoonacular", 100),

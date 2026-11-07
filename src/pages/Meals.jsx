@@ -252,7 +252,8 @@ const cachedRecipeDetail = (title) => {
 
 const CUISINE_LIST = [
   "Italian", "Mexican", "Indian", "Japanese", "Chinese",
-  "Thai", "Mediterranean", "American Comfort",
+  "Thai", "Mediterranean", "American Comfort", "Greek", "French", "Spanish",
+  "Korean", "Vietnamese", "Middle Eastern", "Caribbean", "African", "British",
 ];
 
 const titleFromMeal = (meal) => String(meal?.title || "").trim();
@@ -462,6 +463,9 @@ export default function Meals({ entitlements = null, goTo } = {}) {
   const [rouletteError, setRouletteError] = useState("");
   const [rouletteCosts, setRouletteCosts] = useState({}); // { [recipeId]: costData }
   const [rouletteCuisine, setRouletteCuisine] = useState(null); // null = any cuisine
+  const [ideaQuery, setIdeaQuery] = useState("");
+  const [ideaDiet, setIdeaDiet] = useState("");
+  const [ideaSlot, setIdeaSlot] = useState("dinner");
   const [savedRecipes, setSavedRecipes] = useState(() => readStoredJson(SAVED_RECIPES_KEY, []));
   const [recipeBookOpen,setRecipeBookOpen]=useState(false);
   const [recipeSaveBusy,setRecipeSaveBusy]=useState(false);
@@ -556,27 +560,34 @@ export default function Meals({ entitlements = null, goTo } = {}) {
   const toggleCook = (id) =>
     setDraft((d) => ({ ...d, cookIds: d.cookIds.includes(id) ? d.cookIds.filter((x) => x !== id) : [...d.cookIds, id] }));
 
-  const rouletteForSlot = async (date, slot, kitchenOnly = false, cuisineOverride) => {
+  const rouletteForSlot = async (date, slot, kitchenOnly = false, cuisineOverride, filters = {}) => {
     if(kitchenOnly && !features.kitchen)return;
     setRouletteBusy(true);
     setRouletteError("");
     const chosenCuisine = cuisineOverride !== undefined ? cuisineOverride : rouletteCuisine;
+    const query = filters.query ?? "";
+    const extraDiet = filters.diet ?? "";
+    const restrictions = [...new Set([...(dietaryPreferences.restrictions || []), ...(extraDiet ? [extraDiet] : [])])];
+    setIdeaSlot(slot);
+    setIdeaQuery(query);
+    setIdeaDiet(extraDiet);
     try {
       const cuisine = chosenCuisine || "Any cuisine";
       setRouletteOptions((current) => ({
         date,
         slot,
-        recipes: current?.date === date && current?.slot === slot ? current.recipes : [],
+        recipes: [],
         cuisine,
         source: "spoonacular",
         kitchenOnly,
       }));
       const baseRequest = {
         ingredients: kitchenOnly ? kitchenIngredients.join(", ") : "",
+        query,
         mealType: slot,
         offset: 0,
         number: 12,
-        dietaryRestrictions: dietaryPreferences.restrictions || [],
+        dietaryRestrictions: restrictions,
         avoidIngredients: dietaryPreferences.avoidIngredients || "",
       };
       const data = await searchRecipes({
@@ -585,8 +596,9 @@ export default function Meals({ entitlements = null, goTo } = {}) {
       });
       const list = recipesFromSearch(data);
       if (!list.length) {
-        setRouletteError(`No ${slot} ideas matched ${chosenCuisine ? `${chosenCuisine} and ` : ""}those preferences. Try another cuisine or Any cuisine.`);
-        setRouletteOptions((current) => ({ ...(current || {}), date, slot, recipes: [], cuisine, source: "spoonacular", kitchenOnly }));
+        const totalResults = Number(data?.totalResults || 0);
+        setRouletteError(totalResults ? "These results had no complete recipes. Try loading more." : `No ${slot} ideas matched these filters. Try a broader search.`);
+        setRouletteOptions({ date, slot, recipes: [], cuisine, source: "spoonacular", kitchenOnly, query, restrictions, selectedCuisine: chosenCuisine || "", offset: Number(data?.offset || 0), pageSize: Number(data?.number || 5), totalResults });
         return;
       }
       setRouletteOptions({
@@ -596,23 +608,16 @@ export default function Meals({ entitlements = null, goTo } = {}) {
         cuisine,
         source: "spoonacular",
         kitchenOnly,
+        query,
+        restrictions,
+        selectedCuisine: chosenCuisine || "",
         offset: Number(data?.offset || 0),
         pageSize: Number(data?.number || 12),
         totalResults: Number(data?.totalResults || list.length),
       });
     } catch (error) {
-      const quotaLimited = /quota|429|402|allowance|limit/i.test(error?.message || "");
-      const savedFallback = quotaLimited ? savedRecipes.slice(0, 3) : [];
-      setRouletteError(savedFallback.length
-        ? "The recipe provider is taking a breather, so here are ideas you already saved."
-        : friendlyRecipeSearchError(error));
-      setRouletteOptions((current) => ({
-        ...(current || {}), date, slot,
-        recipes: current?.recipes?.length ? current.recipes : savedFallback,
-        cuisine: chosenCuisine || "Any cuisine",
-        source: savedFallback.length ? "saved" : "spoonacular",
-        kitchenOnly,
-      }));
+      setRouletteError(friendlyRecipeSearchError(error));
+      setRouletteOptions({ date, slot, recipes: [], cuisine: chosenCuisine || "Any cuisine", source: "spoonacular", kitchenOnly, query, restrictions, selectedCuisine: chosenCuisine || "" });
     } finally {
       setRouletteBusy(false);
     }
@@ -624,14 +629,15 @@ export default function Meals({ entitlements = null, goTo } = {}) {
     setRouletteError("");
     try {
       const nextOffset = (rouletteOptions.offset || 0) + (rouletteOptions.pageSize || 12);
-      const chosenCuisine = rouletteCuisine;
+      const chosenCuisine = rouletteOptions.selectedCuisine || "";
       const data = await searchRecipes({
         ingredients: rouletteOptions.kitchenOnly ? kitchenIngredients.join(", ") : "",
+        query: rouletteOptions.query || "",
         mealType: rouletteOptions.slot,
         cuisine: chosenCuisine === "American Comfort" ? "American" : chosenCuisine || "",
         offset: nextOffset,
         number: 12,
-        dietaryRestrictions: dietaryPreferences.restrictions || [],
+        dietaryRestrictions: rouletteOptions.restrictions || dietaryPreferences.restrictions || [],
         avoidIngredients: dietaryPreferences.avoidIngredients || "",
       });
       const incoming = recipesFromSearch(data);
@@ -1139,28 +1145,39 @@ export default function Meals({ entitlements = null, goTo } = {}) {
       {/* Meal ideas — Spoonacular results are filtered to the selected meal slot. */}
       <Modal open={!!rouletteOptions} onClose={() => { setRouletteOptions(null); setRouletteCosts({}); }} title={rouletteOptions ? `${SLOT_META[rouletteOptions.slot].label} meal ideas` : ""}>
         <div className="roulette-picker">
-          {/* Cuisine chip row — filter the roulette to a specific cuisine type */}
-          <div className="roulette-cuisine-chips" role="group" aria-label="Filter roulette by cuisine">
-            <button
-              type="button"
-              className={`roulette-cuisine-chip ${rouletteCuisine === null ? "selected" : ""}`}
-              onClick={() => { setRouletteCuisine(null); rouletteForSlot(rouletteOptions.date, rouletteOptions.slot, rouletteOptions.kitchenOnly, null); }}
-              aria-pressed={rouletteCuisine === null}
-            >
-              Any cuisine
-            </button>
-            {CUISINE_LIST.map((cuisine) => (
-              <button
-                key={cuisine}
-                type="button"
-                className={`roulette-cuisine-chip ${rouletteCuisine === cuisine ? "selected" : ""}`}
-                onClick={() => { setRouletteCuisine(cuisine); rouletteForSlot(rouletteOptions.date, rouletteOptions.slot, rouletteOptions.kitchenOnly, cuisine); }}
-                aria-pressed={rouletteCuisine === cuisine}
-              >
-                {cuisine}
-              </button>
-            ))}
-          </div>
+          <form className="meal-idea-filters" onSubmit={(event) => {
+            event.preventDefault();
+            rouletteForSlot(rouletteOptions.date, ideaSlot, rouletteOptions.kitchenOnly, rouletteCuisine, { query: ideaQuery.trim(), diet: ideaDiet });
+          }}>
+            <label className="meal-idea-search">Search for a dish or ingredient
+              <input type="search" value={ideaQuery} onChange={(event) => setIdeaQuery(event.target.value)} placeholder="e.g. chicken, pasta, tacos" />
+            </label>
+            <div className="meal-idea-filter-grid">
+              <label>Meal
+                <select value={ideaSlot} onChange={(event) => setIdeaSlot(event.target.value)}>
+                  {SLOT_ORDER.map((slot) => <option key={slot} value={slot}>{SLOT_META[slot].label}</option>)}
+                </select>
+              </label>
+              <label>Cuisine
+                <select value={rouletteCuisine || ""} onChange={(event) => setRouletteCuisine(event.target.value || null)}>
+                  <option value="">Any cuisine</option>
+                  {CUISINE_LIST.map((cuisine) => <option key={cuisine} value={cuisine}>{cuisine}</option>)}
+                </select>
+              </label>
+              <label>Dietary preference
+                <select value={ideaDiet} onChange={(event) => setIdeaDiet(event.target.value)}>
+                  <option value="">Any preference</option>
+                  <option value="vegetarian">Vegetarian</option><option value="vegan">Vegan</option>
+                  <option value="pescatarian">Pescatarian</option><option value="gluten-free">Gluten-free</option>
+                  <option value="dairy-free">Dairy-free</option><option value="nut-free">Nut-free</option>
+                  <option value="shellfish-free">Shellfish-free</option>
+                </select>
+              </label>
+            </div>
+            <button type="submit" className="meal-idea-apply" disabled={rouletteBusy}>{rouletteBusy ? "Finding ideas…" : "Find recipes"}</button>
+            {(dietaryPreferences.restrictions?.length > 0 || dietaryPreferences.avoidIngredients) && <small>Your saved dietary preferences are also applied.</small>}
+            {(ideaDiet || dietaryPreferences.restrictions?.length > 0 || dietaryPreferences.avoidIngredients) && <small>Check ingredients and labels for allergies before cooking.</small>}
+          </form>
           {rouletteOptions && (
             <>
               <p className="roulette-picker-intro">
@@ -1253,7 +1270,7 @@ export default function Meals({ entitlements = null, goTo } = {}) {
                 <button className="roulette-picker-spin" disabled={rouletteBusy || rouletteOptions.recipes.length < 2} onClick={() => setRouletteOptions((current) => ({ ...current, recipes: [...current.recipes.slice(1), current.recipes[0]] }))}>
                   <Dices size={14} /> Shuffle ideas
                 </button>
-                {rouletteOptions.source === "spoonacular" && rouletteOptions.recipes.length < rouletteOptions.totalResults && (
+                {rouletteOptions.source === "spoonacular" && (rouletteOptions.offset || 0) + (rouletteOptions.pageSize || 0) < rouletteOptions.totalResults && (
                   <button className="roulette-picker-spin" disabled={rouletteBusy} onClick={loadMoreMealIdeas}>
                     {rouletteBusy ? "Finding more…" : "Load more recipes"}
                   </button>
