@@ -1,0 +1,3 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {parseVoiceQuickAdd} from '../src/lib/voiceQuickAdd.js';
+test('understands explicit grocery and task requests',()=>{assert.deepEqual(parseVoiceQuickAdd('Add lemons to my grocery list.'),{type:'grocery',name:'lemons'});assert.deepEqual(parseVoiceQuickAdd('please add task call the dentist'),{type:'task',name:'call the dentist'})});
+test('does not interpret deletion, payments or unrelated speech as an action',()=>{for(const text of ['delete all groceries','buy lemons','send a message to everyone','add to my grocery list',''])assert.equal(parseVoiceQuickAdd(text),null)});

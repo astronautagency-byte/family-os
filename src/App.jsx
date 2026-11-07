@@ -11,6 +11,7 @@ import "./feature.css";
 import { FamilyProvider } from "./context/FamilyContext";
 import BottomNav from "./components/BottomNav";
 import AppTopBar from "./components/AppTopBar";
+import VoiceQuickAdd from "./components/VoiceQuickAdd";
 import ProductUpdateBanner from "./components/ProductUpdateBanner";
 import FamLoading from "./components/FamLoading";
 import InstallPrompt from "./components/InstallPrompt";
@@ -860,6 +861,7 @@ export default function App() {
         {/* Fam AI is now a global overlay controlled by the AppTopBar Sparkles
             button. Passing `open` / `onClose` keeps it controlled — closing
             from inside the sheet simply clears the openFamAI flag. */}
+        {!childMode && <VoiceQuickAdd key={`${session?.user?.id}:${household?.id}`} features={enabledFeatures} hidden={famAiOpen || preferences.loading} />}
         <ErrorBoundary resetKey={`famai-${famAiOpen}`} fallback={() => null}>
           <Suspense fallback={null}>
             {enabledFeatures.fam_ai && !childMode && !IS_APP_STORE && <FamAI open={famAiOpen} onClose={() => setFamAiOpen(false)} screen={tab} />}
