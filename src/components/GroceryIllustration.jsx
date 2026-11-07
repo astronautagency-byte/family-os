@@ -11,7 +11,7 @@ export default function GroceryIllustration({ name, category, icon, size = 36 })
       {/* The square viewport includes letterboxing around non-square cells.
           Clip the atlas to its cell, not just to the outer SVG viewport. */}
       <defs><clipPath id={clipId} clipPathUnits="userSpaceOnUse"><rect x={x} y={y} width={width} height={height}/></clipPath></defs>
-      <image href="/illustrations/grocery/flat-grocery-atlas-v1.png" width="1448" height="1086" clipPath={`url(#${clipId})`} />
+      <image href="/illustrations/grocery/famos-grocery-atlas-v2.png" width="1448" height="1086" clipPath={`url(#${clipId})`} />
     </svg>
   </span>;
 }

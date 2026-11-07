@@ -11,7 +11,10 @@ const xs = [0,190,370,550,730,910,1090,1270,1448];
 const ys = [0,212,385,555,723,884,1086];
 export const GROCERY_ICONS = Object.fromEntries(ids.map((id, index) => {
   const col = index % 8, row = Math.floor(index / 8);
-  return [id, { id, viewBox: `${xs[col]} ${ys[row]} ${xs[col + 1] - xs[col]} ${ys[row + 1] - ys[row]}` }];
+  // The yogurt artwork sits close to the bread cell; keep its clip inside the
+  // gap so a sliver of the neighbouring loaf never appears in the UI.
+  const width = id === 'yogurt' ? 160 : xs[col + 1] - xs[col];
+  return [id, { id, viewBox: `${xs[col]} ${ys[row]} ${width} ${ys[row + 1] - ys[row]}` }];
 }));
 export const GROCERY_CATEGORY_ICONS = {
   Produce:'carrot', Bakery:'bread', 'Deli & Prepared Foods':'sandwich',

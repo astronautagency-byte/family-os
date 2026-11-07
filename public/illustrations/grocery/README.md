@@ -1,4 +1,6 @@
-# FamOS flat grocery library v1
+# FamOS grocery illustration library
+
+The active `famos-grocery-atlas-v2.png` is a style-matched edit of the original atlas, using the family-v4 grocery illustration as its visual reference. It keeps the same 48 named cells and crop coordinates. The original atlas is retained as a source asset.
 
 48 named illustrations in a transparent PNG atlas, generated with the built-in image-generation tool. Original generated artwork, not extracted from the supplied watermarked reference. This is a raster library, not editable vector source.
 

@@ -31,6 +31,7 @@ describe('grocery illustrations', () => {
     expect(container.firstChild.style.width).toBe('48px');
     expect(container.firstChild.dataset.groceryIcon).toBe('apple');
     expect(container.querySelector('svg').getAttribute('viewBox')).toBe(GROCERY_ICONS.apple.viewBox);
+    expect(container.querySelector('image').getAttribute('href')).toBe('/illustrations/grocery/famos-grocery-atlas-v2.png');
   });
   it('provides 48 unique named icons and valid category fallbacks', () => {
     expect(Object.keys(GROCERY_ICONS)).toHaveLength(48);
