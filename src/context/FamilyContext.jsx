@@ -1343,7 +1343,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
         if (result.error) throw result.error;
         broadcastSaved = true;
         setMessages((prev) => prev.map((item) => item.id === tempId ? mapMessage(result.data) : item));
-        sendHouseholdPush({ title: `${memberById[user.id]?.name || "A family member"} broadcast a message`, body, tag: `broadcast-${result.data.id}`, url: "/#today" }, []);
+        sendHouseholdPush({ title: `${memberById[user.id]?.name || "A family member"} broadcast a message`, body, tag: `broadcast-${result.data.id}`, url: "/#today", ...(voice ? {silent:true} : {}) }, []);
       } catch (error) {
         if (voicePath && !broadcastSaved) await supabase.storage.from('broadcast-voice').remove([voicePath]);
         setMessages((prev) => prev.filter((item) => item.id !== tempId));

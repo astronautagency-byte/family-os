@@ -16,7 +16,8 @@ self.addEventListener('push', (event) => {
     badge: payload.badge || '/icons/icon-192.png',
     tag: payload.tag || 'famos-household-update',
     data: { url: resolvedUrl },
-    renotify: true,
+    ...(payload.silent === true ? { silent: true } : {}),
+    renotify: payload.silent !== true,
   }));
 });
 
