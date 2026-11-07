@@ -21,6 +21,8 @@ New helper invitations use a family-assigned passcode (8–64 characters) and pr
 - Canonical live app and backend against a synthetic household: accountless login, private-task exclusion, allowed completion observed by owner, existing-session revocation, and unauthorized SMS denied. Temporary QA household and owner removed.
 - Screenshots in the working project at `docs/qa/helper-passcode-2026-11-07/`. Chrome mobile emulation is not a physical iPhone/Safari test.
 - Live app bundle matches the tested build. `/helpers` returns the custom helper image/title, noindex, no-store and no-referrer headers.
-- One consented SMS to the operator’s supplied number was accepted by the delivery service. Handset receipt remains awaiting confirmation. The test uses only a synthetic sample checklist; its access expires one hour after creation. A provider acceptance response is not confirmed receipt.
+- One consented SMS to the operator’s supplied number was accepted by the delivery service. The operator confirmed receiving the SMS, opening its link, using the passcode and completing the sample task on their phone. The sample task completion was independently observed in the database. The temporary SMS household, owner and helper access were then removed.
+
+Live grant inspection confirms the guest/session and SMS-claim RPCs cannot be executed directly by anonymous or signed-in client roles.
 
 This scoped verification does not close the broader compliance/fundraising readiness gate or establish an independent security audit.
