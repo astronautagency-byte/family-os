@@ -297,7 +297,13 @@ export default function Today({ goTo }) {
     .filter((t) => t.due === today)
     .sort((a, b) => Number(a.done) - Number(b.done));
   const openTasks = tasks.filter((task) => !task.done);
-  const nextSuggestion = todaySuggestions({tasks, meals, today, features, hidden:hiddenDashboardCards});
+  const suggestionStorageKey = household?.id && user?.id ? `famos:today-dismissed:${household.id}:${user.id}:${today}` : '';
+  const [dismissedSuggestions, setDismissedSuggestions] = useState([]);
+  const [suggestionClock, setSuggestionClock] = useState(() => new Date());
+  useEffect(() => { const timer = window.setInterval(() => setSuggestionClock(new Date()), 60000); return () => window.clearInterval(timer); }, []);
+  useEffect(() => { try { setDismissedSuggestions(suggestionStorageKey ? JSON.parse(localStorage.getItem(suggestionStorageKey) || '[]') : []); } catch { setDismissedSuggestions([]); } }, [suggestionStorageKey]);
+  const nextSuggestion = todaySuggestions({tasks, meals, events:todaysEvents, groceries, today, features, hidden:hiddenDashboardCards, dismissed:dismissedSuggestions, now:suggestionClock});
+  const dismissNextSuggestion = () => { if (!nextSuggestion) return; const next = [...dismissedSuggestions, nextSuggestion.id]; setDismissedSuggestions(next); try { if (suggestionStorageKey) localStorage.setItem(suggestionStorageKey, JSON.stringify(next)); } catch { /* dismissal stays local to the session */ } };
   const homeTasks = todaysTasks.length
     ? todaysTasks
     : openTasks.slice().sort((a, b) => (a.due || "9999-12-31").localeCompare(b.due || "9999-12-31")).slice(0, 6);
@@ -436,11 +442,13 @@ export default function Today({ goTo }) {
         action={<button type="button" className={`today-customize-trigger ${editingDashboard ? "active" : ""}`} onClick={() => setEditingDashboard((current) => !current)} aria-expanded={editingDashboard}><LayoutGrid size={16}/>{editingDashboard ? "Done" : "Customize"}</button>}
       />
 
+      {nextSuggestion && !editingDashboard && <div className="today-next-wrap px-5"><div className="today-next-container"><button type="button" className={`today-next today-next--${nextSuggestion.page}`} onClick={() => goTo(nextSuggestion.page)}><span className="today-next-icon"><Sparkles size={20}/></span><span className="today-next-copy"><small>Up next</small><strong>{nextSuggestion.title}</strong><span>{nextSuggestion.detail}</span></span><span className="today-next-action">{nextSuggestion.action} <ChevronRight size={16}/></span></button><button type="button" className="today-next-dismiss" onClick={dismissNextSuggestion} aria-label="Dismiss suggestion for today">×</button></div></div>}
+
       <TodayAtAGlance features={features} hidden={hiddenDashboardCards} eventCount={todaysEvents.length} taskCount={openTasks.length} dinner={meals.find(meal => meal.date === today && meal.slot === 'dinner')?.title} shoppingCount={activeGroceries.length} onSelect={goTo} />
 
       <WeeklyPlanner events={allEvents} tasks={tasks} meals={meals} members={members} features={features} onNavigate={goTo} onInvite={inviteFromWeek} addTask={addTask} firstGoal={features[firstGoal] === false ? '' : firstGoal} onClearGoal={clearFirstGoal} />
 
-      {nextSuggestion && !editingDashboard && <div className="today-next-wrap px-5"><button type="button" className={`today-next today-next--${nextSuggestion.page}`} onClick={() => goTo(nextSuggestion.page)}><span className="today-next-icon"><Sparkles size={20}/></span><span className="today-next-copy"><small>Up next</small><strong>{nextSuggestion.title}</strong><span>{nextSuggestion.detail}</span></span><span className="today-next-action">{nextSuggestion.action} <ChevronRight size={16}/></span></button></div>}
+
 
       <details className="reference-home-overview px-5"><summary>Family members</summary>
         <div className="reference-family-strip" aria-label="Your family">{members.map(member => <div key={member.id}><Avatar member={member} size="lg"/><span>{member.name?.split(' ')[0]}</span></div>)}<button type="button" onClick={() => goTo('settings')} aria-label="Manage family members">+</button></div>

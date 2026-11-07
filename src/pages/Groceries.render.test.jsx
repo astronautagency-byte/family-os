@@ -31,3 +31,11 @@ it('keeps list reset available in the shopping options',()=>{
  fireEvent.click(screen.getByRole('button',{name:'Reset shopping'}));
  expect(screen.getByRole('dialog')).toBeDefined();
 });
+it('offers a truthful manual handoff for the current shopping list',()=>{
+ state.groceries=[{id:'milk',name:'Milk',category:'Dairy & Eggs',quantity:1,unit:'L',checked:false,assigneeIds:[]}];
+ render(<Groceries/>);
+ fireEvent.click(screen.getByRole('button',{name:/Shop for delivery/}));
+ expect(screen.getByRole('dialog')).toBeDefined();
+ expect(screen.getByLabelText('Grocery list export text').value).toContain('Milk');
+ expect(screen.getByText(/Direct Instacart list transfer is coming soon/)).toBeDefined();
+});

@@ -23,6 +23,7 @@ import { formatDayLabel, todayISO } from "../lib/dates";
 import { GROCERY_CATEGORIES } from "../data/mockData";
 import useKitchenInventory from "../hooks/useKitchenInventory";
 import { supabase } from "../lib/supabase";
+import { invokeEdgeFunction } from "../lib/supabase";
 import { categorizeGroceryItem } from "../lib/groceryCategories";
 import { inventoryExpiryStatus, suggestExpiryDate } from "../lib/inventoryExpiry";
 import { buildShareUrl } from "../lib/share";
@@ -367,6 +368,8 @@ export default function Groceries() {
   const scannerHandledRef = useRef(false);
   const scannerSessionRef = useRef(0);
   const [deliveryModal, setDeliveryModal] = useState(false);
+  const [instacartLink, setInstacartLink] = useState("");
+  const [instacartBusy, setInstacartBusy] = useState(false);
   const [groceryShare, setGroceryShare] = useState(null);
   const [deliveryStatus, setDeliveryStatus] = useState("");
   // Plan-aware ingredients: Groceries.jsx reads the same cache Meals.jsx
@@ -991,6 +994,7 @@ export default function Groceries() {
 
   const openDelivery = () => {
     setDeliveryStatus("");
+    setInstacartLink("");
     setDeliveryModal(true);
   };
 
@@ -1013,7 +1017,7 @@ export default function Groceries() {
         document.execCommand("copy");
         document.body.removeChild(textarea);
       }
-      setDeliveryStatus("Copied. Open DoorDash or Instacart and paste/import the list there.");
+      setDeliveryStatus("List copied. Use it as a reference while shopping in your preferred app.");
     } catch {
       setDeliveryStatus("Copy did not work in this browser. You can still select the list text and copy it manually.");
     }
@@ -1076,6 +1080,18 @@ export default function Groceries() {
     setDeliveryStatus("Downloaded as a text list you can import or paste.");
   };
 
+  const prepareInstacart = async () => {
+    if (!deliveryItems.length || instacartBusy) return;
+    setInstacartBusy(true); setDeliveryStatus(""); setInstacartLink("");
+    try {
+      const result = await invokeEdgeFunction("instacart-shopping", {items: deliveryItems.map(({name, quantity, unit}) => ({name, quantity, unit}))});
+      if (!result?.url) throw new Error("No shopping link was returned.");
+      setInstacartLink(result.url);
+    } catch {
+      setDeliveryStatus("Instacart list transfer isn’t available right now. You can copy the list and shop manually.");
+    } finally { setInstacartBusy(false); }
+  };
+
   const openGroceryPartner = (url) => {
     window.open(url, "_blank", "noopener,noreferrer");
   };
@@ -1110,6 +1126,7 @@ export default function Groceries() {
             <ListChecks size={14} /> Missing {totalMissingCount}
           </button>
         )}
+        {deliveryItems.length > 0 && <button type="button" onClick={openDelivery}><Truck size={14} /> Shop for delivery</button>}
         <button onClick={() => { resetBarcodeDraft(); setReturnToFocus(false); setBarcodeModal(true); }}><ScanLine size={14} /> Scan product</button>
         {groceries.length > 0 && <button onClick={() => setFocusMode(true)}><Maximize2 size={14} /> Focus shop</button>}
         {(checkedCount > 0 || groceries.length > 0) && <details className="page-actions-menu"><summary>More</summary><div className="page-actions-menu-list" onClick={event => { if (event.target.closest('button')) event.currentTarget.parentElement.open = false; }}>
@@ -1496,13 +1513,13 @@ export default function Groceries() {
         </div>
       </Modal>
 
-      {false && <Modal open={deliveryModal} onClose={() => setDeliveryModal(false)} title="Export grocery list">
+      {<Modal open={deliveryModal} onClose={() => setDeliveryModal(false)} title="Export grocery list">
         <div className="space-y-4">
           <div className="rounded-2xl bg-[var(--color-good-soft)] border border-[var(--color-border)] p-3 flex items-start gap-3">
             <Store size={18} color="var(--color-good)" className="mt-0.5 shrink-0" />
             <div>
               <p className="text-[13px] font-semibold text-[var(--color-ink)]">{deliveryItems.length} active grocery item{deliveryItems.length === 1 ? "" : "s"}</p>
-              <p className="text-[11.5px] text-[var(--color-ink-soft)] leading-snug">FamOS will package your list so you can paste it into DoorDash, Instacart, notes, messages, or wherever the grocery run is happening.</p>
+              <p className="text-[11.5px] text-[var(--color-ink-soft)] leading-snug">Review your list, then copy it for reference or try the Instacart list transfer.</p>
             </div>
           </div>
 
@@ -1521,14 +1538,16 @@ export default function Groceries() {
 
           <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-sunken)] p-3">
             <p className="text-[12.5px] text-[var(--color-ink-soft)] leading-relaxed">
-              FamOS gets the list clean and ready. DoorDash or Instacart can handle the store choice, prices, substitutions, and delivery details inside their own checkout flow.
+              If you choose Instacart list transfer, only these item names and supported quantities are shared. You choose products and check out on Instacart.
             </p>
           </div>
 
-          {deliveryStatus && <p className="text-[12.5px] leading-snug text-[var(--color-good)]">{deliveryStatus}</p>}
+          {import.meta.env.VITE_INSTACART_ENABLED === "true" ? <PrimaryButton onClick={prepareInstacart} disabled={instacartBusy || !deliveryItems.length}>{instacartBusy ? "Preparing list…" : "Send list to Instacart"}</PrimaryButton> : <p className="text-[12.5px] text-[var(--color-ink-soft)]">Direct Instacart list transfer is coming soon. For now, copy your list and use it as a reference when shopping.</p>}
+          {instacartLink && <p><a href={instacartLink} target="_blank" rel="noopener noreferrer">Open your list on Instacart ↗</a></p>}
+          {deliveryStatus && <p role="status" className="text-[12.5px] leading-snug text-[var(--color-good)]">{deliveryStatus}</p>}
 
           <div>
-            <p className="mb-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">Choose where to shop</p>
+            <p className="mb-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">Open a grocery service</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {GROCERY_DELIVERY_APPS.map((app) => (
                 <button
