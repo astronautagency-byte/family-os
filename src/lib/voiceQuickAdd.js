@@ -1,7 +1,7 @@
 import * as chrono from 'chrono-node';
 export const capitalizeFirstWord = value => String(value || '').trim().replace(/^(\P{L}*)(\p{L})/u, (_, prefix, letter) => prefix + letter.toLocaleUpperCase());
 const localInput = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-const normalize = input => String(input || '').trim().replace(/[.!?]+$/, '').trim().replace(/^(?:(?:hey\s+(?:famos|mia)|famos|mia)[,\s]+)?(?:(?:can|could|would) you\s+|(?:i'd|i would) like you to\s+)?(?:please\s+)?/i, '').replace(/\s+please$/i, '').trim();
+const normalize = input => String(input || '').trim().replace(/[.!?]+$/, '').trim().replace(/^(?:(?:(?:hey|hi|hello)\s+(?:famos|mia)|famos|mia)[,\s]+)?(?:(?:can|could|would) you\s+|(?:i'd|i would) like you to\s+)?(?:please\s+)?/i, '').replace(/\s+please$/i, '').trim();
 /** Interpret explicit additions only. Ambiguous destinations and schedules are not guessed. */
 export function parseVoiceQuickAdd(input, { groceryLists = [], taskLists = [], now = new Date() } = {}) {
   const text = normalize(input);
@@ -19,12 +19,12 @@ export function parseVoiceQuickAdd(input, { groceryLists = [], taskLists = [], n
     if (/\bevery\s+other\b|\bbiweekly\b|\bweekdays\b|\bevery\s+\d+\b|\buntil\b|\bthrough\b/i.test(text)) return null;
     const parsed=chrono.parse(text,now,{forwardDate:true})[0];
     let title=text.replace(/^(?:add|create|schedule|put)\s+(?:an?\s+)?/i,'');
-    title=title.replace(/^event(?:\s+(?:for|called|named))?\s+/i,'');
+    title=title.replace(/^(?:event|appointment)(?:\s+(?:for|called|named))?\s+/i,'');
     const afterDate=parsed && !parsed.start.isCertain('hour') ? text.slice(parsed.index+parsed.text.length).match(/^\s+(?:at\s+)?(\d{3,4})(?=\s|$)/i) : null;
     // A leading compact time in an explicit event request is common dictation
     // ("add 330 haircut ..."). A named title such as "Room 330" is untouched.
     const leading=title.match(/^(\d{3,4})(?=\s|$)/);
-    const atTime=title.match(/\bat\s+(\d{3,4})(?=\s|$)/i);
+    const atTime=title.match(/\b(?:at|for)\s+(\d{3,4})(?=\s|$)/i);
     const compact=afterDate || leading || atTime;
     const digits=compact?.[1] || '', compactHour=Number(digits.slice(0,-2)), compactMinute=Number(digits.slice(-2));
     const validCompact=!!digits && compactHour>=1 && compactHour<=23 && compactMinute<60;
@@ -35,6 +35,7 @@ export function parseVoiceQuickAdd(input, { groceryLists = [], taskLists = [], n
       else title=title.replace(new RegExp(`\\b${digits}\\b`),'');
     }
     title=title.replace(/\b(?:as\s+an?\s+event|(?:to|on|in|into)\s+(?:(?:my|the|our)\s+)?(?:(?:family\s+)?calendar|events?(?:\s+(?:for|on|in)\s+(?:(?:my|the|our)\s+)?calendar)?)|event\s+(?:called|named))\b/ig,'').replace(/\b(?:every|each|on|at|for)\s*$/i,'').replace(/\s+/g,' ').trim();
+    title=title.replace(/^(?:for\s+)+(?:an?\s+)?/i,'').replace(/^(?:an?\s+)(?=haircut\b)/i,'');
     if(!title) return null;
     let recurrence='none'; if(/\b(?:every|each)\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|week)\b/i.test(text))recurrence='weekly';else if(/\b(?:every|each)\s+day\b|\bdaily\b/i.test(text))recurrence='daily';else if(/\b(?:every|each)\s+month\b|\bmonthly\b/i.test(text))recurrence='monthly';else if(/\b(?:every|each)\s+year\b|\byearly\b/i.test(text))recurrence='yearly';else if(/\b(?:every|each)\b/i.test(text))return null;
     const hasDate=parsed && (parsed.start.isCertain('day') || parsed.start.isCertain('weekday'));

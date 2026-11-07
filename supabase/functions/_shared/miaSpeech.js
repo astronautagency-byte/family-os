@@ -5,7 +5,7 @@ export function validateSpeechText(value) {
 export async function synthesizeMiaSpeech({text,groqKey,xaiKey,fetchImpl=fetch}) {
   text=validateSpeechText(text);
   const providers=[
-    ...(groqKey?[{name:'groq',url:'https://api.groq.com/openai/v1/audio/speech',key:groqKey,mime:'audio/wav',body:{model:'canopylabs/orpheus-v1-english',voice:'hannah',input:text,response_format:'wav'}}]:[]),
+    ...(groqKey?[{name:'groq',url:'https://api.groq.com/openai/v1/audio/speech',key:groqKey,mime:'audio/wav',body:{model:'canopylabs/orpheus-v1-english',voice:'autumn',input:text,response_format:'wav'}}]:[]),
     ...(xaiKey?[{name:'xai',url:'https://api.x.ai/v1/tts',key:xaiKey,mime:'audio/mpeg',body:{text,voice_id:'eve',language:'en',speed:1.0}}]:[]),
   ];
   const failures=[];

@@ -5,7 +5,7 @@ test('speech validates a short reply and uses fixed natural voice settings',asyn
  assert.throws(()=>validateSpeechText('x'.repeat(601)));assert.throws(()=>validateSpeechText(''));assert.equal(validateSpeechText('[whisper] Hello'),'whisper Hello');
  let request;
  const result=await synthesizeMiaSpeech({text:'What day is your haircut?',groqKey:'test',fetchImpl:async(url,options)=>{request={url,...options};return new Response(new Uint8Array(200),{headers:{'content-type':'audio/wav'}});}});
- assert.equal(result.mime,'audio/wav');assert.equal(JSON.parse(request.body).voice,'hannah');assert.equal(JSON.parse(request.body).input,'What day is your haircut?');
+ assert.equal(result.mime,'audio/wav');assert.equal(JSON.parse(request.body).voice,'autumn');assert.equal(JSON.parse(request.body).input,'What day is your haircut?');
 });
 test('provider errors fall back without exposing provider error bodies',async()=>{
  let count=0;const result=await synthesizeMiaSpeech({text:'Hello',groqKey:'one',xaiKey:'two',fetchImpl:async()=>++count===1?new Response('private provider details',{status:403}):new Response(new Uint8Array(200))});assert.equal(result.provider,'xai');assert.equal(count,2);

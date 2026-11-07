@@ -26,3 +26,8 @@ test('keeps a supplied day when the time arrives in the next answer',async()=>{
  assert.equal(resolveVoiceFollowup(a,'at 4 pm',{now}).start,'2026-11-08T16:00');
  const b=parseVoiceQuickAdd('add haircut to my calendar at 3 pm',{now});assert.equal(b.start,'');assert.equal(resolveVoiceFollowup(b,'Monday',{now}).start,'2026-11-09T15:00');
 });
+
+test('retains the screenshot appointment details after a natural greeting',()=>{
+ const draft=parseVoiceQuickAdd('Hi Mia can you add an appointment to my calendar for 330 for a haircut today',{now:new Date('2026-11-07T10:00:00')});
+ assert.equal(draft.name,'Haircut');assert.equal(draft.eventDate,'2026-11-07');assert.equal(draft.ambiguousTime.hour,3);assert.equal(draft.ambiguousTime.minute,30);
+});
