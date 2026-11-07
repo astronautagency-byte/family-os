@@ -19,3 +19,9 @@ it('keeps approved add-on choices separate and makes unavailable checkout explic
  expect(screen.getByText('$7.99')).toBeDefined();expect(screen.getByText('$9.99')).toBeDefined();
  expect(screen.queryByRole('button',{name:/buy|subscribe|checkout/i})).toBeNull();
 });
+
+it('lets visitors pause and resume decorative motion',()=>{
+ render(<FamAIMarketing/>);const control=screen.getByRole('button',{name:'Pause motion'});
+ fireEvent.click(control);expect(control.getAttribute('aria-pressed')).toBe('true');expect(screen.getByRole('button',{name:'Resume motion'})).toBeDefined();
+ fireEvent.click(control);expect(control.getAttribute('aria-pressed')).toBe('false');
+});
