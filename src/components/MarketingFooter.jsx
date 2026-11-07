@@ -49,6 +49,7 @@ const MarketingFooter = ({ signedIn = false }) => {
         <div>
           <h4>Company</h4>
           <ul>
+            <li><a href="/fam-ai">FamAI & Mia</a></li>
             <li><a href="/calendar-sync">Calendar sync</a></li>
             <li><a href="/calendar-photo-import">Calendar photo import</a></li>
             <li><a href="/compare">Compare family organizers</a></li>

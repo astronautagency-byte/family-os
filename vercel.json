@@ -83,6 +83,10 @@
   ],
   "rewrites": [
     {
+      "source": "/fam-ai",
+      "destination": "/__public/fam-ai.html"
+    },
+    {
       "source": "/",
       "has": [
         {

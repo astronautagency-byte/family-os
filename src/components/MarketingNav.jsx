@@ -181,6 +181,7 @@ const MarketingNav = ({ signedIn = false, currentId = null }) => {
           <a href="/">Home</a>
           <FeaturesDropdown active label="Features" currentId={currentId} />
           <a href="/#how-it-works">How it works</a>
+          <a href="/fam-ai">FamAI & Mia</a>
           <a href="/#compare">Compare</a>
           {!IS_MAC_APP_STORE && <a href="/#pricing">Pricing</a>}
         </div>
@@ -291,6 +292,7 @@ const MarketingNav = ({ signedIn = false, currentId = null }) => {
               <BarChart3 size={20} />
               <span>Compare</span>
             </a>
+            <a href="/fam-ai" className="marketing-drawer-link" onClick={closeDrawer}><Puzzle size={20}/><span>FamAI & Mia</span></a>
             {!IS_MAC_APP_STORE && <a href="/#pricing" className="marketing-drawer-link" onClick={closeDrawer}>
               <Tag size={20} />
               <span>Pricing</span>

@@ -47,7 +47,7 @@ try {
  home=home.replace('</head>',[...homeStyles].map(css=>`<link rel="stylesheet" href="/${css}">`).join('')+'<noscript><style>.landing-page [style*="opacity:0"]{opacity:1!important;transform:none!important}</style></noscript></head>');
  await writeFile('dist/__public/home.html',home);
  // Prerender the rest of the indexable public pages for crawlers and link previews.
- for(const [path,moduleName] of [['/pricing','Landing'],['/download','Download'],['/contact','Contact'],['/privacy','Privacy'],['/terms','Terms']]){
+ for(const [path,moduleName] of [['/fam-ai','FamAIMarketing'],['/pricing','Landing'],['/download','Download'],['/contact','Contact'],['/privacy','Privacy'],['/terms','Terms']]){
   const {default:Component}=await server.ssrLoadModule(`/src/pages/${moduleName}.jsx`); const meta=publicMeta(path);const css=new Set();
   const collect=e=>{for(const c of e?.css||[])css.add(c);for(const k of e?.imports||[])collect(manifest[k]);};collect(manifest[`src/pages/${moduleName}.jsx`]);
   let html=withMeta(template,meta).replace(/<div id="root">[\s\S]*<\/div>(?=\s*<\/body>)/,`<div id="root">${renderToString(React.createElement(Component))}</div>`);
@@ -62,7 +62,7 @@ try {
  }
  // Avoid filesystem index precedence swallowing the host-specific homepage rewrite.
  await rename('dist/index.html','dist/app-shell.html');
- const sitemapPaths=['/','/pricing','/contact','/privacy','/terms','/download',...paths];
+ const sitemapPaths=['/','/pricing','/contact','/privacy','/terms','/download','/fam-ai',...paths];
  await writeFile('dist/sitemap.xml',`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${sitemapPaths.map(path=>`<url><loc>https://fam-os.app${path}</loc></url>`).join('')}</urlset>`);
  console.log(`Prerendered ${paths.length} public pages with unique metadata and visible content.`);
 } finally {await server.close();}

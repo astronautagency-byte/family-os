@@ -1,5 +1,6 @@
 import sharp from 'sharp';import {readFile,mkdir} from 'node:fs/promises';import {publicPaths,publicMeta} from '../src/data/publicMeta.js';
 const copy={
+ '/fam-ai':['Meet Mia.','A little more headspace.','Your personal AI home assistant'],
  '/':['A little less planning.','A lot more family.','Your family, in sync'],
  '/features':['The family stuff,','all in one place.','Explore FamOS'],
  '/features/voice':['Say it.','Consider it done.','Review before adding'],

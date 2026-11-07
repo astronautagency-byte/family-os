@@ -53,6 +53,7 @@ const Settings = lazy(() => import("./pages/Settings"));
 const Chat = lazy(() => import("./pages/Chat"));
 const FamilyLocation = lazy(() => import("./pages/FamilyLocation"));
 const FamAI = lazy(() => import("./pages/FamAI"));
+const FamAIMarketing = lazy(() => import("./pages/FamAIMarketing"));
 const Landing = lazy(() => import("./pages/Landing"));
 const Download = lazy(() => import("./pages/Download"));
 const Privacy = lazy(() => import("./pages/Privacy"));
@@ -225,7 +226,7 @@ const PageErrorFallback = ({ retry, reloadLatest, goToday }) => {
   );
 };
 const VALID_TABS = ["recipes","rewards","today","calendar","meals","tasks","groceries","kitchen","chat","location","famai","settings"];
-const PUBLIC_ROUTES = ["privacy", "terms", "contact", "pricing", "signin", "signup", "download", "packs"];
+const PUBLIC_ROUTES = ["privacy", "terms", "contact", "pricing", "signin", "signup", "download", "packs", "fam-ai"];
 const ROUTE_ALIASES = { "sign-in": "signin", "lsign-in": "signin", "sign-up": "signup", "partners": "partner", "app/admin": "admin" };
 const VALID_ROUTES = [...VALID_TABS, "landing", "admin", "partner", "partners", ...PUBLIC_ROUTES];
 const FEATURES_PATH_REGEX = /^\/features(?:\/([a-z-]+))?\/?$/i;
@@ -259,7 +260,7 @@ function ensureCorrectDomain(session) {
   // a stale session left behind from an earlier visit.
   if (signedOutHandoff) return;
   // Shared pack tokens live in the fragment; keep previews on their current origin.
-  if (pathRoute() === 'packs') return;
+  if (['packs','fam-ai'].includes(pathRoute())) return;
 
   // The public homepage is canonical at https://fam-os.app/. Keep the old
   // /landing path working for existing bookmarks, but remove it from the URL.
@@ -817,6 +818,7 @@ export default function App() {
   if (publicRoute === "partner") return <Suspense fallback={<PageFallback />}><Partner /></Suspense>;
   if (publicRoute === "features") return <Suspense fallback={<PageFallback />}><Features /></Suspense>;
   if (publicRoute === "landing" || publicRoute === "pricing") return <Suspense fallback={<PageFallback />}><Landing signedIn={!!session} /></Suspense>;
+  if (publicRoute === "fam-ai") return <Suspense fallback={<PageFallback />}><FamAIMarketing /></Suspense>;
   if (publicRoute === "download") return <Suspense fallback={<PageFallback />}><Download /></Suspense>;
   if (publicRoute === "privacy") return <Suspense fallback={<PageFallback />}><Privacy signedIn={!!session} /></Suspense>;
   if (publicRoute === "terms") return <Suspense fallback={<PageFallback />}><Terms signedIn={!!session} /></Suspense>;
