@@ -17,3 +17,13 @@ it('contains keyboard focus and restores the opener',()=>{
  rerender(<><button>Open editor</button><Modal open={false} onClose={close} title="Editor"><button>Save</button></Modal></>);
  expect(document.activeElement).toBe(opener);
 });
+it('keeps the close control in the heading and closes on click',()=>{
+ const close=vi.fn();
+ render(<Modal open onClose={close} title="Recipe Book"><p>Recipe content</p></Modal>);
+ const heading=screen.getByText('Recipe Book').closest('.modal-heading');
+ const closeButton=screen.getByRole('button',{name:'Close dialog'});
+ expect(heading).toContainElement(closeButton);
+ expect(heading).not.toContainElement(screen.getByText('Recipe content'));
+ fireEvent.click(closeButton);
+ expect(close).toHaveBeenCalledOnce();
+});
