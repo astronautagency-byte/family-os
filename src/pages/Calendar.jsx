@@ -9,6 +9,7 @@ import { expandRecurringEvents } from "../lib/eventRecurrence";
 import { combineCalendarSources } from '../lib/calendarSources';
 import { AvatarStack, DateField, Modal, PrimaryButton, SecondaryButton, SegmentedControl, SelectField, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
+import CalendarImageImport from '../components/CalendarImageImport';
 import FamilyIllustration from '../components/FamilyIllustration';
 import ReferenceAgenda from '../components/ReferenceAgenda';
 import PageAddButton from '../components/PageAddButton';
@@ -455,6 +456,7 @@ function LocationAutocompleteField({ value, onChange, country }) {
 }
 
 export default function CalendarPage({ entitlements = null, goTo } = {}) {
+  const [imageImportOpen, setImageImportOpen] = useState(false);
   const { members, memberById, events, googleEvents, feedEvents, calendarFeeds, googleConnected, googleCalendars, googleCalendarAliases, googleCalendarColors, selectedGoogleCalendarIds, sharedGoogleCalendarIds, householdSharedCalendars, googleStatus, googleError, googleLastSynced, addEvent, updateEvent, addGoogleCalendarEvent, updateGoogleCalendarEvent, deleteGoogleCalendarEvent, removeEvent, clearEvents, refreshData, syncGoogleCalendarNow, connectGoogleCalendar, reconnectGoogleCalendar, disconnectGoogleCalendar, toggleGoogleCalendar, toggleGoogleCalendarSharing, renameGoogleCalendar, setGoogleCalendarColor, famosCalendar, setFamosCalendar } = useFamily();
   const { householdProfileExtra } = useAuth();
   const todayStr = todayISO();
@@ -1108,6 +1110,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
 
   return (
     <>
+    {imageImportOpen && <CalendarImageImport onClose={() => setImageImportOpen(false)} addEvent={addEvent} events={events}/>}
     <PullToRefresh onRefresh={refreshAll}>
       <div className="pb-28 calendar-page famos-noscroll">
         <div className="calendar-hero apple-calendar-toolbar">
@@ -1147,6 +1150,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
             <button className="calendar-hero-action" onClick={() => setCalendarManagerOpen(true)} aria-label="Manage calendars">
               <Settings2 size={17} />
             </button>
+            <SecondaryButton onClick={() => setImageImportOpen(true)}><CalendarPlus size={17}/> Import image</SecondaryButton>
             <PageAddButton label="Add event" onClick={() => openAdd()}/>
           </div>
         </div>

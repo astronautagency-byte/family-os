@@ -1,0 +1,28 @@
+// Local-only capture fixture: run with empty VITE_SUPABASE_URL and key.
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import {AuthProvider} from '../../src/context/AuthContext';
+import {FamilyProvider} from '../../src/context/FamilyContext';
+import Calendar from '../../src/pages/Calendar';
+import Meals from '../../src/pages/Meals';
+import Landing from '../../src/pages/Landing';
+import Tasks from '../../src/pages/Tasks';
+import {initialEvents,initialMeals,initialTasks,initialGroceries} from '../../src/data/mockData';
+import '../../src/index.css';
+import '../../src/theme/component-consistency.css';
+import '../../src/theme/illustrated-ui.css';
+import '../../src/theme/page-layout.css';
+import '../../src/theme/reference-screens.css';
+import '../../src/theme/product-feedback.css';
+import '../../src/theme/ux-refinements.css';
+import '../../src/theme/contrast.css';
+import '../../src/theme/scheme-accents.css';
+import '../../src/theme/spacing.css';
+import '../../src/theme/dark-mode.css';
+if (import.meta.env.VITE_SUPABASE_URL) throw Error('Capture fixture must run without a backend connection.');
+const today = new Date().toLocaleDateString('en-CA');
+const captureMeals = [{id:'breakfast',date:today,slot:'breakfast',title:'Berry pancakes',notes:'A slow start together',cookIds:['me']},{id:'lunch',date:today,slot:'lunch',title:'Roasted vegetable wraps',notes:'Pack a little extra',cookIds:['partner']},{id:'dinner',date:today,slot:'dinner',title:'Sheet-pan chicken fajitas',notes:'Peppers, avocado and warm tortillas',cookIds:['me','partner']}];
+localStorage.setItem('family-os:v1',JSON.stringify({members:[{id:'me',name:'Jamie',initials:'J',color:'coral'},{id:'partner',name:'Morgan',initials:'M',color:'sky'}],events:initialEvents,meals:captureMeals,tasks:initialTasks,groceries:initialGroceries,messages:[]}));
+const page=new URLSearchParams(location.search).get('page') || 'calendar';
+const Page={calendar:Calendar,meals:Meals,tasks:Tasks,landing:Landing}[page] || Calendar;
+createRoot(document.getElementById('root')).render(<AuthProvider><FamilyProvider><main className={page === 'landing' ? 'marketing-preview' : 'app-shell'} style={{display:'block',minHeight:'100vh'}}><div className="app-content" style={{margin:0,padding:page === 'landing' ? 0 : 24,maxWidth:'none'}}><Page goTo={()=>{}}/></div></main></FamilyProvider></AuthProvider>);

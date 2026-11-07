@@ -1,0 +1,16 @@
+.calendar-image-import{display:grid;gap:16px;color:var(--color-ink)}
+.calendar-image-import p,.calendar-image-import small{margin:0;line-height:1.5}
+.calendar-image-import small{color:var(--color-ink-soft)}
+.calendar-image-upload{display:grid;gap:12px;padding:20px;border:1px dashed var(--color-border-strong);border-radius:var(--radius-card);background:var(--color-surface)}
+.calendar-image-upload input{max-width:100%;min-width:0}
+.calendar-image-previews{display:flex;gap:12px;overflow-x:auto}
+.calendar-image-previews img{width:112px;height:112px;object-fit:contain;background:var(--color-surface);border-radius:var(--radius-control)}
+.calendar-image-event{display:grid;gap:16px;min-width:0;padding:16px;border:1px solid var(--color-border);border-radius:var(--radius-card)}
+.calendar-image-event legend{padding:0 8px;font-weight:600}
+.calendar-image-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.calendar-image-fields input{min-width:0;width:100%}
+.calendar-image-check{display:flex;align-items:center;gap:10px;min-height:44px}
+.calendar-image-check input{width:20px;height:20px;accent-color:var(--color-accent)}
+.calendar-image-notes{color:var(--color-ink-soft)}
+.calendar-image-import [role=alert]{color:var(--color-danger)}
+@media(max-width:400px){.calendar-image-fields{grid-template-columns:1fr}}

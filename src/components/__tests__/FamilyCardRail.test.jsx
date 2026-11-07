@@ -39,7 +39,7 @@ it('uses no smooth scrolling when reduced motion is requested', () => {
 });
 it('uses independent images and treats decorative artwork as decorative', () => {
   const {container}=render(<FamilyIllustration variant="tasks"/>);
-  expect(container.querySelector('img').getAttribute('src')).toBe('/illustrations/family-v4/tasks.png');
+  expect(container.querySelector('img').getAttribute('src')).toBe('/illustrations/family-v4/tasks-480.webp');
   expect(container.querySelector('img').getAttribute('alt')).toBe('');
   expect(FAMILY_ART.recipes).toBe('meals');
 });

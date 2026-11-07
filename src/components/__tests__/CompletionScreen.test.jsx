@@ -15,7 +15,7 @@ it('shows a persistent, keyboard-dismissible task celebration', () => {
 it('shows shopping-specific artwork and confirmation', () => {
   const close = vi.fn();
   const {getByRole} = render(<CompletionScreen kind="shopping" onClose={close}/>);
-  expect(getByRole('dialog').querySelector('img').src).toContain('/family-v3/celebration-shopping.png');
+  expect(getByRole('dialog').querySelector('img').src).toContain('/family-v4/groceries-480.webp');
   fireEvent.click(getByRole('button', {name:'Nice!'}));
   expect(close).toHaveBeenCalledOnce();
 });

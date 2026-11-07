@@ -93,8 +93,8 @@
   --radius-section: 20px;
   --radius-pill: 9999px;
   --radius-tag: 20px;  /* labels, tabs, tokens */
-  --radius-control: 6px;  /* form controls, buttons */
-  --radius-card: 20px;  /* boxes and containers */
+  --radius-control: 12px;  /* form controls, buttons */
+  --radius-card: 18px;  /* boxes and containers */
   --radius-pill-sm: 8px;
   --radius-compact-card: 14px;
   --radius-panel: 18px;

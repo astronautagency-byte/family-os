@@ -1,3 +1,4 @@
+import FamilyIllustration from './FamilyIllustration';
 import { useEffect, useRef, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from "./icons";
@@ -27,7 +28,7 @@ export default function CompletionScreen({ kind = 'task', onClose }) {
     <CelebrationConfetti intensity={120}/>
     <button className="completion-close" onClick={onClose} aria-label="Close celebration"><X size={22}/></button>
     <div className="completion-content">
-      <div className={`completion-art ${shopping ? 'shopping' : 'task'}`}><img src={`/illustrations/family-v3/celebration-${shopping?'shopping':'task'}.png`} alt=""/></div>
+      <div className={`completion-art ${shopping ? 'shopping' : 'task'}`}><FamilyIllustration variant={shopping ? "groceries" : "rewards"} eager /></div>
       <h1 id={titleId}>{shopping ? 'Shopping Complete!' : 'Task Completed!'}</h1>
       <p>{shopping ? <>All items checked off!<br/>You’re a family hero. <span aria-hidden="true">❤️</span></> : <>Great job!<br/>You’re keeping the family<br/>on track <span aria-hidden="true">🙌</span></>}</p>
       <button ref={button} className="completion-confirm" onClick={onClose}>{shopping ? 'Nice!' : 'Awesome!'}</button>

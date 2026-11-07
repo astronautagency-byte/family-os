@@ -32,7 +32,7 @@
   --color-border:#EAF0F5; --color-border-strong:#CFD9E8;
   --color-accent:#009C69; --color-accent-hover:#008359;
   --color-accent-soft:#E2F8EF; --color-accent-strong:#00764E; --color-on-accent:#FFFFFF;
-  --radius-control:12px; --radius-card:18px;
+
 }
 .app-shell.theme-dark {
   --color-canvas:#111827; --color-surface:#192438; --color-surface-sunken:#202E43;
