@@ -9,10 +9,10 @@ export const PLAN_FEATURES = [
     priceYearly: 149,
     priceCents: 1499,
     priceYearlyCents: 14900,
-    description: "Calendar sync, recipes, meal planning, kitchen suggestions, product lookup, smart capture, automations, and 75–100 FamAI queries/month.",
+    description: "Calendar sync, recipe discovery, kitchen suggestions, product lookup, smart capture, automations, and 75–100 FamAI queries/month.",
     features: [
       "Google & Outlook two-way calendar sync",
-      "Recipe discovery, meal planning, and Cook Mode",
+      "Recipe discovery and Cook Mode",
       "Kitchen inventory meal suggestions",
       "Product and barcode enrichment",
       "Places-powered event details",
@@ -57,7 +57,7 @@ export const FEATURE_COMPARISON = [
   ]},
   { category: "Meals & Recipes", features: [
     { name: "Recipe discovery", free: false, plus: true, pro: true },
-    { name: "Meal planning", free: false, plus: true, pro: true },
+    { name: "Basic manual meal planning", free: true, plus: true, pro: true },
     { name: "Cook Mode", free: false, plus: true, pro: true },
     { name: "Kitchen inventory suggestions", free: false, plus: true, pro: true },
   ]},

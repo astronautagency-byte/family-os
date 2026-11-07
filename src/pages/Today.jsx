@@ -12,6 +12,7 @@ import PageHeader from "../components/PageHeader";
 import TodayCustomizer from "../components/TodayCustomizer";
 import TodayAtAGlance from "../components/TodayAtAGlance";
 import MealSlotArt from "../components/MealSlotArt";
+import WeeklyPlanner from "../components/WeeklyPlanner";
 import PullToRefresh from "../components/PullToRefresh";
 import { supabase } from "../lib/supabase";
 import { eventDateLocal, formatTime, fullDateLabel, greetingInfo, todayISO } from "../lib/dates";
@@ -145,8 +146,13 @@ export default function Today({ goTo }) {
   const isTrial = (subscription?.status === "trial" || subscription?.status === "trialing") && trialDaysLeft > 0 && !promoUnlocked;
   const isExpired = subscription?.status === "canceled" || (subscription?.status === "trial" && trialDaysLeft === 0);
 
-  const { members, memberById, events, googleEvents, feedEvents, meals, tasks, taskLists = [], groceries, messages, addGrocery, toggleTask, tabletMode, currentUserId, refreshData, syncGoogleCalendarNow, googleConnected, notificationPermission, requestNotifications } = useFamily();
+  const { members, memberById, events, googleEvents, feedEvents, meals, tasks, taskLists = [], groceries, messages, addGrocery, addTask, toggleTask, tabletMode, currentUserId, refreshData, syncGoogleCalendarNow, googleConnected, notificationPermission, requestNotifications } = useFamily();
   const { profile, user, household, householdProfileExtra } = useAuth();
+  const goalKey = household?.id && user?.id ? `famos:first-goal:v1:${household.id}:${user.id}` : '';
+  const [firstGoal, setFirstGoal] = useState('');
+  useEffect(() => { try { setFirstGoal(goalKey ? localStorage.getItem(goalKey) || '' : ''); } catch { setFirstGoal(''); } }, [goalKey]);
+  const clearFirstGoal = () => { try { if (goalKey) localStorage.removeItem(goalKey); } catch { /* ignore unavailable storage */ } setFirstGoal(''); };
+  const inviteFromWeek = () => { try { sessionStorage.setItem('famos:settings-section', 'family'); } catch { /* settings remains available */ } goTo('settings'); };
   const { items: inventoryItems, removeItem: removeInventoryItem } = useKitchenInventory(household?.id, user?.id);
   const expiryAlerts = useMemo(() => expiringInventory(inventoryItems), [inventoryItems]);
   const [replacementIds, setReplacementIds] = useState(() => new Set());
@@ -431,6 +437,8 @@ export default function Today({ goTo }) {
       />
 
       <TodayAtAGlance features={features} hidden={hiddenDashboardCards} eventCount={todaysEvents.length} taskCount={openTasks.length} dinner={meals.find(meal => meal.date === today && meal.slot === 'dinner')?.title} shoppingCount={activeGroceries.length} onSelect={goTo} />
+
+      <WeeklyPlanner events={allEvents} tasks={tasks} meals={meals} members={members} features={features} onNavigate={goTo} onInvite={inviteFromWeek} addTask={addTask} firstGoal={features[firstGoal] === false ? '' : firstGoal} onClearGoal={clearFirstGoal} />
 
       {nextSuggestion && !editingDashboard && <div className="today-next-wrap px-5"><button type="button" className={`today-next today-next--${nextSuggestion.page}`} onClick={() => goTo(nextSuggestion.page)}><span className="today-next-icon"><Sparkles size={20}/></span><span className="today-next-copy"><small>Up next</small><strong>{nextSuggestion.title}</strong><span>{nextSuggestion.detail}</span></span><span className="today-next-action">{nextSuggestion.action} <ChevronRight size={16}/></span></button></div>}
 

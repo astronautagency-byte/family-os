@@ -793,7 +793,6 @@ export function AuthProvider({ children }) {
   const createHousehold = async (name, location = {}) => {
     const householdName = name.trim();
     if (!householdName) throw new Error("Household name is required.");
-    if (!location.address?.trim()) throw new Error("Home address is required.");
     localStorage.setItem(personalOnboardingPendingKey(session.user.id), "true");
     const { error: createError } = await supabase.rpc("create_household", { household_name: householdName });
     if (createError && !/already belong to a household|already have an invitation/i.test(createError.message || "")) throw createError;
@@ -801,7 +800,7 @@ export function AuthProvider({ children }) {
     const { data: membership } = await supabase.from("household_members").select("household_id").eq("user_id", session.user.id).limit(1).maybeSingle();
     const { error: profileError } = await supabase.from("household_profiles").upsert({
       household_id: membership?.household_id,
-      address: location.address.trim(),
+      address: location.address?.trim() || "",
       city: location.city || "",
       region: location.region || "",
       postal_code: location.postalCode || "",

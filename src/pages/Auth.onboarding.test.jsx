@@ -26,31 +26,41 @@ describe('compact authentication',()=>{
   });
 });
 describe('owner onboarding flow',()=>{
-  it('requires a name before continuing and discloses card/renewal before setup',()=>{
+  it('requires a name and makes the Free path clear',()=>{
     render(<HouseholdOnboarding/>);
     expect(screen.getByRole('button',{name:'Continue',exact:true})).toBeDisabled();
-    expect(screen.getByText(/Setup ends with secure card checkout/)).toHaveTextContent('19.99');
+    expect(screen.getByText(/Start with Free or choose an optional Pro trial/)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('First name'),{target:{value:'Test Parent'}});
     expect(screen.getByRole('button',{name:'Continue',exact:true})).toBeEnabled();
   });
   it('previews the selected household and clearly labels sample activities',()=>{
     atStep(3);
     expect(screen.getByText('Test Parent')).toBeInTheDocument();
-    expect(screen.getByText('None selected — you can add these later')).toBeInTheDocument();
+    expect(screen.getByText('Organize our week')).toBeInTheDocument();
     expect(screen.getByText('EXAMPLE · TODAY')).toBeInTheDocument();
-    expect(screen.getByRole('button',{name:'Review Pro trial'})).toBeEnabled();
+    expect(screen.getByRole('button',{name:'See plan options'})).toBeEnabled();
   });
-  it('lets people skip optional interests',()=>{
+  it('lets people choose their first goal',()=>{
     atStep(1);
-    expect(screen.getByRole('button',{name:'Skip for now'})).toBeEnabled();
-    expect(screen.getByRole('button',{name:'Sports'})).toHaveAttribute('aria-pressed','false');
+    fireEvent.click(screen.getByRole('button',{name:'Plan meals'}));
+    expect(screen.getByRole('button',{name:'Plan meals'})).toHaveAttribute('aria-pressed','true');
+    expect(screen.getByRole('button',{name:'Continue'})).toBeEnabled();
   });
   it('offers the requested card-backed seven-day Pro trial',()=>{
     atStep(4);
     expect(screen.getByRole('button',{name:'Start 7-day Pro trial'})).toBeEnabled();
     expect(screen.getByText(/CAD\/month after your 7-day trial/)).toBeInTheDocument();
     expect(screen.queryByText(/30 days/)).not.toBeInTheDocument();
-    expect(screen.getByRole('heading',{name:'Start your Pro trial'})).toBeInTheDocument();
+    expect(screen.getByRole('heading',{name:'Choose your plan'})).toBeInTheDocument();
+    expect(screen.getByRole('button',{name:'Continue with Free'})).toBeEnabled();
+  });
+  it('saves setup on the free path without opening checkout',async()=>{
+    atStep(4);
+    fireEvent.click(screen.getByRole('button',{name:'Continue with Free'}));
+    await waitFor(()=>expect(mocks.auth.saveHouseholdProfile).toHaveBeenCalled());
+    expect(mocks.invoke).not.toHaveBeenCalled();
+    expect(mocks.auth.markOnboardingComplete).toHaveBeenCalled();
+    expect(localStorage.getItem('famos:first-goal:v1:house_test:user_test')).toBe('calendar');
   });
   it('checkout failure keeps the draft and does not complete onboarding',async()=>{
     mocks.invoke.mockResolvedValue({error:new Error('offline')});atStep(4);
@@ -63,7 +73,7 @@ describe('owner onboarding flow',()=>{
   });
   it('saves a draft across remounts',async()=>{
     atStep(1);cleanup();render(<HouseholdOnboarding/>);
-    await waitFor(()=>expect(screen.getByText('What keeps your family busy?')).toBeInTheDocument());
+    await waitFor(()=>expect(screen.getByText('What would help most?')).toBeInTheDocument());
   });
   it('a restored older final-step draft still has a checkout action',()=>{
     atStep(5);

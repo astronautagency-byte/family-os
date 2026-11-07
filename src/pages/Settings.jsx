@@ -622,7 +622,10 @@ function TaskImportCard() {
 export default function Settings({ colorScheme = "famos", onColorSchemeChange = () => {} }) {
   const { members, addMember, updateMember, removeMember, resetToDemoData, notificationPermission, notificationRegistrationError, requestNotifications, sendTestNotification, refreshData } = useFamily();
   const { configured, user, household, householdProfileExtra, memberProfile, updateHouseholdSettings, updateHouseholdProfile, invitePartner, updatePassword, updateEmail, signOut, deleteAccount } = useAuth();
-  const [settingsTab, setSettingsTab] = useState("appearance");
+  const [settingsTab, setSettingsTab] = useState(() => {
+    try { const target = sessionStorage.getItem('famos:settings-section'); sessionStorage.removeItem('famos:settings-section'); return target === 'family' ? 'family' : 'appearance'; }
+    catch { return 'appearance'; }
+  });
   const [editingMember, setEditingMember] = useState(null); // member object or "new"
   const [name, setName] = useState("");
   const [role, setRole] = useState("Kid");

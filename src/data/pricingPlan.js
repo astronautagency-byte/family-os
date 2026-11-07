@@ -10,6 +10,7 @@ export const PRICING_PLAN = {
       featureList: [
         "Shared calendar",
         "Tasks and custom lists",
+        "Basic manual meal planning",
         "Grocery lists & favourites",
         "Family chat & broadcasts",
         "Kitchen Watch & expiry reminders",
@@ -23,11 +24,11 @@ export const PRICING_PLAN = {
     {
       id: "plus",
       name: "FamOS Plus",
-      tagline: "Sync, recipes, and meal planning",
+      tagline: "More sync, recipes, and planning tools",
       price: { monthly: 14.99, yearly: 149 },
       featureList: [
         "Google & Outlook two-way calendar sync",
-        "Recipe discovery, meal planning, and Cook Mode",
+        "Recipe discovery and Cook Mode",
         "Kitchen inventory meal suggestions",
         "Product and barcode enrichment",
         "Places-powered event details",

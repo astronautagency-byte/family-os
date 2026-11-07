@@ -19,15 +19,14 @@ test("mobile sign-up keeps its branding compact so the form starts above the fol
 test("revised owner onboarding includes the requested setup stages", () => {
   assert.match(auth, /Create your family/);
   assert.match(auth, /Home address/);
-  assert.match(auth, /What keeps your family busy\?/);
+  assert.match(auth, /What would help most\?/);
   assert.match(auth, /Bring in your schedule/);
   assert.match(auth, /Skip for now/);
-  assert.match(auth, /Review Pro trial/);
+  assert.match(auth, /See plan options/);
   assert.match(auth, /Start 7-day Pro trial/);
 });
 
 test("family interests and schedule sources are persisted", () => {
-  assert.match(auth, /REVISED_INTERESTS = \["Sports", "Outdoors", "School"/);
   assert.match(auth, /REVISED_SCHEDULE_SOURCES/);
   assert.match(auth, /onboardingInterests: familyInterests/);
   assert.match(auth, /onboardingScheduleSources: scheduleSources/);
