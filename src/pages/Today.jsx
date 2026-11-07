@@ -10,6 +10,7 @@ import { useAuth } from "../context/AuthContext";
 import { Avatar, AvatarStack, Card, Checkbox, EmptyState } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import TodayCustomizer from "../components/TodayCustomizer";
+import TodayAtAGlance from "../components/TodayAtAGlance";
 import FamilyCardRail from '../components/FamilyCardRail';
 import PullToRefresh from "../components/PullToRefresh";
 import { supabase } from "../lib/supabase";
@@ -428,6 +429,8 @@ export default function Today({ goTo }) {
         illustration="home"
         action={<button type="button" className={`today-customize-trigger ${editingDashboard ? "active" : ""}`} onClick={() => setEditingDashboard((current) => !current)} aria-expanded={editingDashboard}><LayoutGrid size={16}/>{editingDashboard ? "Done" : "Customize"}</button>}
       />
+
+      <TodayAtAGlance features={features} hidden={hiddenDashboardCards} eventCount={todaysEvents.length} taskCount={openTasks.length} dinner={meals.find(meal => meal.date === today && meal.slot === 'dinner')?.title} shoppingCount={activeGroceries.length} onSelect={goTo} />
 
       {nextSuggestion && !editingDashboard && <div className="today-next-wrap px-5"><button type="button" className={`today-next today-next--${nextSuggestion.page}`} onClick={() => goTo(nextSuggestion.page)}><span className="today-next-icon"><Sparkles size={20}/></span><span className="today-next-copy"><small>Up next</small><strong>{nextSuggestion.title}</strong><span>{nextSuggestion.detail}</span></span><span className="today-next-action">{nextSuggestion.action} <ChevronRight size={16}/></span></button></div>}
 

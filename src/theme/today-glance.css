@@ -1,0 +1,43 @@
+/* A compact set of real household shortcuts, inspired by a colourful planner. */
+.app-shell .reference-dashboard .page-header-actions .today-customize-trigger {
+  min-height: 44px;
+  padding: 10px 16px;
+  gap: 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.today-glance { padding: 0 var(--layout-page-gutter, 24px); margin: 0 0 24px; }
+.today-glance-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.today-glance-heading h2 { margin: 0; color: var(--color-ink); font-size: 17px; line-height: 1.3; font-weight: 750; }
+.today-glance-heading > span { color: var(--color-ink-soft); font-size: 12px; }
+.today-glance-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.app-shell .today-glance-card {
+  display: flex; align-items: flex-start; flex-direction: column; gap: 15px;
+  min-width: 0; min-height: 140px; padding: 16px; border: 0; border-radius: 18px;
+  color: #172b29; text-align: left; background: var(--glance-bg);
+}
+.today-glance-card--schedule { --glance-bg: #d8eafa; }
+.today-glance-card--tasks { --glance-bg: #f8dadd; }
+.today-glance-card--meals { --glance-bg: #fff0bf; }
+.today-glance-card--groceries { --glance-bg: #d8efe2; }
+.today-glance-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; background: #ffffffa8; }
+.today-glance-copy { display: grid; gap: 4px; width: 100%; min-width: 0; }
+.today-glance-copy > span { font-size: 12px; font-weight: 650; }
+.today-glance-copy strong { font-size: 15px; line-height: 1.35; overflow-wrap: anywhere; }
+.today-glance-arrow { display: none; }
+.today-glance-card:focus-visible { outline: 3px solid var(--color-accent-strong); outline-offset: 3px; }
+@media (prefers-reduced-motion: no-preference) {
+  .today-glance-card { transition: transform 180ms ease, box-shadow 180ms ease; }
+  .today-glance-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px #172b291a; }
+}
+@media (max-width: 700px) {
+  .today-glance-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .app-shell .today-glance-card { min-height: 118px; padding: 14px; gap: 12px; }
+  .today-glance-heading > span { display: none; }
+}
+:root[data-famos-theme="dark"] .app-shell .today-glance-card { color: #f3f7f5; }
+:root[data-famos-theme="dark"] .today-glance-card--schedule { --glance-bg: #25475a; }
+:root[data-famos-theme="dark"] .today-glance-card--tasks { --glance-bg: #593c43; }
+:root[data-famos-theme="dark"] .today-glance-card--meals { --glance-bg: #51492e; }
+:root[data-famos-theme="dark"] .today-glance-card--groceries { --glance-bg: #294c3c; }
+:root[data-famos-theme="dark"] .today-glance-icon { background: #ffffff1c; }

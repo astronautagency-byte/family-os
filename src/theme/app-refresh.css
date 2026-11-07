@@ -1,0 +1,64 @@
+/* Shared interaction and spacing rules for the family planner. Page colours
+   are accents, while the user's chosen theme still controls primary actions. */
+.app-shell .calendar-page { --page-tint: #d8eafa; }
+.app-shell .reference-tasks { --page-tint: #f8dadd; }
+.app-shell .reference-meals { --page-tint: #fff0bf; }
+.app-shell .reference-groceries { --page-tint: #d8efe2; }
+.app-shell .kw-page { --page-tint: #e0eee9; }
+.app-shell .reference-chat { --page-tint: #e5e1f8; }
+.app-shell .reference-settings { --page-tint: #e6ecf0; }
+.app-shell .reward-bank-page { --page-tint: #fff0bf; }
+
+/* Header and navigation: familiar spacing across pages, with a small colour
+   cue that does not compete with the primary action. */
+.app-shell .app-content :is(.reference-tasks,.reference-meals,.reference-groceries,.kw-page,.reference-chat,.reference-settings,.reward-bank-page) .family-page-header {
+  border-bottom: 3px solid color-mix(in srgb, var(--page-tint) 70%, transparent);
+  margin-bottom: 16px;
+}
+.app-shell .calendar-page .calendar-hero.apple-calendar-toolbar {
+  border-bottom: 3px solid color-mix(in srgb, var(--page-tint) 70%, transparent);
+  margin-bottom: 16px;
+}
+.app-shell .app-content .page-header-actions > button:not(.page-add-button) {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; padding: 10px 16px; gap: 8px;
+}
+.app-shell :is(.reference-segments,.meal-range-toggle,.settings-tab-bar) button {
+  min-height: 44px; padding: 9px 14px; line-height: 1.25;
+}
+.app-shell .settings-tab-bar { gap: 8px; padding-block: 4px 8px; }
+.app-shell .chat-thread-picker { gap: 8px; padding-block: 4px 8px; }
+.app-shell .chat-thread-picker > button { min-height: 44px; padding-inline: 10px 14px; }
+
+/* Surfaces use the same card rhythm but retain the identity of each job. */
+.app-shell :is(.reference-tasks,.reference-groceries) :is(.task-board-row,.grocery-list-row) {
+  border-radius: 16px; gap: 12px; padding: 14px 16px; min-width: 0;
+}
+.app-shell .reference-tasks .task-board-list { display: grid; gap: 8px; }
+.app-shell .reference-tasks .task-inline-form {
+  border-radius: 16px; padding: 8px 10px 8px 14px;
+  border-color: color-mix(in srgb, var(--page-tint) 65%, var(--color-border));
+}
+.app-shell .reference-meals .meal-card-new { border-radius: 20px; }
+.app-shell .reference-meals .meal-card-slot { gap: 12px; }
+.app-shell .kw-page .kw-search-bar { border-radius: 16px; }
+.app-shell .kw-page .kw-group-items { gap: 10px; }
+.app-shell .reference-settings .kinship-card { border-radius: 20px; }
+.app-shell .recipe-book :is(.saved-recipe-card,.recipe-card) { border-radius: 18px; }
+.app-shell .reward-bank :is(.reward-bank-paused,.reward-bank-jars,.reward-bank-catalog) { border-radius: 20px; }
+.app-shell .fam-ai-page :is(.fam-ai-suggestion,.fam-ai-preview-card) { border-radius: 16px; }
+
+/* Keep text readable and avoid Safari's focus zoom on every app form. */
+@media (max-width: 767px) {
+  .app-shell :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),textarea,select),
+  .m3-dialog :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),textarea,select) {
+    font-size: 16px !important;
+  }
+  .app-shell :is(.reference-tasks,.reference-groceries) :is(.task-board-row,.grocery-list-row) { padding: 12px; gap: 10px; }
+  .app-shell .reference-meals .meal-plan-toolbar { gap: 8px; }
+  .app-shell .reference-chat .chat-thread-picker { scroll-snap-type: x proximity; }
+  .app-shell .reference-chat .chat-thread-picker > button { scroll-snap-align: start; }
+}
+:root[data-famos-theme="dark"] .app-shell :is(.calendar-page,.reference-tasks,.reference-meals,.reference-groceries,.kw-page,.reference-chat,.reference-settings,.reward-bank-page) {
+  --page-tint: var(--color-border-strong);
+}
