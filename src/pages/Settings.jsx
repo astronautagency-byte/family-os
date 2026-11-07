@@ -656,6 +656,10 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
   const [deleting, setDeleting] = useState(false);
   const [notificationTestStatus, setNotificationTestStatus] = useState("");
   const [testingNotification, setTestingNotification] = useState(false);
+  const [deliveryTestPhone, setDeliveryTestPhone] = useState("");
+  const [deliveryTestResults, setDeliveryTestResults] = useState([]);
+  const [deliveryTestError, setDeliveryTestError] = useState("");
+  const [deliveryTesting, setDeliveryTesting] = useState(false);
   const [supportForm, setSupportForm] = useState(null); // null | "email" | "bug" | "ticket" | "feature"
   const [supportSubject, setSupportSubject] = useState("");
   const [supportMessage, setSupportMessage] = useState("");
@@ -787,7 +791,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
     setSmsFallbackCopied(null);
     try {
       const normalizedInvitePhone = invitePhone.trim() ? normalizePhoneE164(invitePhone) : "";
-      const result = await invitePartner(inviteEmail, normalizedInvitePhone, inviteName);
+      const result = await invitePartner(inviteEmail, normalizedInvitePhone, inviteName, normalizedInvitePhone ? "both" : "email", inviteSmsConsent);
       setInviteStatus(result?.message || "Invitation sent.");
       if (invitePhone.trim() && result?.sms?.requested && !result.sms.sent) {
         const normalizedPhone = normalizePhoneE164(invitePhone);
@@ -830,7 +834,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
     setInviting(true);
     setInviteActionStatus("");
     try {
-      const result = await invitePartner(invite.email, invite.phone || "", invite.invited_name || "");
+      const result = await invitePartner(invite.email, "", invite.invited_name || "", "email");
       setInviteActionStatus(result?.message || `Invitation resent to ${invite.email}.`);
     } catch (error) {
       setInviteActionStatus(error.message || `Could not resend the invitation to ${invite.email}.`);
@@ -907,6 +911,17 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
     } finally {
       setTestingNotification(false);
     }
+  };
+
+  const testEmailAndSms = async () => {
+    setDeliveryTesting(true); setDeliveryTestError(""); setDeliveryTestResults([]);
+    try {
+      const {data, error} = await supabase.functions.invoke("test-delivery", {body:{testPhone:deliveryTestPhone.trim()}});
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setDeliveryTestResults((data?.results || []).filter(result=>result.channel !== "supabase_smtp"));
+    } catch (error) { setDeliveryTestError(error?.message || "Could not run the delivery test. Try again."); }
+    finally { setDeliveryTesting(false); }
   };
 
   const openNotificationSettings = () => {
@@ -1451,6 +1466,14 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
             {notificationPermission === "granted" && <SecondaryButton className="mt-2" onClick={testNotifications} disabled={testingNotification}>{testingNotification ? "Queuing test…" : "Test background delivery"}</SecondaryButton>}
             {notificationTestStatus && <div className="notification-test-status"><CheckCircle2 size={14} /><p>{notificationTestStatus}</p></div>}
             <div className="notification-help">On iPhone and iPad, install FamOS to the Home Screen first, open the installed app, then enable notifications. Apple only permits background Web Push for Home Screen web apps.</div>
+            <div className="mt-4">
+              <strong>Email and text delivery test</strong>
+              <p className="text-[12px] text-[var(--color-ink-soft)] mt-1">Send a test email to your account email. To test SMS, enter the verified phone number on your account, including country code. Standard rates may apply.</p>
+              <TextField type="tel" label="Verified phone number (optional)" value={deliveryTestPhone} onChange={event=>setDeliveryTestPhone(event.target.value)} placeholder="+1 416 555 0123" autoComplete="tel" />
+              <SecondaryButton onClick={testEmailAndSms} disabled={deliveryTesting}>{deliveryTesting ? "Testing…" : "Send delivery test"}</SecondaryButton>
+              {deliveryTestError && <p role="alert" className="text-[12px] text-[var(--color-warn)] mt-2">{deliveryTestError}</p>}
+              {deliveryTestResults.length > 0 && <div role="status" className="notification-test-status"><div>{deliveryTestResults.map((result,index)=><p key={`${result.channel}-${index}`}><strong>{result.provider === "resend" ? "Email" : result.kind === "sms" ? "SMS" : result.channel}:</strong> {result.status === "sent" ? "Accepted by provider — check your inbox or phone to confirm receipt." : result.error || result.status}</p>)}</div></div>}
+            </div>
             {notificationPermission === "denied" && <p className="text-[11.5px] text-[var(--color-warn)] mt-2">Allow notifications for this site in your browser or device settings, then reload FamOS.</p>}
           </Card>
         </section>

@@ -1072,7 +1072,7 @@ export function AuthProvider({ children }) {
     return normalized;
   }, [session?.user?.id, memberDeliveryChannel]);
 
-  const invitePartner = async (email, phone = "", name = "", deliveryChannel = "") => {
+  const invitePartner = async (email, phone = "", name = "", deliveryChannel = "", smsConsent = false) => {
     const normalizedEmail = email.trim().toLowerCase();
     const resolvedChannel = String(deliveryChannel || memberDeliveryChannel || "both").toLowerCase();
     let inviteData = null;
@@ -1083,6 +1083,7 @@ export function AuthProvider({ children }) {
         phone: phone.trim(),
         name: name.trim(),
         delivery_channel: resolvedChannel,
+        sms_consent_confirmed: smsConsent === true,
         householdId: household.id,
         redirectTo: `${window.location.origin}/sign-in?invite=1`,
       });

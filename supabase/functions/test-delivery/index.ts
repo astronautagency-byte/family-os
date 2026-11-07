@@ -13,6 +13,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { PublishCommand, SNSClient } from "npm:@aws-sdk/client-sns@3";
+import { canSendTestSms } from "../_shared/invitation-consent.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,8 +27,6 @@ const json = (body: Record<string, unknown>, status = 200) =>
   });
 
 const TEST_SUBJECT_PREFIX = "[FamOS test]";
-const SERVER_TEST_COOLDOWN_MS = 60_000;
-const lastTestByUser = new Map<string, number>();
 
 function errorMessage(error: unknown) {
   if (error instanceof Error && error.message && error.message.trim() !== "{}") return error.message;
@@ -90,14 +89,10 @@ Deno.serve(async (request) => {
     if (userError || !user) throw new Error("Your session has expired. Sign in again.");
     if (!user.email) throw new Error("Your account needs a primary email to run delivery tests.");
 
-    // Server-side 60s throttle
-    const nowMs = Date.now();
-    const lastMs = lastTestByUser.get(user.id) ?? 0;
-    if (nowMs - lastMs < SERVER_TEST_COOLDOWN_MS) {
-      const secondsLeft = Math.ceil((SERVER_TEST_COOLDOWN_MS - (nowMs - lastMs)) / 1000);
-      return json({ error: `Please wait ${secondsLeft}s before running another delivery test.`, code: "throttled", requestId }, 429);
-    }
-    lastTestByUser.set(user.id, nowMs);
+    // Persist the limit across worker instances; fail closed if unavailable.
+    const { data: allowed, error: throttleError } = await admin.rpc("claim_delivery_test", { target_user: user.id });
+    if (throttleError) throw new Error("Delivery tests are temporarily unavailable.");
+    if (!allowed) return json({ error: "Please wait a minute before running another delivery test.", code: "throttled", requestId }, 429);
 
     const body = await request.json().catch(() => ({}));
     const testPhone = String(body?.testPhone || "").trim().replace(/[^\d+]/g, "");
@@ -184,9 +179,9 @@ Deno.serve(async (request) => {
             channel: "supabase_smtp",
             provider: "supabase_smtp",
             kind: "email",
-            status: "sent",
+            status: "skipped",
             latency_ms,
-            message: "admin API reachable",
+            message: "Admin API reachable; this does not test SMTP delivery.",
           });
         }
       } catch (supabaseError) {
@@ -203,13 +198,14 @@ Deno.serve(async (request) => {
 
     // ── 3. SMS via AWS SNS or Textbelt ─────────────────────────────────────
     if (testPhone) {
-      if (!/^\+?\d{10,15}$/.test(testPhone)) {
+      const smsAllowed = canSendTestSms({phone:testPhone, verifiedPhone:user.phone, phoneConfirmed:user.phone_confirmed_at});
+      if (!smsAllowed) {
         results.push({
           channel: "sms",
           provider: "none",
           kind: "sms",
           status: "failed",
-          error: "Phone must include the country code, e.g. +14165550123.",
+          error: "SMS tests can only be sent to the verified phone number on your account, including country code.",
         });
       } else if (hasAws) {
         const startedAt = Date.now();
@@ -257,7 +253,7 @@ Deno.serve(async (request) => {
       }
 
       // If AWS SNS didn't send, try Textbelt as fallback
-      if (!results.some(r => r.kind === "sms" && r.status === "sent") && textbeltKey) {
+      if (smsAllowed && !results.some(r => r.kind === "sms" && r.status === "sent") && textbeltKey) {
         const startedAt = Date.now();
         try {
           const response = await fetch("https://textbelt.com/text", {

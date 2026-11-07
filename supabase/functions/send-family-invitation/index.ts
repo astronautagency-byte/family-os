@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { PublishCommand, SNSClient } from "npm:@aws-sdk/client-sns@3";
+import { canSendInvitationSms } from "../_shared/invitation-consent.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -178,7 +179,7 @@ Deno.serve(async (request) => {
     const { data: { user }, error: userError } = await admin.auth.getUser(accessToken);
     if (userError || !user) throw new Error("Your session has expired. Please sign in again.");
 
-    const { email, phone, name, delivery_channel, householdId, redirectTo } = await request.json();
+    const { email, phone, name, delivery_channel, sms_consent_confirmed, householdId, redirectTo } = await request.json();
     const requestedChannel = String(delivery_channel || "").toLowerCase();
     // Declared up-front so the catch handler can safely reference it even
     // when an early branch (channel validation, "Only members" check, missing
@@ -217,6 +218,7 @@ Deno.serve(async (request) => {
     const wantsSms = resolvedChannel !== "email";
     const sendEmail = wantsEmail && Boolean(normalizedEmail);
     const sendSms = wantsSms && Boolean(normalizedPhone);
+    if (!canSendInvitationSms({wantsSms, phone:normalizedPhone, consent:sms_consent_confirmed})) throw new Error("Confirm that the recipient agreed to receive this invitation by text.");
     if (!sendEmail && !sendSms) {
       const reason = !normalizedEmail && !normalizedPhone
         ? "an email address and a mobile number"
@@ -247,10 +249,11 @@ Deno.serve(async (request) => {
       invited_by: user.id,
       accepted_at: null,
       expires_at: expiresAt,
+      ...(sendSms ? { sms_consent_confirmed_at: new Date().toISOString(), sms_consent_confirmed_by: user.id } : {}),
     };
     stage = "saving the pending invitation";
     let { error: invitationError } = await admin.from("household_invitations").upsert(invitationPayload, { onConflict: "household_id,email" });
-    if (invitationError && /invited_name|phone|schema cache|column/i.test(invitationError.message || "")) {
+    if (!sendSms && invitationError && /invited_name|phone|schema cache|column/i.test(invitationError.message || "")) {
       const { phone: _phone, invited_name: _invitedName, ...legacyPayload } = invitationPayload;
       ({ error: invitationError } = await admin.from("household_invitations").upsert(legacyPayload, { onConflict: "household_id,email" }));
     }

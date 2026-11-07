@@ -487,7 +487,7 @@ function ProductUpdates() {
     if (!form.title.trim() || !form.summary.trim() || busy) return;
     setBusy(true); setError("");
     try {
-      const { data: inserted, error: insertError } = await supabase.from("product_updates").insert({
+      const { error: insertError } = await supabase.from("product_updates").insert({
         title: form.title.trim(),
         summary: form.summary.trim(),
         body: form.body.trim(),
@@ -500,13 +500,9 @@ function ProductUpdates() {
       }).select().single();
       if (insertError) throw insertError;
 
-      // Send emails
-      const { data: sendResult, error: sendError } = await supabase.functions.invoke("send-product-update", { body: { updateId: inserted.id } });
-      if (sendError) throw sendError;
-
       setForm({ title: "", summary: "", body: "", category: "update", icon: "sparkles", linkUrl: "", linkLabel: "" });
       await load();
-      setSending({ sent: sendResult?.sent || 0, total: sendResult?.total || 0 });
+      setSending(true);
       setTimeout(() => setSending(null), 5000);
     } catch (e) {
       setError(e?.message || "Failed to send update");
@@ -523,8 +519,8 @@ function ProductUpdates() {
   return (
     <div className="admin-promotions">
       <Card className="admin-panel">
-        <PanelHead eyebrow="User communication" title="Send product update" icon={Megaphone} />
-        <p className="admin-section-copy">Compose an update and send it as an email to all FamOS users. It will also appear as an in-app banner on the Today page.</p>
+        <PanelHead eyebrow="User communication" title="Publish product update" icon={Megaphone} />
+        <p className="admin-section-copy">Publish an in-app banner on the Today page. Product update emails are paused while consent and unsubscribe controls are being completed.</p>
         <div className="admin-promo-form">
           <label>Title<input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="What's new in FamOS" /></label>
           <label>Summary<textarea value={form.summary} onChange={(e) => setForm({ ...form, summary: e.target.value })} placeholder="A short description of the update" rows={2} /></label>
@@ -532,10 +528,10 @@ function ProductUpdates() {
           <label>Category<select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}><option value="update">Product update</option><option value="feature">New feature</option><option value="fix">Bug fix</option></select></label>
           <label>Link URL (optional)<input value={form.linkUrl} onChange={(e) => setForm({ ...form, linkUrl: e.target.value })} placeholder="https://..." /></label>
           <label>Link label (optional)<input value={form.linkLabel} onChange={(e) => setForm({ ...form, linkLabel: e.target.value })} placeholder="Learn more" /></label>
-          <button disabled={busy || !form.title.trim() || !form.summary.trim()} onClick={createAndSend}><Megaphone size={16} /> {busy ? "Sending…" : "Send to all users"}</button>
+          <button disabled={busy || !form.title.trim() || !form.summary.trim()} onClick={createAndSend}><Megaphone size={16} /> {busy ? "Publishing…" : "Publish in app"}</button>
         </div>
         {error && <div className="admin-error">{error}</div>}
-        {sending && <div className="admin-success">Update sent to {sending.sent} of {sending.total} users. It will appear on the Today page.</div>}
+        {sending && <div className="admin-success">Update published in the app.</div>}
       </Card>
       <Card className="admin-table-card">
         <div className="admin-table-tools"><div><small>History</small><h2>Product updates</h2></div></div>

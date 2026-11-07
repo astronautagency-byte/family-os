@@ -563,7 +563,7 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
     // Send invites to family members with contact info (background, non-blocking)
     const membersWithContact = onboardingFamilyMembers.filter((m) => m.firstName.trim() && (m.email?.trim() || m.phone?.trim()));
     if (membersWithContact.length && household?.id) {
-      const deliveryChannel = memberDeliveryChannel || "both";
+      const deliveryChannel = "email";
       for (const member of membersWithContact) {
         invitePartner(member.email?.trim() || "", member.phone?.trim() || "", member.firstName.trim(), deliveryChannel).catch(() => {});
       }
@@ -1086,17 +1086,18 @@ function InviteStep({ inviteMembers, setInviteMembers, busy, invitePartner, run,
     if (!invitations.length) throw new Error("Add at least one family member or skip this step.");
     const invalidPhone = inviteMembers.find((member) => member.phone.trim() && !isValidPhoneNumber(member.phone));
     if (invalidPhone) throw new Error(`Add a valid mobile number with country code for ${invalidPhone.name || "this family member"}.`);
-    const incomplete = invitations.find((member) => !member.name || !member.email || !member.phone);
-    if (incomplete) throw new Error("Add a name, email address, and mobile number for each family member.");
+    const wantsSms = deliveryChannel !== "email";
+    const incomplete = invitations.find((member) => !member.name || !member.email || (wantsSms && !member.phone));
+    if (incomplete) throw new Error(wantsSms ? "Add a name, email address, and mobile number for each family member." : "Add a name and email address for each family member.");
     const invalidEmail = invitations.find((member) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(member.email));
     if (invalidEmail) throw new Error(`Check the email address “${invalidEmail.email}” and try again.`);
-    const missingConsent = invitations.find((member) => !member.smsConsent);
+    const missingConsent = wantsSms && invitations.find((member) => !member.smsConsent);
     if (missingConsent) throw new Error(`Confirm SMS invitation consent for ${missingConsent.name}.`);
     const duplicateEmail = invitations.find((member, index) => invitations.findIndex((candidate) => candidate.email === member.email) !== index);
     if (duplicateEmail) throw new Error(`${duplicateEmail.email} is listed more than once.`);
     const results = [];
     for (const member of invitations) {
-      results.push(await invitePartner(member.email, member.phone, member.name, deliveryChannel));
+      results.push(await invitePartner(member.email, member.phone, member.name, deliveryChannel, member.smsConsent));
     }
     const failed = results.find((result) => !result?.sent && !result?.pending);
     if (failed) throw new Error(failed.message || "The invitation was saved, but delivery could not be confirmed.");
@@ -1132,15 +1133,15 @@ function InviteStep({ inviteMembers, setInviteMembers, busy, invitePartner, run,
                 {member.phone && !isValidPhoneNumber(member.phone) && <small>Enter 10 digits, or include + and the country code.</small>}
               </div>
             </div>
-            <label className="partner-consent onboarding-invite-consent">
+            {deliveryChannel !== "email" && <label className="partner-consent onboarding-invite-consent">
               <input type="checkbox" checked={member.smsConsent} onChange={(event) => updateInvite(index, "smsConsent", event.target.checked)} />
               <span><strong>SMS invitation consent confirmed</strong><small>This person agreed to receive one FamOS invitation text. Standard message rates may apply.</small></span>
-            </label>
+            </label>}
           </section>
         ))}
       </div>
       <button type="button" className="onboarding-add-invite" onClick={() => setInviteMembers((members) => [...members, newInviteMember()])}><Plus size={16} /> Add another family member</button>
-      <p className="onboarding-hint">Each person receives a secure email invitation and a one-time SMS invitation.</p>
+      <p className="onboarding-hint">Choose how to send each invitation. An email address is needed for their FamOS account.</p>
       <DeliveryPreferencePicker value={deliveryChannel} onChange={setDeliveryChannel} disabled={busy} />
       <p className="onboarding-hint onboarding-hint-channel">{channelHint}</p>
       <PrimaryButton disabled={busy || !inviteMembers.some((member) => member.name.trim() || member.email.trim() || member.phone.trim())} onClick={sendInvites}>{busy ? "Sending invites…" : "Send invites & continue"}</PrimaryButton>
