@@ -3,7 +3,7 @@ import './family-header.css';
 import FamilyIllustration, { FAMILY_ART } from './FamilyIllustration';
 
 export default function PageHeader({ eyebrow, title, titleIcon, subtitle, action, illustration, liveHealth, onAdd, addLabel = 'Add item' }) {
-  illustration = illustration ?? ({Tasks:'tasks', 'Kitchen Watch':'kitchen', 'Meal Plan':'meals', 'Recipe Book':'recipes', RewardBank:'rewards'})[title];
+  illustration = illustration ?? ({'Today':'home','Calendar':'calendar','Shopping':'groceries','Family Chat':'chat','Settings':'settings','Fam AI':'famai',Tasks:'tasks', 'Kitchen Watch':'kitchen', 'Meal Plan':'meals', 'Recipe Book':'recipes', RewardBank:'rewards'})[title];
   return (
     <header className={`page-header m3-page-header safe-top family-page-header ${illustration ? `page-header-${illustration} has-illustration` : ""}`}>
       <div className="page-header-content">
@@ -18,7 +18,7 @@ export default function PageHeader({ eyebrow, title, titleIcon, subtitle, action
           {subtitle && <p className="page-subtitle">{subtitle}</p>}
           {liveHealth && <div className="page-header-live">{liveHealth}</div>}
         </div>
-        {(onAdd||action||FAMILY_ART[illustration])&&<div className="page-header-aside">{FAMILY_ART[illustration] && <FamilyIllustration variant={illustration} className="family-header-art" />}{(action||onAdd)&&<div className="page-header-actions">{action}{onAdd && <PageAddButton label={addLabel} onClick={onAdd}/>}</div>}</div>}
+        {(onAdd||action||FAMILY_ART[illustration])&&<div className="page-header-aside">{FAMILY_ART[illustration] && <FamilyIllustration variant={illustration} className="family-header-art" sizes="(max-width: 600px) 60px, 88px" />}{(action||onAdd)&&<div className="page-header-actions">{action}{onAdd && <PageAddButton label={addLabel} onClick={onAdd}/>}</div>}</div>}
       </div>
     </header>
   );

@@ -1,0 +1,62 @@
+/* Product UI contract: shared anatomy; palette values remain user-controlled. */
+.app-shell {
+  --app-motion-fast:140ms;
+  --app-motion-enter:220ms;
+  --app-ease:cubic-bezier(.22,1,.36,1);
+}
+.app-shell .app-content .family-page-header {background:transparent!important;padding:24px var(--layout-page-gutter) 20px;}
+.app-shell .app-content .page-title {overflow-wrap:anywhere; text-wrap:balance;}
+.app-shell .app-content .page-header-actions {flex-wrap:wrap;gap:8px;}
+.app-shell .app-content .page-header-actions > button {min-height:44px;}
+.app-shell .app-content .page-add-button {background:var(--color-accent);color:var(--color-on-accent);border-radius:var(--radius-control,12px);}
+.app-shell .settings-section-title {display:flex;align-items:center;gap:10px;background:transparent;}
+.app-shell .settings-section-title svg {flex:none;color:var(--color-accent-strong);}
+.app-shell .settings-section-title--warn svg {color:inherit;}
+.app-shell :is(.reference-segments,.meal-range-toggle,.shopping-list-switcher,.task-list-switcher) button {border-radius:var(--radius-control,12px);}
+.app-shell :is(.reference-segments,.meal-range-toggle,.shopping-list-switcher,.task-list-switcher) button:is(.selected,[aria-pressed="true"],[aria-selected="true"]) {border-radius:var(--radius-control,12px);}
+.app-shell :is(button,a,input,select,textarea):focus-visible,
+.m3-dialog :is(button,a,input,select,textarea):focus-visible {outline:2px solid var(--color-accent-strong);outline-offset:3px;}
+.app-shell :is(input,textarea), .m3-dialog :is(input,textarea) {caret-color:var(--color-accent-strong);}
+.app-shell ::selection,.m3-dialog ::selection {background:var(--color-accent-soft);color:var(--color-ink);}
+.form-field .form-control[aria-invalid="true"] {border-color:var(--color-danger,#B42318);}
+.form-field .form-error {display:block;margin-top:8px;font-size:13px;line-height:1.5;color:var(--color-danger,#B42318);}
+.app-empty-state {gap:8px;max-width:36rem;margin-inline:auto;}
+.app-empty-state > p {text-wrap:pretty;}
+.app-empty-state .empty-state-action {min-height:44px;margin-top:12px;}
+.app-shell :is(.task-row-copy,.grocery-item-name,.meal-card-slot-name) {overflow-wrap:anywhere;}
+@media (hover:hover) and (prefers-reduced-motion:no-preference) {
+ .app-shell :is(.page-add-button,.empty-state-action,.family-card-controls button,.reference-mobile-nav button) {transition:background-color 140ms ease,color 140ms ease,transform 140ms cubic-bezier(.22,1,.36,1);}
+ .app-shell :is(.page-add-button,.empty-state-action):hover {transform:translateY(-1px);}
+}
+@media (prefers-reduced-motion:no-preference) {
+ .app-shell :is(.page-add-button,.empty-state-action,.family-card-controls button):active:not(:disabled) {transform:scale(.97);}
+ .m3-dialog-layer .m3-scrim {animation:app-scrim-in 160ms ease-out;}
+ .modal-card.m3-dialog {animation:app-dialog-in 220ms cubic-bezier(.22,1,.36,1);}
+ .app-shell .m3-checkbox .check-pop {animation:app-check-in 140ms ease-out;}
+}
+@keyframes app-scrim-in {from{opacity:0}to{opacity:1}}
+@keyframes app-dialog-in {from{opacity:.5;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes app-check-in {from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
+@media (prefers-reduced-motion:reduce) {
+ .app-shell *, .m3-dialog-layer * {animation:none!important;transition:none!important;scroll-behavior:auto!important;}
+}
+@media(max-width:600px) {
+ /* The title and compact art share a row; complete action controls wrap below. */
+ .app-shell .app-content .family-page-header .page-header-content {display:flex;flex-wrap:wrap;gap:12px;}
+ .app-shell .app-content .family-page-header .page-header-aside {display:flex;max-width:100%;gap:12px;}
+ .app-shell .app-content .family-page-header .page-header-actions {display:flex;grid-column:auto;justify-content:flex-end;}
+ .app-shell .app-content .family-page-header .page-header-aside:has(.page-header-actions) .family-header-art {display:none;}
+ .app-shell .app-content .page-add-button {width:auto;padding:10px 12px;gap:6px;font-size:12px;}
+ .app-shell .app-content .page-add-button > span {display:inline;}
+ .app-shell .app-content :is(.task-row-actions,.meal-card-slot-buttons,.grocery-list-row) button {min-height:44px;min-width:44px;}
+}
+@media(max-width:600px) {
+ .app-shell .app-content .family-page-header .page-header-content > div:first-child {flex:1 1 0;min-width:0;}
+ .app-shell .app-content .family-page-header .page-header-aside {width:auto;min-width:0;flex:0 0 auto;}
+ .app-shell .app-content .family-page-header .page-header-actions {width:auto;max-width:100%;}
+ .app-shell .app-content .reference-tasks .task-group-title {display:flex;align-items:center;flex-wrap:nowrap;gap:8px;}
+ .app-shell .app-content .reference-tasks .task-board-list {padding:0;}
+ .app-shell .app-content .reference-tasks .task-board-list .task-board-row {padding:12px;gap:8px;}
+}
+
+@media(max-width:600px){.app-shell .app-content .family-page-header {padding:16px 16px 12px;}}

@@ -1,5 +1,5 @@
 import { FAMILY_COLORS } from "../data/mockData";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, Info, TriangleAlert, X } from "./icons";
 import { lockBodyScroll } from "../lib/bodyScrollLock";
@@ -319,15 +319,17 @@ export function Modal({ open, onClose, title, children }) {
   );
 }
 
-export function TextField({ label, ...props }) {
+export function TextField({ label, hint, error, className = "", id, ...props }) {
+  const generatedId = useId();
+  const inputId = id || generatedId;
+  const descriptionId = `${inputId}-description`;
+  const describedBy = [props['aria-describedby'], (error || hint) && descriptionId].filter(Boolean).join(' ') || undefined;
   return (
-    <label className="form-field">
-      {label && <span className="form-label">{label}</span>}
-      <input
-        className="form-control"
-        {...props}
-      />
-    </label>
+    <div className="form-field">
+      {label && <label className="form-label" htmlFor={inputId}>{label}</label>}
+      <input {...props} id={inputId} className={`form-control ${className}`} aria-invalid={error ? true : props['aria-invalid']} aria-describedby={describedBy}/>
+      {(error || hint) && <span id={descriptionId} className={error ? 'form-error' : 'form-hint'} role={error ? 'alert' : undefined}>{error || hint}</span>}
+    </div>
   );
 }
 
@@ -665,7 +667,7 @@ export function Stepper({ value, onChange, min = 1, max = 99 }) {
 
 export function EmptyState({ icon, title, subtitle, actionLabel, onAction }) {
   return (
-    <div className="flex flex-col items-center justify-center text-center py-12 px-6">
+    <div className="app-empty-state flex flex-col items-center justify-center text-center py-12 px-6">
       {icon && <div className="mb-3 text-[var(--color-ink-faint)]">{icon}</div>}
       <p className="font-medium text-[var(--color-ink)] mb-1">{title}</p>
       {subtitle && <p className="text-sm text-[var(--color-ink-soft)] max-w-[26ch]">{subtitle}</p>}

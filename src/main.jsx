@@ -11,6 +11,7 @@ import "./theme/contrast.css";
 import "./theme/scheme-accents.css";
 import "./theme/spacing.css";
 import "./theme/dark-mode.css";
+import "./theme/app-polish.css";
 import {HouseholdFeaturesProvider} from "./context/HouseholdFeaturesContext";
 import App from "./App.jsx";
 import {IS_APP_STORE} from "./lib/distribution";

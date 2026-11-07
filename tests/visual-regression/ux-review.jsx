@@ -15,6 +15,7 @@ import '../../src/theme/contrast.css';
 import '../../src/theme/spacing.css';
 import '../../src/theme/scheme-accents.css';
 import '../../src/theme/dark-mode.css';
+import '../../src/theme/app-polish.css';
 import '../../src/components/billing-plans.css';
 import '../../src/components/navigation-shortcuts.css';
 function Preview(){
