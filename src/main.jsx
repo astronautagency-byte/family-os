@@ -25,6 +25,8 @@ const publicPath = window.location.pathname.replace(/\/$/, '') || '/';
 const publicFeatureRoute = publicPath === '/features' || publicPath.startsWith('/features/') || ['/calendar-sync','/calendar-photo-import'].includes(publicPath);
 if (!IS_APP_STORE && publicPath === '/' && window.location.hostname === 'fam-os.app') {
   import('./pages/Landing.jsx').then(({default:Landing}) => createRoot(document.getElementById('root')).render(<StrictMode><Landing/></StrictMode>));
+} else if (!IS_APP_STORE && publicPath === '/download') {
+  import('./pages/Download.jsx').then(({default:Download}) => createRoot(document.getElementById('root')).render(<StrictMode><Download/></StrictMode>));
 } else if (!IS_APP_STORE && publicFeatureRoute) {
   import('./pages/MarketingFeatures.jsx').then(({default:MarketingFeatures}) => {
     createRoot(document.getElementById('root')).render(<StrictMode><MarketingFeatures path={publicPath}/></StrictMode>);
