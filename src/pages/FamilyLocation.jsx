@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { MapPin, Navigation, RefreshCw } from '../components/icons';
+import { CheckCircle2, MapPin, Navigation, RefreshCw, ShieldCheck } from '../components/icons';
 import { Avatar, PrimaryButton, SecondaryButton } from '../components/ui';
 import PageHeader from '../components/PageHeader';
 import { useAuth } from '../context/AuthContext';
@@ -111,7 +111,7 @@ export default function FamilyLocation() {
   return <div className="family-location-page pb-28">
     <PageHeader title="Family location" subtitle="Share your location when it helps your family." />
     <main className="family-location-content">
-      <div className="family-location-intro"><p>Only your household can see your location. It updates while this page is open and stops when you leave or background the app.</p><details><summary>How location sharing works</summary><p>Sharing is optional. FamOS keeps only your latest location; it may remain visible for up to 30 minutes if the app closes unexpectedly. FamOS is not an emergency service.</p></details></div>
+      <div className="family-location-intro"><span className="location-intro-icon" aria-hidden="true"><ShieldCheck size={22}/></span><div><strong>Share on your terms</strong><p>Only your household can see your location. It updates while this page is open and stops when you leave or background the app.</p><details><summary>How location sharing works</summary><p>Sharing is optional. FamOS keeps only your latest location; it may remain visible for up to 30 minutes if the app closes unexpectedly. FamOS is not an emergency service.</p></details></div></div>
       {!household?.id || !user?.id || !supabase ? <p>Sign in to a household to use family location.</p> : <>
         <div className="family-location-actions">
           {sharing || active.current ? <SecondaryButton disabled={busy} onClick={stop}>Stop sharing</SecondaryButton> : <PrimaryButton disabled={busy} onClick={start}><Navigation size={17}/> {busy ? 'Getting your location…' : 'Share my location'}</PrimaryButton>}
@@ -120,12 +120,12 @@ export default function FamilyLocation() {
         </div>
         <p className="family-location-status" role="status">{sharing ? 'Sharing while this page is open.' : 'Your location is not being updated.'}</p>
         {error && <p className="family-location-error" role="alert">{error}</p>}
-        <section className="family-location-checkins" aria-labelledby="family-checkins-heading"><div><h2 id="family-checkins-heading">Check-ins</h2><p>Let your household know you’re okay. A check-in does not share your location or send an alert.</p></div><SecondaryButton disabled={busy} onClick={checkIn}>I’m okay</SecondaryButton>
+        <section className="family-location-checkins" aria-labelledby="family-checkins-heading"><div><h2 id="family-checkins-heading"><CheckCircle2 size={20} aria-hidden="true"/> Check-ins</h2><p>Let your household know you’re okay. A check-in does not share your location or send an alert.</p></div><SecondaryButton disabled={busy} onClick={checkIn}>I’m okay</SecondaryButton>
           {checkins.length > 0 && <ul>{checkins.map(item => <li key={item.user_id}><strong>{memberById[item.user_id]?.name || 'Family member'}{item.user_id === user.id ? ' · You' : ''}</strong><span>Checked in {new Date(item.checked_at).toLocaleString()}</span></li>)}</ul>}
           <small>Check-ins are shown for 24 hours.</small>
         </section>
-        <section className="family-location-list" aria-labelledby="family-location-heading"><h2 id="family-location-heading">Family locations</h2>
-          {locations.length ? locations.map(location => <article className="family-location-member" key={location.user_id}><Avatar member={memberById[location.user_id] || { name: 'Family member' }}/><div><strong>{memberById[location.user_id]?.name || 'Family member'}{location.user_id === user.id ? ' · You' : ''}</strong><small>Updated {new Date(location.updated_at).toLocaleString()} · Approx. {Math.round(location.accuracy_m)} m accuracy</small></div><a href={`https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}`} target="_blank" rel="noopener noreferrer" aria-label={`Open ${memberById[location.user_id]?.name || 'family member'} location in Google Maps`}><MapPin size={16}/> Open map</a></article>) : <p>No one is sharing a location right now.</p>}
+        <section className="family-location-list" aria-labelledby="family-location-heading"><h2 id="family-location-heading"><MapPin size={20} aria-hidden="true"/> Family locations</h2>
+          {locations.length ? locations.map(location => <article className="family-location-member" key={location.user_id}><Avatar size="lg" member={memberById[location.user_id] || { name: 'Family member' }}/><div className="family-location-member-details"><strong>{memberById[location.user_id]?.name || 'Family member'}{location.user_id === user.id ? ' · You' : ''}</strong><small>Updated {new Date(location.updated_at).toLocaleString()} · Approx. {Math.round(location.accuracy_m)} m accuracy</small></div><a href={`https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}`} target="_blank" rel="noopener noreferrer" aria-label={`Open ${memberById[location.user_id]?.name || 'family member'} location in Google Maps`}><MapPin size={16}/> Open map</a></article>) : <div className="location-empty"><span><MapPin size={24} aria-hidden="true"/></span><div><strong>No locations shared yet</strong><p>Family members can choose to share when they’re ready.</p></div></div>}
           <small>Opening a map sends that location to Google Maps.</small>
         </section>
       </>}

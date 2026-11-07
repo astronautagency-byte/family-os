@@ -6,6 +6,8 @@
 .app-shell .topbar-profile:focus-visible { outline: 2px solid var(--color-accent-strong); outline-offset: 2px; }
 .app-shell .topbar-actions { gap: 4px; margin-left: auto; }
 .app-shell .topbar-actions .m3-icon-button { width: 44px; height: 44px; border: 0; background: transparent; box-shadow: none; }
+.app-shell .topbar-actions .topbar-fam-ai { color: var(--color-accent-strong); background: var(--color-accent-soft); border-radius: 14px; }
+.app-shell .topbar-actions .theme-toggle-button { color: var(--color-ink-soft); }
 .app-shell .app-content .family-page-header { border: 0; margin-bottom: 8px; }
 .app-shell .family-page-header .page-header-content { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .app-shell .family-page-header .page-header-content > div:first-child { flex: 1; min-width: 0; }
@@ -22,6 +24,9 @@
 
 /* Compact Today summary: four real shortcuts in one grouped surface. */
 .app-shell .today-glance { margin-bottom: 24px; }
+.app-shell .reference-dashboard .page-header-actions .today-customize-trigger { width: max-content; min-width: max-content; min-height: 44px; padding: 10px 16px; overflow: visible; box-sizing: border-box; }
+.app-shell .reference-dashboard .page-header-actions .today-customize-trigger svg { flex: none; }
+.app-shell .reference-dashboard .page-header-aside { min-width: 0; max-width: none; overflow: visible; }
 .app-shell .today-glance-heading h2 { font-size: 17px; }
 .app-shell .today-glance-grid { gap: 1px; overflow: hidden; border: 1px solid var(--simple-divider); border-radius: 20px; background: var(--simple-divider); }
 .app-shell .today-glance-card { min-height: 110px; gap: 10px; border-radius: 0; background: var(--simple-surface); color: var(--color-ink); }
@@ -55,16 +60,31 @@
 .app-shell .calendar-page .calendar-hero.apple-calendar-toolbar { background: var(--color-canvas) !important; border-radius: 0; }
 .app-shell .kw-page .kw-group-header { background: transparent; padding: 4px 0 10px; }
 .app-shell .recipe-book-welcome { background: var(--color-surface-sunken); }
+.app-shell .reference-dashboard .today-daily-meals { display: grid; gap: 0; }
+.app-shell .reference-dashboard .today-daily-meal { display: grid; grid-template-columns: 40px minmax(0,1fr) auto; align-items: center; gap: 10px; padding: 12px 0; border-radius: 0; border: 0; border-bottom: 1px solid var(--color-border); background: transparent; }
+.app-shell .reference-dashboard .today-daily-meal:last-child { border-bottom: 0; }
+.app-shell .reference-dashboard .today-daily-meal-actions.is-single { grid-column: 3; grid-row: 1; display: block; }
+.app-shell .reference-dashboard .today-daily-meal-actions button { width: auto; min-height: 44px; padding: 8px 10px; border: 0; border-radius: 12px; background: var(--color-surface); color: var(--color-accent-strong); }
+.app-shell .reference-dashboard .today-daily-meal-copy strong { overflow-wrap: anywhere; }
+.today-empty-icon { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 18px; background: var(--color-shopping-soft); color: var(--color-shopping-strong); }
 
 /* Location actions and household updates use a simple, linear flow. */
 .app-shell .family-location-content { max-width: 760px; gap: 20px; }
-.app-shell .family-location-page .family-location-intro { display: block; padding: 0; background: transparent; border: 0; }
+.app-shell .family-location-page .family-location-intro { display: flex; align-items: flex-start; gap: 14px; padding: 18px; border-radius: 20px; background: var(--color-surface-sunken); border: 0; }
+.location-intro-icon, .location-empty > span { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; border-radius: 14px; color: var(--color-accent-strong); background: var(--color-accent-soft); }
+.family-location-intro strong { display: block; margin-bottom: 6px; color: var(--color-ink); }
+.family-location-checkins h2, .family-location-list h2 { display: flex; align-items: center; gap: 8px; }
+.family-location-checkins h2 svg, .family-location-list h2 svg { color: var(--color-accent-strong); }
+.location-empty { display: flex; align-items: center; gap: 12px; padding: 18px; border-radius: 18px; background: var(--color-surface-sunken); }
+.location-empty strong { color: var(--color-ink); }
+.location-empty p { margin: 4px 0 0; }
 .family-location-intro p { max-width: 65ch; margin: 0; font-size: 14px; line-height: 1.5; color: var(--color-ink-soft); }
 .family-location-intro details { margin-top: 8px; }
 .family-location-intro summary { width: fit-content; color: var(--color-accent-strong); font-size: 14px; font-weight: 600; cursor: pointer; }
 .family-location-intro details p { margin-top: 8px; }
 .app-shell .family-location-page .family-location-checkins { padding: 20px 0; border-radius: 0; border-block: 1px solid var(--color-border); background: transparent; }
 .app-shell .family-location-page .family-location-member { padding: 14px 0; border: 0; border-bottom: 1px solid var(--color-border); border-radius: 0; background: transparent; }
+.app-shell .family-location-page .family-location-member > .family-avatar { flex: 0 0 44px; }
 
 @media (max-width: 767px) {
   .app-shell .topbar-brand-group { display: none; }
@@ -72,5 +92,8 @@
   .app-shell .app-content .page-title { font-size: 27px; }
   .app-shell .today-glance-card { min-height: 102px; padding: 14px; }
   .app-shell .reference-mobile-nav { border-radius: 0; box-shadow: none; border-top: 1px solid var(--simple-divider); }
+  .app-shell .reference-dashboard .today-daily-meal { grid-template-columns: 36px minmax(0,1fr) auto; }
+  .app-shell .reference-dashboard .today-daily-meal-actions button { font-size: 12px; padding: 8px; }
+  .app-shell .reference-dashboard .today-daily-meal-actions button svg { width: 19px; height: 19px; }
   .modal-card.m3-dialog { padding: 20px 20px max(24px,env(safe-area-inset-bottom,0px)); border-radius: 24px 24px 0 0; }
 }

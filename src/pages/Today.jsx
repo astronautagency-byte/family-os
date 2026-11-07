@@ -674,9 +674,9 @@ export default function Today({ goTo }) {
                     {(!meal || suggestedMeal) && (
                       <div className="today-daily-meal-actions is-single">
                         {meal ? (
-                          <button type="button" className="cook" onClick={openCook}><ChefHat size={14} /> Cook Mode</button>
+                          <button type="button" className="cook" aria-label={`Cook ${meal.title}`} onClick={openCook}><ChefHat size={14} /> Cook</button>
                         ) : (
-                          <button type="button" className="plan" onClick={findMealIdeas}><CalendarPlus size={14} /> Find meal ideas</button>
+                          <button type="button" className="plan" aria-label={`Find meal ideas for ${label}`} onClick={findMealIdeas}><CalendarPlus size={14} /> Ideas</button>
                         )}
                       </div>
                     )}
@@ -697,7 +697,7 @@ export default function Today({ goTo }) {
               </button>
             </div>
             {activeGroceries.length === 0 ? (
-              <EmptyState title="Shopping list is clear" subtitle="Keep your next shopping trip in one shared list." actionLabel="Open shopping" onAction={() => goTo('groceries')} />
+              <EmptyState icon={<span className="today-empty-icon"><ShoppingCart size={24}/></span>} title="Your list is ready" subtitle="Add anything your family needs for the next trip." actionLabel="Open shopping" onAction={() => goTo('groceries')} />
             ) : (
               <>
                 <div className="flex flex-wrap gap-2 mb-3">

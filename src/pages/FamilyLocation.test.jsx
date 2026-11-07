@@ -32,3 +32,14 @@ it('saves a check-in without asking for location', async () => {
   await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('send_family_checkin', { h: 'home' }));
   expect(geo.watchPosition).not.toHaveBeenCalled();
 });
+
+it('keeps the member avatar separate from the flexible location details', async () => {
+  mocks.rpc.mockImplementation(async name => ({
+    data: name === 'get_family_locations' ? [{ user_id: 'alex', latitude: 43, longitude: -80, accuracy_m: 25, updated_at: '2026-11-07T12:00:00Z' }] : [], error: null,
+  }));
+  render(<FamilyLocation />);
+  const mapLink = await screen.findByRole('link', { name: 'Open Alex location in Google Maps' });
+  const row = mapLink.closest('article');
+  expect(row.querySelector('.family-avatar')).not.toHaveClass('family-location-member-details');
+  expect(row.querySelector('.family-location-member-details')).toHaveTextContent('Alex');
+});
