@@ -172,3 +172,32 @@ test('restrictive membership guards resist broad policies and remove former-memb
     await as(owner);assert.equal((await db.query('select * from public.grocery_items')).rows.length,1);
   }finally {await db.close();}
 });
+
+test('task-list grants isolate tasks, enforce check-off permission and stop immediately on revoke',async()=>{
+  const {db,as,manage,guest,invite}=await fixture();
+  const tasksList='50000000-0000-0000-0000-000000000001', hiddenList='50000000-0000-0000-0000-000000000002';
+  const visible='60000000-0000-0000-0000-000000000001', privateTask='60000000-0000-0000-0000-000000000002', unshared='60000000-0000-0000-0000-000000000003';
+  try {
+    await db.exec(`reset role;
+      insert into public.task_lists(id,household_id,name,created_by,visibility) values ('${tasksList}','${home}','Cleaning checklist','${owner}','household'),('${hiddenList}','${home}','Private list','${owner}','private');
+      insert into public.tasks(id,household_id,list_id,title,created_by,visibility) values ('${visible}','${home}','${tasksList}','Vacuum','${owner}','household'),('${privateTask}','${home}','${tasksList}','Private reminder','${owner}','private'),('${unshared}','${home}',null,'Unshared task','${owner}','household');
+      set role authenticated;`);
+    await as(owner);
+    assert.ok((await manage('load')).resources.some(r=>r.kind==='tasks'&&r.id===tasksList));
+    await assert.rejects(invite([{kind:'tasks',id:hiddenList,permission:'view'}]),/cannot be shared/i);
+    const readonly=await invite([{kind:'tasks',id:tasksList,permission:'view'}]);
+    await as(helper);await guest('accept',{token:readonly.token});
+    let resource=(await guest('read',{id:readonly.id})).resources[0];
+    assert.deepEqual(resource.items.map(i=>i.title),['Vacuum']);
+    await assert.rejects(guest('complete',{id:readonly.id,grant_id:resource.grant_id,item_id:visible,done:true}),/permission|not permitted|unavailable/i);
+    const editable=await invite([{kind:'tasks',id:tasksList,permission:'complete'}]);
+    await as(helper);await guest('accept',{token:editable.token});
+    resource=(await guest('read',{id:editable.id})).resources[0];
+    await guest('complete',{id:editable.id,grant_id:resource.grant_id,item_id:visible,done:true});
+    for(const id of [privateTask,unshared])await assert.rejects(guest('complete',{id:editable.id,grant_id:resource.grant_id,item_id:id,done:true}),/unavailable/i);
+    await as(owner);assert.equal((await db.query('select is_done from public.tasks where id=$1',[visible])).rows[0].is_done,true);
+    await manage('revoke',{id:editable.id});
+    await as(helper);await assert.rejects(guest('read',{id:editable.id}),/access ended/i);
+    await assert.rejects(guest('complete',{id:editable.id,grant_id:resource.grant_id,item_id:visible,done:false}),/access ended/i);
+  } finally {await db.close();}
+});

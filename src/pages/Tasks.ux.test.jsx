@@ -68,3 +68,14 @@ it('keeps empty lists and reset accessible without crowding the task list',()=>{
  fireEvent.click(screen.getByRole('button',{name:'Reset tasks'}));
  expect(screen.getByRole('dialog')).toBeDefined();
 });
+
+it('explains named-list sharing and opens Family settings without granting access',()=>{
+ const goTo=vi.fn();render(<Tasks goTo={goTo}/>);
+ fireEvent.click(screen.getByRole('button',{name:'Share with helper'}));
+ expect(screen.getByText(/Private tasks stay hidden/)).toBeDefined();
+ expect(goTo).not.toHaveBeenCalled();
+ fireEvent.click(screen.getByRole('button',{name:'Manage helper access'}));
+ expect(sessionStorage.getItem('famos:settings-section')).toBe('family');
+ expect(goTo).toHaveBeenCalledWith('settings');
+ sessionStorage.removeItem('famos:settings-section');
+});

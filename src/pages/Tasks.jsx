@@ -19,7 +19,7 @@ import CompletionScreen from '../components/CompletionScreen';
 const GROUPS={home:{label:"Housework",Icon:House,tone:"violet",color:"#6b5ce7"},errand:{label:"Errands",Icon:ShoppingBag,tone:"green",color:"#3b8c75"},school:{label:"School",Icon:GraduationCap,tone:"slate",color:"#4b7ec5"},family:{label:"Family",Icon:Users,tone:"rose",color:"#d66b83"},work:{label:"Work",Icon:BriefcaseBusiness,tone:"amber",color:"#c98232"},personal:{label:"Personal",Icon:House,tone:"violet",color:"#756d8d"}};
 const LIST_COLORS=[{value:"#6b5ce7",label:"Violet"},{value:"#d66b83",label:"Rose"},{value:"#b95f3b",label:"Coral"},{value:"#c98232",label:"Amber"},{value:"#3b8c75",label:"Green"},{value:"#2f8b9d",label:"Teal"},{value:"#4b7ec5",label:"Blue"},{value:"#756d8d",label:"Slate"}];
 
-export default function Tasks(){
+export default function Tasks({goTo}={}){
  const {members:rawMembers,memberById:rawMemberById,tasks:rawTasks,taskLists:rawTaskLists,addTaskList,removeTaskList,addTask,toggleTask: persistToggleTask,updateTask,removeTask,clearTasks,refreshData}=useFamily();
  const {features}=useHouseholdFeatures();
  const [taskCelebration,setTaskCelebration]=useState(false);
@@ -50,6 +50,7 @@ export default function Tasks(){
  const [taskSaveError,setTaskSaveError]=useState("");
  const [helpCopyStatus,setHelpCopyStatus]=useState("");
  const [deletingList,setDeletingList]=useState(null);
+ const [showHelperSharing,setShowHelperSharing]=useState(false);
 
  const open=tasks.filter(t=>!t.done);
  const filteredTasks=tasks.filter(task=>(statusFilter==="completed"?task.done:!task.done) && (assigneeFilter==="all" || (task.assigneeIds?.length?task.assigneeIds:task.assigneeId?[task.assigneeId]:[]).includes(assigneeFilter)) && `${task.title||""} ${task.notes||""}`.toLowerCase().includes(search.trim().toLowerCase())).sort((a,b)=>(a.due||"9999").localeCompare(b.due||"9999"));
@@ -94,7 +95,7 @@ export default function Tasks(){
     <button type="submit" className="task-inline-submit" disabled={inlineSaving||!inlineText.trim()}>{inlineSaving?"Adding…":"Add"}</button>
   </form>
   {inlineError&&<p id="task-inline-error" role="alert" className="task-inline-error">{inlineError}</p>}
-  <div className="task-toolbar"><button className="task-toolbar-btn" onClick={()=>setShowListPanel(true)}><ListPlus size={16}/> New list</button>{tasks.length>0&&<details className="task-more-options"><summary>More</summary><button className="task-toolbar-btn task-toolbar-reset" onClick={()=>setClearing(true)}><Trash2 size={16}/> Reset tasks</button></details>}</div>
+  <div className="task-toolbar"><button className="task-toolbar-btn" onClick={()=>setShowListPanel(true)}><ListPlus size={16}/> New list</button>{goTo&&<button type="button" className="task-toolbar-btn" onClick={()=>setShowHelperSharing(true)}><Users size={16}/> Share with helper</button>}{tasks.length>0&&<details className="task-more-options"><summary>More</summary><button className="task-toolbar-btn task-toolbar-reset" onClick={()=>setClearing(true)}><Trash2 size={16}/> Reset tasks</button></details>}</div>
   <div className="reference-segments task-status-segments" role="group" aria-label="Task status">{[["open","To do"],["completed","Completed"]].map(([id,label])=><button type="button" key={id} aria-pressed={statusFilter===id} onClick={()=>setStatusFilter(id)}>{label}</button>)}</div>
   <details className="task-filter-disclosure"><summary>Search & filters{(search || assigneeFilter!=="all") && <span> · Active</span>}</summary><div className="task-filter-content"><input type="search" className="task-search" aria-label="Search tasks" placeholder="Search tasks" value={search} onChange={e=>setSearch(e.target.value)}/>{members.length>1&&<label className="task-person-filter"><span>Assigned to</span><select value={assigneeFilter} onChange={e=>setAssigneeFilter(e.target.value)}><option value="all">Everyone</option>{members.map(member=><option key={member.id} value={member.id}>{member.name}</option>)}</select>{assigneeFilter!=="all"&&<button type="button" onClick={()=>setAssigneeFilter("all")}>Clear filter</button>}</label>}</div></details>
 
@@ -118,6 +119,7 @@ export default function Tasks(){
   <ConfirmAction open={!!deletingTask} onClose={()=>setDeletingTask(null)} onConfirm={async()=>{await removeTask(deletingTask.id);setDeletingTask(null);}} title="Delete this task?" copy={`“${deletingTask?.title||"Untitled task"}” will be removed for your family.`} confirmLabel="Delete task"/>
   <ConfirmAction open={clearing} onClose={()=>setClearing(false)} onConfirm={async()=>{await clearTasks();setClearing(false)}} title={tasks.length===1?"Clear the 1 task?":`Clear all ${tasks.length} tasks?`} copy={tasks.length===1?"This removes the 1 task on the board.":`This removes all ${tasks.length} tasks from the board.`} confirmLabel={tasks.length===1?"Clear 1 task":`Clear all ${tasks.length} tasks`}/>
   <ConfirmAction open={!!deletingList} onClose={()=>setDeletingList(null)} onConfirm={async()=>{const id=deletingList?.id;if(!id)return;await removeTaskList(id);if(activeList===`list:${id}`)setActiveList("all");setDeletingList(null)}} title={`Delete ${deletingList?.name||"this list"}?`} copy="The list will be removed. Its tasks will stay available under All tasks so nothing is lost." confirmLabel="Delete list" />
+  <Modal open={showHelperSharing} onClose={()=>setShowHelperSharing(false)} title="Share a task list with a helper"><div className="space-y-4"><p>Create a named list with “New list”, then add or move the tasks you want your helper to see into it.</p><p>The family owner can choose that task list under Family helpers, with view-only or check-off permission and an access expiry. Private tasks stay hidden. New household-visible tasks in the shared list will also be shared.</p><p>Only lists created by the family owner can be shared. Categories such as Housework and All tasks are filters; create a named list to share those tasks.</p><PrimaryButton onClick={()=>{try{sessionStorage.setItem('famos:settings-section','family');}catch{/* Settings can still open when storage is unavailable. */}setShowHelperSharing(false);goTo?.('settings');}}>Manage helper access</PrimaryButton></div></Modal>
   <ShareSheet open={!!shareSheet} onClose={()=>setShareSheet(null)} title={shareSheet?.title} text={shareSheet?.text} url={shareSheet?.url} image={shareSheet?.image} imageAlt={shareSheet?.imageAlt}/>
  </div></PullToRefresh>;
 }

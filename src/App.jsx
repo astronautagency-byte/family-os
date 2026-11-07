@@ -863,7 +863,7 @@ export default function App() {
               {visibleTab === "meals" && <Meals entitlements={effectiveEntitlements} goTo={setTab} />}
               {visibleTab === "groceries" && <Groceries />}
               {visibleTab === "kitchen" && <KitchenWatch goTo={setTab} />}
-              {visibleTab === "tasks" && <Tasks />}
+              {visibleTab === "tasks" && <Tasks goTo={setTab} />}
               {visibleTab === "recipes" && <RecipeBookPage/>}
               {visibleTab === "child-empty" && <section className="p-5"><h1>Your family space is taking a break</h1><p>Your parent can turn pages back on in Family Settings.</p></section>}
               {visibleTab === "rewards" && <Rewards onNavigate={setTab}/>}

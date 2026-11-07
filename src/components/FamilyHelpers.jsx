@@ -25,8 +25,8 @@ function InviteHelper({ householdId, resources, request, onClose, onCreated }) {
         <TextField label="Helper’s name" value={name} maxLength={80} required onChange={e => setName(e.target.value)} />
         <TextField label="Helper’s email" type="email" value={email} maxLength={254} required onChange={e => setEmail(e.target.value)} />
         <label>Helper type<select value={preset} onChange={e => setPreset(e.target.value)}>{Object.entries(HELPER_PRESETS).map(([id,label]) => <option key={id} value={id}>{label}</option>)}</select></label>
-        <fieldset><legend>Select what to share</legend>
-          {options.length === 0 && <p>No eligible resources. Create a household-visible list or FamOS calendar first. Only resources you created can be shared.</p>}
+        <fieldset><legend>Select what to share</legend><p>Task lists are included. Create one in Tasks → New list, then choose it here. Choose view-only or check-off permission for each list.</p>
+          {options.length === 0 && <p>No eligible resources. Create a named task list in Tasks, a shopping list or a FamOS calendar first. Only household-visible resources you created can be shared.</p>}
           {options.map(r => { const key=`${r.kind}:${r.id}`; return <div className="family-helper-resource-choice" key={key}>
             <label><input type="checkbox" checked={!!selected[key]} onChange={e => setSelected(s => ({ ...s, [key]: e.target.checked ? 'view' : undefined }))} /> <span>{r.name}<small>{RESOURCE_LABELS[r.kind]}</small></span></label>
             {selected[key] && <select aria-label={`Permission for ${r.name}`} value={selected[key]} onChange={e => setSelected(s => ({ ...s, [key]: e.target.value }))}><option value="view">View only</option>{!['family_calendar','calendar','event'].includes(r.kind) && <option value="complete">View and check off items</option>}</select>}
@@ -64,7 +64,7 @@ export default function FamilyHelpers({ householdId, isOwner }) {
   };
   const resourceName = g => data?.resources.find(r => r.kind===g.kind && r.id===g.resource_id)?.name || 'Shared resource';
   return <section className="family-helpers" aria-label="Family helpers">
-    <div className="family-helper-heading"><div><h2>Family helpers</h2><p>Share selected lists and calendars with a nanny, babysitter or cleaner.</p></div></div>
+    <div className="family-helper-heading"><div><h2>Family helpers</h2><p>Share selected task lists, shopping lists and calendars with a nanny, babysitter or cleaner.</p></div></div>
     {!isOwner ? <Card className="p-4"><p>The family owner manages helper access.</p><a href="/helpers">Open shared helper access</a></Card> : !householdId ? <p>Sign in with a family account to invite a helper.</p> : <>
       <Card className="p-4 family-helper-form"><p>Helpers get their own limited view. They don’t become family members. To renew or expand access, revoke the old invitation and create a new one.</p><div className="family-helper-actions"><PrimaryButton disabled={!data || busy} onClick={() => {setNotice('');setInvite({});}}>Invite helper</PrimaryButton><a href="/helpers">Open helper view</a><SecondaryButton disabled={busy} onClick={load}>Refresh</SecondaryButton></div></Card>
       {error && <p role="alert">{error}</p>}{notice && <p role="status">{notice}</p>}
