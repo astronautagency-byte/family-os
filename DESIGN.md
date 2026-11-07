@@ -1,6 +1,6 @@
 # FamOS app design system
 
-FamOS is a calm family planner with the friendly colour and compact cards of the reference dashboard. The interface should help someone find the next action at a glance, not add decoration to every surface. Keep the existing family illustrations and respect the household's chosen accent colour.
+FamOS is a calm family planner. The interface should help someone find the next action at a glance, using clear groups, generous space and familiar controls. Use colour sparingly as a cue and keep existing family illustrations and the household's chosen accent.
 
 ## Foundations
 
@@ -12,7 +12,7 @@ FamOS is a calm family planner with the friendly colour and compact cards of the
 
 ## Components and surfaces
 
-Use the shared components in `src/components/ui.jsx` and shared styles in `src/theme/app-design-system.css`. A page header names the task and shows its main action. Cards group related information; list rows stay individually tappable with space around actions. Empty states describe what can be done next. Destructive actions remain visibly distinct and retain their confirmations.
+Use the shared components in `src/components/ui.jsx` and shared styles in `src/theme/app-design-system.css` and `src/theme/app-simple.css`. A page header names the task and shows its main action; secondary actions move into a clearly labeled menu. Group related rows rather than nesting cards within cards. Empty states describe what can be done next. Destructive actions remain visibly distinct and retain their confirmations.
 
 Home starts with concise, live household information. Calendar emphasizes dates and events, Tasks makes ownership and completion clear, Meals organizes the day, Shopping keeps list controls reachable, and Chat keeps channel selection and its composer clear. Settings remains available and household page preferences are respected. Children see only the household-enabled destinations permitted for their role.
 

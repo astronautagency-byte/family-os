@@ -999,9 +999,11 @@ export default function Meals({ entitlements = null, goTo } = {}) {
         <button className="meal-slot-tool meal-surprise-action" onClick={()=>rouletteForSlot(todayISO(), 'dinner')}><Dices size={15}/> Find Meal Ideas</button>
         {features.recipes && <button className="meal-plan-share" onClick={()=>setRecipeBookOpen(true)}><Bookmark size={15}/> Recipe Book</button>}
         {features.recipes&&recipeBookOpen&&<RecipeBook onClose={()=>setRecipeBookOpen(false)} onCook={openSavedRecipe}/>}
-        <div className="meal-range-toggle" aria-label="Meal planning range"><button className={horizon===7?"selected":""} onClick={()=>setHorizon(7)}>1 week</button><button className={horizon===14?"selected":""} onClick={()=>setHorizon(14)}>2 weeks</button></div>
-        <button className="meal-plan-share" onClick={shareMealPlan} aria-label="Share meal plan" title="Share the meal plan"><Share2 size={15}/> Share</button>
-        {household?.role==='owner'&&features.family_packs!==false&&<button className="meal-plan-share" onClick={()=>window.location.assign('/packs?kind=meals')}><Share2 size={15}/> Share Family Pack</button>}
+        <div className="meal-range-toggle" role="group" aria-label="Meal planning range"><button type="button" aria-pressed={horizon===7} className={horizon===7?"selected":""} onClick={()=>setHorizon(7)}>1 week</button><button type="button" aria-pressed={horizon===14} className={horizon===14?"selected":""} onClick={()=>setHorizon(14)}>2 weeks</button></div>
+        <details className="page-actions-menu"><summary>More</summary><div className="page-actions-menu-list" onClick={event => { if (event.target.closest('button')) event.currentTarget.parentElement.open = false; }}>
+          <button type="button" onClick={shareMealPlan}><Share2 size={15}/> Share meal plan</button>
+          {household?.role==='owner'&&features.family_packs!==false&&<button type="button" onClick={()=>window.location.assign('/packs?kind=meals')}><Share2 size={15}/> Share Family Pack</button>}
+        </div></details>
       </div>
 
       {listView}

@@ -1,5 +1,5 @@
 import {useHouseholdFeatures} from "../context/HouseholdFeaturesContext";
-import { Bell, CalendarDays, CheckSquare, Home, MessageCircle, Moon, Refrigerator, Settings2, ShoppingCart, Sparkles, Sun, Tablet, X } from "./icons";
+import { Bell, CalendarDays, CheckSquare, Home, MessageCircle, Moon, Refrigerator, ShoppingCart, Sparkles, Sun, Tablet, X } from "./icons";
 import { useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
@@ -45,7 +45,7 @@ export default function AppTopBar({ onOpenSettings, onNavigate, onOpenFamAI, dar
   const bellCount=unread.length+(messageNotice?1:0);
   const openChat=()=>{markChatRead?.();onNavigate("chat");setOpen(false);};
   return <header className="app-topbar">
-    {tabletMode ? <div className="topbar-avatar is-household"><Home aria-hidden="true"/></div> : <Avatar member={{...currentMember, name, avatarUrl:avatar}} size="lg" />}
+    {tabletMode ? <div className="topbar-avatar is-household"><Home aria-hidden="true"/></div> : <button type="button" className="topbar-profile" aria-label="Account and family settings" onClick={onOpenSettings}><Avatar member={{...currentMember, name, avatarUrl:avatar}} size="lg" /></button>}
     <div className="topbar-brand-group">
       <div className="topbar-wordmark"><img src="/icons/famos-app-icon.png" alt=""/><strong>Fam<span>OS</span></strong>{tabletMode&&<em>{household?.name || "Shared display"}</em>}</div>
     </div>
@@ -55,7 +55,6 @@ export default function AppTopBar({ onOpenSettings, onNavigate, onOpenFamAI, dar
       {onOpenFamAI&&!tabletMode&&<button className="topbar-fam-ai m3-icon-button" aria-label="Open Fam AI assistant" title="Fam AI — ask anything" onClick={onOpenFamAI} type="button"><Sparkles/></button>}
       {(tabletModeAvailable||tabletMode)&&<button className={`tablet-mode-button m3-icon-button ${tabletMode ? "is-active" : ""}`} aria-label={tabletMode?"Exit tablet mode":"Turn on tablet mode"} aria-pressed={tabletMode} title={tabletMode?"Exit tablet mode":"Tablet mode: shared household display"} onClick={onToggleTabletMode} type="button"><Tablet/></button>}
       <button className="theme-toggle-button m3-icon-button" aria-label={darkMode?"Switch to light mode":"Switch to dark mode"} aria-pressed={darkMode} onClick={onToggleDarkMode} type="button">{darkMode?<Sun/>:<Moon/>}</button>
-      {!tabletMode&&<button className="m3-icon-button" aria-label="Settings" onClick={onOpenSettings}><Settings2/></button>}
     </div>
     {open&&<div className="notification-feed"><div className="notification-title"><div><strong>Notifications</strong><span>{bellCount?`${bellCount} unread`:"You’re up to date"}</span></div><div>{bellCount>0&&<button className="mark-read" onClick={()=>{if(messageNotice)markChatRead?.();markRead(unread.map(item=>item.id))}}>Mark read</button>}<button onClick={()=>setOpen(false)} aria-label="Close notifications"><X/></button></div></div>{(messageNotice||notices.length)?<>{messageNotice&&<button className={`notification-row is-unread ${messageNotice.tone}`} onClick={openChat}><span><messageNotice.Icon/></span><div><strong>{messageNotice.title}</strong><small>{messageNotice.detail}</small></div></button>}{notices.map(({id,title,detail,Icon,tab,tone})=><button className={`notification-row ${readIds.includes(id)?"is-read":"is-unread"} ${tone}`} key={id} onClick={()=>{markRead([id]);onNavigate(tab);setOpen(false)}}><span><Icon/></span><div><strong>{title}</strong><small>{detail}</small></div></button>)}</>:<p className="notification-empty">You’re all caught up.</p>}</div>}
   </header>;

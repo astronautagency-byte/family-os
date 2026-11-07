@@ -14,6 +14,14 @@ it('does not show the cook-from-kitchen shortcut',()=>{
  render(<Meals/>);
  expect(screen.queryByRole('button',{name:/Cook from what you have/i})).toBeNull();
 });
+it('keeps sharing available in the meal plan options',()=>{
+ render(<Meals/>);
+ const menu=screen.getByText('More').closest('details');
+ expect(menu.open).toBe(false);
+ fireEvent.click(screen.getByText('More'));
+ expect(menu.open).toBe(true);
+ expect(screen.getByRole('button',{name:'Share meal plan'})).toBeDefined();
+});
 it('saves imported meal recipe details to the household Recipe Book',async()=>{
  const recipe={title:'Pasta',ingredients:['Pasta'],instructions:['Boil'],sourceUrl:'https://example.com/pasta'};
  mocks.family.meals=[{id:'meal',date:todayISO(),slot:'breakfast',title:'Pasta',cookIds:[],recipeSnapshot:recipe}];

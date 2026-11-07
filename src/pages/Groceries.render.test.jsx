@@ -24,3 +24,10 @@ it('renders a populated shopping list',()=>{
  render(<Groceries/>);
  expect(screen.getAllByText('Milk').length).toBeGreaterThan(0);
 });
+it('keeps list reset available in the shopping options',()=>{
+ state.groceries=[{id:'milk',name:'Milk',category:'Dairy & Eggs',quantity:1,unit:'L',checked:false,assigneeIds:[]}];
+ render(<Groceries/>);
+ fireEvent.click(screen.getByText('More'));
+ fireEvent.click(screen.getByRole('button',{name:'Reset shopping'}));
+ expect(screen.getByRole('dialog')).toBeDefined();
+});

@@ -1111,8 +1111,10 @@ export default function Groceries() {
         )}
         <button onClick={() => { resetBarcodeDraft(); setReturnToFocus(false); setBarcodeModal(true); }}><ScanLine size={14} /> Scan product</button>
         {groceries.length > 0 && <button onClick={() => setFocusMode(true)}><Maximize2 size={14} /> Focus shop</button>}
-        {checkedCount > 0 && <button onClick={() => setClearingChecked(true)}>Clear {checkedCount} checked</button>}
-        {groceries.length > 0 && <button className="page-reset-button" onClick={()=>setClearing(true)}><Trash2/> Reset</button>}
+        {(checkedCount > 0 || groceries.length > 0) && <details className="page-actions-menu"><summary>More</summary><div className="page-actions-menu-list" onClick={event => { if (event.target.closest('button')) event.currentTarget.parentElement.open = false; }}>
+          {checkedCount > 0 && <button type="button" onClick={() => setClearingChecked(true)}>Clear {checkedCount} checked</button>}
+          {groceries.length > 0 && <button type="button" className="page-reset-button" onClick={()=>setClearing(true)}><Trash2 size={15}/> Reset shopping</button>}
+        </div></details>}
       </div>
 
       {false && <><section className="kitchen-inventory-card" aria-labelledby="kitchen-inventory-title">

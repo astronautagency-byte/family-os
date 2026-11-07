@@ -309,9 +309,11 @@ export function Modal({ open, onClose, title, children }) {
     <div className="m3-dialog-layer fixed inset-0 z-50 flex items-end sm:items-center justify-center" role="presentation">
       <div className="m3-scrim absolute inset-0" onClick={onClose} />
       <div ref={dialogRef} tabIndex={-1} className="modal-card m3-dialog relative bg-[var(--color-surface)] w-full sm:max-w-sm px-7 pt-7 pb-12 sm:p-8 safe-bottom fade-up max-h-[85vh] overflow-y-auto" role="dialog" aria-modal="true" aria-label={title || "Dialog"}>
-        <IconButton type="button" className="modal-close-button" onClick={onClose} label="Close dialog"><X size={17} /></IconButton>
         <div className="w-10 h-1 bg-[var(--color-border-strong)] rounded-full mx-auto mb-4 sm:hidden" />
-        {title && <h3 className="font-[var(--font-display)] text-[19px] font-semibold mb-5 pr-10">{title}</h3>}
+        <div className="modal-heading">
+          {title && <h3 className="font-[var(--font-display)]">{title}</h3>}
+          <IconButton type="button" className="modal-close-button" onClick={onClose} label="Close dialog"><X size={17} /></IconButton>
+        </div>
         {children}
       </div>
     </div>,

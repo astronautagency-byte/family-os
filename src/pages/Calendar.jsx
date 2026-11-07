@@ -1129,7 +1129,8 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
             <span className="calendar-hero-month">{dayName} · {dayEventCount} event{dayEventCount === 1 ? "" : "s"}</span>
           </div>
           <div className="calendar-hero-actions">
-            {LOCAL_EVENT_FINDER_ENABLED && <button className="calendar-hero-action calendar-hero-action-settings" onClick={() => {
+            <details className="page-actions-menu"><summary aria-label="More calendar actions">More</summary><div className="page-actions-menu-list" onClick={event => { if (event.target.closest('button')) event.currentTarget.parentElement.open = false; }}>
+            {LOCAL_EVENT_FINDER_ENABLED && <button type="button" onClick={() => {
               setDiscovering(true);
               const initialCities = discoverCities.length ? discoverCities : (discoverLocation ? [discoverLocation] : []);
               setDiscoverCities(initialCities);
@@ -1149,12 +1150,13 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
                 window.setTimeout(() => runSearch(initialCities), 0);
               }
             }} aria-label="Discover local events">
-              <Sparkles size={16} />
+              <Sparkles size={16} /> Discover local events
             </button>}
-            <button className="calendar-hero-action" onClick={() => setCalendarManagerOpen(true)} aria-label="Manage calendars">
-              <Settings2 size={17} />
+            <button type="button" onClick={() => setCalendarManagerOpen(true)} aria-label="Manage calendars">
+              <Settings2 size={17} /> Manage calendars
             </button>
-            <SecondaryButton className="calendar-import-button" onClick={() => setImageImportOpen(true)} aria-label="Import image" title="Import image"><CalendarPlus size={18}/><span>Import image</span></SecondaryButton>
+            <button type="button" onClick={() => setImageImportOpen(true)}><CalendarPlus size={18}/> Import image</button>
+            </div></details>
             <PageAddButton label="Add event" onClick={() => openAdd()}/>
           </div>
         </div>
