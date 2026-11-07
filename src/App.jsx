@@ -854,7 +854,7 @@ export default function App() {
             tabletModeAvailable={isTabletViewport}
             onToggleTabletMode={() => setTabletMode((value) => !value)}
           />}
-          {!preferences.loading && enabledFeatures.location !== false && visibleTab !== 'location' && <div className="location-announcement-wrap"><ProductUpdateBanner locationOnly onNavigate={setTab} /></div>}
+          {!preferences.loading && enabledFeatures.location !== false && visibleTab === 'today' && <div className="location-announcement-wrap"><ProductUpdateBanner locationOnly onNavigate={setTab} /></div>}
           <ErrorBoundary resetKey={visibleTab} fallback={({ retry, clearSW }) => <PageErrorFallback retry={retry} reloadLatest={clearSW} goToday={() => setTab("today")} />}>
             <Suspense fallback={<PageFallback />}>
               {preferences.loading ? <PageFallback/> : !childMode && upgradeFeature ? <FeaturePaywall featureId={upgradeFeature} onChoose={startFeatureCheckout} onBack={() => setUpgradeFeature("")} busy={billingBusy} error={billingError} /> : <>

@@ -1,10 +1,10 @@
 import {it,expect,vi,afterEach} from 'vitest';
 import {render,screen,fireEvent,waitFor,cleanup,act} from '@testing-library/react';
 import Tasks from './Tasks';
-const mocks=vi.hoisted(()=>({add:vi.fn(),remove:vi.fn(),toggle:vi.fn(),tasks:[],members:[]}));
-vi.mock('../context/FamilyContext',()=>({useFamily:()=>({members:mocks.members,memberById:Object.fromEntries(mocks.members.map(m=>[m.id,m])),tasks:mocks.tasks,taskLists:[],addTask:mocks.add,removeTask:mocks.remove,toggleTask:mocks.toggle,refreshData:vi.fn()})}));
+const mocks=vi.hoisted(()=>({add:vi.fn(),remove:vi.fn(),toggle:vi.fn(),tasks:[],members:[],lists:[],addList:vi.fn(),configureRoutine:vi.fn()}));
+vi.mock('../context/FamilyContext',()=>({useFamily:()=>({members:mocks.members,memberById:Object.fromEntries(mocks.members.map(m=>[m.id,m])),tasks:mocks.tasks,taskLists:mocks.lists,addTaskList:mocks.addList,configureTaskListRoutine:mocks.configureRoutine,addTask:mocks.add,removeTask:mocks.remove,toggleTask:mocks.toggle,refreshData:vi.fn()})}));
 vi.mock('../components/NativeAdBanner',()=>({default:()=>null}));
-afterEach(()=>{cleanup();vi.clearAllMocks();mocks.tasks=[];mocks.members=[];});
+afterEach(()=>{cleanup();vi.clearAllMocks();mocks.tasks=[];mocks.members=[];mocks.lists=[];});
 it('filters assigned tasks and restores everyone',()=>{
  mocks.members=[{id:'a',name:'Alex'},{id:'b',name:'Katie'}];
  mocks.tasks=[{id:'1',title:'Water plants',done:false,assigneeIds:['a']},{id:'2',title:'Feed cat',done:false,assigneeIds:['b']}];
@@ -76,4 +76,21 @@ it('explains named-list sharing and opens Family settings without granting acces
  expect(sessionStorage.getItem('famos:settings-section')).toBe('family');
  expect(goTo).toHaveBeenCalledWith('settings');
  sessionStorage.removeItem('famos:settings-section');
+});
+
+it('hides future routine occurrences from To do and exposes daily list settings',async()=>{
+ mocks.lists=[{id:'routine',name:'Nanny routine',routineCadence:'daily',routineTimezone:'America/Toronto'}];
+ mocks.tasks=[{id:'today',title:'Pack school bags',listId:'routine',recurring:'routine:daily',due:'2000-01-01',done:false},{id:'future',title:'Tomorrow’s bags',listId:'routine',recurring:'routine:daily',due:'2099-12-31',done:false}];
+ mocks.configureRoutine.mockResolvedValue({});render(<Tasks/>);
+ expect(screen.getByText('Pack school bags')).toBeDefined();expect(screen.queryByText('Tomorrow’s bags')).toBeNull();
+ fireEvent.change(screen.getByLabelText('Task list'),{target:{value:'list:rutine'.replace('rutine','routine')}});
+ fireEvent.click(screen.getByText('Task options'));fireEvent.click(screen.getByRole('button',{name:'Repeat / routine'}));
+ fireEvent.change(screen.getByRole('combobox',{name:'Repeat'}),{target:{value:'weekdays'}});fireEvent.click(screen.getByRole('button',{name:'Save routine'}));
+ await waitFor(()=>expect(mocks.configureRoutine).toHaveBeenCalledWith('routine','weekdays','America/Toronto'));
+});
+it('creates a daily routine list with the repeat setting included',async()=>{
+ mocks.addList.mockResolvedValue({id:'new',name:'Cleaning'});render(<Tasks/>);
+ fireEvent.click(screen.getByText('Task options'));fireEvent.click(screen.getByRole('button',{name:'New list'}));
+ fireEvent.change(screen.getByLabelText('List name'),{target:{value:'Cleaning'}});fireEvent.change(screen.getByRole('combobox',{name:'Repeat'}),{target:{value:'daily'}});fireEvent.click(screen.getByRole('button',{name:'Create list'}));
+ await waitFor(()=>expect(mocks.addList).toHaveBeenCalledWith(expect.objectContaining({name:'Cleaning',routineCadence:'daily'})));
 });

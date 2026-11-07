@@ -12,7 +12,7 @@ it('opens an invitation by passcode without calling account sign-in',async()=>{
  fireEvent.change(screen.getByLabelText('Passcode'),{target:{value:'9876543210'}});fireEvent.click(screen.getByRole('button',{name:'Open shared space'}));
  await waitFor(()=>expect(screen.getByText('Vacuum')).toBeDefined());
  expect(call).toHaveBeenCalledWith('login',{token,passcode:'9876543210'});
- expect(screen.getByRole('checkbox').disabled).toBe(true);
+ expect(screen.queryByRole('checkbox')).toBeNull();
  expect(sessionStorage.getItem('famos:guest-helper')).not.toContain('9876543210');
  fireEvent.click(screen.getByRole('button',{name:'End session'}));await waitFor(()=>expect(screen.getByLabelText('Passcode')).toBeDefined());
 });

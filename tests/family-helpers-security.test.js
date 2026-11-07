@@ -13,7 +13,7 @@ async function fixture() {
     create function auth.jwt() returns jsonb language sql stable as $$select '{}'::jsonb$$;
     create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,raw_user_meta_data jsonb default '{}');
     create publication supabase_realtime;`);
-  for (const name of ['202607120001_initial_family_os.sql','202608020001_coordination_mvp.sql','202608020002_calendars_and_task_lists.sql','202608160001_task_notes_and_shopping_lists.sql','202608160003_event_recurrence.sql','202611070008_family_helpers.sql','202611070009_family_membership_guards.sql','202611070013_helper_passcodes.sql']) {
+  for (const name of ['202607120001_initial_family_os.sql','202607130001_task_types.sql','202608020001_coordination_mvp.sql','202608020002_calendars_and_task_lists.sql','202608160001_task_notes_and_shopping_lists.sql','202608160003_event_recurrence.sql','202611070008_family_helpers.sql','202611070009_family_membership_guards.sql','202608160012_multi_assignments_and_task_list_deletion.sql','202609150001_routine_task_occurrences.sql','202611070013_helper_passcodes.sql','202611070014_helper_routine_lists.sql']) {
     let sql=await readFile(new URL(`../supabase/migrations/${name}`,import.meta.url),'utf8');
     sql=sql.replace('create extension if not exists pgcrypto;','');
     await db.exec(sql);
@@ -253,5 +253,47 @@ test('passcode invite SMS claims require owner, phone consent and correct creden
   const session=await login();assert.ok(session.secret);
   await db.query("update public.helper_guest_sessions set expires_at=now()-interval '1 second'");
   assert.ok((await db.query("select public.helper_guest_portal($1,'read') result",[session.secret])).rows[0].result.error);
+ }finally{await db.close();}
+});
+
+test('daily helper routines advance once, keep history, hide tomorrow and reject early completion',async()=>{
+ const {db,as,manage}=await fixture();const taskList='70000000-0000-0000-0000-000000000001';
+ const rpc=async(q,args)=>(await db.query(q,args)).rows[0].result;
+ try{
+  await db.exec(`reset role;insert into public.task_lists(id,household_id,name,created_by) values('${taskList}','${home}','Morning nanny routine','${owner}');
+   insert into public.tasks(household_id,list_id,title,notes,created_by) values('${home}','${taskList}','Pack school bags','Include soccer kit','${owner}');set role authenticated;`);
+  await as(outsider);await assert.rejects(rpc('select public.configure_task_list_routine($1,$2,$3) result',[taskList,'daily','America/Toronto']),/list creator/i);
+  await as(owner);await rpc('select public.configure_task_list_routine($1,$2,$3) result',[taskList,'daily','America/Toronto']);
+  const invitation=await rpc("select public.invite_helper_passcode('invite',$1,$2::jsonb) result",[home,JSON.stringify({name:'Daily nanny',passcode:'9876543210',preset:'nanny',expires_at:new Date(Date.now()+86400000*5).toISOString(),grants:[{kind:'tasks',id:taskList,permission:'complete'}]})]);
+  await db.exec('reset role');const session=await rpc('select public.helper_guest_login($1,$2) result',[invitation.token,'9876543210']);
+  const read=()=>rpc("select public.helper_guest_portal($1,'read') result",[session.secret]);
+  let resource=(await read()).resources[0];assert.equal(resource.routine_cadence,'daily');assert.equal(resource.items.length,1);assert.equal(resource.items[0].notes,'Include soccer kit');
+  const original=resource.items[0];const complete=(id,done=true)=>rpc("select public.helper_guest_portal($1,'complete',$2::jsonb) result",[session.secret,JSON.stringify({grant_id:resource.grant_id,item_id:id,done})]);
+  await complete(original.id);await complete(original.id);
+  const children=(await db.query('select * from public.tasks where routine_previous_task_id=$1',[original.id])).rows;assert.equal(children.length,1);assert.equal(children[0].is_done,false);
+  await db.exec('set role authenticated');await as(owner);await db.query('select public.configure_task_list_routine($1,$2,$3)',[taskList,'daily','America/Toronto']);await db.exec('reset role');
+  assert.equal((await db.query('select due_date::text as d from public.tasks where id=$1',[children[0].id])).rows[0].d,children[0].due_date.toISOString().slice(0,10));
+  resource=(await read()).resources[0];assert.equal(resource.items.length,1);assert.equal(resource.items[0].done,true);
+  await assert.rejects(complete(children[0].id),/unavailable/i);
+  // Simulate the next scheduled date by moving the child into today's date and history into yesterday.
+  await db.query("update public.tasks set due_date=(now() at time zone 'America/Toronto')::date-1 where id=$1",[original.id]);
+  await db.query("update public.tasks set due_date=(now() at time zone 'America/Toronto')::date where id=$1",[children[0].id]);
+  resource=(await read()).resources[0];assert.deepEqual(resource.items.map(x=>x.id),[children[0].id]);assert.equal(resource.items[0].done,false);
+  // An overdue item advances past today rather than producing a backlog of missed days.
+  await db.query("update public.tasks set due_date=(now() at time zone 'America/Toronto')::date-7 where id=$1",[children[0].id]);
+  await complete(children[0].id);
+  const next=(await db.query('select due_date::text as day from public.tasks where routine_previous_task_id=$1',[children[0].id])).rows[0];
+  const tomorrow=(await db.query("select ((now() at time zone 'America/Toronto')::date+1)::text as day")).rows[0];assert.equal(next.day,tomorrow.day);
+ }finally{await db.close();}
+});
+
+test('weekday list inheritance skips weekends and stopping a list keeps its tasks',async()=>{
+ const {db,as}=await fixture();const taskList='70000000-0000-0000-0000-000000000002';
+ try{
+  await db.exec(`reset role;insert into public.task_lists(id,household_id,name,created_by,routine_cadence,routine_timezone) values('${taskList}','${home}','Weekday cleaner','${owner}','weekdays','America/Toronto');
+   insert into public.tasks(household_id,list_id,title,created_by,due_date) values('${home}','${taskList}','Clean surfaces','${owner}','2026-11-07');`);
+  const task=(await db.query('select * from public.tasks where list_id=$1',[taskList])).rows[0];assert.equal(task.recurrence,'routine:weekdays');assert.equal(task.due_date.toISOString().slice(0,10),'2026-11-09');
+  await db.exec('set role authenticated');await as(owner);await db.query('select public.configure_task_list_routine($1,$2,$3)',[taskList,'none','America/Toronto']);
+  const rows=(await db.query('select * from public.tasks where list_id=$1',[taskList])).rows;assert.equal(rows.length,1);assert.equal(rows[0].recurrence,'');
  }finally{await db.close();}
 });

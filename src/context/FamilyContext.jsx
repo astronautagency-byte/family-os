@@ -328,8 +328,8 @@ export function FamilyProvider({ children, tabletMode = false }) {
     initials: row.initials,
     avatarUrl: loadAvatarOverrides()[row.id] || row.avatar_url || (row.id === user?.id ? user.user_metadata?.avatar_url || user.user_metadata?.picture || "" : ""),
   });
-  const mapTask = (row) => ({ id: row.id, title: row.title, notes: row.notes || "", assigneeId: row.assignee_id, assigneeIds: uniqueIds(Array.isArray(row.assignee_ids) && row.assignee_ids.length ? row.assignee_ids : row.assignee_id ? [row.assignee_id] : []), due: row.due_date, done: row.is_done, recurring: row.recurrence, taskType: row.task_type || "home", listId: row.list_id || null, createdBy: row.created_by || null });
-  const mapTaskList = (row) => ({ id: row.id, name: row.name, color: row.color || "#6b5ce7", createdBy: row.created_by || null });
+  const mapTask = (row) => ({ id: row.id, title: row.title, notes: row.notes || "", assigneeId: row.assignee_id, assigneeIds: uniqueIds(Array.isArray(row.assignee_ids) && row.assignee_ids.length ? row.assignee_ids : row.assignee_id ? [row.assignee_id] : []), due: row.due_date, routinePreviousId:row.routine_previous_task_id || null, done: row.is_done, recurring: row.recurrence, taskType: row.task_type || "home", listId: row.list_id || null, createdBy: row.created_by || null });
+  const mapTaskList = (row) => ({ id: row.id, routineCadence:row.routine_cadence||"none", routineTimezone:row.routine_timezone||"UTC", name: row.name, color: row.color || "#6b5ce7", createdBy: row.created_by || null });
   const mapGroceryList = (row) => ({ id: row.id, name: row.name, color: row.color || "#3b8c75", createdBy: row.created_by || null });
   // image_url = OpenFoodFacts product catalogue image (read-only metadata
   // from a barcode scan). photo_url = the household member's own upload,
@@ -773,13 +773,13 @@ export function FamilyProvider({ children, tabletMode = false }) {
       if (error) { setTasks(snapshot); setDataError(error.message); throw error; }
     }
   };
-  const addTaskList = async ({ name, color = "#6b5ce7" }) => {
+  const addTaskList = async ({ name, color = "#6b5ce7", routineCadence="none", routineTimezone="UTC" }) => {
     const cleanName = name.trim();
     if (!cleanName) return null;
-    const local = { id: makeId("tasklist"), name: cleanName, color, createdBy: user?.id || "me" };
+    const local = { id: makeId("tasklist"), name: cleanName, color, routineCadence, routineTimezone, createdBy: user?.id || "me" };
     setTaskLists((prev) => [...prev, local]);
     if (remote) {
-      const result = await supabase.from("task_lists").insert({ household_id: household.id, name: cleanName, color, created_by: user.id }).select().single();
+      const result = await supabase.from("task_lists").insert({ household_id: household.id, name: cleanName, color, routine_cadence:routineCadence, routine_timezone:routineTimezone, created_by: user.id }).select().single();
       if (result.error && isMissingTaskListsSchema(result.error)) {
         const fallbackLists = [...readFallbackTaskLists(household.id).filter((list) => list.id !== local.id), local];
         writeFallbackTaskLists(household.id, fallbackLists);
@@ -792,6 +792,11 @@ export function FamilyProvider({ children, tabletMode = false }) {
       return savedList;
     }
     return local;
+  };
+  const configureTaskListRoutine=async(id,cadence,tz)=>{
+    if(!remote)throw new Error("Sign in to set up a shared daily routine.");
+    const {data,error}=await supabase.rpc('configure_task_list_routine',{list:id,cadence,tz});
+    if(error)throw error;const saved=mapTaskList(data);setTaskLists(prev=>prev.map(l=>l.id===id?saved:l));await loadRemoteData();return saved;
   };
   const removeTaskList = async (id) => {
     const previousLists = taskLists;
@@ -2095,7 +2100,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
     events, addEvent, updateEvent, removeEvent, clearEvents,
     meals, setMealForSlot, removeMeal, clearMeals,
     groceries, groceryLists, addGroceryList, removeGroceryList, addGrocery, toggleGrocery, updateGrocery, removeGrocery, clearCheckedGroceries, clearGroceries,
-    tasks: visibleTasks, taskLists, addTaskList, removeTaskList, addTask, toggleTask, updateTask, removeTask, clearTasks,
+    tasks: visibleTasks, taskLists, addTaskList, configureTaskListRoutine, removeTaskList, addTask, toggleTask, updateTask, removeTask, clearTasks,
     messages: visibleMessages, sendMessage, importMessages, clearFamilyChat, clearMyDirectMessages,
     unreadMessageCount, markChatRead, broadcasts, broadcastMessage, clearBroadcast, reactionsByMessage, reactToBroadcast, currentUserId,
     expenses, weeklyBudget, monthlyBudget, financePeriod, addExpense, removeExpense, setFinanceBudget, setFinancePeriod,

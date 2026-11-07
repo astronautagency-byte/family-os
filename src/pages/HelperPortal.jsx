@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { expandRecurringEvents } from '../lib/eventRecurrence';
+import HelperResources from '../components/HelperResources';
 import { supabase } from '../lib/supabase';
-import { helperCall, RESOURCE_LABELS } from '../lib/familyHelpers';
+import { helperCall } from '../lib/familyHelpers';
 import { Card, PrimaryButton, SecondaryButton, TextField } from '../components/ui';
 import ConfirmAction from '../components/ConfirmAction';
 import '../components/family-helpers.css';
@@ -18,11 +18,6 @@ function invitationToken() {
   return '';
 }
 
-function displayedItems(resource, expiry) {
-  if (!['family_calendar','calendar'].includes(resource.kind)) return resource.items;
-  const from = new Date(); from.setHours(0,0,0,0);
-  return expandRecurringEvents(resource.items,from,new Date(expiry)).filter(item => new Date(item.end)>=from && new Date(item.start)<=new Date(expiry)).sort((a,b)=>new Date(a.start)-new Date(b.start));
-}
 
 export function HelperWorkspace({ token, clearToken }) {
   const [homes,setHomes]=useState([]), [selected,setSelected]=useState(''), [data,setData]=useState(null), [preview,setPreview]=useState(null);
@@ -69,10 +64,7 @@ export function HelperWorkspace({ token, clearToken }) {
     {data && <>
       <div className="family-helper-heading"><div><h2>{data.family}</h2><p>Shared with you · access ends {new Date(data.expires_at).toLocaleString()}</p></div><SecondaryButton disabled={busy} onClick={()=>setLeave(true)}>Leave this shared space</SecondaryButton></div>
       {data.resources.length===0 && <p>No resources are currently shared with you.</p>}
-      {data.resources.map(resource=><Card className="p-4 family-helper-card" key={resource.grant_id}><h3>{resource.name}</h3><small>{RESOURCE_LABELS[resource.kind]} · {resource.permission==='complete'?'You can check off items':'View only'}</small>
-        {['family_calendar','calendar'].includes(resource.kind) && <p>Upcoming events through the end of your access.</p>}{!displayedItems(resource,data.expires_at).length && <p>No shared items.</p>}
-        <ul className="family-helper-items">{displayedItems(resource,data.expires_at).map(item=><li key={item.id}>{item.start ? <div><strong>{item.title}</strong><p>{new Date(item.start).toLocaleString()} – {new Date(item.end).toLocaleString()}</p></div> : <label><input type="checkbox" checked={!!item.done} disabled={busy || resource.permission!=='complete'} onChange={()=>complete(resource,item)}/><span>{item.title}</span></label>}</li>)}</ul>
-      </Card>)}
+      <HelperResources resources={data.resources} expiry={data.expires_at} busy={busy} onComplete={complete}/>
     </>}
     <p className="family-helper-note">This view requires an internet connection. Times use {Intl.DateTimeFormat().resolvedOptions().timeZone}. Family chat, location and account details are not included.</p>
     <ConfirmAction open={leave} title="Leave this shared space?" copy="Your access through this invitation will end. Family records and your other shared spaces will be kept." busy={busy} onClose={()=>setLeave(false)} confirmLabel="Leave" onConfirm={async()=>{setBusy(true);try{await helperCall('leave',{id:selection.current});setLeave(false);selection.current='';setSelected('');await refresh('');}catch(err){setError(err.message);}finally{setBusy(false);}}}/>

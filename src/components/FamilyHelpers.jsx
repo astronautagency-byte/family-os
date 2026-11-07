@@ -41,7 +41,7 @@ function InviteHelper({ householdId, resources, request, onClose, onCreated }) {
       </> : <>
         <p><strong>{name}</strong> will have access until <strong>{new Date(expiry).toLocaleString()}</strong>.</p>
         <ul>{grants.map(r => <li key={`${r.kind}:${r.id}`}>{r.name} — {r.permission === 'complete' ? 'View and check off items' : 'View only'}</li>)}</ul>
-        <p>Future eligible items added to these resources will also be shared. Private and guardian-only items are excluded. Calendars show event titles and times only.</p>
+        <p>Future eligible items added to these resources will also be shared. Private and guardian-only items are excluded. Shared tasks include their instructions and due dates. Calendars show event titles and times only.</p>
         <p>Family chat, photos, location, finances and account settings stay private. You can revoke access at any time. Previously viewed information cannot be recalled.</p>
         <p className="family-helper-note">We’ll create a private link and passcode. If you provided a mobile number and permission, FamOS will automatically send the invitation by SMS. Otherwise, share it privately yourself.</p>
       </>}
@@ -69,7 +69,7 @@ export default function FamilyHelpers({ householdId, isOwner }) {
   };
   const resourceName = g => data?.resources.find(r => r.kind===g.kind && r.id===g.resource_id)?.name || 'Shared resource';
   return <section className="family-helpers" aria-label="Family helpers">
-    <div className="family-helper-heading"><div><h2>Family helpers</h2><p>Share selected task lists, shopping lists and calendars with a nanny, babysitter or cleaner.</p></div></div>
+    <div className="family-helper-heading"><div><h2>Family helpers</h2><p>Share schedules for school and soccer, daily routines, or selected shopping lists with your helper.</p></div></div>
     {!isOwner ? <Card className="p-4"><p>The family owner manages helper access.</p><a href="/helpers">Open shared helper access</a></Card> : !householdId ? <p>Sign in with a family account to invite a helper.</p> : <>
       <Card className="p-4 family-helper-form"><p>Helpers get their own limited view. They don’t become family members. To renew or expand access, revoke the old invitation and create a new one.</p><div className="family-helper-actions"><PrimaryButton disabled={!data || busy} onClick={() => {setNotice('');setInvite({});}}>Invite helper</PrimaryButton><a href="/helpers">Open helper view</a><SecondaryButton disabled={busy} onClick={load}>Refresh</SecondaryButton></div></Card>
       {error && <p role="alert">{error}</p>}{notice && <p role="status">{notice}</p>}
