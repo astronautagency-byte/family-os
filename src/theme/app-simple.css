@@ -60,12 +60,13 @@
 .app-shell .calendar-page .calendar-hero.apple-calendar-toolbar { background: var(--color-canvas) !important; border-radius: 0; }
 .app-shell .kw-page .kw-group-header { background: transparent; padding: 4px 0 10px; }
 .app-shell .recipe-book-welcome { background: var(--color-surface-sunken); }
-.app-shell .reference-dashboard .today-daily-meals { display: grid; gap: 0; }
+.app-shell .reference-dashboard .today-daily-meals { display: grid; gap: 0; padding: 4px 14px; border-radius: 16px; background: var(--color-surface); }
 .app-shell .reference-dashboard .today-daily-meal { display: grid; grid-template-columns: 40px minmax(0,1fr) auto; align-items: center; gap: 10px; padding: 12px 0; border-radius: 0; border: 0; border-bottom: 1px solid var(--color-border); background: transparent; }
 .app-shell .reference-dashboard .today-daily-meal:last-child { border-bottom: 0; }
 .app-shell .reference-dashboard .today-daily-meal-actions.is-single { grid-column: 3; grid-row: 1; display: block; }
 .app-shell .reference-dashboard .today-daily-meal-actions button { width: auto; min-height: 44px; padding: 8px 10px; border: 0; border-radius: 12px; background: var(--color-surface); color: var(--color-accent-strong); }
 .app-shell .reference-dashboard .today-daily-meal-copy strong { overflow-wrap: anywhere; }
+.app-shell .reference-dashboard .today-daily-meal-icon { width: 40px; height: 40px; border-radius: 12px; background: var(--color-meals-soft); }
 .today-empty-icon { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 18px; background: var(--color-shopping-soft); color: var(--color-shopping-strong); }
 
 /* Location actions and household updates use a simple, linear flow. */
@@ -92,7 +93,7 @@
   .app-shell .app-content .page-title { font-size: 27px; }
   .app-shell .today-glance-card { min-height: 102px; padding: 14px; }
   .app-shell .reference-mobile-nav { border-radius: 0; box-shadow: none; border-top: 1px solid var(--simple-divider); }
-  .app-shell .reference-dashboard .today-daily-meal { grid-template-columns: 36px minmax(0,1fr) auto; }
+  .app-shell .reference-dashboard .today-daily-meal { grid-template-columns: 40px minmax(0,1fr) auto; }
   .app-shell .reference-dashboard .today-daily-meal-actions button { font-size: 12px; padding: 8px; }
   .app-shell .reference-dashboard .today-daily-meal-actions button svg { width: 19px; height: 19px; }
   .modal-card.m3-dialog { padding: 20px 20px max(24px,env(safe-area-inset-bottom,0px)); border-radius: 24px 24px 0 0; }

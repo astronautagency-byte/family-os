@@ -3,7 +3,7 @@ import {useHouseholdFeatures} from "../context/HouseholdFeaturesContext";
 import { combineCalendarSources } from '../lib/calendarSources';
 import { expandRecurringEvents } from '../lib/eventRecurrence';
 import { useEffect, useMemo, useState } from "react";
-import { Bell, CalendarPlus, ChefHat, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, Coffee, Droplets, ExternalLink, LayoutGrid, ListChecks, LoaderCircle, MapPin, MessageCircle, Moon, PartyPopper, Refrigerator, ShoppingCart, Soup, Sun, Ticket, Trash2, TriangleAlert, Wind, Sparkles } from "../components/icons";
+import { Bell, CalendarPlus, ChefHat, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, Droplets, ExternalLink, LayoutGrid, ListChecks, LoaderCircle, MapPin, MessageCircle, Moon, PartyPopper, Refrigerator, ShoppingCart, Sun, Ticket, Trash2, TriangleAlert, Wind, Sparkles } from "../components/icons";
 // ChefHat is already imported above for the Cook button icon.
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
@@ -11,6 +11,7 @@ import { Avatar, AvatarStack, Card, Checkbox, EmptyState } from "../components/u
 import PageHeader from "../components/PageHeader";
 import TodayCustomizer from "../components/TodayCustomizer";
 import TodayAtAGlance from "../components/TodayAtAGlance";
+import MealSlotArt from "../components/MealSlotArt";
 import PullToRefresh from "../components/PullToRefresh";
 import { supabase } from "../lib/supabase";
 import { eventDateLocal, formatTime, fullDateLabel, greetingInfo, todayISO } from "../lib/dates";
@@ -34,9 +35,9 @@ const WEATHER_KIND = {
   thunder: { day: CloudLightning, night: CloudLightning, label: "Storms" },
 };
 const TODAY_MEAL_SLOTS = [
-  { id: "breakfast", label: "Breakfast", icon: Coffee },
-  { id: "lunch", label: "Lunch", icon: Soup },
-  { id: "dinner", label: "Dinner", icon: ChefHat },
+  { id: "breakfast", label: "Breakfast" },
+  { id: "lunch", label: "Lunch" },
+  { id: "dinner", label: "Dinner" },
 ];
 const DASHBOARD_ORDER_KEY = "famos:today-card-order:v1";
 const DASHBOARD_HIDDEN_KEY = "famos:today-card-hidden:v1";
@@ -639,7 +640,7 @@ export default function Today({ goTo }) {
               </div>
             </div>
             <div className="today-daily-meals">
-              {TODAY_MEAL_SLOTS.map(({ id: slot, label, icon: SlotIcon }) => {
+              {TODAY_MEAL_SLOTS.map(({ id: slot, label }) => {
                 const meal = meals.find((m) => m.date === today && m.slot === slot && m.title);
                 const adder = meal?.createdBy ? memberById[meal.createdBy] : null;
                 const suggestedMeal = meal?.source === "spoonacular";
@@ -654,7 +655,7 @@ export default function Today({ goTo }) {
                 };
                 return (
                   <article key={slot} className={`today-daily-meal ${meal ? "is-planned" : "is-open"}`}>
-                    <span className="today-daily-meal-icon"><SlotIcon size={16} /></span>
+                    <span className="today-daily-meal-icon"><MealSlotArt slot={slot} /></span>
                     <div className="today-daily-meal-copy">
                       {suggestedMeal && meal.thumbnail && <img className="today-daily-meal-thumb" src={meal.thumbnail} alt="" loading="lazy" />}
                       <span>{label}</span>
