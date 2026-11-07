@@ -19,7 +19,7 @@ console.log(`Verified ${ALL_MARKETING_PAGES.length} static topic pages: H1, cont
 const {publicPaths,publicMeta}=await import('../src/data/publicMeta.js');
 const seenTitles=new Set(),seenDescriptions=new Set(),seenImages=new Set();
 for(const path of publicPaths){
- const meta=publicMeta(path),file=`dist/__public${path==='/'?'/home':path}.html`,html=await readFile(file,'utf8');
+ const meta=publicMeta(path),file=['/privacy','/terms'].includes(path)?`dist${path}/index.html`:`dist/__public${path==='/'?'/home':path}.html`,html=await readFile(file,'utf8');
  const esc=s=>String(s).replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;');
  assert.ok(html.includes(`<title>${esc(meta.title)}</title>`),`${path}: title`);
  for(const [key,value,attr] of [['description',meta.description,'name'],['og:title',meta.title,'property'],['og:description',meta.description,'property'],['og:url',meta.canonical,'property'],['og:image',meta.image,'property'],['og:image:secure_url',meta.image,'property'],['og:image:alt',meta.imageAlt,'property'],['twitter:title',meta.title,'name'],['twitter:description',meta.description,'name'],['twitter:image',meta.image,'name'],['twitter:image:alt',meta.imageAlt,'name']]) assert.ok(html.includes(`<meta ${attr}="${key}" content="${esc(value)}"`),`${path}: ${key}`);

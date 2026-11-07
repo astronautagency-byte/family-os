@@ -54,6 +54,12 @@ try {
   const schema=JSON.stringify({'@context':'https://schema.org','@type':'WebPage',name:meta.title,description:meta.description,url:meta.canonical}).replaceAll('<','\\u003c');
   html=html.replace('</head>',[...css].map(c=>`<link rel="stylesheet" href="/${c}">`).join('')+`<script type="application/ld+json">${schema}</script>`+'</head>');await writeFile(`dist/__public${path}.html`,html);
  }
+ // Existing standalone legal documents take precedence over rewrites. Preserve their content and update their head metadata.
+ for(const path of ['/privacy','/terms']){
+  const file=`dist${path}/index.html`,meta=publicMeta(path);let html=withMeta(await readFile(file,'utf8'),meta);
+  const tags=[['property','og:type','website'],['property','og:site_name','FamOS'],['property','og:url',meta.canonical],['property','og:title',meta.title],['property','og:description',meta.description],['property','og:image',meta.image],['property','og:image:secure_url',meta.image],['property','og:image:type','image/jpeg'],['property','og:image:width','1200'],['property','og:image:height','630'],['property','og:image:alt',meta.imageAlt],['name','twitter:card','summary_large_image'],['name','twitter:title',meta.title],['name','twitter:description',meta.description],['name','twitter:image',meta.image],['name','twitter:image:alt',meta.imageAlt]];
+  html=html.replace('</head>',tags.map(([attr,key,value])=>`<meta ${attr}="${key}" content="${escape(value)}">`).join('')+'</head>');await writeFile(file,html);
+ }
  // Avoid filesystem index precedence swallowing the host-specific homepage rewrite.
  await rename('dist/index.html','dist/app-shell.html');
  const sitemapPaths=['/','/pricing','/contact','/privacy','/terms','/download',...paths];
