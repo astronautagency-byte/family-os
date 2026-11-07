@@ -86,7 +86,7 @@ export default defineConfig(({ command }) => ({
             }
           },
           {
-            urlPattern: ({ request }) => request.mode === 'navigate',
+            urlPattern: ({ request, url }) => request.mode === 'navigate' && url.pathname.replace(/\/$/, '') !== '/helpers',
             handler: 'NetworkFirst',
             options: {
               cacheName: 'famos-navigation',

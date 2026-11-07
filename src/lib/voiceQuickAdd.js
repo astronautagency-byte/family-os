@@ -18,26 +18,31 @@ export function parseVoiceQuickAdd(input, { groceryLists = [], taskLists = [], n
   if (/^(?:add|create|schedule|put)\s+/i.test(text) && /\b(?:calendar|event|appointment)\b/i.test(text)) {
     if (/\bevery\s+other\b|\bbiweekly\b|\bweekdays\b|\bevery\s+\d+\b|\buntil\b|\bthrough\b/i.test(text)) return null;
     const parsed=chrono.parse(text,now,{forwardDate:true})[0];
-    // Speech recognition often writes 3:30 as “330”. Only treat a compact
-    // number immediately following a recognized date as a time, not a title number.
-    const compact=parsed && !parsed.start.isCertain('hour') ? text.slice(parsed.index+parsed.text.length).match(/^\s+(?:at\s+)?(\d{3,4})(?=\s|$)/i) : null;
-    const digits=compact?.[1] || ''; const compactHour=digits ? Number(digits.slice(0,-2)) : 0; const compactMinute=digits ? Number(digits.slice(-2)) : 0;
-    const validCompact=Boolean(compact && compactHour>=1 && compactHour<=23 && compactMinute<60);
     let title=text.replace(/^(?:add|create|schedule|put)\s+(?:an?\s+)?/i,'');
-    if(parsed) title=title.replace(parsed.text,'');
-    if(validCompact) title=title.replace(new RegExp(`^(.+?)\\s+(?:at\\s+)?${digits}(?=\\s|$)`,'i'),'$1 ');
     title=title.replace(/^event(?:\s+(?:for|called|named))?\s+/i,'');
-    title=title.replace(/\b(?:as\s+an?\s+event|to\s+(?:my|the|our)\s+calendar|on\s+(?:my|the|our)\s+calendar|on\s+(?:my|the|our)\s+family\s+calendar|event\s+(?:called|named))\b/ig,'').replace(/\b(?:every|each|on|at|for)\s*$/i,'').trim();
+    const afterDate=parsed && !parsed.start.isCertain('hour') ? text.slice(parsed.index+parsed.text.length).match(/^\s+(?:at\s+)?(\d{3,4})(?=\s|$)/i) : null;
+    // A leading compact time in an explicit event request is common dictation
+    // ("add 330 haircut ..."). A named title such as "Room 330" is untouched.
+    const leading=title.match(/^(\d{3,4})(?=\s|$)/);
+    const atTime=title.match(/\bat\s+(\d{3,4})(?=\s|$)/i);
+    const compact=afterDate || leading || atTime;
+    const digits=compact?.[1] || '', compactHour=Number(digits.slice(0,-2)), compactMinute=Number(digits.slice(-2));
+    const validCompact=!!digits && compactHour>=1 && compactHour<=23 && compactMinute<60;
+    if(parsed) title=title.replace(parsed.text,'');
+    if(validCompact) {
+      if(leading) title=title.replace(/^\d{3,4}\s*/, '');
+      else if(atTime) title=title.replace(atTime[0], '');
+      else title=title.replace(new RegExp(`\\b${digits}\\b`),'');
+    }
+    title=title.replace(/\b(?:as\s+an?\s+event|(?:to|on|in|into)\s+(?:(?:my|the|our)\s+)?(?:(?:family\s+)?calendar|events?(?:\s+(?:for|on|in)\s+(?:(?:my|the|our)\s+)?calendar)?)|event\s+(?:called|named))\b/ig,'').replace(/\b(?:every|each|on|at|for)\s*$/i,'').replace(/\s+/g,' ').trim();
     if(!title) return null;
     let recurrence='none'; if(/\b(?:every|each)\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|week)\b/i.test(text))recurrence='weekly';else if(/\b(?:every|each)\s+day\b|\bdaily\b/i.test(text))recurrence='daily';else if(/\b(?:every|each)\s+month\b|\bmonthly\b/i.test(text))recurrence='monthly';else if(/\b(?:every|each)\s+year\b|\byearly\b/i.test(text))recurrence='yearly';else if(/\b(?:every|each)\b/i.test(text))return null;
-    const hasDate=parsed && (parsed.start.isCertain('day') || parsed.start.isCertain('weekday')); const hasTime=parsed?.start.isCertain('hour');
-    const hour=validCompact?compactHour:(hasTime?parsed.start.get('hour'):null);
-    const minute=validCompact?compactMinute:(hasTime?parsed.start.get('minute')||0:0);
-    const needsPeriod=Boolean(hasDate && hour!==null && hour>=1 && hour<=12 && (validCompact || !parsed.start.isCertain('meridiem')));
-    let start=''; let end='';
-    if(hasDate && hour!==null && !needsPeriod){const date=parsed.start.date();date.setHours(hour,minute,0,0);start=localInput(date);end=localInput(parsed.end?.date() || new Date(date.getTime()+60*60*1000));}
-    const ambiguousTime=needsPeriod?{date:localInput(parsed.start.date()).slice(0,10),hour:hour===12?12:hour,minute}:null;
-    return {type:'event',name:capitalizeFirstWord(title.replace(/\s+/g,' ').trim().slice(0,120)),start,end,recurrence,assumedDuration:Boolean(start&&!parsed.end),...(ambiguousTime?{ambiguousTime}:{})};
+    const hasDate=parsed && (parsed.start.isCertain('day') || parsed.start.isCertain('weekday'));
+    const hasTime=parsed?.start.isCertain('hour');
+    const hour=hasTime?parsed.start.get('hour'):validCompact?compactHour:null;
+    const minute=hasTime?parsed.start.get('minute')||0:validCompact?compactMinute:0;
+    const time=hour===null?null:{hour,minute,period:hasTime && parsed.start.isCertain('meridiem') ? (hour>=12?'pm':'am') : null};
+    return scheduleVoiceEvent({type:'event',name:capitalizeFirstWord(title.slice(0,120)),start:'',end:'',recurrence},hasDate?localInput(parsed.start.date()).slice(0,10):'',time,parsed?.end?.date());
   }
   return null;
 }
@@ -48,7 +53,41 @@ export function resolveVoicePeriod(action, period) {
   const t=action?.ambiguousTime;if(!t || !['am','pm'].includes(period))return action;
   const hour=(t.hour%12)+(period==='pm'?12:0);const date=new Date(`${t.date}T${String(hour).padStart(2,'0')}:${String(t.minute).padStart(2,'0')}:00`);
   if(!Number.isFinite(date.getTime()) || date.getHours()!==hour || date.getMinutes()!==t.minute)return action;
-  return {...action,start:localInput(date),end:localInput(new Date(date.getTime()+60*60*1000)),assumedDuration:true,ambiguousTime:null};
+  return {...action,start:localInput(date),end:localInput(new Date(date.getTime()+60*60*1000)),assumedDuration:true,ambiguousTime:null,pendingTime:null,eventDate:t.date};
 }
 
 export function parseVoicePeriod(input) { const text=String(input||'').toLowerCase().replace(/[.\s]/g,'');if(['am','morning','inthemorning'].includes(text))return 'am';if(['pm','afternoon','evening','intheafternoon','intheevening'].includes(text))return 'pm';return null; }
+
+
+function scheduleVoiceEvent(action,date,time,explicitEnd) {
+  const clean={...action,start:'',end:'',eventDate:date,pendingTime:time,ambiguousTime:null};
+  if(!date || !time)return clean;
+  if(time.hour>=1 && time.hour<=12 && !time.period) return {...clean,ambiguousTime:{date,hour:time.hour,minute:time.minute}};
+  const hour=time.period ? time.hour%12+(time.period==='pm'?12:0) : time.hour;
+  const start=new Date(`${date}T${String(hour).padStart(2,'0')}:${String(time.minute).padStart(2,'0')}:00`);
+  if(!Number.isFinite(start.getTime()) || start.getHours()!==hour)return clean;
+  return {...clean,start:localInput(start),end:localInput(explicitEnd || new Date(start.getTime()+3600000)),pendingTime:null,assumedDuration:!explicitEnd};
+}
+
+/** Merge a short answer into the existing draft; never invent a day or period. */
+export function resolveVoiceFollowup(action,input,{now=new Date()}={}) {
+  if(action?.type!=='event')return null;
+  const parsed=chrono.parse(String(input),now,{forwardDate:true})[0];
+  let date=action.ambiguousTime?.date || action.start?.slice(0,10) || action.eventDate || '';
+  let time=action.pendingTime || (action.ambiguousTime?{...action.ambiguousTime,period:null}:action.start?{hour:new Date(action.start).getHours(),minute:new Date(action.start).getMinutes(),period:new Date(action.start).getHours()>=12?'pm':'am'}:null);
+  const period=parseVoicePeriod(input) || (/\b(?:afternoon|evening)\b/i.test(input)?'pm':/\bmorning\b/i.test(input)?'am':null);
+  if(parsed && (parsed.start.isCertain('day') || parsed.start.isCertain('weekday')))date=localInput(parsed.start.date()).slice(0,10);
+  if(parsed?.start.isCertain('hour') && !(time && period && !/\d|noon|midnight/i.test(input)))time={hour:parsed.start.get('hour'),minute:parsed.start.get('minute')||0,period:parsed.start.isCertain('meridiem')?(parsed.start.get('hour')>=12?'pm':'am'):null};
+  const compact=String(input).trim().match(/^(?:at\s+)?(\d{3,4})\s*(am|pm)?[.!?]?$/i);
+  if(compact){const hour=Number(compact[1].slice(0,-2)),minute=Number(compact[1].slice(-2));if(hour>=1&&hour<=23&&minute<60)time={hour,minute,period:compact[2]?.toLowerCase()||null};}
+  if(!parsed && !compact && !period)return null;
+  if(time && period)time={...time,period};
+  return scheduleVoiceEvent(action,date,time,parsed?.end?.date());
+}
+
+export function voiceEventQuestion(action) {
+  if(!action.eventDate && !action.ambiguousTime?.date && !action.start)return `What day is ${action.name}?${action.pendingTime ? ` I heard ${action.pendingTime.hour}:${String(action.pendingTime.minute).padStart(2,'0')}.` : ''}`;
+  if(action.ambiguousTime)return `Is ${action.ambiguousTime.hour}:${String(action.ambiguousTime.minute).padStart(2,'0')} AM or PM?`;
+  if(!action.start)return `What time is ${action.name}?`;
+  return '';
+}

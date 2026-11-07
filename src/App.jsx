@@ -838,7 +838,7 @@ export default function App() {
   );
 
   return (
-    <FamilyProvider tabletMode={effectiveTabletMode}>
+    <FamilyProvider key={`${session?.user?.id || "guest"}:${household?.id || "none"}`} tabletMode={effectiveTabletMode}>
       <div className={`app-shell ${darkMode ? "theme-dark" : ""} ${effectiveTabletMode ? "tablet-mode" : ""}`} data-color-scheme={colorScheme} ref={shellRef}>
         <BottomNav key={`${session?.user?.id}:${household?.id}:${childMode}`} preferenceKey={`${session?.user?.id || 'guest'}:${household?.id || 'local'}`} childMode={childMode} active={visibleTab} onChange={setTab} onOpenAI={enabledFeatures.fam_ai && !childMode && !IS_APP_STORE && !effectiveTabletMode ? () => setFamAiOpen(true) : undefined} features={enabledFeatures} tabletMode={effectiveTabletMode} />
         <main className="app-content">

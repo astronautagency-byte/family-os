@@ -10,3 +10,19 @@ test('extracts a speech-transcribed compact time and asks for AM or PM',async()=
 test('recognizes explicit period and never confuses a numeric title for a time',()=>{let event=parseVoiceQuickAdd('add an event for today 330 pm haircut appointment',{now:new Date(2026,10,7,10)});assert.equal(event.name,'Haircut appointment');assert.equal(event.start,'2026-11-07T15:30');event=parseVoiceQuickAdd('add event called Room 330 to my calendar tomorrow at 4 pm',{now:new Date(2026,10,7,10)});assert.equal(event.name,'Room 330');assert.equal(event.start,'2026-11-08T16:00');});
 test('ambiguous colon times require an explicit period',()=>{let event=parseVoiceQuickAdd('add an event for today at 3:30 haircut appointment',{now:new Date(2026,10,7,10)});assert.equal(event.name,'Haircut appointment');assert.equal(event.start,'');assert.equal(event.ambiguousTime.hour,3);});
 test('recognizes the assistant name in a spoken request',()=>{assert.deepEqual(parseVoiceQuickAdd('Hey Mia, add lemons to my shopping list'),{type:'grocery',name:'lemons'});});
+
+test('keeps screenshot compact time while asking separately for the day and period',async()=>{
+ const {resolveVoiceFollowup}=await import('../src/lib/voiceQuickAdd.js');
+ const now=new Date(2026,10,7,10);
+ const a=parseVoiceQuickAdd('Add 330 haircut to my events for calendar',{now});
+ assert.equal(a.name,'Haircut');assert.equal(a.start,'');assert.equal(a.pendingTime.hour,3);assert.equal(a.pendingTime.minute,30);
+ const day=resolveVoiceFollowup(a,'tomorrow',{now});assert.equal(day.start,'');assert.equal(day.ambiguousTime.date,'2026-11-08');
+ const pm=resolveVoiceFollowup(day,'PM',{now});assert.equal(pm.start,'2026-11-08T15:30');assert.equal(pm.name,'Haircut');
+ const afternoon=resolveVoiceFollowup(a,'tomorrow afternoon',{now});assert.equal(afternoon.start,'2026-11-08T15:30');
+});
+test('keeps a supplied day when the time arrives in the next answer',async()=>{
+ const {resolveVoiceFollowup}=await import('../src/lib/voiceQuickAdd.js');const now=new Date(2026,10,7,10);
+ const a=parseVoiceQuickAdd('add dentist to my calendar tomorrow',{now});
+ assert.equal(resolveVoiceFollowup(a,'at 4 pm',{now}).start,'2026-11-08T16:00');
+ const b=parseVoiceQuickAdd('add haircut to my calendar at 3 pm',{now});assert.equal(b.start,'');assert.equal(resolveVoiceFollowup(b,'Monday',{now}).start,'2026-11-09T15:00');
+});

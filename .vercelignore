@@ -7,3 +7,8 @@ src-tauri/gen
 test-results
 *.log
 docs/security/
+
+*.keystore
+*.jks
+.env*
+release-manifest.json

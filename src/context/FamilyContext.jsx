@@ -1,3 +1,4 @@
+import { familyStorageKey, readFamilyStorage, writeFamilyStorage } from '../lib/familyStorage';
 import { reconcileCreatedEvent } from '../lib/eventReconciliation';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { nextRoutineDate } from '../lib/famai/routines';
@@ -24,9 +25,9 @@ const FAMOS_CALENDAR_STORAGE_KEY = "family-os:famos-calendar:v1";
 
 const DEFAULT_FAMOS_CALENDAR = { name: "FamOS Calendar", color: "#2563EB" };
 
-function loadFamosCalendarState() {
+function loadFamosCalendarState(key) {
   try {
-    const raw = localStorage.getItem(FAMOS_CALENDAR_STORAGE_KEY);
+    const raw = key ? localStorage.getItem(key) : null;
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === "object") return { ...DEFAULT_FAMOS_CALENDAR, ...parsed };
@@ -63,20 +64,20 @@ const savedList = (value, fallback = []) => Array.isArray(value)
   ? value.filter((item) => item && typeof item === "object")
   : fallback;
 
-function loadGoogleState() {
+function loadGoogleState(key) {
   try {
-    const raw = localStorage.getItem(GOOGLE_STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    const value = readFamilyStorage(localStorage, key);
+    if (value) return value;
   } catch (e) {
     console.warn("Could not read saved Google Calendar settings.", e);
   }
   return null;
 }
 
-function loadCalendarFeedState() {
+function loadCalendarFeedState(key) {
   try {
-    const raw = localStorage.getItem(CALENDAR_FEEDS_STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    const value = readFamilyStorage(localStorage, key);
+    if (value) return value;
   } catch (e) {
     console.warn("Could not read saved calendar feeds.", e);
   }
@@ -176,19 +177,23 @@ const FamilyContext = createContext(null);
 export function FamilyProvider({ children, tabletMode = false }) {
   const { configured, household, user, googleProviderToken, signInWithGoogle, forceReconnectGoogle } = useAuth();
   const remote = Boolean(configured && household?.id && user?.id && supabase);
-  const saved = loadState();
-  const savedGoogle = loadGoogleState();
-  const savedCalendarFeeds = loadCalendarFeedState();
-  const savedFamosCalendar = loadFamosCalendarState();
+  const storageScope = { configured, userId: user?.id, householdId: household?.id };
+  const googleStorageKey = familyStorageKey(GOOGLE_STORAGE_KEY, storageScope);
+  const feedsStorageKey = familyStorageKey(CALENDAR_FEEDS_STORAGE_KEY, storageScope);
+  const famosStorageKey = familyStorageKey(FAMOS_CALENDAR_STORAGE_KEY, storageScope);
+  const saved = configured ? null : loadState();
+  const savedGoogle = loadGoogleState(googleStorageKey);
+  const savedCalendarFeeds = loadCalendarFeedState(feedsStorageKey);
+  const savedFamosCalendar = loadFamosCalendarState(famosStorageKey);
 
-  const [members, setMembers] = useState(() => savedList(saved?.members, initialFamilyMembers));
-  const [events, setEvents] = useState(() => savedList(saved?.events, initialEvents));
-  const [meals, setMeals] = useState(() => savedList(saved?.meals, initialMeals));
-  const [groceries, setGroceries] = useState(() => savedList(saved?.groceries, initialGroceries));
+  const [members, setMembers] = useState(() => savedList(saved?.members, configured ? [] : initialFamilyMembers));
+  const [events, setEvents] = useState(() => savedList(saved?.events, configured ? [] : initialEvents));
+  const [meals, setMeals] = useState(() => savedList(saved?.meals, configured ? [] : initialMeals));
+  const [groceries, setGroceries] = useState(() => savedList(saved?.groceries, configured ? [] : initialGroceries));
   const [groceryLists, setGroceryLists] = useState(() => savedList(saved?.groceryLists));
-  const [tasks, setTasks] = useState(() => savedList(saved?.tasks, initialTasks));
+  const [tasks, setTasks] = useState(() => savedList(saved?.tasks, configured ? [] : initialTasks));
   const [taskLists, setTaskLists] = useState(() => savedList(saved?.taskLists));
-  const [messages, setMessages] = useState(() => savedList(saved?.messages, initialMessages));
+  const [messages, setMessages] = useState(() => savedList(saved?.messages, configured ? [] : initialMessages));
   const [messageReactions, setMessageReactions] = useState(() => savedList(saved?.messageReactions));
   const [expenses, setExpenses] = useState(() => savedList(saved?.expenses));
   const [weeklyBudget, setWeeklyBudgetState] = useState(saved?.weeklyBudget ?? 0);
@@ -208,11 +213,11 @@ export function FamilyProvider({ children, tabletMode = false }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem(CALENDAR_FEEDS_STORAGE_KEY, JSON.stringify({ feeds: calendarFeeds, events: feedEvents }));
+      writeFamilyStorage(localStorage, feedsStorageKey, { feeds: calendarFeeds, events: feedEvents });
     } catch (e) {
       console.warn("Could not save calendar feeds.", e);
     }
-  }, [calendarFeeds, feedEvents]);
+  }, [calendarFeeds, feedEvents, feedsStorageKey]);
 
   const requestNotifications = async () => {
     if (typeof Notification === "undefined") return "unsupported";
@@ -350,7 +355,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
     listId: row.list_id || null,
     assigneeIds: uniqueIds(row.assignee_ids),
   });
-  const mapEvent = (row) => ({ id: row.id, title: row.title, start: row.starts_at, end: row.ends_at, location: row.location, recurrence: row.recurrence || "none", recurrenceUntil: row.recurrence_until || "", source: row.source === "familyos" ? "local" : row.source, externalId: row.external_id || null, googleEventId: row.source === "google" ? row.external_id || null : null, calendarId: row.external_calendar_id || null, memberIds: (row.event_participants || []).map((p) => p.user_id) });
+  const mapEvent = (row) => ({ id: row.id, createdBy: row.created_by || null, visibility: row.visibility || "household", title: row.title, start: row.starts_at, end: row.ends_at, location: row.location, recurrence: row.recurrence || "none", recurrenceUntil: row.recurrence_until || "", source: row.source === "familyos" ? "local" : row.source, externalId: row.external_id || null, googleEventId: row.source === "google" ? row.external_id || null : null, calendarId: row.external_calendar_id || null, memberIds: (row.event_participants || []).map((p) => p.user_id) });
   const mapMeal = (row) => ({ id: row.id, date: row.meal_date, slot: row.slot, title: row.title, notes: row.notes, cookIds: row.cook_ids || [], createdBy: row.created_by || null, source: row.source || "manual", thumbnail: row.thumbnail || "", recipeSnapshot:row.recipe_snapshot || null });
   const mapMessage = (row) => ({ id: row.id, voicePath: row.voice_path || null, senderId: row.sender_id, recipientId: row.recipient_id || null, text: row.body, sentAt: row.created_at, source: row.source || "famos", sourceSender: row.source_sender || "", broadcast: row.broadcast === true || row.source_sender === "__famos_broadcast__" });
   const mapReaction = (row) => ({ id: row.id, messageId: row.message_id, memberId: row.member_id, reaction: row.reaction, createdAt: row.created_at });
@@ -1453,7 +1458,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
   const setFamosCalendar = (patch) => setFamosCalendarState((current) => ({ ...current, ...patch }));
   useEffect(() => {
     try {
-      localStorage.setItem(FAMOS_CALENDAR_STORAGE_KEY, JSON.stringify(famosCalendar));
+      writeFamilyStorage(localStorage, famosStorageKey, famosCalendar);
     } catch (e) {
       console.warn("Could not save FamOS calendar settings.", e);
     }
@@ -1472,7 +1477,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
         if (error && !/42P01|does not exist|schema cache/i.test(error.message || "")) console.warn("Could not mirror FamOS calendar settings.", error.message);
       });
     }
-  }, [famosCalendar, remote, household?.id, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [famosCalendar, famosStorageKey, remote, household?.id, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- Google Calendar (one-way import: Google -> Family OS) ----
   const [googleClientId, setGoogleClientIdState] = useState(savedGoogle?.clientId ?? "");
@@ -1492,11 +1497,11 @@ export function FamilyProvider({ children, tabletMode = false }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem(GOOGLE_STORAGE_KEY, JSON.stringify({ clientId: googleClientId, connected: googleConnected, selectedCalendarIds: selectedGoogleCalendarIds, sharedCalendarIds: sharedGoogleCalendarIds, calendarAliases: googleCalendarAliases, calendarColors: googleCalendarColors }));
+      writeFamilyStorage(localStorage, googleStorageKey, { clientId: googleClientId, connected: googleConnected, selectedCalendarIds: selectedGoogleCalendarIds, sharedCalendarIds: sharedGoogleCalendarIds, calendarAliases: googleCalendarAliases, calendarColors: googleCalendarColors });
     } catch (e) {
       console.warn("Could not save Google Calendar settings.", e);
     }
-  }, [googleClientId, googleConnected, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleCalendarAliases, googleCalendarColors]);
+  }, [googleClientId, googleConnected, selectedGoogleCalendarIds, sharedGoogleCalendarIds, googleCalendarAliases, googleCalendarColors, googleStorageKey]);
 
   const setGoogleCalendarColor = (calendarId, color) => {
     setGoogleCalendarColors((current) => ({ ...current, [calendarId]: color }));

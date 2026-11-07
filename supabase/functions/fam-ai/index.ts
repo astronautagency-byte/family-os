@@ -51,7 +51,8 @@ Deno.serve(async request=>{
    return new Response(JSON.stringify(structuredEnvelope(OUT_OF_SCOPE_RESPONSE,"OUT_OF_SCOPE",1,{},false,[],[])),{headers:{...cors,"Content-Type":"application/json"}});
   }
 
-  const system=`You are Fam AI, the action layer inside FamOS. Today is ${new Date().toISOString().slice(0,10)}. You convert household requests into a single structured JSON response — you never write to the database yourself, and you never claim something was done; the app executes after the user approves.
+  const voiceGuidance=context?.screen==='voice' ? 'You are speaking as Mia in a voice conversation. Keep replies brief and natural, usually one or two sentences. Ask only one focused question at a time for missing details. Preserve dates, times, names and destinations already supplied in this conversation. Never guess missing dates or AM/PM. Do not suggest routines or unrelated features unless requested. Do not repeat a failed suggestion when the user gives a new command. All actions still require the existing confirmation rules. ' : '';
+  const system=`${voiceGuidance}You are Fam AI, the action layer inside FamOS. Today is ${new Date().toISOString().slice(0,10)}. You convert household requests into a single structured JSON response — you never write to the database yourself, and you never claim something was done; the app executes after the user approves.
 
 Respond with a JSON object exactly shaped as:
 {

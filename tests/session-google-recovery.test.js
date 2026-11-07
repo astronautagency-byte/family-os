@@ -57,8 +57,8 @@ test("legacy household caches cannot crash Today or Meals", () => {
   const today = read("src/pages/Today.jsx");
   const ingredients = read("src/lib/mealIngredientCache.js");
   assert.match(family, /const savedList =/);
-  assert.match(family, /savedList\(saved\?\.groceries, initialGroceries\)/);
-  assert.match(family, /savedList\(saved\?\.meals, initialMeals\)/);
+  assert.match(family, /savedList\(saved\?\.groceries, configured \? \[\] : initialGroceries\)/);
+  assert.match(family, /savedList\(saved\?\.meals, configured \? \[\] : initialMeals\)/);
   assert.match(today, /String\(grocery\?\.name \|\| ""\)\.toLowerCase\(\)/);
   assert.match(ingredients, /Array\.isArray\(groceries\)/);
 });

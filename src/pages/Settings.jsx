@@ -1,3 +1,4 @@
+import FamilyHelpers from '../components/FamilyHelpers';
 import CustomizeFamOS from "../components/CustomizeFamOS";
 import BillingPlans from '../components/BillingPlans';
 import IllustratedAvatarPicker from '../components/IllustratedAvatarPicker';
@@ -1160,6 +1161,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
         </section>
 
         <CustomizeFamOS/>
+        <section data-tab="family"><FamilyHelpers householdId={configured ? household?.id : null} isOwner={configured && isMasterOwner}/></section>
         <section data-tab="family">
           <div className="flex items-end justify-between mb-3">
             <h2 className="settings-section-title"><Users size={20} aria-hidden="true"/> Family members</h2>
