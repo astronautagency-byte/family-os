@@ -1,3 +1,5 @@
+import NextSuggestion from '../components/NextSuggestion';
+import { fireConfetti } from '../lib/confetti';
 import { todaySuggestions } from '../lib/todaySuggestions';
 import {useHouseholdFeatures} from "../context/HouseholdFeaturesContext";
 import { combineCalendarSources } from '../lib/calendarSources';
@@ -298,6 +300,11 @@ export default function Today({ goTo }) {
     .filter((t) => t.due === today)
     .sort((a, b) => Number(a.done) - Number(b.done));
   const openTasks = tasks.filter((task) => !task.done);
+  const toggleHomeTask = async task => {
+    const isLastOpen = !task.done && openTasks.length === 1 && openTasks[0].id === task.id;
+    const saved = await toggleTask(task.id);
+    if (saved && isLastOpen && features.celebrations !== false) fireConfetti(48, 1800);
+  };
   const suggestionStorageKey = household?.id && user?.id ? `famos:today-dismissed:${household.id}:${user.id}:${today}` : '';
   const [dismissedSuggestions, setDismissedSuggestions] = useState([]);
   const [suggestionClock, setSuggestionClock] = useState(() => new Date());
@@ -443,7 +450,7 @@ export default function Today({ goTo }) {
         action={<button type="button" className={`today-customize-trigger ${editingDashboard ? "active" : ""}`} onClick={() => setEditingDashboard((current) => !current)} aria-expanded={editingDashboard}><LayoutGrid size={16}/>{editingDashboard ? "Done" : "Customize"}</button>}
       />
 
-      {nextSuggestion && !editingDashboard && <div className="today-next-wrap px-5"><div className="today-next-container"><button type="button" className={`today-next today-next--${nextSuggestion.page}`} onClick={() => goTo(nextSuggestion.page)}><span className="today-next-icon"><Sparkles size={20}/></span><span className="today-next-copy"><small>Up next</small><strong>{nextSuggestion.title}</strong><span>{nextSuggestion.detail}</span></span><span className="today-next-action">{nextSuggestion.action} <ChevronRight size={16}/></span></button><button type="button" className="today-next-dismiss" onClick={dismissNextSuggestion} aria-label="Dismiss suggestion for today">×</button></div></div>}
+      {nextSuggestion && !editingDashboard && <NextSuggestion suggestion={nextSuggestion} onOpen={goTo} onDismiss={dismissNextSuggestion} />}
 
       <TodayAtAGlance features={features} hidden={hiddenDashboardCards} eventCount={todaysEvents.length} taskCount={openTasks.length} dinner={meals.find(meal => meal.date === today && meal.slot === 'dinner')?.title} shoppingCount={activeGroceries.length} onSelect={goTo} />
 
@@ -761,7 +768,7 @@ export default function Today({ goTo }) {
                   const taskList = taskLists.find((list) => list.id === t.listId);
                   return (
                     <li key={t.id} className="today-list-item flex items-center gap-3 px-3 py-2.5 rounded-2xl bg-[var(--color-surface)]">
-                      <Checkbox checked={t.done} onChange={() => toggleTask(t.id)} color={assignee?.color} />
+                      <Checkbox checked={t.done} onChange={() => toggleHomeTask(t)} color={assignee?.color} />
                       <div className="flex-1 min-w-0">
                         <span className={`block text-[14px] ${t.done ? "line-through text-[var(--color-ink-faint)]" : "text-[var(--color-ink)]"} truncate`}>{t.title}</span>
                         <small className="today-task-meta">{[taskList?.name, t.due === today ? "Today" : t.due ? new Date(`${t.due}T12:00`).toLocaleDateString("en-CA", { month: "short", day: "numeric" }) : "No due date"].filter(Boolean).join(" · ")}</small>
