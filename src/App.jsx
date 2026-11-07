@@ -11,6 +11,7 @@ import "./feature.css";
 import { FamilyProvider } from "./context/FamilyContext";
 import BottomNav from "./components/BottomNav";
 import AppTopBar from "./components/AppTopBar";
+import ProductUpdateBanner from "./components/ProductUpdateBanner";
 import FamLoading from "./components/FamLoading";
 import InstallPrompt from "./components/InstallPrompt";
 import DesktopAuthGate from "./components/DesktopAuthGate";
@@ -836,6 +837,7 @@ export default function App() {
             tabletModeAvailable={isTabletViewport}
             onToggleTabletMode={() => setTabletMode((value) => !value)}
           />}
+          {!preferences.loading && enabledFeatures.location !== false && visibleTab !== 'location' && <div className="location-announcement-wrap"><ProductUpdateBanner locationOnly onNavigate={setTab} /></div>}
           <ErrorBoundary resetKey={visibleTab} fallback={({ retry, clearSW }) => <PageErrorFallback retry={retry} reloadLatest={clearSW} goToday={() => setTab("today")} />}>
             <Suspense fallback={<PageFallback />}>
               {preferences.loading ? <PageFallback/> : !childMode && upgradeFeature ? <FeaturePaywall featureId={upgradeFeature} onChoose={startFeatureCheckout} onBack={() => setUpgradeFeature("")} busy={billingBusy} error={billingError} /> : <>

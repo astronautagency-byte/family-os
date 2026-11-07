@@ -8,6 +8,16 @@
 .app-shell .topbar-actions .m3-icon-button { width: 44px; height: 44px; border: 0; background: transparent; box-shadow: none; }
 .app-shell .topbar-actions .topbar-fam-ai { color: var(--color-accent-strong); background: var(--color-accent-soft); border-radius: 14px; }
 .app-shell .topbar-actions .theme-toggle-button { color: var(--color-ink-soft); }
+.location-announcement-wrap { padding: 8px var(--layout-page-gutter,24px) 0; }
+.location-announcement-wrap .product-updates-stack { margin-bottom: 8px; }
+.location-announcement-wrap .location-update-banner { align-items: center; gap: 14px; padding: 16px 48px 16px 16px; border: 1px solid var(--color-border); border-radius: 20px; background: var(--color-surface-sunken); color: var(--color-ink); }
+.location-update-banner .product-update-icon { width: 48px; height: 48px; margin: 0; border-radius: 16px; background: var(--color-accent-soft); }
+.location-update-banner .product-update-body { gap: 5px; }
+.location-update-banner .product-update-body strong { color: var(--color-ink); font-size: 15px; }
+.location-update-banner .product-update-body span { color: var(--color-ink-soft); font-size: 13px; }
+.location-update-banner .location-update-link { display: inline-flex; align-items: center; align-self: flex-start; min-height: 36px; margin-top: 2px; padding: 0; border: 0; background: transparent; color: var(--color-accent-strong); font-size: 13px; font-weight: 700; text-align: left; }
+.location-update-banner .product-update-dismiss { width: 40px; height: 40px; top: 6px; right: 6px; }
+@media (prefers-reduced-motion: reduce) { .location-update-banner { animation: none; } }
 .app-shell .app-content .family-page-header { border: 0; margin-bottom: 8px; }
 .app-shell .family-page-header .page-header-content { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .app-shell .family-page-header .page-header-content > div:first-child { flex: 1; min-width: 0; }
