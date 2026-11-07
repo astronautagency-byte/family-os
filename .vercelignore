@@ -6,3 +6,4 @@ src-tauri/gen
 .vercel
 test-results
 *.log
+docs/security/
