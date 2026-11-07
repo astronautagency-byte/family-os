@@ -1005,19 +1005,20 @@ export default function Groceries() {
     }
     try {
       if (navigator?.clipboard?.writeText) {
-        await navigator.clipboard.writeText(deliveryShareText);
+        await navigator.clipboard.writeText(deliveryListText);
       } else {
         const textarea = document.createElement("textarea");
-        textarea.value = deliveryShareText;
+        textarea.value = deliveryListText;
         textarea.setAttribute("readonly", "");
         textarea.style.position = "fixed";
         textarea.style.opacity = "0";
         document.body.appendChild(textarea);
         textarea.select();
-        document.execCommand("copy");
+        const copied = document.execCommand("copy");
         document.body.removeChild(textarea);
+        if (!copied) throw new Error("Copy unavailable");
       }
-      setDeliveryStatus("List copied. Use it as a reference while shopping in your preferred app.");
+      setDeliveryStatus("List copied. In Uber Eats, choose a grocery store and paste it into Cart Assistant if available.");
     } catch {
       setDeliveryStatus("Copy did not work in this browser. You can still select the list text and copy it manually.");
     }
@@ -1513,13 +1514,13 @@ export default function Groceries() {
         </div>
       </Modal>
 
-      {<Modal open={deliveryModal} onClose={() => setDeliveryModal(false)} title="Export grocery list">
+      {<Modal open={deliveryModal} onClose={() => setDeliveryModal(false)} title="Shop your list">
         <div className="space-y-4">
           <div className="rounded-2xl bg-[var(--color-good-soft)] border border-[var(--color-border)] p-3 flex items-start gap-3">
             <Store size={18} color="var(--color-good)" className="mt-0.5 shrink-0" />
             <div>
               <p className="text-[13px] font-semibold text-[var(--color-ink)]">{deliveryItems.length} active grocery item{deliveryItems.length === 1 ? "" : "s"}</p>
-              <p className="text-[11.5px] text-[var(--color-ink-soft)] leading-snug">Review your list, then copy it for reference or try the Instacart list transfer.</p>
+              <p className="text-[11.5px] text-[var(--color-ink-soft)] leading-snug">Copy your list, then open a grocery delivery app to shop.</p>
             </div>
           </div>
 
@@ -1536,20 +1537,21 @@ export default function Groceries() {
             />
           </div>
 
-          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-sunken)] p-3">
-            <p className="text-[12.5px] text-[var(--color-ink-soft)] leading-relaxed">
-              If you choose Instacart list transfer, only these item names and supported quantities are shared. You choose products and check out on Instacart.
-            </p>
+          <div className="delivery-guide">
+            <strong>Shop with Uber Eats</strong>
+            <p>Copy the list, open Uber Eats, and choose a grocery store. If Cart Assistant is available, paste the list there and review the suggested items before checkout.</p>
+            <PrimaryButton onClick={copyDeliveryList} disabled={!deliveryItems.length}><span className="inline-flex items-center justify-center gap-2"><Clipboard size={15} /> Copy shopping list</span></PrimaryButton>
+            <a className="delivery-open-uber" href="https://www.ubereats.com/category/grocery" target="_blank" rel="noopener noreferrer">Open Uber Eats <ExternalLink size={15} /></a>
+            <small>Cart Assistant availability varies. You can also use the copied list as a reference while shopping.</small>
           </div>
-
-          {import.meta.env.VITE_INSTACART_ENABLED === "true" ? <PrimaryButton onClick={prepareInstacart} disabled={instacartBusy || !deliveryItems.length}>{instacartBusy ? "Preparing list…" : "Send list to Instacart"}</PrimaryButton> : <p className="text-[12.5px] text-[var(--color-ink-soft)]">Direct Instacart list transfer is coming soon. For now, copy your list and use it as a reference when shopping.</p>}
+          {import.meta.env.VITE_INSTACART_ENABLED === "true" && <><p className="text-[12.5px] text-[var(--color-ink-soft)]">If you choose Instacart list transfer, only these item names and supported quantities are shared. You choose products and check out on Instacart.</p><PrimaryButton onClick={prepareInstacart} disabled={instacartBusy || !deliveryItems.length}>{instacartBusy ? "Preparing list…" : "Send list to Instacart"}</PrimaryButton></>}
           {instacartLink && <p><a href={instacartLink} target="_blank" rel="noopener noreferrer">Open your list on Instacart ↗</a></p>}
           {deliveryStatus && <p role="status" className="text-[12.5px] leading-snug text-[var(--color-good)]">{deliveryStatus}</p>}
 
           <div>
             <p className="mb-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">Open a grocery service</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              {GROCERY_DELIVERY_APPS.map((app) => (
+              {GROCERY_DELIVERY_APPS.filter((app) => app.id !== "uber").map((app) => (
                 <button
                   key={app.id}
                   onClick={() => openGroceryPartner(app.url)}
@@ -1566,7 +1568,6 @@ export default function Groceries() {
           <div>
             <p className="mb-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">List actions</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <PrimaryButton onClick={copyDeliveryList} disabled={!deliveryItems.length}><span className="inline-flex items-center justify-center gap-2"><Clipboard size={15} /> Copy list</span></PrimaryButton>
               <SecondaryButton onClick={shareDeliveryList} disabled={!deliveryItems.length}><span className="inline-flex items-center justify-center gap-2"><Share2 size={15} /> Share</span></SecondaryButton>
               <SecondaryButton onClick={downloadDeliveryList} disabled={!deliveryItems.length}><span className="inline-flex items-center justify-center gap-2"><Download size={15} /> Download</span></SecondaryButton>
             </div>

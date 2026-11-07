@@ -37,5 +37,15 @@ it('offers a truthful manual handoff for the current shopping list',()=>{
  fireEvent.click(screen.getByRole('button',{name:/Shop for delivery/}));
  expect(screen.getByRole('dialog')).toBeDefined();
  expect(screen.getByLabelText('Grocery list export text').value).toContain('Milk');
- expect(screen.getByText(/Direct Instacart list transfer is coming soon/)).toBeDefined();
+ expect(screen.getByText(/Cart Assistant availability varies/)).toBeDefined();
+ expect(screen.getByRole('link',{name:/Open Uber Eats/}).getAttribute('href')).toContain('ubereats.com');
+});
+
+it('copies the list for a user-initiated Uber Eats handoff',async()=>{
+ state.groceries=[{id:'milk',name:'Milk',quantity:2,unit:'L',checked:false,assigneeIds:[]}];
+ const writeText=vi.fn().mockResolvedValue(); Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText}});
+ render(<Groceries/>); fireEvent.click(screen.getByRole('button',{name:/Shop for delivery/}));
+ fireEvent.click(screen.getByRole('button',{name:/Copy shopping list/}));
+ await waitFor(()=>expect(writeText).toHaveBeenCalledWith(expect.stringContaining('Milk')));
+ expect(screen.getByRole('status').textContent).toContain('List copied');
 });
