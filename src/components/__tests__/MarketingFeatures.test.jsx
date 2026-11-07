@@ -10,7 +10,7 @@ it('renders the chosen topic with working FAQ and related links',()=>{
  const question=getByText('Is basic meal planning free?');fireEvent.click(question);
  expect(question.closest('details').open).toBe(true);
  expect(getByRole('link',{name:/Explore recipe book/}).getAttribute('href')).toBe('/features/recipes');
- expect(document.title).toContain('Family meal planning');
+ expect(document.title).toBe('Family Meal Planning App | FamOS');
 });
 it('renders calendar sync separately from the shared calendar',()=>{
  const {getByRole}=render(<MarketingFeatures path="/calendar-sync"/>);

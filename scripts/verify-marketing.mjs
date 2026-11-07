@@ -15,3 +15,18 @@ for(const p of ALL_MARKETING_PAGES){
  assert.ok(JSON.parse(schemas[0][1])['@graph'].some(x=>x['@type']==='BreadcrumbList'));
 }
 console.log(`Verified ${ALL_MARKETING_PAGES.length} static topic pages: H1, content, canonical, sitemap and structured data.`);
+// Every indexable public route must serve page-specific metadata without JavaScript.
+const {publicPaths,publicMeta}=await import('../src/data/publicMeta.js');
+const seenTitles=new Set(),seenDescriptions=new Set(),seenImages=new Set();
+for(const path of publicPaths){
+ const meta=publicMeta(path),file=`dist/__public${path==='/'?'/home':path}.html`,html=await readFile(file,'utf8');
+ const esc=s=>String(s).replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+ assert.ok(html.includes(`<title>${esc(meta.title)}</title>`),`${path}: title`);
+ for(const [key,value,attr] of [['description',meta.description,'name'],['og:title',meta.title,'property'],['og:description',meta.description,'property'],['og:url',meta.canonical,'property'],['og:image',meta.image,'property'],['og:image:secure_url',meta.image,'property'],['og:image:alt',meta.imageAlt,'property'],['twitter:title',meta.title,'name'],['twitter:description',meta.description,'name'],['twitter:image',meta.image,'name'],['twitter:image:alt',meta.imageAlt,'name']]) assert.ok(html.includes(`<meta ${attr}="${key}" content="${esc(value)}"`),`${path}: ${key}`);
+ assert.ok(html.includes(`<link rel="canonical" href="${meta.canonical}"`),`${path}: canonical`);
+ assert.ok(sitemap.includes(`${meta.canonical}</loc>`),`${path}: sitemap`);
+ assert.ok(!seenTitles.has(meta.title) && !seenDescriptions.has(meta.description) && !seenImages.has(meta.image),`${path}: duplicate metadata`);seenTitles.add(meta.title);seenDescriptions.add(meta.description);seenImages.add(meta.image);
+ const image=await readFile(`dist${new URL(meta.image).pathname}`);const sharp=(await import('sharp')).default;const info=await sharp(image).metadata();assert.equal(info.width,1200);assert.equal(info.height,630);
+ for(const img of html.match(/<img\b[^>]*>/g)||[])assert.match(img,/\balt="[^"]*"/,`${path}: image missing alt attribute`);
+}
+console.log(`Verified metadata, social images and image alt attributes for ${publicPaths.length} public routes.`);

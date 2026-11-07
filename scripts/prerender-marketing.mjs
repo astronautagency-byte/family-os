@@ -3,6 +3,7 @@ import {createServer} from 'vite';
 import React from 'react';
 import {renderToString} from 'react-dom/server';
 import {ALL_MARKETING_PAGES} from '../src/data/marketingPages.js';
+import {publicMeta} from '../src/data/publicMeta.js';
 const server=await createServer({server:{middlewareMode:true},appType:'custom'});
 const escape=s=>String(s).replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;');
 try {
@@ -15,16 +16,24 @@ try {
  const visit=(e)=>{for(const c of e?.css||[])styles.add(c);for(const k of e?.imports||[])visit(manifest[k]);};
  visit(entry);
  const paths=['/features',...ALL_MARKETING_PAGES.map(p=>p.path)];
- for(const path of paths){
-  const meta=publicPageMeta(path);
-  let html=template.replace(/<title>[\s\S]*?<\/title>/,`<title>${escape(meta.title)}</title>`)
+ const withMeta=(html,meta)=>html.replace(/<title>[\s\S]*?<\/title>/,`<title>${escape(meta.title)}</title>`)
    .replace(/(<meta name="description" content=")[^"]*/,`$1${escape(meta.description)}`)
-   .replace(/(<link rel="canonical" href=")[^"]*/,`$1${meta.canonical}`)
+   .replace(/(<link rel="canonical" href=")[^"]*/,`$1${escape(meta.canonical)}`)
    .replace(/(<meta property="og:title" content=")[^"]*/,`$1${escape(meta.title)}`)
    .replace(/(<meta property="og:description" content=")[^"]*/,`$1${escape(meta.description)}`)
-   .replace(/(<meta property="og:url" content=")[^"]*/,`$1${meta.canonical}`)
+   .replace(/(<meta property="og:url" content=")[^"]*/,`$1${escape(meta.canonical)}`)
+   .replace(/(<meta property="og:image" content=")[^"]*/,`$1${escape(meta.image)}`)
+   .replace(/(<meta property="og:image:secure_url" content=")[^"]*/,`$1${escape(meta.image)}`)
+   .replace(/(<meta property="og:image:width" content=")[^"]*/,(_,prefix)=>`${prefix}1200`)
+   .replace(/(<meta property="og:image:height" content=")[^"]*/,(_,prefix)=>`${prefix}630`)
+   .replace(/(<meta property="og:image:alt" content=")[^"]*/,`$1${escape(meta.imageAlt)}`)
    .replace(/(<meta name="twitter:title" content=")[^"]*/,`$1${escape(meta.title)}`)
-   .replace(/(<meta name="twitter:description" content=")[^"]*/,`$1${escape(meta.description)}`);
+   .replace(/(<meta name="twitter:description" content=")[^"]*/,`$1${escape(meta.description)}`)
+   .replace(/(<meta name="twitter:image" content=")[^"]*/,`$1${escape(meta.image)}`)
+   .replace(/(<meta name="twitter:image:alt" content=")[^"]*/,`$1${escape(meta.imageAlt)}`);
+ for(const path of paths){
+  const meta=publicPageMeta(path);
+  let html=withMeta(template,meta);
   html=html.replace('</head>',[...styles].map(css=>`<link rel="stylesheet" href="/${css}">`).join('')+'</head>');
   html=html.replace(/<div id="root">[\s\S]*<\/div>(?=\s*<\/body>)/,`<div id="root">${renderToString(React.createElement(Page,{path}))}</div>`);
   const dest=`dist/__public${path}.html`; await mkdir(dest.slice(0,dest.lastIndexOf('/')),{recursive:true});await writeFile(dest,html);
@@ -34,12 +43,20 @@ try {
  const homeStyles=new Set();
  const collectHome=e=>{for(const c of e?.css||[])homeStyles.add(c);for(const k of e?.imports||[])collectHome(manifest[k]);};
  collectHome(manifest['src/pages/Landing.jsx']);
- let home=(await readFile('dist/index.html','utf8')).replace(/<div id="root">[\s\S]*<\/div>(?=\s*<\/body>)/,`<div id="root">${renderToString(React.createElement(Landing))}</div>`);
+ let home=withMeta(await readFile('dist/index.html','utf8'),publicMeta('/')).replace(/<div id="root">[\s\S]*<\/div>(?=\s*<\/body>)/,`<div id="root">${renderToString(React.createElement(Landing))}</div>`);
  home=home.replace('</head>',[...homeStyles].map(css=>`<link rel="stylesheet" href="/${css}">`).join('')+'<noscript><style>.landing-page [style*="opacity:0"]{opacity:1!important;transform:none!important}</style></noscript></head>');
  await writeFile('dist/__public/home.html',home);
+ // Prerender the rest of the indexable public pages for crawlers and link previews.
+ for(const [path,moduleName] of [['/pricing','Landing'],['/download','Download'],['/contact','Contact'],['/privacy','Privacy'],['/terms','Terms']]){
+  const {default:Component}=await server.ssrLoadModule(`/src/pages/${moduleName}.jsx`); const meta=publicMeta(path);const css=new Set();
+  const collect=e=>{for(const c of e?.css||[])css.add(c);for(const k of e?.imports||[])collect(manifest[k]);};collect(manifest[`src/pages/${moduleName}.jsx`]);
+  let html=withMeta(template,meta).replace(/<div id="root">[\s\S]*<\/div>(?=\s*<\/body>)/,`<div id="root">${renderToString(React.createElement(Component))}</div>`);
+  const schema=JSON.stringify({'@context':'https://schema.org','@type':'WebPage',name:meta.title,description:meta.description,url:meta.canonical}).replaceAll('<','\\u003c');
+  html=html.replace('</head>',[...css].map(c=>`<link rel="stylesheet" href="/${c}">`).join('')+`<script type="application/ld+json">${schema}</script>`+'</head>');await writeFile(`dist/__public${path}.html`,html);
+ }
  // Avoid filesystem index precedence swallowing the host-specific homepage rewrite.
  await rename('dist/index.html','dist/app-shell.html');
- const sitemapPaths=['/','/pricing','/contact','/privacy','/terms',...paths];
+ const sitemapPaths=['/','/pricing','/contact','/privacy','/terms','/download',...paths];
  await writeFile('dist/sitemap.xml',`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${sitemapPaths.map(path=>`<url><loc>https://fam-os.app${path}</loc></url>`).join('')}</urlset>`);
  console.log(`Prerendered ${paths.length} public pages with unique metadata and visible content.`);
 } finally {await server.close();}

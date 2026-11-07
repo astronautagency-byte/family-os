@@ -76,6 +76,56 @@
       "destination": "/__public/home.html"
     },
     {
+      "source": "/pricing",
+      "has": [
+        {
+          "type": "host",
+          "value": "fam-os.app"
+        }
+      ],
+      "destination": "/__public/pricing.html"
+    },
+    {
+      "source": "/download",
+      "has": [
+        {
+          "type": "host",
+          "value": "fam-os.app"
+        }
+      ],
+      "destination": "/__public/download.html"
+    },
+    {
+      "source": "/contact",
+      "has": [
+        {
+          "type": "host",
+          "value": "fam-os.app"
+        }
+      ],
+      "destination": "/__public/contact.html"
+    },
+    {
+      "source": "/privacy",
+      "has": [
+        {
+          "type": "host",
+          "value": "fam-os.app"
+        }
+      ],
+      "destination": "/__public/privacy.html"
+    },
+    {
+      "source": "/terms",
+      "has": [
+        {
+          "type": "host",
+          "value": "fam-os.app"
+        }
+      ],
+      "destination": "/__public/terms.html"
+    },
+    {
       "source": "/compare",
       "destination": "/__public/compare.html"
     },

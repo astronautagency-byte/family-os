@@ -4,15 +4,13 @@ import MarketingFooter from '../components/MarketingFooter';
 import MarketingProductPreview from '../components/MarketingProductPreview';
 import {ArrowRight, Check, CalendarDays, ChefHat, ListChecks, BookOpen, Refrigerator, MessageCircle, Users, Star, Sparkles, ShoppingCart, Tablet, MapPin, Mic} from '../components/icons';
 import {ALL_MARKETING_PAGES, MARKETING_PAGES, SEARCH_PAGES, marketingPageForPath} from '../data/marketingPages';
+import {publicMeta} from '../data/publicMeta';
 import '../landing.css';
 import '../landing-theme.css';
 import '../feature.css';
 import '../theme/marketing-pages.css';
 const icons = {voice:Mic,location:MapPin,today:Sparkles,calendar:CalendarDays,meals:ChefHat,tasks:ListChecks,recipes:BookOpen,kitchen:Refrigerator,chat:MessageCircle,family:Users,rewards:Star,'fam-ai':Sparkles,shopping:ShoppingCart,tablet:Tablet};
-export const publicPageMeta = (path) => {
- const page = marketingPageForPath(path);
- return {title:page ? `${page.title} | FamOS` : 'Family Organizer Features: Calendar, Meals & Tasks | FamOS',description:page?.description || 'Explore FamOS shared calendars, meal planning, recipes, chores, rewards, shopping lists and family chat. Choose the tools that fit your household.',canonical:`https://fam-os.app${page?.path || '/features'}`};
-};
+export const publicPageMeta = (path) => publicMeta(path) || publicMeta('/features');
 export function pageSchema(page) {
  const meta=publicPageMeta(page?.path || '/features');
  return {'@context':'https://schema.org','@graph':[
@@ -27,8 +25,8 @@ function Metadata({path}) {
   const set=(selector,attr,value)=>document.querySelector(selector)?.setAttribute(attr,value);
   set('meta[name="description"]','content',meta.description);
   set('link[rel="canonical"]','href',meta.canonical);
-  for(const [key,value] of Object.entries({title:meta.title,description:meta.description,url:meta.canonical})) set(`meta[property="og:${key}"]`,'content',value);
-  set('meta[name="twitter:title"]','content',meta.title); set('meta[name="twitter:description"]','content',meta.description);
+  for(const [key,value] of Object.entries({title:meta.title,description:meta.description,url:meta.canonical,image:meta.image,'image:secure_url':meta.image,'image:alt':meta.imageAlt,'image:width':'1200','image:height':'630'})) set(`meta[property="og:${key}"]`,'content',value);
+  set('meta[name="twitter:title"]','content',meta.title); set('meta[name="twitter:description"]','content',meta.description); set('meta[name="twitter:image"]','content',meta.image); set('meta[name="twitter:image:alt"]','content',meta.imageAlt);
  },[path]);
  return null;
 }

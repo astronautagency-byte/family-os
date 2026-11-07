@@ -4,7 +4,6 @@ Disallow: /admin
 Disallow: /app/admin
 Disallow: /partner
 Disallow: /partners
-Disallow: /download
 
 # Allow AI crawlers
 User-agent: GPTBot

@@ -1,0 +1,20 @@
+import {ALL_MARKETING_PAGES} from './marketingPages.js';
+const origin='https://fam-os.app';
+const titles={
+ voice:'Voice Assistant for Family Planning | FamOS',location:'Family Location Sharing & Check-Ins | FamOS',today:'Family Dashboard & Daily Planner | FamOS',calendar:'Shared Family Calendar App | FamOS',meals:'Family Meal Planning App | FamOS',tasks:'Family Tasks, Chores & Routines | FamOS',shopping:'Shared Family Shopping Lists | FamOS',recipes:'Family Recipe Organizer & Recipe Book | FamOS',kitchen:'Kitchen Inventory & Food Tracker | FamOS',chat:'Family Chat & Messaging App | FamOS','fam-ai':'Family Planning AI Assistant | FamOS',rewards:'Chore Rewards & Stars for Kids | FamOS',family:'Family Organizer Settings & Controls | FamOS',tablet:'Family Dashboard for Tablets | FamOS','calendar-sync':'Family Calendar Sync with Google | FamOS','calendar-photo-import':'Turn Calendar Photos into Events | FamOS',compare:'Compare Family Organizer Apps | FamOS','vs-skylight':'FamOS vs Skylight Calendar Comparison | FamOS','vs-cozi':'FamOS vs Cozi Comparison | FamOS','vs-familywall':'FamOS vs FamilyWall Comparison | FamOS'
+};
+const extra={
+ '/':{name:'Family organizer',title:'Family Organizer App for Busy Households | FamOS',description:'Bring your family calendar, meal planning, tasks and shopping lists together in one shared space. Start organizing your household with FamOS.',capture:'today'},
+ '/features':{name:'Family organizer features',title:'Family Organizer Features: Calendar, Meals & Tasks | FamOS',description:'Explore shared calendars, meal planning, shopping lists, tasks and family chat. Choose the FamOS tools that fit your household.',capture:'calendar'},
+ '/pricing':{name:'FamOS pricing',title:'FamOS Pricing: Free, Plus and Pro Plans | FamOS',description:'Compare FamOS Free, Plus and Pro plans for shared calendars, family tasks, meals and shopping. Explore pricing and choose the plan that fits.',capture:'today'},
+ '/download':{name:'FamOS on your devices',title:'Use FamOS on Your Phone, Tablet or Computer | FamOS',description:'Open FamOS on your phone, tablet or computer. Keep your family calendar, meals and tasks together, and add FamOS to your home screen where supported.',capture:'calendar'},
+ '/contact':{name:'FamOS support',title:'Contact FamOS Support | FamOS',description:'Contact the FamOS team for help with your family organizer, account, calendar, subscriptions and other questions.',capture:'chat'},
+ '/privacy':{name:'FamOS privacy',title:'Privacy Policy and Family Data | FamOS',description:'Read how FamOS handles household information, connected calendars, family location and other personal data in its privacy policy.',capture:'settings'},
+ '/terms':{name:'FamOS terms',title:'Terms of Service | FamOS',description:'Read the terms that apply when you use FamOS, including account responsibilities, subscriptions and acceptable use.',capture:'settings'}
+};
+const captures={voice:null,location:null,today:'today',calendar:'calendar',meals:'meals',tasks:'tasks',shopping:'shopping',recipes:'recipes',kitchen:'kitchen',chat:'chat','fam-ai':'ai',rewards:'rewards',family:'settings',tablet:'today','calendar-sync':'calendar','calendar-photo-import':'calendar',compare:'calendar','vs-skylight':'calendar','vs-cozi':'calendar','vs-familywall':'calendar'};
+export const publicPaths=['/', '/features','/pricing','/download','/contact','/privacy','/terms',...ALL_MARKETING_PAGES.map(p=>p.path)];
+export function publicMeta(path){
+ path=path==='/'?'/':path.replace(/\/$/,''); const page=ALL_MARKETING_PAGES.find(p=>p.path===path); const item=extra[path]|| (page?{name:page.name,title:titles[page.id]||`${page.title} | FamOS`,description:page.description,capture:captures[page.id]}:null);
+ if(!item)return null; const key=path==='/'?'home':path.slice(1).replaceAll('/','-'); const image=`${origin}/marketing/social/${key}.jpg`;return {...item,canonical:`${origin}${path}`,image,imageAlt:item.capture?`FamOS ${item.name} social preview with a sample app screen and a family at home`:`FamOS ${item.name} social preview with a family at home`};
+}

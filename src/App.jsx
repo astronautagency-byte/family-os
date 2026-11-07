@@ -12,6 +12,7 @@ import { FamilyProvider } from "./context/FamilyContext";
 import BottomNav from "./components/BottomNav";
 import AppTopBar from "./components/AppTopBar";
 import VoiceQuickAdd from "./components/VoiceQuickAdd";
+import { publicMeta } from "./data/publicMeta";
 import ProductUpdateBanner from "./components/ProductUpdateBanner";
 import FamLoading from "./components/FamLoading";
 import InstallPrompt from "./components/InstallPrompt";
@@ -368,6 +369,19 @@ export default function App() {
   }, [childMode, visibleTab, tab, preferences.loading]);
   const publicRoute = route;
   const seoPageConfig = SEO_PAGES[publicRoute] || null;
+  useEffect(() => {
+    if (window.location.hostname !== 'fam-os.app') return;
+    const path = publicRoute === 'landing' || !publicRoute ? '/' : `/${publicRoute}`;
+    const meta = publicMeta(path);
+    if (!meta || !['/', '/pricing', '/download', '/contact', '/privacy', '/terms'].includes(path)) return;
+    document.title = meta.title;
+    const set = (selector, value) => document.querySelector(selector)?.setAttribute('content', value);
+    document.querySelector('link[rel="canonical"]')?.setAttribute('href', meta.canonical);
+    set('meta[name="description"]', meta.description);
+    for (const [key,value] of Object.entries({title:meta.title,description:meta.description,url:meta.canonical,image:meta.image,'image:secure_url':meta.image,'image:alt':meta.imageAlt,'image:width':'1200','image:height':'630'})) set(`meta[property="og:${key}"]`,value);
+    for (const [key,value] of Object.entries({title:meta.title,description:meta.description,image:meta.image,'image:alt':meta.imageAlt})) set(`meta[name="twitter:${key}"]`,value);
+  }, [publicRoute]);
+
   const featureTourSteps = useMemo(() => TOUR_FEATURES.filter((feature) => {
     if (feature.id === "today" || feature.id === "settings") return true;
     return enabledFeatures[feature.featureKey] !== false && effectiveEntitlements?.features?.[feature.featureKey] !== false;
