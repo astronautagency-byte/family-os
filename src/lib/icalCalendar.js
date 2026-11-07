@@ -1,3 +1,4 @@
+import {fromZonedTime} from 'date-fns-tz';
 function unescapeText(value = "") {
   return value
     .replace(/\\n/gi, " ")
@@ -6,27 +7,35 @@ function unescapeText(value = "") {
     .replace(/\\\\/g, "\\");
 }
 
-function parseIcalDate(value, allDayEnd = false) {
+function parseIcalDate(value, timeZone = "") {
   if (!value) return null;
   if (/^\d{8}$/.test(value)) {
     const year = Number(value.slice(0, 4));
     const month = Number(value.slice(4, 6)) - 1;
     const day = Number(value.slice(6, 8));
     const date = new Date(year, month, day);
-    if (allDayEnd) date.setHours(0, 0, 0, 0);
     return date.toISOString();
   }
   const match = value.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})?(Z)?$/);
   if (!match) return null;
   const [, year, month, day, hour, minute, second = "00", utc] = match;
+  if (timeZone && !utc) {
+    const local = `${year}-${month}-${day}T${hour}:${minute}:${second}`;
+    const date = fromZonedTime(local, timeZone);
+    if (!Number.isFinite(date.getTime())) throw new Error(`Unsupported calendar time zone: ${timeZone}`);
+    return date.toISOString();
+  }
   const timestamp = utc
     ? Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second))
     : new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second)).getTime();
   return new Date(timestamp).toISOString();
 }
 
+function propertyLine(block, name) {
+  return block.find((entry) => entry.toUpperCase().startsWith(`${name}:`) || entry.toUpperCase().startsWith(`${name};`)) || "";
+}
 function propertyValue(block, name) {
-  const line = block.find((entry) => entry.toUpperCase().startsWith(`${name}:`) || entry.toUpperCase().startsWith(`${name};`));
+  const line = propertyLine(block, name);
   if (!line) return "";
   return line.slice(line.indexOf(":") + 1);
 }
@@ -39,12 +48,14 @@ export function parseIcalEvents(text, feed) {
     const lines = block.split(/\r?\n/);
     const startRaw = propertyValue(lines, "DTSTART");
     const endRaw = propertyValue(lines, "DTEND");
-    const start = parseIcalDate(startRaw);
-    let end = parseIcalDate(endRaw, /^\d{8}$/.test(endRaw));
+    const allDay = /^\d{8}$/.test(startRaw);
+    const zoneOf = name => propertyLine(lines,name).match(/(?:^|;)TZID=(?:"([^"]+)"|([^;:]+))/i)?.slice(1).find(Boolean) || "";
+    const start = parseIcalDate(startRaw, zoneOf("DTSTART"));
+    let end = parseIcalDate(endRaw, zoneOf("DTEND") || zoneOf("DTSTART"));
     if (!start) return [];
     if (!end) {
       const fallback = new Date(start);
-      fallback.setHours(fallback.getHours() + 1);
+      if (allDay) fallback.setDate(fallback.getDate() + 1); else fallback.setHours(fallback.getHours() + 1);
       end = fallback.toISOString();
     }
 
@@ -53,6 +64,8 @@ export function parseIcalEvents(text, feed) {
       id: `ical:${feed.id}:${uid}`,
       externalId: uid,
       title: unescapeText(propertyValue(lines, "SUMMARY")) || "Untitled event",
+      allDay,
+      ...(allDay ? { allDayStart: `${startRaw.slice(0,4)}-${startRaw.slice(4,6)}-${startRaw.slice(6,8)}`, allDayEndExclusive: /^\d{8}$/.test(endRaw) ? `${endRaw.slice(0,4)}-${endRaw.slice(4,6)}-${endRaw.slice(6,8)}` : null } : {}),
       start,
       end,
       location: unescapeText(propertyValue(lines, "LOCATION")),

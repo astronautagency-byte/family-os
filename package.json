@@ -44,6 +44,7 @@
     "canvas-confetti": "^1.9.4",
     "chrono-node": "^2.10.3",
     "date-fns": "^4.4.0",
+    "date-fns-tz": "^3.2.0",
     "framer-motion": "^12.42.2",
     "gsap": "^3.15.0",
     "idb-keyval": "^6.3.0",

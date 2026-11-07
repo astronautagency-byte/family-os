@@ -8,6 +8,7 @@ import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabase";
 import { expandRecurringEvents } from "../lib/eventRecurrence";
 import { combineCalendarSources } from '../lib/calendarSources';
+import { isAllDayEvent, eventOccursOnDate } from '../lib/calendarEventDates';
 import { AvatarStack, DateField, Modal, PrimaryButton, SecondaryButton, SegmentedControl, SelectField, TextField } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import FamilyIllustration from "../components/FamilyIllustration";
@@ -17,7 +18,7 @@ import PageAddButton from '../components/PageAddButton';
 import usePageAdd from '../hooks/usePageAdd';
 import PullToRefresh from "../components/PullToRefresh";
 import ConfirmAction from "../components/ConfirmAction";
-import { formatDuration, formatTime, todayISO, eventDateLocal } from "../lib/dates";
+import { addDays, formatDuration, formatTime, todayISO, eventDateLocal } from "../lib/dates";
 import { fetchGooglePlaceSuggestions, googleMapsApiKey, loadGooglePlaces } from "../lib/googleMapsPlaces";
 import { invokeEdgeFunction } from "../lib/supabase";
 import { parseQuickAdd } from "../lib/quickCapture";
@@ -143,12 +144,8 @@ function CalendarTimeGrid({ dates, events, selectedDate, onSelectDate, onSelectE
   const today = iso(now);
   const showNow = dates.some((date) => iso(date) === today) && now.getHours() >= CALENDAR_START_HOUR && now.getHours() <= CALENDAR_END_HOUR;
   const gridMinutes = (CALENDAR_END_HOUR - CALENDAR_START_HOUR) * 60;
-  const isAllDay = (event) => {
-    const start = new Date(event.start);
-    const end = event.end ? new Date(event.end) : null;
-    return event.allDay === true || (start.getHours() === 0 && start.getMinutes() === 0 && (!end || end - start >= 23 * 60 * 60 * 1000));
-  };
-  const allDayEvents = events.filter((event) => dates.some((date) => eventDateLocal(event.start) === iso(date)) && isAllDay(event));
+  const isAllDay = isAllDayEvent;
+  const allDayEvents = events.filter(event => dates.some(date => eventOccursOnDate(event, iso(date))) && isAllDay(event));
 
   // ── Drag to move / resize ────────────────────────────────────────
   // 1px of vertical movement = 1 minute (hour lines sit at hour*60px).
@@ -641,7 +638,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
   [cells]);
 
   const dayEvents = useMemo(() =>
-    visibleEvents.filter(e => eventDateLocal(e.start) === selectedDate).sort((a, b) => a.start.localeCompare(b.start)),
+    visibleEvents.filter(e => eventOccursOnDate(e, selectedDate)).sort((a, b) => a.start.localeCompare(b.start)),
   [visibleEvents, selectedDate]);
 
   const monthLabel = month.toLocaleDateString("en-CA", { month: "long", year: "numeric" });
@@ -734,8 +731,10 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
   const openEdit = (event) => {
     const start = new Date(event.start);
     const end = new Date(event.end || event.start);
-    const isAllDayEvent = event.allDay === true || (start.getHours() === 0 && start.getMinutes() === 0 && (!event.end || (new Date(event.end).getTime() - start.getTime()) >= 23 * 60 * 60 * 1000));
-    setDraft({ title:event.title || "", date:iso(start), startDate:iso(start), endDate:iso(end), start:`${String(start.getHours()).padStart(2,"0")}:${String(start.getMinutes()).padStart(2,"0")}`, end:`${String(end.getHours()).padStart(2,"0")}:${String(end.getMinutes()).padStart(2,"0")}`, location:event.location || "", memberIds:event.memberIds || [], eventType:eventType(event), destination:event.source === "google" ? `google:${event.calendarId}` : "family", recurrence:event.recurrence || "none", recurrenceUntil:event.recurrenceUntil || "", allDay: isAllDayEvent });
+    const allDay = isAllDayEvent(event);
+    const editStart = allDay && event.allDayStart ? event.allDayStart : iso(start);
+    const editEnd = allDay && event.allDayEndExclusive ? addDays(event.allDayEndExclusive,-1) : iso(end);
+    setDraft({ title:event.title || "", date:editStart, startDate:editStart, endDate:editEnd, start:`${String(start.getHours()).padStart(2,"0")}:${String(start.getMinutes()).padStart(2,"0")}`, end:`${String(end.getHours()).padStart(2,"0")}:${String(end.getMinutes()).padStart(2,"0")}`, location:event.location || "", memberIds:event.memberIds || [], eventType:eventType(event), destination:event.source === "google" ? `google:${event.calendarId}` : "family", recurrence:event.recurrence || "none", recurrenceUntil:event.recurrenceUntil || "", allDay });
     setEditingEvent(event.seriesId ? { ...event, id: event.seriesId } : event);
     setSelectedEvent(null);
     setSaveError("");
@@ -1062,7 +1061,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
     } catch { /* private mode / quota */ }
   }, [excludedNearbyCities]);
 
-  const dayEventCount = visibleEvents.filter(e => eventDateLocal(e.start) === selectedDate).length;
+  const dayEventCount = visibleEvents.filter(e => eventOccursOnDate(e, selectedDate)).length;
 
   // Coverage transparency: when nearby-cities expansion fired, show a
   // strip under the event list letting the user see what's from their
@@ -1194,7 +1193,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
 </div>
             </details>
            )}
-           {viewMode !== 'month' && <div className="apple-date-strip" data-pull-ignore aria-label="Selected week">{dayStrip.map((date) => { const key=iso(date); return <button type="button" key={key} className={`${key===selectedDate?"selected":""} ${key===todayStr?"today":""}`} onClick={()=>{setSelectedDate(key);setMonth(new Date(date.getFullYear(),date.getMonth(),1));}}><small>{date.toLocaleDateString("en-CA",{weekday:"narrow"})}</small><strong>{date.getDate()}</strong><i>{visibleEvents.some(event=>eventDateLocal(event.start)===key)?"•":""}</i></button>;})}</div>}
+           {viewMode !== 'month' && <div className="apple-date-strip" data-pull-ignore aria-label="Selected week">{dayStrip.map((date) => { const key=iso(date); return <button type="button" key={key} className={`${key===selectedDate?"selected":""} ${key===todayStr?"today":""}`} onClick={()=>{setSelectedDate(key);setMonth(new Date(date.getFullYear(),date.getMonth(),1));}}><small>{date.toLocaleDateString("en-CA",{weekday:"narrow"})}</small><strong>{date.getDate()}</strong><i>{visibleEvents.some(event=>eventOccursOnDate(event,key))?"•":""}</i></button>;})}</div>}
            {/* ── Month grid (always shown — the grid IS the date picker now) ── */}
 
            {/* ── Month grid ── */}
@@ -1216,7 +1215,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
                     const key = iso(d);
                     const inMonth = d.getMonth() === month.getMonth();
                     const active = key === selectedDate;
-                    const cellEvents = visibleEvents.filter(e => eventDateLocal(e.start) === key);
+                    const cellEvents = visibleEvents.filter(e => eventOccursOnDate(e,key));
                     return (
                       <button
                         key={key}
@@ -1272,9 +1271,9 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
                       onClick={() => setSelectedEvent(ev)}
                     >
                       <div className="calendar-event-time">
-                        <span className="calendar-event-start">{formatTime(ev.start)}</span>
-                        {ev.end && <span className="calendar-event-end">{formatTime(ev.end)}</span>}
-                        {ev.end && <span className="calendar-event-duration">{formatDuration(ev.start, ev.end)}</span>}
+                        <span className="calendar-event-start">{isAllDayEvent(ev) ? "All day" : formatTime(ev.start)}</span>
+                        {ev.end && !isAllDayEvent(ev) && <span className="calendar-event-end">{formatTime(ev.end)}</span>}
+                        {ev.end && !isAllDayEvent(ev) && <span className="calendar-event-duration">{formatDuration(ev.start, ev.end)}</span>}
                       </div>
                       <span className="calendar-event-line" style={{ backgroundColor: eventColor }} aria-hidden="true" />
                       <div className="calendar-event-body">
@@ -1824,7 +1823,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
         <Modal open={!!selectedEvent} onClose={() => setSelectedEvent(null)} title={selectedEvent?.title || "Event details"}>
           {selectedEvent && (
             <div className="event-detail-card">
-              <p className="event-detail-time">{formatTime(selectedEvent.start)}{selectedEvent.end ? ` – ${formatTime(selectedEvent.end)}` : ""}</p>
+              <p className="event-detail-time">{isAllDayEvent(selectedEvent) ? "All day" : `${formatTime(selectedEvent.start)}${selectedEvent.end ? ` – ${formatTime(selectedEvent.end)}` : ""}`}</p>
               <p className="event-detail-type"><i style={{ backgroundColor: calendarColorFor(selectedEvent, googleCalendars, googleCalendarColors, famosCalendar?.color) }} />{EVENT_TYPES[eventType(selectedEvent)].label}</p>
               {selectedEvent.location ? (
                 <a className="event-map-link" href={mapsUrl(selectedEvent.location)} target="_blank" rel="noreferrer"><MapPin size={16} /> Open navigation to {selectedEvent.location}</a>
@@ -1834,7 +1833,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
                 <button className="event-share-button" onClick={() => {
                   if (!selectedEvent?.id) return;
                   const start = selectedEvent.start ? new Date((selectedEvent.start || "").replace(" ", "T")).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }) : "TBD";
-                  const time = selectedEvent.start ? new Date((selectedEvent.start || "").replace(" ", "T")).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "";
+                  const time = isAllDayEvent(selectedEvent) ? "All day" : selectedEvent.start ? new Date((selectedEvent.start || "").replace(" ", "T")).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "";
                   setEventShare({
                     title: selectedEvent.title,
                     text: `${start}${time ? ` · ${time}` : ""}${selectedEvent.location ? `\n📍 ${selectedEvent.location}` : ""}`,

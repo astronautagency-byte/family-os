@@ -16,6 +16,7 @@ import WeeklyPlanner from "../components/WeeklyPlanner";
 import PullToRefresh from "../components/PullToRefresh";
 import { supabase } from "../lib/supabase";
 import { eventDateLocal, formatTime, fullDateLabel, greetingInfo, todayISO } from "../lib/dates";
+import { isAllDayEvent, eventOccursOnDate } from "../lib/calendarEventDates";
 import useKitchenInventory from "../hooks/useKitchenInventory";
 import { expiringInventory, inventoryExpiryStatus } from "../lib/inventoryExpiry";
 import NativeAdBanner from "../components/NativeAdBanner";
@@ -270,7 +271,7 @@ export default function Today({ goTo }) {
   const allEvents = combineCalendarSources(events,googleEvents,feedEvents,sharedGoogleCalendarIds);
 
   const todaysEvents = expandRecurringEvents(allEvents,new Date(`${today}T00:00:00`),new Date(`${today}T23:59:59`))
-    .filter((e) => eventDateLocal(e.start) === today)
+    .filter((e) => eventOccursOnDate(e, today))
     .sort((a, b) => a.start.localeCompare(b.start));
 
   // Shared ingredient cache (same key/format as Meals.jsx) so the grocery
@@ -625,8 +626,8 @@ export default function Today({ goTo }) {
                       <div className="event-carousel-body">
                         <div className="event-carousel-date today-event-date">
                           <span className="today-event-type-pill" style={{ background: typeStyle.color }}>{typeStyle.label}</span>
-                          <span>{formatTime(ev.start)}</span>
-                          {ev.end && <small>{formatTime(ev.end)}</small>}
+                          <span>{isAllDayEvent(ev) ? "All day" : formatTime(ev.start)}</span>
+                          {ev.end && !isAllDayEvent(ev) && <small>{formatTime(ev.end)}</small>}
                         </div>
                         <h3>{ev.title}</h3>
                         {ev.location && (

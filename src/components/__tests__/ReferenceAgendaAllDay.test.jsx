@@ -1,0 +1,3 @@
+import {render,screen,cleanup} from '@testing-library/react';import {afterEach,expect,it,vi} from 'vitest';import ReferenceAgenda from '../ReferenceAgenda';
+afterEach(cleanup);
+it('labels all-day events without presenting midnight as an appointment time',()=>{render(<ReferenceAgenda events={[{id:'a',title:'School break',allDay:true,start:'2026-11-07T05:00:00.000Z',end:'2026-11-08T05:00:00.000Z'},{id:'b',title:'Appointment',allDay:false,start:'2026-11-07T05:00:00.000Z',end:'2026-11-07T06:00:00.000Z'}]} onSelect={vi.fn()} colorFor={()=>'#000'}/>);expect(screen.getByText('All day')).toBeDefined();expect(screen.getByRole('button',{name:/Appointment/}).querySelector('time').textContent).not.toBe('All day');});

@@ -112,13 +112,16 @@ export async function requestGoogleAccessToken(clientId, { silent = false, timeo
 
 function normalizeGoogleEvent(item, calendar = { id: "primary", summary: "Google Calendar" }) {
   if (!item || item.status === "cancelled") return null;
+  const allDay = Boolean(item.start?.date && !item.start?.dateTime);
   const rawStart = item.start?.dateTime || (item.start?.date ? `${item.start.date}T00:00:00` : null);
-  const rawEnd = item.end?.dateTime || (item.end?.date ? `${item.end.date}T23:59:00` : null);
+  const rawEnd = item.end?.dateTime || (item.end?.date ? `${item.end.date}T00:00:00` : null);
   if (!rawStart) return null;
   return {
     id: `gcal_${encodeURIComponent(calendar.id)}_${item.id}`,
     googleEventId: item.id,
     title: item.summary || "(No title)",
+    allDay,
+    ...(allDay ? { allDayStart: item.start.date, allDayEndExclusive: item.end?.date || null } : {}),
     start: new Date(rawStart).toISOString(),
     end: new Date(rawEnd || rawStart).toISOString(),
     location: item.location || "",
@@ -152,11 +155,28 @@ export async function fetchGoogleCalendarEvents(accessToken, calendars, { daysBa
 
   const chosen = calendars?.length ? calendars : [{ id:"primary", summary:"Google Calendar", primary:true, accessRole:"owner" }];
   const groups = await Promise.all(chosen.map(async calendar => {
-    const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendar.id)}/events?${params.toString()}`, { headers: { Authorization: `Bearer ${accessToken}` } });
-    if (!res.ok) { const body=await res.text().catch(()=>""); throw new Error(`${calendar.summary} returned ${res.status}: ${body.slice(0,120)}`); }
-    const data=await res.json(); return (data.items||[]).map(item=>normalizeGoogleEvent(item,calendar)).filter(Boolean);
+    const events=[]; let pageToken; const seen=new Set();
+    do {
+      const pageParams=new URLSearchParams(params); if(pageToken)pageParams.set('pageToken',pageToken);
+      const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendar.id)}/events?${pageParams.toString()}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+      if (!res.ok) { const body=await res.text().catch(()=>""); throw new Error(`${calendar.summary} returned ${res.status}: ${body.slice(0,120)}`); }
+      const data=await res.json();events.push(...(data.items||[]).map(item=>normalizeGoogleEvent(item,calendar)).filter(Boolean));
+      pageToken=data.nextPageToken || null;if(pageToken && seen.has(pageToken))throw new Error('Calendar returned a repeated page token.');if(pageToken)seen.add(pageToken);
+    } while(pageToken);
+    return events;
   }));
   return groups.flat().sort((a,b)=>a.start.localeCompare(b.start));
+}
+
+// Google represents all-day intervals as date-only values with an exclusive end.
+export function googleEventTimes(event, timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone) {
+  if (!event.allDay) return {start:{dateTime:event.start,timeZone},end:{dateTime:event.end,timeZone}};
+  const start = new Date(event.start), end = new Date(event.end || event.start);
+  if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) throw new Error('Invalid all-day event dates.');
+  const localDate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const exclusive = new Date(end);
+  if (exclusive.getHours() !== 0 || exclusive.getMinutes() !== 0 || exclusive.getSeconds() !== 0 || exclusive <= start) exclusive.setDate(exclusive.getDate()+1);
+  return {start:{date:localDate(start)},end:{date:localDate(exclusive)}};
 }
 
 export async function createGoogleCalendarEvent(accessToken, event, calendar = { id:"primary", summary:"Google Calendar", accessRole:"owner" }) {
@@ -168,8 +188,7 @@ export async function createGoogleCalendarEvent(accessToken, event, calendar = {
       summary: event.title,
       location: event.location || undefined,
       description: event.notes || undefined,
-      start: { dateTime: event.start, timeZone },
-      end: { dateTime: event.end, timeZone },
+      ...googleEventTimes(event, timeZone),
     }),
   });
   if (!res.ok) {
@@ -189,8 +208,7 @@ export async function updateGoogleCalendarEvent(accessToken, event, calendar = {
     body: JSON.stringify({
       summary: event.title,
       location: event.location || "",
-      start: { dateTime: event.start, timeZone },
-      end: { dateTime: event.end, timeZone },
+      ...googleEventTimes(event, timeZone),
     }),
   });
   if (!res.ok) {
