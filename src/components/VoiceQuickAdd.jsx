@@ -1,6 +1,6 @@
 import { unlockMiaAudio } from '../lib/miaVoice';
 import { useEffect, useRef, useState } from 'react';
-import { Mic, MicOff } from './icons';
+import { Mic, MicOff, Sparkles } from './icons';
 import { Modal, PrimaryButton, SecondaryButton, TextField } from './ui';
 import { useFamily } from '../context/FamilyContext';
 import { useAuth } from '../context/AuthContext';
@@ -17,19 +17,21 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
   const conversation = useRef([]), originalRequest = useRef(''), requestId = useRef(0);
   const [followup, setFollowup] = useState(''), [thinking, setThinking] = useState(false), [conversationMode, setConversationMode] = useState(false), [speaking, setSpeaking] = useState(false), [voiceRecovery, setVoiceRecovery] = useState(false);
   const [preparingVoice,setPreparingVoice] = useState(false);
-  const miaAudio=useRef(null);
+  const aiAbort=useRef(null),speechAbort=useRef(null);
+  const miaAudio=useRef(null), audioPlaying=useRef(false), audioCache=useRef(new Map()), listenStartTimer=useRef(null);
+  const [startingMic,setStartingMic]=useState(false);
   const continuous = useRef(false), startRef = useRef(null), actionRef = useRef(null), speechGeneration = useRef(0), speechWatchdog = useRef(null);
   actionRef.current = action;
   const clearSpeechWatchdog = () => { if (speechWatchdog.current) clearTimeout(speechWatchdog.current); speechWatchdog.current = null; };
-  const endConversation = () => { setPreparingVoice(false); clearSpeechWatchdog(); setSpeaking(false); continuous.current = false; setConversationMode(false); requestId.current++; setThinking(false); speechGeneration.current++; stop(); silence(); };
-  const stop = () => { current.current++; if (timeout.current) clearTimeout(timeout.current); timeout.current = null; const rec = recognition.current; recognition.current = null; try { rec?.abort(); } catch {} setListening(false); };
-  const silence = () => { try { window.speechSynthesis?.cancel(); miaAudio.current?.pause(); if(miaAudio.current){miaAudio.current.onended=null;miaAudio.current.onerror=null;miaAudio.current.removeAttribute?.('src');miaAudio.current.load?.();} } catch {} };
+  const endConversation = () => { aiAbort.current?.abort(); setPreparingVoice(false); clearSpeechWatchdog(); setSpeaking(false); continuous.current = false; setConversationMode(false); requestId.current++; setThinking(false); speechGeneration.current++; stop(); silence(); };
+  const stop = () => { current.current++; clearTimeout(listenStartTimer.current);setStartingMic(false); if (timeout.current) clearTimeout(timeout.current); timeout.current = null; const rec = recognition.current; recognition.current = null; try { rec?.abort(); } catch {} setListening(false); };
+  const silence = () => { speechAbort.current?.abort();audioPlaying.current=false;try { window.speechSynthesis?.cancel(); miaAudio.current?.pause(); if(miaAudio.current){miaAudio.current.onended=null;miaAudio.current.onerror=null;miaAudio.current.removeAttribute?.('src');miaAudio.current.load?.();} } catch {} };
   const say = (words) => {
-    setMessage(words); setVoiceRecovery(false); clearSpeechWatchdog(); silence();
+    stop();setMessage(words); setVoiceRecovery(false); clearSpeechWatchdog(); silence();
     const generation = ++speechGeneration.current;
     const resume = () => {
       if (generation !== speechGeneration.current) return;
-      clearSpeechWatchdog(); setSpeaking(false);
+      clearSpeechWatchdog();setPreparingVoice(false); setSpeaking(false);
       if (!continuous.current || !active.current || document.hidden) return;
       // Allow React to commit the reviewed action before choosing the next turn.
       setTimeout(() => {
@@ -37,7 +39,7 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
         const next = actionRef.current;
         const mode = next?.ambiguousTime ? 'period' : next && ((next.type === 'event' && !next.start) || (next.type === 'meal' && !next.date)) ? 'followup' : next ? 'confirm' : conversation.current.length ? 'followup' : 'request';
         startRef.current?.(mode);
-      }, 0);
+      }, 350);
     };
     const failPlayback = () => {
       if (generation !== speechGeneration.current || !active.current) return;
@@ -47,24 +49,28 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
     if(user?.id && miaAudio.current){
       setSpeaking(false);setPreparingVoice(true);
       let settled=false;
-      const fallback=()=>{if(settled || generation!==speechGeneration.current || !active.current)return;settled=true;clearSpeechWatchdog();failPlayback();};
+      const fallback=()=>{if(settled || generation!==speechGeneration.current || !active.current)return;settled=true;speechAbort.current?.abort();clearSpeechWatchdog();failPlayback();};
       speechWatchdog.current=setTimeout(fallback,12000);
-      invokeEdgeFunction('mia-speech',{text:words.slice(0,600)}).then(async data=>{
+      const text=words.slice(0,600);
+      const cached=audioCache.current.get(text);speechAbort.current=new AbortController();
+      (cached?Promise.resolve(cached):invokeEdgeFunction('mia-speech',{text},{signal:speechAbort.current.signal})).then(async data=>{
         if(settled || generation!==speechGeneration.current || !active.current)return;
         if(!data?.audio || !['audio/wav','audio/mpeg'].includes(data.mime)){fallback();return;}
+        if(!cached){if(audioCache.current.size>=12)audioCache.current.delete(audioCache.current.keys().next().value);audioCache.current.set(text,data);}
         clearSpeechWatchdog();
         const audio=miaAudio.current;audio.src=`data:${data.mime};base64,${data.audio}`;
-        audio.onended=()=>{settled=true;resume();};audio.onerror=fallback;
+        audio.onended=()=>{audioPlaying.current=false;settled=true;resume();};audio.onerror=fallback;
         await audio.play();
+        if(settled)return;
         if(generation!==speechGeneration.current || !active.current){audio.pause();return;}
-        setPreparingVoice(false);setSpeaking(true);
+        audioPlaying.current=true;setPreparingVoice(false);setSpeaking(true);
         speechWatchdog.current=setTimeout(fallback,60000);
       }).catch(fallback);
     }else failPlayback();
   };
-  useEffect(() => { active.current = true; const pause = () => { if (document.hidden) { clearSpeechWatchdog(); setSpeaking(false); continuous.current = false; setConversationMode(false); requestId.current++; setThinking(false); speechGeneration.current++; stop(); silence(); } }; document.addEventListener('visibilitychange', pause); return () => { active.current = false; clearSpeechWatchdog(); continuous.current = false; speechGeneration.current++; document.removeEventListener('visibilitychange', pause); current.current++; if (timeout.current) clearTimeout(timeout.current); try { recognition.current?.abort(); } catch {} silence(); }; }, []);
+  useEffect(() => { active.current = true; const pause = () => { if (document.hidden) { aiAbort.current?.abort(); clearSpeechWatchdog(); setSpeaking(false); continuous.current = false; setConversationMode(false); requestId.current++; setThinking(false); speechGeneration.current++; stop(); silence(); } }; document.addEventListener('visibilitychange', pause); return () => { active.current = false;aiAbort.current?.abort(); clearSpeechWatchdog(); continuous.current = false; speechGeneration.current++; document.removeEventListener('visibilitychange', pause); current.current++;clearTimeout(listenStartTimer.current); if (timeout.current) clearTimeout(timeout.current); try { recognition.current?.abort(); } catch {} silence(); }; }, []);
   useEffect(() => { if (hidden && open) { requestId.current++; conversation.current = []; originalRequest.current = ''; setThinking(false); endConversation(); setOpen(false); } }, [hidden]);
-  const close = () => { if (busy) return; requestId.current++; conversation.current = []; originalRequest.current = ''; setFollowup(''); setThinking(false); setVoiceRecovery(false); endConversation(); setOpen(false); setError(''); setTranscript(''); setAction(null); setTyping(false); setMessage('Hi, I’m Mia. What can I help you add?'); };
+  const close = () => { if (busy) return; requestId.current++;audioCache.current.clear(); conversation.current = []; originalRequest.current = ''; setFollowup(''); setThinking(false); setVoiceRecovery(false); endConversation(); setOpen(false); setError(''); setTranscript(''); setAction(null); setTyping(false); setMessage('Hi, I’m Mia. What can I help you add?'); };
   const featureFor = type => ({ grocery: 'groceries', groceryList: 'groceries', task: 'tasks', taskList: 'tasks', event: 'calendar', meal: 'meals' })[type];
   const review = (heard) => { let result = parseVoiceQuickAdd(heard, { groceryLists, taskLists }); if (result?.type === 'event') result = { ...result, destination: 'family' }; setError(''); if (!result) { setAction(null); askAI(heard); return; } setAction(result); originalRequest.current = heard; if (features[featureFor(result.type)] === false) { if (continuous.current) endConversation(); setError('This feature is turned off for your household.'); return; } say(result.type === 'event' && !result.start ? voiceEventQuestion(result) : result.type === 'meal' && !result.date ? `What date should I plan ${result.name} for ${result.slot}?` : result.type === 'event' ? `Should I add ${result.name} to the family calendar${result.start ? ` starting ${new Date(result.start).toLocaleString(undefined, { weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}` : ''}${result.recurrence !== 'none' ? `, repeating ${result.recurrence}` : ''}? ${result.ambiguousTime ? `I heard ${result.ambiguousTime.hour}:${String(result.ambiguousTime.minute).padStart(2,'0')}. Please choose AM or PM.` : result.assumedDuration ? 'I suggested one hour. Please check the end time.' : 'Please review the date and time.'}` : result.type === 'meal' ? `Should I plan ${result.name} for ${result.slot}? Please review the date${meals.some(m=>m.date===result.date && m.slot===result.slot && m.title) ? ' and note that this will replace the existing meal' : ''}.` : result.type === 'grocery' ? `Should I add ${result.name} to ${result.listName || 'your shopping list'}?` : result.type === 'task' ? `Should I add the task ${result.name}${result.listName ? ` to ${result.listName}` : ''}?` : `Should I create the list ${result.name}?`); };
   // The assistant may ask questions, but only the reviewed client action can save.
@@ -73,9 +79,10 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
     const id = ++requestId.current;
     const turns = [...conversation.current, { role: 'user', content: heard.trim() }].slice(-8);
     conversation.current = turns;
+    aiAbort.current?.abort();const controller=new AbortController();aiAbort.current=controller;const deadline=setTimeout(()=>controller.abort(),8000);
     setThinking(true); setError('');
     try {
-      const response = await invokeEdgeFunction('fam-ai', { messages: turns, context: { screen: 'voice', localDate: new Date().toLocaleDateString('en-CA'), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone } });
+      const response = await invokeEdgeFunction('fam-ai', { messages: turns, context: { screen: 'voice', localDate: new Date().toLocaleDateString('en-CA'), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone } },{signal:controller.signal});
       if (!active.current || id !== requestId.current) return;
       const proposed = Array.isArray(response?.actions) ? response.actions : [];
       // AI output is never executed directly. Restrict conversion to explicit,
@@ -99,8 +106,8 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
         conversation.current = [...turns, { role: 'assistant', content: prompt }]; say(prompt);
       }
     } catch {
-      if (active.current && id === requestId.current) { conversation.current=[]; say('The online assistant is unavailable. Tell me what to add and which list or calendar to use.'); }
-    } finally { if (active.current && id === requestId.current) setThinking(false); }
+      if (active.current && id === requestId.current) { conversation.current=[]; say('The online assistant is unavailable. Please try again.'); }
+    } finally { clearTimeout(deadline);if (active.current && id === requestId.current) setThinking(false); }
   };
   const continueConversation = (heard) => {
     if (!heard.trim()) return;
@@ -133,12 +140,16 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
     } catch { if (continuous.current) endConversation(); if (active.current) setError('I couldn’t save that. Your request is still here; please try again.'); } finally { saving.current = false; if (active.current) setBusy(false); }
   };
   const start = (mode = 'request') => {
-    stop(); silence(); setError('');
+    stop(); setError('');
+    // Do not reset a finished media element while Safari hands audio back to the microphone.
+    if(audioPlaying.current){speechGeneration.current++;clearSpeechWatchdog();silence();setSpeaking(false);}
     if(user?.id && !miaAudio.current)miaAudio.current=unlockMiaAudio(miaAudio.current);
     const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Ctor) { if (continuous.current) endConversation(); setError('Voice recognition isn’t available on this device. You can type instead.'); setTyping(true); return; }
     const id = ++current.current;
     try { const rec = new Ctor(); recognition.current = rec; rec.lang = navigator.language || 'en-US'; rec.continuous = false; rec.interimResults = true; rec.maxAlternatives = 3;
+      rec.onstart=()=>{if(id!==current.current)return;clearTimeout(listenStartTimer.current);setStartingMic(false);setListening(true);};
+      rec.onspeechend=()=>{if(id===current.current)try{rec.stop?.();}catch{}};
       rec.onresult = (event) => {
         if (id !== current.current) return;
         const results=Array.from(event.results || []);
@@ -160,23 +171,25 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
         else review(heard);
       };
       rec.onerror = (event) => { if (id !== current.current) return; if (continuous.current) endConversation(); else stop(); setError(event.error === 'not-allowed' ? 'Microphone permission was denied. You can type instead.' : event.error === 'no-speech' ? 'I didn’t hear anything. Try again or type instead.' : 'Voice recognition stopped. Try again or type instead.'); };
-      rec.onend = () => { if (id !== current.current) return; if (timeout.current) clearTimeout(timeout.current); timeout.current = null; recognition.current = null; setListening(false); if (continuous.current) { endConversation(); setError('Listening stopped. Start the conversation again when you’re ready.'); } };
-      rec.start(); setListening(true); timeout.current = setTimeout(() => { if (id === current.current) { if (continuous.current) endConversation(); else stop(); setError('Listening timed out. Try again or type instead.'); } }, 15000);
+      rec.onend = () => { if (id !== current.current) return;clearTimeout(listenStartTimer.current);setStartingMic(false); if (timeout.current) clearTimeout(timeout.current); timeout.current = null; recognition.current = null; setListening(false); if (continuous.current) { endConversation(); setError('Listening stopped. Start the conversation again when you’re ready.'); } };
+      setStartingMic(true);
+      listenStartTimer.current=setTimeout(()=>{if(id!==current.current)return;endConversation();setError('The microphone didn’t start. Tap the microphone button to reconnect.');},3000);
+      rec.start(); timeout.current = setTimeout(() => { if (id === current.current) { if (continuous.current) endConversation(); else stop(); setError('Listening timed out. Try again or type instead.'); } }, 15000);
     } catch { if (continuous.current) endConversation(); else stop(); setError('Could not start the microphone. You can type instead.'); setTyping(true); }
   };
   startRef.current = start;
   if (hidden) return null;
-  const miaState = listening ? 'listening' : speaking ? 'speaking' : thinking || preparingVoice ? 'thinking' : 'idle';
-  const miaStateLabel = { idle: 'Your family AI', listening: 'Listening…', speaking: 'Speaking…', thinking: 'Thinking…', live: 'Live conversation' }[miaState];
+  const miaState = startingMic ? 'connecting' : listening ? 'listening' : speaking ? 'speaking' : thinking || preparingVoice ? 'thinking' : 'idle';
+  const miaStateLabel = { idle: 'Your family AI', connecting:'Connecting microphone…', listening: 'Listening…', speaking: 'Speaking…', thinking: 'Thinking…', live: 'Live conversation' }[miaState];
   return <><button data-mia-state={miaState} className="voice-quick-fab" type="button" onClick={() => setOpen(true)} aria-label="Talk to Mia, voice assistant" aria-haspopup="dialog" aria-expanded={open}>
-      <span className="voice-quick-fab-avatar" aria-hidden="true"><img src="/illustrations/mia-assistant.png" alt="" width="512" height="512" draggable="false" /><span className="mia-avatar-spark">✦</span></span>
+      <span className="voice-quick-fab-avatar" aria-hidden="true"><img src="/illustrations/mia-assistant.png" alt="" width="512" height="512" draggable="false" /><span className="mia-avatar-spark"><Sparkles size={10}/></span></span>
       <span className="mia-launcher-copy"><span>Talk to Mia</span><small>{miaStateLabel}</small></span>
       <span className="mia-voice-wave" aria-hidden="true"><i/><i/><i/><i/></span>
     </button>
     <Modal open={open} onClose={close} title="Talk to Mia" className="voice-quick-modal"><div className="voice-quick-content">
-      <div className="voice-quick-conversation" data-mia-state={miaState} aria-live="polite"><span className="voice-quick-orb"><img src="/illustrations/mia-assistant.png" alt="" /></span><span className="voice-assistant-label"><span className="mia-status-dot" aria-hidden="true"/>Mia · {miaState === 'idle' ? 'FamOS AI assistant' : miaStateLabel}</span><p className="voice-quick-prompt">{listening ? 'I’m listening…' : message}</p>{transcript && <p className="voice-quick-heard">You: “{transcript}”</p>}</div>
+      <div className="voice-quick-conversation" data-mia-state={miaState} aria-live="polite"><span className="voice-quick-orb"><img src="/illustrations/mia-assistant.png" alt="" /></span><span className="voice-assistant-label"><span className="mia-status-dot" aria-hidden="true"/>Mia · {miaState === 'idle' ? 'FamOS AI assistant' : miaStateLabel}</span><p className="voice-quick-prompt">{listening && !action && !conversation.current.length ? 'I’m listening…' : message}</p>{transcript && <p className="voice-quick-heard">You: “{transcript}”</p>}</div>
       <button type="button" className="voice-conversation-toggle" aria-pressed={conversationMode} onClick={() => { if (conversationMode) endConversation(); else { setVoiceRecovery(false); continuous.current = true; setConversationMode(true);  start(actionRef.current?.ambiguousTime ? 'period' : actionRef.current ? ((actionRef.current.type === 'event' && !actionRef.current.start) || (actionRef.current.type === 'meal' && !actionRef.current.date) ? 'followup' : 'confirm') : conversation.current.length ? 'followup' : 'request'); } }}>{conversationMode ? 'End conversation' : 'Start continuous conversation'}</button>
-      {conversationMode && <p className="voice-conversation-status">{listening ? 'Listening for your reply' : thinking ? 'Thinking…' : preparingVoice ? 'Preparing Mia’s voice…' : speaking ? 'Mia is speaking…' : 'Getting ready to listen…'}</p>}
+      {conversationMode && <p className="voice-conversation-status">{startingMic ? 'Connecting microphone…' : listening ? 'Listening for your reply' : thinking ? 'Thinking…' : preparingVoice ? 'Preparing Mia’s voice…' : speaking ? 'Mia is speaking…' : 'Getting ready to listen…'}</p>}
       {voiceRecovery && <button type="button" className="voice-quick-listen" onClick={() => { if(user?.id)miaAudio.current=unlockMiaAudio(miaAudio.current); setError(''); setVoiceRecovery(false); continuous.current = true; setConversationMode(true); say(message); }}>Hear Mia and continue</button>}
       {action ? <div className="voice-quick-review"><TextField label={action.type === 'grocery' ? 'Shopping item' : action.type === 'task' ? 'Task' : action.type === 'event' ? 'Event' : action.type === 'meal' ? 'Meal' : 'List name'} value={action.name} onChange={e => setAction({ ...action, name: e.target.value })} maxLength={120}/>{action.listName && <p>Adding to: {action.listName}</p>}{action.type === 'event' && <>{action.ambiguousTime ? <div className="voice-quick-ambiguous"><label>Event date<input aria-label="Event date" type="date" value={action.ambiguousTime.date} onChange={e=>setAction({...action,ambiguousTime:{...action.ambiguousTime,date:e.target.value}})}/></label><fieldset><legend>Is {action.ambiguousTime.hour}:{String(action.ambiguousTime.minute).padStart(2,'0')} AM or PM?</legend><div className="voice-period-options"><button type="button" onClick={()=>setAction(resolveVoicePeriod(action,'am'))}>AM</button><button type="button" onClick={()=>setAction(resolveVoicePeriod(action,'pm'))}>PM</button></div>{!conversationMode && <button type="button" className="voice-period-speak" onClick={()=>listening ? stop() : start('period')}>{listening ? 'Stop listening' : 'Say AM or PM'}</button>}</fieldset></div> : <><label>Start<input aria-label="Start" type="datetime-local" value={action.start} onChange={e=>setAction({...action,start:e.target.value})}/></label><label>End<input aria-label="End" type="datetime-local" value={action.end} onChange={e=>setAction({...action,end:e.target.value,assumedDuration:false})}/></label></>}<label>Repeat<select aria-label="Repeat" value={action.recurrence} onChange={e=>setAction({...action,recurrence:e.target.value})}><option value="none">Does not repeat</option><option value="daily">Every day</option><option value="weekly">Every week</option><option value="monthly">Every month</option><option value="yearly">Every year</option></select></label>{action.assumedDuration && <p>One hour suggested; please check the end time.</p>}<label>Calendar<select aria-label="Calendar" value={action.destination} onChange={e=>setAction({...action,destination:e.target.value})}><option value="family">{famosCalendar?.name || 'FamOS family calendar'}</option>{googleConnected && googleCalendars.filter(c=>selectedGoogleCalendarIds.includes(c.id) && ['owner','writer'].includes(c.accessRole)).map(c=><option key={c.id} value={c.id}>{googleCalendarAliases[c.id] || c.summary || 'Google Calendar'}</option>)}</select></label>{action.destination !== 'family' && action.recurrence !== 'none' && <p role="alert">Repeating events currently need the FamOS family calendar. Choose that calendar or turn off repeat.</p>}</>}{action.type === 'meal' && <><label>Meal date<input aria-label="Meal date" type="date" value={action.date} onChange={e=>setAction({...action,date:e.target.value})}/></label><label>Meal<select aria-label="Meal" value={action.slot} onChange={e=>setAction({...action,slot:e.target.value})}><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option></select></label>{meals.some(m=>m.date===action.date && m.slot===action.slot && m.title) && <p>This will replace the meal already planned for this slot.</p>}</>}{features[featureFor(action.type)] !== false && <><PrimaryButton disabled={busy || !action.name.trim() || (action.type === 'event' && (!action.start || !action.end || new Date(action.end) <= new Date(action.start))) || (action.type === 'meal' && !action.date) || (action.type === 'event' && action.destination !== 'family' && action.recurrence !== 'none')} onClick={() => save()}>{busy ? 'Adding…' : 'Yes, add it'}</PrimaryButton>{!conversationMode && <SecondaryButton disabled={busy} onClick={() => listening ? stop() : start('confirm')}>{listening ? 'Stop listening' : 'Say yes or no'}</SecondaryButton>}</>}<SecondaryButton disabled={busy} onClick={() => { stop(); setAction(null); say('Okay, I won’t add it.'); }}>Cancel</SecondaryButton></div> : !conversationMode && <button type="button" className={`voice-quick-listen ${listening ? 'is-listening' : ''}`} onClick={listening ? stop : () => start('request')} aria-pressed={listening}>{listening ? <><MicOff size={18}/> Stop listening</> : <><Mic size={18}/> Tap to speak</>}</button>}
       {thinking && <p role="status">Thinking…</p>}

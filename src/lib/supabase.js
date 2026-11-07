@@ -70,7 +70,7 @@ export const supabase = isSupabaseConfigured
     })
   : null;
 
-export async function invokeEdgeFunction(name, body, { expectedUserId } = {}) {
+export async function invokeEdgeFunction(name, body, { expectedUserId, signal } = {}) {
   if (!supabase || !supabaseUrl || !supabaseKey) throw new Error("Supabase is not configured.");
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
   if (sessionError || !session?.access_token) throw sessionError || new Error("Your session has expired. Please sign in again.");
@@ -85,6 +85,7 @@ export async function invokeEdgeFunction(name, body, { expectedUserId } = {}) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
+      signal,
     });
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);

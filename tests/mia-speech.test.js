@@ -28,3 +28,8 @@ test('Mia varies delivery while keeping recovery replies gentle',()=>{
  assert.equal(directMiaSpeech('Mia’s voice is unavailable.'),'[warm] Mia’s voice is unavailable.');
  assert.equal(directMiaSpeech('Your appointment is ready to review.'),'[warm] Your appointment is ready to review.');
 });
+
+test('late silent unlock never pauses a newer AI reply',async()=>{
+ let resolve,paused=false;const audio={src:'',play:()=>new Promise(r=>{resolve=r}),pause:()=>{paused=true}};
+ unlockMiaAudio(audio);audio.src='data:audio/wav;base64,new-reply';resolve();await Promise.resolve();await Promise.resolve();assert.equal(paused,false);
+});
