@@ -52,3 +52,7 @@ Astronaut Digital Inc., 164 McCaffrey Road, Newmarket, Ontario L3X 1K2, Canada. 
 - Production build and public-page metadata checks completed. Focused lint has no errors; existing hook/unused-variable warnings remain.
 - Controlled synthetic household: AI was off initially; incomplete and null declarations were rejected; direct consent-table inserts were denied; adult acceptance passed the API gate; a known teen profile was denied despite an earlier acceptance; the teen could not consent; withdrawal blocked the next API request.
 - In isolated headless Chrome, UI opt-in and withdrawal persisted and were enforced by the server. Grocery, meal, task and event additions each remained pending until confirmed and produced exactly one database record. Layout fit 320, 390 and 1440px. Deleted the synthetic account/household after testing.
+
+### Account-erasure blocker found during live QA
+
+An existing foreign key from product_update_reads.user_id to auth.users had no delete action. After a user dismissed an announcement, delete_own_account failed with HTTP 409. Migration 202611070011 changes only that user-specific read-state foreign key to ON DELETE CASCADE. Existing records remain intact until the corresponding user is deleted. Live synthetic QA subsequently dismissed an update and successfully deleted the account/household through delete_own_account without manually removing the read-state. This verifies that blocker; it does not establish complete erasure across all storage and processors.
