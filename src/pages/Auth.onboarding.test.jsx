@@ -28,10 +28,22 @@ describe('compact authentication',()=>{
 describe('owner onboarding flow',()=>{
   it('requires a name before continuing and discloses card/renewal before setup',()=>{
     render(<HouseholdOnboarding/>);
-    expect(screen.getByRole('button',{name:'That’s Everyone',exact:true})).toBeDisabled();
+    expect(screen.getByRole('button',{name:'Continue',exact:true})).toBeDisabled();
     expect(screen.getByText(/Setup ends with secure card checkout/)).toHaveTextContent('19.99');
     fireEvent.change(screen.getByLabelText('First name'),{target:{value:'Test Parent'}});
-    expect(screen.getByRole('button',{name:'That’s Everyone',exact:true})).toBeEnabled();
+    expect(screen.getByRole('button',{name:'Continue',exact:true})).toBeEnabled();
+  });
+  it('previews the selected household and clearly labels sample activities',()=>{
+    atStep(3);
+    expect(screen.getByText('Test Parent')).toBeInTheDocument();
+    expect(screen.getByText('None selected — you can add these later')).toBeInTheDocument();
+    expect(screen.getByText('EXAMPLE · TODAY')).toBeInTheDocument();
+    expect(screen.getByRole('button',{name:'Review Pro trial'})).toBeEnabled();
+  });
+  it('lets people skip optional interests',()=>{
+    atStep(1);
+    expect(screen.getByRole('button',{name:'Skip for now'})).toBeEnabled();
+    expect(screen.getByRole('button',{name:'Sports'})).toHaveAttribute('aria-pressed','false');
   });
   it('offers the requested card-backed seven-day Pro trial',()=>{
     atStep(4);

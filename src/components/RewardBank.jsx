@@ -41,19 +41,17 @@ export default function RewardBank({onNavigate} = {}) {
  return <div className="reward-bank-page">
   <PageHeader title="RewardBank" titleIcon={<Gift size={26}/>} subtitle={parent ? 'Turn family contributions into something to look forward to.' : 'Your chores. Your stars. Your next reward.'}/>
   <div className="reward-bank">
-   <div className="reward-bank-intro"><span className="reward-bank-star-seal" aria-hidden="true"><Star size={48}/></span><div><h2>{parent ? 'Little chores. Big adventures.' : 'Every star is a step closer'}</h2><p>{parent ? 'Choose chores, approve stars, and celebrate with rewards you agree on.' : 'Complete a chore in Tasks. Your parent approves the stars, then you can request a reward.'}</p></div>{features.tasks&&onNavigate&&<SecondaryButton onClick={()=>onNavigate('tasks')}><CheckSquare size={18}/> Go to Tasks</SecondaryButton>}</div>
-   <p className="reward-bank-note">Finish a chore → collect approved stars → choose an experience.</p>
-   {error&&<p role="alert">{error}</p>}
-   <SecondaryButton disabled={busy} onClick={()=>setVersion(v=>v+1)}>Refresh RewardBank</SecondaryButton>
+   {error&&<div className="reward-bank-error" role="alert"><p>{error}</p><SecondaryButton disabled={busy} onClick={()=>setVersion(v=>v+1)}>Try again</SecondaryButton></div>}
    {!data&&!error&&<p role="status">Loading RewardBank…</p>}
    {data&&<fieldset disabled={busy}>
-    {parent&&<label className="reward-bank-switch"><input type="checkbox" checked={!!enabled} onChange={e=>command('enable',{enabled:e.target.checked})}/> Enable RewardBank for this household</label>}
-    {!enabled?<p>RewardBank is paused. Balances and requests are kept. {parent?'Enable it to start earning and redeeming stars.':'Ask your household owner to enable it.'}</p>:<>
-     {parent&&<section><h3>Children taking part</h3>
+    {!enabled?<div className="reward-bank-paused"><span className="reward-bank-star-seal" aria-hidden="true"><Star size={40}/></span><div><h2>{parent?'Make chores more rewarding':'RewardBank is paused'}</h2><p>{parent?'Set a star value for chores and let your children save up for rewards you choose.':'Ask your household owner to enable RewardBank when you’re ready to collect stars.'}</p><p className="reward-bank-note">Existing stars and requests stay safe while RewardBank is off.</p>{parent&&<PrimaryButton type="button" onClick={()=>command('enable',{enabled:true})}>Enable RewardBank</PrimaryButton>}</div></div>:<>
+     <div className="reward-bank-active-head"><div><h2>{parent?'Stars and rewards':'Your stars and rewards'}</h2><p className="reward-bank-note">{parent?'Choose chores, approve stars and create rewards.':'Complete chores, collect stars and choose a reward.'}</p></div>{features.tasks&&onNavigate&&<SecondaryButton type="button" onClick={()=>onNavigate('tasks')}><CheckSquare size={18}/> Go to Tasks</SecondaryButton>}</div>
+     {parent&&<label className="reward-bank-switch"><input type="checkbox" checked={true} onChange={()=>command('enable',{enabled:false})}/> RewardBank is enabled</label>}
+     {parent&&<section className="reward-bank-people"><h3>Children taking part</h3>
       <p className="reward-bank-note">Choose the children in your household. Only household owners can manage stars and rewards.</p>
       <div className="reward-bank-members">{members.filter(m=>m.id!==user?.id).map(m=><button type="button" key={m.id} disabled={accounts.some(a=>a.child_id===m.id)} onClick={()=>command('enroll',{child_id:m.id})}><Avatar member={m}/><span>{m.name}</span><small>{accounts.some(a=>a.child_id===m.id)?'Enabled':'Enable'}</small></button>)}</div>
      </section>}
-     <section><h3>{parent?'Star jars':'Your stars'}</h3><div className="reward-bank-members">{accounts.map(a=><div key={a.child_id}><Avatar member={memberById[a.child_id]}/><span>{memberById[a.child_id]?.name || 'Member'}</span><strong className="reward-bank-balance"><Star size={22}/>{a.balance} stars</strong></div>)}</div>{!accounts.length&&<p>No children enrolled yet.</p>}<p className="reward-bank-note">Available stars exclude stars reserved for requested rewards.</p></section>
+     <section className="reward-bank-jars"><h3>{parent?'Star jars':'Your stars'}</h3><div className="reward-bank-members">{accounts.map(a=><div key={a.child_id}><Avatar member={memberById[a.child_id]}/><span>{memberById[a.child_id]?.name || 'Member'}</span><strong className="reward-bank-balance"><Star size={22}/>{a.balance} stars</strong></div>)}</div>{!accounts.length&&<p>No children enrolled yet.</p>}<p className="reward-bank-note">Available stars exclude stars reserved for requested rewards.</p></section>
      {parent&&features.tasks&&<section><h3>Choose stars for a chore</h3><p className="reward-bank-note">Choose a task already assigned to your child. You decide how many stars it earns.</p>
       <form onSubmit={async e=>{e.preventDefault();if(await command('chore',{child_id:child,task_id:task,points:Number(stars)}))setTask('');}}>
        <label>Child<select required value={child} onChange={e=>{setChild(e.target.value);setTask('');}}><option value="">Choose a child</option>{accounts.map(a=><option key={a.child_id} value={a.child_id}>{memberById[a.child_id]?.name || 'Member'}</option>)}</select></label>
@@ -67,7 +65,7 @@ export default function RewardBank({onNavigate} = {}) {
       {chores.map(c=>{const t=tasks.find(t=>t.id===c.task_id);return <article key={c.id}><div><strong>{t?.title || 'Chore'}</strong><small>{memberById[c.child_id]?.name} · {c.points} stars · {c.approved_at?'Stars earned':t?.done?'Awaiting parent approval':'Complete in Tasks'}</small></div>{parent&&!c.approved_at&&t?.done&&<SecondaryButton onClick={()=>command('approve',{id:c.id})}>Approve stars</SecondaryButton>}</article>;})}
       <p className="reward-bank-note">Each scored task earns stars once. For next week, create a new task. Reopening a task does not award stars again.</p>
      </section>
-     {parent&&<section><h3>Create an experience</h3><form onSubmit={async e=>{e.preventDefault();if(await command('reward',{...reward,cost:Number(reward.cost)}))setReward({...reward,title:'',details:''});}}>
+     {parent&&<section className="reward-bank-create"><h3>Create an experience</h3><form onSubmit={async e=>{e.preventDefault();if(await command('reward',{...reward,cost:Number(reward.cost)}))setReward({...reward,title:'',details:''});}}>
       <label>Experience name<input required maxLength="120" placeholder="Movie night with Katie" value={reward.title} onChange={e=>setReward({...reward,title:e.target.value})}/></label>
       <label>Stars needed<input required type="number" min="1" max="100000" value={reward.cost} onChange={e=>setReward({...reward,cost:e.target.value})}/></label>
       <label>What is included?<input maxLength="500" placeholder="Pick the movie and snacks, or plan a special day together" value={reward.details} onChange={e=>setReward({...reward,details:e.target.value})}/></label>

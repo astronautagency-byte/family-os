@@ -1,3 +1,4 @@
+import {COMPARISON_PAGES, COMPARISON_HUB} from './comparisonPages.js';
 // One canonical page per distinct family need. This data also builds static HTML and the sitemap.
 const page = (id, name, title, intro, art, sections, steps, faqs, related, capture) => ({id,name,path:`/features/${id}`,title,description:intro,art,sections,steps,faqs,related,capture});
 export const MARKETING_PAGES = [
@@ -74,5 +75,5 @@ export const SEARCH_PAGES = [
  ['Save only what you choose','Select the drafts to add. Required fields must be valid before saving, and matching title/start-time events are skipped. Recurring schedules require individual review; importing a photo does not infer a recurrence rule.']
  ],['Open Calendar → Import image and choose up to three photos.','Set the reference month and read the images.','Edit the drafts and add the selected events.'],[['Will events be added automatically?','No. Extraction creates editable drafts. You choose and validate the events before saving.'],['Where are my photos sent?','Photos are sent to the configured AI provider when you choose Read images. Original photos are not stored with the calendar events.'],['Does handwriting always work?','No. Image quality and handwriting affect accuracy. Always compare extracted dates, times and titles with the source.']],['calendar','calendar-sync','today'],'calendar'),path:'/calendar-photo-import'}
 ];
-export const ALL_MARKETING_PAGES = [...MARKETING_PAGES,...SEARCH_PAGES];
+export const ALL_MARKETING_PAGES = [...MARKETING_PAGES,...SEARCH_PAGES,COMPARISON_HUB,...COMPARISON_PAGES];
 export const marketingPageForPath = path => ALL_MARKETING_PAGES.find(page => page.path === path.replace(/\/$/,''));

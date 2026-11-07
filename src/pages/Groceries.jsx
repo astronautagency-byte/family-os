@@ -272,6 +272,7 @@ export default function Groceries() {
   const [masterEditing, setMasterEditing] = useState(null);
   const [masterDraft, setMasterDraft] = useState(emptyDraft);
   const [showAllStaples, setShowAllStaples] = useState(false);
+  const [quickAddError, setQuickAddError] = useState("");
   const [clearing, setClearing] = useState(false);
   const [clearingChecked, setClearingChecked] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
@@ -394,6 +395,16 @@ export default function Groceries() {
   useEffect(() => { localStorage.setItem(staplesKeyForList(activeGroceryListId), JSON.stringify(staples)); }, [staples, activeGroceryListId]);
 
   const activeGroceries = useMemo(() => activeGroceryListId === "all" ? groceries : groceries.filter((item) => item.listId === activeGroceryListId), [groceries, activeGroceryListId]);
+  const checkedQuickAdd = useMemo(() => {
+    const seen = new Set(staples.map(item => item.name.trim().toLowerCase()));
+    for (const item of activeGroceries) if (!item.checked) seen.add(item.name.trim().toLowerCase());
+    return activeGroceries.filter(item => {
+      const name = item.name?.trim().toLowerCase();
+      if (!item.checked || !name || seen.has(name)) return false;
+      seen.add(name);
+      return true;
+    }).slice(0, 6);
+  }, [activeGroceries, staples]);
   const addGrocery = useCallback((item) => addGroceryBase({ ...item, listId: activeGroceryListId === "all" ? null : activeGroceryListId }), [addGroceryBase, activeGroceryListId]);
   const grouped = useMemo(() => {
     const map = {};
@@ -664,14 +675,17 @@ export default function Groceries() {
     const pendingKey = `${listKey}:${nameKey}`;
     if (!nameKey || pendingStaplesRef.current.has(pendingKey)) return;
     pendingStaplesRef.current.add(pendingKey);
+    setQuickAddError("");
     try {
       const currentGroceries = groceriesRef.current || groceries;
       const existing = currentGroceries.find((item) => item.name.trim().toLowerCase() === nameKey && (listKey === "all" || item.listId === listKey));
       if (existing) {
-        if (existing.checked) await updateGrocery(existing.id, { checked: false });
+        if (existing.checked && !await toggleGrocery(existing.id)) throw new Error("Could not add this item. Please try again.");
         return;
       }
       await addGrocery({ ...staple, assigneeIds: [...new Set(staple.assigneeIds || [])], addedBy: null });
+    } catch (error) {
+      setQuickAddError(error?.message || "Could not add this item. Please try again.");
     } finally {
       // Keep the guard for a beat after the write settles so a trailing click
       // from the same gesture (touch drag-release, fast double-tap) can't slip
@@ -684,6 +698,20 @@ export default function Groceries() {
     const saved = staples.find((staple) => staple.name.toLowerCase() === item.name.toLowerCase());
     if (saved) { setStaples((current) => current.filter((staple) => staple.id !== saved.id)); return; }
     setStaples((current) => [...current, { id: `staple_${Date.now()}`, name: item.name, category: item.category, quantity: item.quantity || 1, unit: item.unit || "", photoUrl: item.photoUrl || "", imageUrl: item.imageUrl || "" }]);
+  };
+
+  const buyAgain = async (item) => {
+    const key = `checked:${item.id}`;
+    if (pendingStaplesRef.current.has(key)) return;
+    pendingStaplesRef.current.add(key);
+    setQuickAddError("");
+    try {
+      if (!await toggleGrocery(item.id)) setQuickAddError("Could not add this item. Please try again.");
+    } catch (error) {
+      setQuickAddError(error?.message || "Could not add this item. Please try again.");
+    } finally {
+      window.setTimeout(() => pendingStaplesRef.current.delete(key), 500);
+    }
   };
 
   const dropStaple = (event) => {
@@ -1213,6 +1241,8 @@ export default function Groceries() {
             <button onClick={() => openMasterItem()} className="flex items-center gap-1 text-[11.5px] font-semibold text-[var(--color-accent)]"><Plus size={13} /> New staple</button>
           </div>
           <StapleStarter onAdd={items=>setStaples(current=>mergeStarterStaples(current,items))}/>
+          {quickAddError && <p role="alert" className="grocery-quick-add-error">{quickAddError}</p>}
+          {checkedQuickAdd.length > 0 && <div className="grocery-checked-suggestions"><h3>Buy again</h3><p>Items checked off on this list</p><div>{checkedQuickAdd.map(item => <button key={item.id} type="button" onClick={()=>buyAgain(item)}><Plus size={14}/><span>{item.name}</span></button>)}</div></div>}
           {staples.length === 0 && (
             <p className="text-center text-[12px] text-[var(--color-ink-faint)] py-4 px-2">No staples yet. Tap <strong>New staple</strong> to save items you buy regularly.</p>
           )}

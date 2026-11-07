@@ -22,7 +22,7 @@ import { setupSelfUpdate } from "./lib/selfUpdate.js";
 setupSelfUpdate();
 
 const publicPath = window.location.pathname.replace(/\/$/, '') || '/';
-const publicFeatureRoute = publicPath === '/features' || publicPath.startsWith('/features/') || ['/calendar-sync','/calendar-photo-import'].includes(publicPath);
+const publicFeatureRoute = publicPath === '/compare' || publicPath.startsWith('/compare/') || publicPath === '/features' || publicPath.startsWith('/features/') || ['/calendar-sync','/calendar-photo-import'].includes(publicPath);
 if (!IS_APP_STORE && publicPath === '/' && window.location.hostname === 'fam-os.app') {
   import('./pages/Landing.jsx').then(({default:Landing}) => createRoot(document.getElementById('root')).render(<StrictMode><Landing/></StrictMode>));
 } else if (!IS_APP_STORE && publicPath === '/download') {

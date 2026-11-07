@@ -1,9 +1,12 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "build": {
-    "beforeBuildCommand": "VITE_DISTRIBUTION=ios-app-store npm run build"
+    "beforeBuildCommand": "npm run build:ios-app-store",
+    "frontendDist": "../dist-ios"
   },
   "bundle": {
-    "targets": ["app"]
+    "targets": [
+      "app"
+    ]
   }
 }

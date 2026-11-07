@@ -1,3 +1,4 @@
+import { todaySuggestions } from '../lib/todaySuggestions';
 import {useHouseholdFeatures} from "../context/HouseholdFeaturesContext";
 import { combineCalendarSources } from '../lib/calendarSources';
 import { expandRecurringEvents } from '../lib/eventRecurrence';
@@ -446,6 +447,7 @@ export default function Today({ goTo }) {
     .filter((t) => t.due === today)
     .sort((a, b) => Number(a.done) - Number(b.done));
   const openTasks = tasks.filter((task) => !task.done);
+  const nextSuggestion = todaySuggestions({tasks, meals, today, features, hidden:hiddenDashboardCards});
   const homeTasks = todaysTasks.length
     ? todaysTasks
     : openTasks.slice().sort((a, b) => (a.due || "9999-12-31").localeCompare(b.due || "9999-12-31")).slice(0, 6);
@@ -584,6 +586,8 @@ export default function Today({ goTo }) {
         illustration="home"
         action={<button type="button" className={`today-customize-trigger ${editingDashboard ? "active" : ""}`} onClick={() => setEditingDashboard((current) => !current)} aria-expanded={editingDashboard}><LayoutGrid size={16}/>{editingDashboard ? "Done" : "Customize"}</button>}
       />
+
+      {nextSuggestion && !editingDashboard && <div className="today-next-wrap px-5"><button type="button" className={`today-next today-next--${nextSuggestion.page}`} onClick={() => goTo(nextSuggestion.page)}><span className="today-next-icon"><Sparkles size={20}/></span><span className="today-next-copy"><small>A helpful next step</small><strong>{nextSuggestion.title}</strong><span>{nextSuggestion.detail}</span></span><span className="today-next-action">{nextSuggestion.action} <ChevronRight size={16}/></span></button></div>}
 
       <div className="reference-home-overview px-5">
         <div className="reference-family-strip" aria-label="Your family">{members.map(member => <div key={member.id}><Avatar member={member} size="lg"/><span>{member.name?.split(' ')[0]}</span></div>)}<button type="button" onClick={() => goTo('settings')} aria-label="Manage family members">+</button></div>

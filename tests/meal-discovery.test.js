@@ -59,11 +59,8 @@ test("old title-only recipe caches cannot reopen an empty Cook Mode", () => {
   assert.match(recipeSearchSource, /famos:recipe-search-cache:v2/);
 });
 
-test("kitchen ideas use the reviewed kitchen inventory", () => {
-  assert.match(mealsSource, /useKitchenInventory/);
-  assert.match(mealsSource, /inventoryIngredientNames/);
-  assert.match(mealsSource, /ingredients:\s*kitchenOnly \? kitchenIngredients\.join/);
-  assert.match(mealsSource, /Cook from what you have/);
+test("removed kitchen-only meal discovery is not offered", () => {
+  assert.doesNotMatch(mealsSource, /Cook from what you have/);
 });
 
 test("Today exposes all daily meal slots with direct ideas and Cook intents", () => {

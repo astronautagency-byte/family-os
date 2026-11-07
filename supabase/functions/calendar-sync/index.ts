@@ -9,7 +9,7 @@ const corsHeaders = {
 const json = (body: Record<string, unknown>, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
   });
 
 // ─── Google OAuth token refresh ─────────────────────────────────────
@@ -173,7 +173,7 @@ async function syncGoogleCalendar(
             method: "POST",
             headers: {
               Authorization: `Bearer ${accessToken}`,
-              "Content-Type": "application/json",
+              "Content-Type": "application/json", "Cache-Control": "no-store",
             },
             body: JSON.stringify(googleEvent),
           }
@@ -196,116 +196,13 @@ async function syncGoogleCalendar(
   return result;
 }
 
-// ─── iCal feed import ───────────────────────────────────────────────
-
-function parseICalDate(value: string): string {
-  const m = value.match(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/);
-  if (m) return `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}`;
-  const d = value.match(/^(\d{4})(\d{2})(\d{2})$/);
-  if (d) return `${d[1]}-${d[2]}-${d[3]}`;
-  return value;
-}
-
-function parseICalFeed(text: string) {
-  const events: Array<{ uid: string; summary: string; dtstart: string; dtend: string; description: string; location: string }> = [];
-  const lines = text.replace(/\r\n /g, "").split(/\r?\n/);
-  let inEvent = false;
-  let cur: Record<string, string> = {};
-
-  for (const line of lines) {
-    if (line === "BEGIN:VEVENT") { inEvent = true; cur = {}; }
-    else if (line === "END:VEVENT") {
-      inEvent = false;
-      if (cur.dtstart) {
-        events.push({
-          uid: cur.uid || `${cur.summary}-${cur.dtstart}`,
-          summary: cur.summary || "Untitled",
-          dtstart: cur.dtstart,
-          dtend: cur.dtend || cur.dtstart,
-          description: (cur.description || "").replace(/\\n/g, "\n").replace(/\\,/g, ","),
-          location: (cur.location || "").replace(/\\,/g, ","),
-        });
-      }
-    } else if (inEvent) {
-      const i = line.indexOf(":");
-      if (i === -1) continue;
-      const key = line.substring(0, i).split(";")[0].toUpperCase();
-      const val = line.substring(i + 1);
-      if (key === "SUMMARY") cur.summary = val;
-      else if (key === "DTSTART") cur.dtstart = parseICalDate(val);
-      else if (key === "DTEND") cur.dtend = parseICalDate(val);
-      else if (key === "DESCRIPTION") cur.description = val;
-      else if (key === "LOCATION") cur.location = val;
-      else if (key === "UID") cur.uid = val;
-    }
-  }
-  return events;
-}
-
-async function importICalFeed(
-  admin: ReturnType<typeof createClient>,
-  householdId: string,
-  userId: string,
-  feedUrl: string,
-  calendarName?: string
-) {
-  let url = feedUrl.trim();
-  if (url.startsWith("webcal://")) url = url.replace("webcal://", "https://");
-
-  const response = await fetch(url, {
-    headers: { Accept: "text/calendar, application/ics, */*" },
-    signal: AbortSignal.timeout(15000),
-  });
-
-  if (!response.ok) {
-    return { error: `Could not fetch calendar (HTTP ${response.status}). Check the URL.` };
-  }
-
-  const text = await response.text();
-  if (!text.includes("BEGIN:VEVENT")) {
-    return { error: "No events found in this calendar feed." };
-  }
-
-  const events = parseICalFeed(text);
-  let imported = 0;
-  let skipped = 0;
-
-  for (const event of events) {
-    const { data: existing } = await admin
-      .from("events")
-      .select("id")
-      .eq("household_id", householdId)
-      .eq("external_id", event.uid)
-      .eq("source", "ical")
-      .maybeSingle();
-
-    if (existing) { skipped++; continue; }
-
-    const { error } = await admin.from("events").insert({
-      household_id: householdId,
-      title: event.summary,
-      description: event.description,
-      location: event.location,
-      starts_at: event.dtstart,
-      ends_at: event.dtend,
-      source: "ical",
-      external_id: event.uid,
-      created_by: userId,
-      recurrence: "none",
-    });
-
-    if (!error) imported++;
-    else skipped++;
-  }
-
-  return { imported, skipped, total: events.length, calendar_name: calendarName || "iCal Feed" };
-}
-
 // ─── Main handler ───────────────────────────────────────────────────
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS")
     return new Response("ok", { headers: corsHeaders });
+
+  if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   try {
     const authorization = request.headers.get("Authorization");
@@ -341,22 +238,15 @@ Deno.serve(async (request) => {
     }
 
     if (action === "import_ical") {
-      if (!body.feed_url) return json({ error: "feed_url is required" }, 400);
-      const result = await importICalFeed(
-        admin,
-        membership.household_id,
-        user.id,
-        body.feed_url,
-        body.calendar_name
-      );
-      if (result.error) return json({ error: result.error }, 400);
-      return json({ ...result, action: "import_ical" });
+      // Retired: no current client uses this legacy arbitrary-URL fetcher.
+      // Keep this explicit response for old clients; never resolve or fetch feed_url.
+      return json({ error: "Legacy calendar URL import is no longer supported. Connect your calendar in Settings.", code: "legacy_import_retired" }, 410);
     }
 
     return json({ error: `Unknown action: ${action}` }, 400);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error(JSON.stringify({ event: "calendar_sync_error", message }));
-    return json({ error: message }, 500);
+    return json({ error: "Calendar request failed. Please try again." }, 500);
   }
 });

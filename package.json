@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build && node scripts/prerender-marketing.mjs && node scripts/verify-marketing.mjs",
     "build:mac-app-store": "VITE_DISTRIBUTION=mac-app-store vite build",
-    "build:ios-app-store": "VITE_DISTRIBUTION=ios-app-store vite build",
+    "build:ios-app-store": "VITE_DISTRIBUTION=ios-app-store vite build --outDir dist-ios && node scripts/verify-native-bundle.mjs dist-ios",
     "lint": "oxlint",
     "test": "node --test tests/*.test.js",
     "test:vitest": "vitest run",
@@ -27,7 +27,11 @@
     "mobile:ios:prepare": "bash scripts/prepare-ios-appstore.sh",
     "mobile:ios:archive": "npm run mobile:ios:prepare && VITE_DISTRIBUTION=ios-app-store tauri ios build --archive-only --export-method app-store-connect --build-number ${APP_BUILD_NUMBER:-1} --ci",
     "appstore:check": "echo 'Checking app store metadata...' && cat app-store-metadata/README.md | head -20",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "build:android": "VITE_DISTRIBUTION=android vite build --outDir dist-android && node scripts/verify-native-bundle.mjs dist-android",
+    "mobile:android:debug": "bash scripts/build-android-debug.sh",
+    "mobile:ios:debug": "tauri ios build --debug --target aarch64 --no-sign --ci",
+    "postinstall": "node scripts/patch-deepmerge.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
@@ -66,8 +70,13 @@
     "postcss": "^8.5.16",
     "tailwindcss": "^4.3.2",
     "vite": "^8.1.1",
-    "vite-plugin-pwa": "^1.3.0",
-    "vitest": "^2.1.9",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.1.0",
     "web-push": "^3.6.7"
+  },
+  "overrides": {
+    "workbox-build": {
+      "glob": "^14.0.4"
+    }
   }
 }

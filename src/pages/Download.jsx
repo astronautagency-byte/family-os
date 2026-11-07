@@ -1,3 +1,4 @@
+import MarketingProductPreview from '../components/MarketingProductPreview';
 import {useEffect} from 'react';
 import {ArrowRight, Check, Smartphone, MonitorDown, Tablet} from '../components/icons';
 import MarketingFooter from '../components/MarketingFooter';
@@ -26,7 +27,7 @@ export default function Download(){
     </div>
     <div className="hero-real-life">
      <img src="/marketing/lifestyle/family-1536.webp" srcSet="/marketing/lifestyle/family-640.webp 640w, /marketing/lifestyle/family-960.webp 960w, /marketing/lifestyle/family-1536.webp 1536w" sizes="(max-width:700px) 100vw, 50vw" width="1536" height="1024" fetchPriority="high" alt="A family planning their day together at home"/>
-     <div className="hero-product-inset"><figure className="real-product-preview"><img src="/marketing/product-captures/calendar-1280.webp" srcSet="/marketing/product-captures/calendar-640.webp 640w, /marketing/product-captures/calendar-1280.webp 1280w" sizes="(max-width:700px) 75vw, 38vw" width="1280" height="900" alt="FamOS shared calendar with a sample household"/><figcaption>Actual FamOS screen · sample household</figcaption></figure></div>
+     <div className="hero-product-inset"><MarketingProductPreview kind="calendar"/></div>
     </div>
    </section>
    <section className="download-setup" id="device-setup">

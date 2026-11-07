@@ -6,6 +6,7 @@ const headers = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Content-Type": "application/json",
+  "Cache-Control": "no-store",
 };
 const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
 const iso = (seconds?: number | null) => seconds ? new Date(seconds * 1000).toISOString() : null;
@@ -15,12 +16,13 @@ Deno.serve(async (request) => {
   if (request.method !== "POST") return reply({ error: "Method not allowed." }, 405);
 
   try {
+    const token = (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();
+    if (!token) return reply({ error: "Sign-in required." }, 401);
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) return reply({ error: "Stripe is not configured on the server." }, 500);
-    const token = (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!token || !supabaseUrl || !serviceKey) return reply({ error: "Server is misconfigured." }, 500);
+    if (!supabaseUrl || !serviceKey) return reply({ error: "Server is misconfigured." }, 500);
 
     const admin = createClient(supabaseUrl, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
     const { data: auth } = await admin.auth.getUser(token);

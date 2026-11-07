@@ -1,10 +1,20 @@
 import {it,expect,vi,afterEach} from 'vitest';
 import {render,screen,fireEvent,waitFor,cleanup,act} from '@testing-library/react';
 import Tasks from './Tasks';
-const mocks=vi.hoisted(()=>({add:vi.fn(),remove:vi.fn(),toggle:vi.fn(),tasks:[]}));
-vi.mock('../context/FamilyContext',()=>({useFamily:()=>({members:[],memberById:{},tasks:mocks.tasks,taskLists:[],addTask:mocks.add,removeTask:mocks.remove,toggleTask:mocks.toggle,refreshData:vi.fn()})}));
+const mocks=vi.hoisted(()=>({add:vi.fn(),remove:vi.fn(),toggle:vi.fn(),tasks:[],members:[]}));
+vi.mock('../context/FamilyContext',()=>({useFamily:()=>({members:mocks.members,memberById:Object.fromEntries(mocks.members.map(m=>[m.id,m])),tasks:mocks.tasks,taskLists:[],addTask:mocks.add,removeTask:mocks.remove,toggleTask:mocks.toggle,refreshData:vi.fn()})}));
 vi.mock('../components/NativeAdBanner',()=>({default:()=>null}));
-afterEach(()=>{cleanup();vi.clearAllMocks();mocks.tasks=[];});
+afterEach(()=>{cleanup();vi.clearAllMocks();mocks.tasks=[];mocks.members=[];});
+it('filters assigned tasks and restores everyone',()=>{
+ mocks.members=[{id:'a',name:'Alex'},{id:'b',name:'Katie'}];
+ mocks.tasks=[{id:'1',title:'Water plants',done:false,assigneeIds:['a']},{id:'2',title:'Feed cat',done:false,assigneeIds:['b']}];
+ render(<Tasks/>);
+ fireEvent.change(screen.getByLabelText('Assigned to'),{target:{value:'b'}});
+ expect(screen.getByText('Feed cat')).toBeDefined();
+ expect(screen.queryByText('Water plants')).toBeNull();
+ fireEvent.click(screen.getByRole('button',{name:'Clear filter'}));
+ expect(screen.getByText('Water plants')).toBeDefined();
+});
 it('retains quick-entry text after a failed save',async()=>{
  mocks.add.mockRejectedValue(new Error('Offline — try again'));
  render(<Tasks/>);

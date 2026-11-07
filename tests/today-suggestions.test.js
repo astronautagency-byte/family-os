@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {todaySuggestions} from '../src/lib/todaySuggestions.js';
+const today='2026-11-06';
+test('prioritizes overdue tasks, ignoring completed and future tasks',()=>{const result=todaySuggestions({today,tasks:[{title:'future',due:'2026-11-07'},{title:'done',due:'2026-11-01',done:true},{title:'late',due:'2026-11-04'}]});assert.equal(result.page,'tasks');assert.equal(result.detail,'late');assert.match(result.title,/overdue/)});
+test('suggests dinner only when meals are available and no dinner is planned',()=>{assert.equal(todaySuggestions({today,meals:[]}).page,'meals');assert.equal(todaySuggestions({today,meals:[{date:today,slot:'dinner'}]}),null);assert.equal(todaySuggestions({today,features:{meals:false}}),null)});
+test('respects disabled features and hidden cards',()=>{assert.equal(todaySuggestions({today,tasks:[{title:'task',due:today}],features:{tasks:false,meals:false}}),null);assert.equal(todaySuggestions({today,tasks:[{title:'task',due:today}],hidden:['tasks','meals']}),null)});

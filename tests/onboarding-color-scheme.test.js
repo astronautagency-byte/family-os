@@ -21,8 +21,8 @@ test("revised owner onboarding includes the requested setup stages", () => {
   assert.match(auth, /Home address/);
   assert.match(auth, /What keeps your family busy\?/);
   assert.match(auth, /Bring in your schedule/);
-  assert.match(auth, /Build My FamOS/);
-  assert.match(auth, /Unlock Full FamOS/);
+  assert.match(auth, /Skip for now/);
+  assert.match(auth, /Review Pro trial/);
   assert.match(auth, /Start 7-day Pro trial/);
 });
 

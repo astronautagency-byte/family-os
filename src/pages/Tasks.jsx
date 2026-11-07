@@ -37,6 +37,7 @@ export default function Tasks(){
  const [inlineError,setInlineError]=useState("");
  const [statusFilter,setStatusFilter]=useState("open");
  const [search,setSearch]=useState("");
+ const [assigneeFilter,setAssigneeFilter]=useState("all");
  const [deletingTask,setDeletingTask]=useState(null);
  const [showEditPanel,setShowEditPanel]=useState(false);
  const [showListPanel,setShowListPanel]=useState(false);
@@ -49,17 +50,17 @@ export default function Tasks(){
  const [deletingList,setDeletingList]=useState(null);
 
  const open=tasks.filter(t=>!t.done);
- const filteredTasks=tasks.filter(task=>(statusFilter==="completed"?task.done:!task.done) && `${task.title||""} ${task.notes||""}`.toLowerCase().includes(search.trim().toLowerCase())).sort((a,b)=>(a.due||"9999").localeCompare(b.due||"9999"));
+ const filteredTasks=tasks.filter(task=>(statusFilter==="completed"?task.done:!task.done) && (assigneeFilter==="all" || (task.assigneeIds?.length?task.assigneeIds:task.assigneeId?[task.assigneeId]:[]).includes(assigneeFilter)) && `${task.title||""} ${task.notes||""}`.toLowerCase().includes(search.trim().toLowerCase())).sort((a,b)=>(a.due||"9999").localeCompare(b.due||"9999"));
  const grouped=useMemo(()=>filteredTasks.reduce((a,t)=>{const k=t.listId?`list:${t.listId}`:t.taskType||"home";(a[k]??=[]).push(t);return a;},{}),[filteredTasks]);
  const groupEntries=useMemo(()=>{
    const entries=Object.entries(grouped);
-   for(const list of taskLists){
+   for(const list of assigneeFilter === "all" ? taskLists : []){
      if(!list?.id)continue;
      const key=`list:${list.id}`;
      if(!entries.some(([id])=>id===key))entries.push([key,[]]);
    }
    return entries;
- },[grouped,taskLists]);
+ },[grouped,taskLists,assigneeFilter]);
  const listOptions=useMemo(()=>[
    {id:"all",label:"All tasks",Icon:Layers3,color:"var(--color-tasks)",count:filteredTasks.length},
    ...Object.entries(GROUPS).map(([id,meta])=>({id,label:meta.label,Icon:meta.Icon,color:meta.color,count:grouped[id]?.length||0})),
@@ -92,13 +93,15 @@ export default function Tasks(){
   </form>
   {inlineError&&<p id="task-inline-error" role="alert" className="task-inline-error">{inlineError}</p>}
   <div className="task-filter-row"><div className="reference-segments" role="group" aria-label="Task status">{[["open","To do"],["completed","Completed"]].map(([id,label])=><button type="button" key={id} aria-pressed={statusFilter===id} onClick={()=>setStatusFilter(id)}>{label}</button>)}</div><input type="search" className="task-search" aria-label="Search tasks" placeholder="Search tasks" value={search} onChange={e=>setSearch(e.target.value)}/></div>
+  {members.length>1&&<label className="task-person-filter"><span>Assigned to</span><select value={assigneeFilter} onChange={e=>setAssigneeFilter(e.target.value)}><option value="all">Everyone</option>{members.map(member=><option key={member.id} value={member.id}>{member.name}</option>)}</select>{assigneeFilter!=="all"&&<button type="button" onClick={()=>setAssigneeFilter("all")}>Clear filter</button>}</label>}
 
   <div className="task-list-switcher" role="tablist" aria-label="Task lists">
     {listOptions.map(({id,label,Icon,color,count})=>id.startsWith("list:")?<div className={`task-list-tab ${activeList===id?"selected":""}`} style={{"--list-tone":color}} key={id}><button type="button" role="tab" aria-selected={activeList===id} onClick={()=>setActiveList(id)}><Icon size={15}/><span>{label}</span><em>{count}</em></button><button type="button" className="task-list-delete" onClick={()=>setDeletingList(taskLists.find(list=>`list:${list.id}`===id))} aria-label={`Delete ${label}`}><Trash2 size={13}/></button></div>:<button type="button" role="tab" aria-selected={activeList===id} className={activeList===id?"selected":""} style={{"--list-tone":color}} onClick={()=>setActiveList(id)} key={id}><Icon size={15}/><span>{label}</span><em>{count}</em></button>)}
   </div>
 
   {visibleGroupEntries.map(([key,items])=>{const custom=key.startsWith("list:")?taskLists.find(list=>list.id===key.slice(5)):null;const meta=custom?{label:custom.name||"Untitled list",Icon:ListTodo,tone:"custom",color:custom.color||"var(--color-tasks)"}:GROUPS[key]||GROUPS.home;const Icon=meta.Icon;return <section className={`task-board-group ${meta.tone}`} style={custom?{"--custom-list-color":custom.color||"var(--color-tasks)"}:undefined} key={key}><div className="task-group-title"><h2><Icon/><span className="task-group-name">{meta.label}</span></h2><Badge tone="accent">{items.length} Task{items.length===1?"":"s"}</Badge><button className="task-list-share" onClick={()=>shareList(key,items)} aria-label={`Share ${meta.label}`} title="Share this list"><Share2 size={14}/></button></div><div className="task-board-list">{items.length?items.map(t=>{const people=(t.assigneeIds?.length?t.assigneeIds:t.assigneeId?[t.assigneeId]:[]).map(id=>memberById[id]).filter(Boolean);const overdue=!t.done&&t.due&&t.due<todayISO();const dueLabel=t.due===todayISO()?"Today":t.due?`${overdue?"Overdue · ":""}${new Date(`${t.due}T12:00`).toLocaleDateString("en-CA",{month:"short",day:"numeric"})}`:null;const categoryLabel=custom?.name||(t.taskType?GROUPS[t.taskType]?.label||t.taskType:null);return <div className="task-board-row" key={t.id}><Checkbox checked={t.done} onChange={()=>toggleTask(t.id)} label={`${t.done?"Reopen":"Complete"} ${t.title||"task"}`}/><button className="task-row-copy" onClick={()=>openEdit(t)}><strong>{t.title||"Untitled task"}</strong><small className={overdue?"task-overdue":undefined}>{[dueLabel,categoryLabel,t.recurring?.startsWith("routine:")?`Repeats ${t.recurring.slice(8)}`:null].filter(Boolean).join(" · ")}</small></button>{people.length>0&&<AvatarStack members={people} size="sm" max={3} label={`Assigned to ${people.map(person=>person.name).join(", ")}`}/>}<div className="task-row-actions"><button className="task-row-share" onClick={()=>shareTask(t)} aria-label={`Share ${t.title||"task"}`} title="Share with the family"><Share2 size={15}/></button><button className="task-row-delete" onClick={()=>setDeletingTask(t)} aria-label={`Delete ${t.title||"task"}`}><Trash2/></button></div></div>}):<EmptyState title={search?"No matching tasks":statusFilter==="completed"?"No completed tasks here":"This list is clear"} subtitle={search?"Try a different word or clear your search.":"Tasks stay organised here so your family can find them."} actionLabel={search?"Clear search":statusFilter==="open"?"Add task":undefined} onAction={search?()=>setSearch(""):openNewTask}/>}</div></section>})}
-  {activeList==="all"&&visibleGroupEntries.length===0&&<EmptyState icon={<ListTodo size={32}/>} title={search?"No matching tasks":statusFilter==="completed"?"No completed tasks yet":"You’re all caught up"} subtitle={search?"Try another word.":"Add a task, choose a due date, and share the responsibility."} actionLabel={search?"Clear search":statusFilter==="open"?"Add task":undefined} onAction={search?()=>setSearch(""):openNewTask}/>}
+  {activeList==="all"&&filteredTasks.length===0&&assigneeFilter!=="all"&&<EmptyState icon={<ListTodo size={32}/>} title="No tasks match this person" subtitle="Choose someone else or show everyone." actionLabel="Show everyone" onAction={()=>setAssigneeFilter("all")}/>}
+  {activeList==="all"&&visibleGroupEntries.length===0&&assigneeFilter==="all"&&<EmptyState icon={<ListTodo size={32}/>} title={search?"No matching tasks":statusFilter==="completed"?"No completed tasks yet":"You’re all caught up"} subtitle={search?"Try another word.":"Add a task, choose a due date, and share the responsibility."} actionLabel={search?"Clear search":statusFilter==="open"?"Add task":undefined} onAction={search?()=>setSearch(""):openNewTask}/>}
   <section className="weekly-progress"><h2>Your family’s progress</h2><p>Your family has knocked out {pct}% of your tasks.</p><ProgressBar value={done} max={tasks.length || 1} color="var(--color-accent)" size="lg"/><small>{done} tasks done <b>{open.length} left</b></small></section>
   </div></div>
 

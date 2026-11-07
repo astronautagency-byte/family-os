@@ -104,6 +104,8 @@ fi
 
 /usr/libexec/PlistBuddy -c 'Set :CFBundleShortVersionString 1.0.0' "$INFO_PLIST"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$INFO_PLIST"
+/usr/libexec/PlistBuddy -c 'Set :NSMicrophoneUsageDescription Record a voice note to share with your household when you choose Broadcast.' "$INFO_PLIST" 2>/dev/null || \
+  /usr/libexec/PlistBuddy -c 'Add :NSMicrophoneUsageDescription string Record a voice note to share with your household when you choose Broadcast.' "$INFO_PLIST"
 /usr/libexec/PlistBuddy -c 'Set :ITSAppUsesNonExemptEncryption false' "$INFO_PLIST" 2>/dev/null || \
   /usr/libexec/PlistBuddy -c 'Add :ITSAppUsesNonExemptEncryption bool false' "$INFO_PLIST"
 

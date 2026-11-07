@@ -10,3 +10,7 @@ supabase/.temp/
 .vercel
 .env.local
 *.provisionprofile
+
+# Isolated mobile frontend build output
+dist-ios/
+dist-android/

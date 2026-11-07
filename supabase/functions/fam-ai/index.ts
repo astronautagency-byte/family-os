@@ -36,9 +36,9 @@ function structuredEnvelope(message:string,intent:string,confidence:number,entit
 Deno.serve(async request=>{
  if(request.method==="OPTIONS")return new Response("ok",{headers:cors});
  try{
-  const authorization=request.headers.get("Authorization"); if(!authorization)throw new Error("Sign in to use Fam AI.");
+  const authorization=request.headers.get("Authorization"); if(!authorization)return new Response(JSON.stringify({error:"Sign-in required."}),{status:401,headers:{...cors,"Content-Type":"application/json","Cache-Control":"no-store"}});
   const supabase=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_ANON_KEY")!,{global:{headers:{Authorization:authorization}}});
-  const {data:{user},error}=await supabase.auth.getUser(); if(error||!user)throw new Error("Your session has expired.");
+  const {data:{user},error}=await supabase.auth.getUser(); if(error||!user)return new Response(JSON.stringify({error:"Invalid session."}),{status:401,headers:{...cors,"Content-Type":"application/json","Cache-Control":"no-store"}});
   const usage=await consumeUsage(request,"famai_queries"); if(!usage.allowed)return usageLimitResponse(usage,cors);
   const xaiKey=Deno.env.get("XAI_API_KEY"); const groqKey=Deno.env.get("GROQ_API_KEY"); if(!xaiKey&&!groqKey)throw new Error("Fam AI's server credential is not configured yet.");
   const {messages=[],context={}}=await request.json();

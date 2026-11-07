@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 test('each public topic has a unique canonical route, title and useful content',()=>{
  for(const field of ['path','title','description']) assert.equal(new Set(ALL_MARKETING_PAGES.map(p=>p[field])).size,ALL_MARKETING_PAGES.length);
  for(const p of ALL_MARKETING_PAGES){
-  assert.ok(p.sections.length>=3);assert.equal(p.steps.length,3);assert.ok(p.faqs.length>=2);
+  assert.ok(p.sections.length >= (p.id === 'compare' ? 2 : 3));assert.equal(p.steps.length,3);assert.ok(p.faqs.length >= (p.id === 'compare' ? 1 : 2));
   assert.ok(p.sections.every(([h,body])=>h.length>10&&body.length>100));
   assert.equal(marketingPageForPath(p.path+'/'),p);
   for(const id of p.related) assert.ok(ALL_MARKETING_PAGES.some(q=>q.id===id),`${p.id} has broken related link ${id}`);

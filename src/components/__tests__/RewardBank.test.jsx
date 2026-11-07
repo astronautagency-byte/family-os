@@ -33,7 +33,7 @@ it('saves the parent-selected chore stars using the existing ledger contract',as
 it('shows parent setup and approvals',async()=>{
  render(<RewardBank onClose={()=>{}}/>);
  expect(await screen.findByText('Choose stars for a chore')).toBeDefined();
- expect(screen.getByLabelText('Enable RewardBank for this household').checked).toBe(true);
+ expect(screen.getByLabelText('RewardBank is enabled').checked).toBe(true);
  expect(screen.getByText('Movie night')).toBeDefined();
 });
 it('lets a child request an affordable reward without exposing parent controls',async()=>{
@@ -49,4 +49,13 @@ it('surfaces rejected commands without claiming points were spent',async()=>{
  render(<RewardBank onClose={()=>{}}/>);
  fireEvent.click(await screen.findByRole('button',{name:'Request reward'}));
  expect((await screen.findByRole('alert')).textContent).toContain('Not enough');
+});
+
+it('offers a clear action when paused and retains its data',async()=>{
+ mocks.rows.settings=[{enabled:false}]; mocks.rpc.mockResolvedValue({error:null});
+ try {render(<RewardBank/>); fireEvent.click(await screen.findByRole('button',{name:'Enable RewardBank'}));
+ await waitFor(()=>expect(mocks.rpc).toHaveBeenCalledWith('rewardbank_command',{h:'home',action:'enable',payload:{enabled:true}}));
+ expect(screen.getByText(/Existing stars and requests stay safe/)).toBeInTheDocument();
+ expect(screen.queryByRole('button',{name:'Refresh RewardBank'})).toBeNull();
+ } finally {mocks.rows.settings=[{enabled:true}];}
 });

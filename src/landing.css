@@ -1064,3 +1064,39 @@
   .features-bullets{max-width:1560px}
   .features-bullets-grid{grid-template-columns:repeat(4,1fr);gap:24px}
 }
+
+/* A readable example replaces the oversized, layered illustration stage. */
+.landing-page .landing-ai-clean{background:#f5f4f1!important;color:#192c27;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(32px,5vw,72px);padding:80px max(24px,calc((100vw - 1160px)/2))}
+.landing-page .landing-ai-clean h2{font-size:clamp(36px,4vw,56px);line-height:1.06;letter-spacing:-.035em;margin:0 0 24px}
+.landing-page .landing-ai-clean>div:last-child>p:not(.landing-kicker),.landing-page .landing-ai-clean li{color:#41554e!important}
+.landing-page .landing-ai-clean li svg{color:#286548!important;flex-shrink:0}
+.landing-ai-preview{margin:0;min-width:0;background:#fff;border:1px solid #deded8;border-radius:var(--landing-radius-preview);padding:28px;color:#192c27}
+.landing-ai-preview header{display:flex;align-items:center;gap:10px;padding-bottom:20px;border-bottom:1px solid #ecece6}
+.landing-ai-preview header svg{width:20px;height:20px;color:#6954ba}
+.landing-ai-preview header strong{font-size:18px}
+.landing-ai-preview header span{margin-left:auto;font-size:11px;color:#5b625d}
+.landing-ai-prompt{margin:24px 0 24px 28px;padding:14px 18px;background:#f0edf8;border-radius:14px 14px 4px 14px;font-size:15px;line-height:1.5}
+.landing-ai-draft>p:first-child{font-size:15px;line-height:1.5;margin:0 0 18px}
+.landing-ai-draft dl{margin:0}
+.landing-ai-draft dl>div{padding:12px 0;border-bottom:1px solid #ecece6}
+.landing-ai-draft dt{font-size:11px;color:#5b625d;margin-bottom:5px}
+.landing-ai-draft dd{font-size:15px;font-weight:600;margin:0;line-height:1.4}
+.landing-ai-review{display:flex;align-items:center;gap:8px;font-size:12px;color:#286548;margin:20px 0}
+.landing-ai-review svg{width:16px;height:16px;flex-shrink:0}
+.landing-ai-preview figcaption{font-size:11px;line-height:1.5;color:#5b625d}
+.landing-page .landing-ai-clean .landing-ai-cta{background:#192c27;color:#fff;border:0;box-shadow:none}
+.landing-page .landing-ai-clean .landing-ai-cta:hover{background:#28473d}
+@media(max-width:700px){.landing-page .landing-ai-clean{grid-template-columns:1fr;padding:56px 20px;gap:32px}.landing-ai-preview{padding:20px;order:2}.landing-ai-prompt{margin-left:16px}.landing-ai-preview header span{font-size:10px}}
+/* Product illustrations use independently animated, legible UI elements. */
+.marketing-ui-preview{padding:18px;background:#fff;color:#183029;border:1px solid #d7e4dd;border-radius:var(--landing-radius-preview);box-shadow:0 20px 48px #17352b30;min-width:0}
+.marketing-ui-header{display:flex;align-items:center;gap:10px;padding-bottom:12px;border-bottom:1px solid #e3ece6;font-size:16px}.marketing-ui-header>span:first-child{display:grid;place-items:center;width:36px;height:36px;background:#e6f4e9;color:#247446;border-radius:11px}.marketing-ui-dot{margin-left:auto;width:9px;height:9px;border-radius:50%;background:#f7a881}.marketing-ui-rows{display:grid;gap:8px;margin-top:12px}.marketing-ui-row{display:flex;align-items:center;gap:10px;min-height:46px;padding:9px 11px;background:#f5f8f6;border-radius:11px;font-size:13px}.marketing-ui-row strong{font-size:13px;line-height:1.25;flex:1}.marketing-ui-row>svg{color:#d59e1f}.marketing-ui-tag{min-width:35px;color:#277149;font-size:10px;font-weight:750}.marketing-ui-row:last-child{background:#edf7ed}
+@media(prefers-reduced-motion:no-preference){.marketing-ui-row{animation:marketing-ui-in 450ms cubic-bezier(.22,1,.36,1) both;animation-delay:calc(200ms + var(--row-index)*110ms)}.marketing-ui-dot{animation:marketing-ui-pulse 3s ease-in-out infinite}@keyframes marketing-ui-in{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}@keyframes marketing-ui-pulse{50%{transform:scale(1.25);opacity:.7}}}
+@media(max-width:760px){.marketing-ui-preview{padding:12px}.marketing-ui-header{font-size:14px}.marketing-ui-row{min-height:39px;padding:7px 9px}.marketing-ui-row strong{font-size:12px}}
+/* Navigation action: a compact, high-contrast anchor across public pages. */
+.landing-page .marketing-nav-join{min-height:44px;padding:0 18px 0 20px;border:1px solid #172c27;border-radius:12px;background:#172c27;color:#fff;font-size:14px;font-weight:700;letter-spacing:0;box-shadow:none;gap:12px}
+.landing-page .marketing-nav-join svg{width:17px;height:17px;flex:none;color:#ffd276}
+.landing-page .marketing-nav-join:hover{background:#285345;border-color:#285345;color:#fff;box-shadow:0 5px 14px #172c2726}
+.landing-page .marketing-nav-join:focus-visible{outline:3px solid #e85d3d;outline-offset:3px}
+@media(prefers-reduced-motion:no-preference){.landing-page .marketing-nav-join svg{transition:transform 180ms ease}.landing-page .marketing-nav-join:hover svg{transform:translateX(3px)}}
+@media(prefers-reduced-motion:reduce){.landing-page .marketing-nav-join,.landing-page .marketing-nav-join svg{transition:none}}
+.marketing-ui-hint{margin:10px 0 0;color:#526a60;font-size:11px;line-height:1.35}.landing-page button.marketing-ui-row{width:100%;border:1px solid transparent;text-align:left;color:#183029;cursor:pointer}.landing-page button.marketing-ui-row:hover{background:#e7f2eb;border-color:#bddac5}.landing-page button.marketing-ui-row.is-selected{background:#e3f4e7;border-color:#92c9a2}.landing-page button.marketing-ui-row:focus-visible{outline:3px solid #c85537;outline-offset:2px}.marketing-ui-detail{margin:10px 0 0;color:#385b4b;font-size:12px;line-height:1.4}

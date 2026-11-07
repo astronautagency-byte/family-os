@@ -764,7 +764,7 @@ function RevisedOwnerProfileStep({ familyMembers, setFamilyMembers, interests, t
   return (
     <div className="guided-onboarding revised-onboarding">
       <OnboardingProgress steps={steps} current={step} />
-      <FamilyIllustration variant={['family', 'tasks', 'calendar', 'welcome', 'family'][step] || 'family'} className="family-onboarding-art" />
+      {step === 0 && <FamilyIllustration variant="family" className="family-onboarding-art" />}
       <div className="guided-onboarding-panel">
         {step === 0 && <>
           <div className="onboarding-value-heading"><UsersRound size={19} /><div><strong>Add your family</strong><span>Add yourself first, then anyone you plan around. Relationships, birthdays and invitations are optional. You can edit members later.</span></div></div>
@@ -787,11 +787,11 @@ function RevisedOwnerProfileStep({ familyMembers, setFamilyMembers, interests, t
         </>}
         {step === 1 && <>
           <div className="onboarding-value-heading"><Sparkles size={19} /><div><strong>What keeps your family busy?</strong><span>Choose anything that sounds like your household. This helps FamOS shape your first view.</span></div></div>
-          <div className="revised-interest-grid">{REVISED_INTERESTS.map((interest) => <button type="button" key={interest} className={interests.includes(interest) ? "selected" : ""} onClick={() => toggleInterest(interest)}>{interest}{interests.includes(interest) && <Check size={15} />}</button>)}</div>
+          <div className="revised-interest-grid">{REVISED_INTERESTS.map((interest) => <button type="button" key={interest} aria-pressed={interests.includes(interest)} className={interests.includes(interest) ? "selected" : ""} onClick={() => toggleInterest(interest)}>{interest}{interests.includes(interest) && <Check size={15} />}</button>)}</div>
         </>}
         {step === 2 && <>
           <div className="onboarding-value-heading"><CalendarDays size={19} /><div><strong>Bring in your schedule</strong><span>Connect a calendar now or add things yourself later.</span></div></div>
-          <div className="revised-schedule-grid">{REVISED_SCHEDULE_SOURCES.map(([id, label, Icon]) => <button type="button" key={id} className={scheduleSources.includes(id) ? "selected" : ""} onClick={() => toggleScheduleSource(id)}><Icon size={18} /><span>{label}</span>{scheduleSources.includes(id) && <Check size={15} />}</button>)}</div>
+          <div className="revised-schedule-grid">{REVISED_SCHEDULE_SOURCES.map(([id, label, Icon]) => <button type="button" key={id} aria-pressed={scheduleSources.includes(id)} className={scheduleSources.includes(id) ? "selected" : ""} onClick={() => toggleScheduleSource(id)}><Icon size={18} /><span>{label}</span>{scheduleSources.includes(id) && <Check size={15} />}</button>)}</div>
           {(scheduleSources.includes("apple") || scheduleSources.includes("outlook")) && <p className="revised-trial-note">This saves your preferred calendar provider; it does not connect it yet. Finish the connection in Settings after setup.</p>}
           {scheduleSources.includes("feed") && <p className="revised-trial-note">We’ll save this URL with your setup. Add it as a calendar feed in Settings to start syncing events.</p>}
           {scheduleSources.includes("google") && <GoogleCalendarStep signInWithGoogle={signInWithGoogle} googleProviderToken={googleProviderToken} busy={busy} run={async (action) => action()} />}
@@ -803,8 +803,8 @@ function RevisedOwnerProfileStep({ familyMembers, setFamilyMembers, interests, t
       </div>
       <div className="onboarding-actions">
         {step > 0 ? <SecondaryButton type="button" disabled={busy} onClick={() => setStep((current) => Math.max(0, current - 1))}><ChevronLeft size={16} /> Back</SecondaryButton> : <span />}
-        {step < 3 && <PrimaryButton type="button" disabled={busy || !canContinue} onClick={() => setStep((current) => Math.min(4, current + 1))}>{step === 0 ? "That’s Everyone" : step === 2 ? "Build My FamOS" : "Continue"}</PrimaryButton>}
-        {step === 3 && <PrimaryButton type="button" disabled={busy} onClick={() => setStep(4)}>Unlock Full FamOS</PrimaryButton>}
+        {step < 3 && <PrimaryButton type="button" disabled={busy || !canContinue} onClick={() => setStep((current) => Math.min(4, current + 1))}>{step === 0 ? "Continue" : step === 1 && interests.length === 0 ? "Skip for now" : step === 2 && scheduleSources.length === 0 ? "Skip for now" : "Continue"}</PrimaryButton>}
+        {step === 3 && <PrimaryButton type="button" disabled={busy} onClick={() => setStep(4)}>Review Pro trial</PrimaryButton>}
         {step === 4 && <PrimaryButton type="button" disabled={busy || promoBusy} onClick={onSave}>{busy ? "Opening secure checkout…" : promoApplied ? "Start FamOS Pro" : "Start 7-day Pro trial"}</PrimaryButton>}
       </div>
       {step === 4 && !promoApplied && <p className="revised-trial-secondary">Card required. No subscription charge today. Pro renews automatically after 7 days. Cancel in Settings → Manage billing before your trial ends to return to Free without a subscription charge.</p>}
@@ -813,10 +813,11 @@ function RevisedOwnerProfileStep({ familyMembers, setFamilyMembers, interests, t
 }
 
 function RevisedValueScreen({ familyMembers, interests }) {
+  const names = familyMembers.map(member => member.firstName.trim()).filter(Boolean);
   return <div className="revised-value-screen">
-    <div className="onboarding-value-heading"><Check size={20} /><div><strong>A preview of family life with FamOS</strong><span>Sample activities only—not your actual calendar or tasks. You can add your own after setup.</span></div></div>
-    <div className="revised-value-metrics"><div><strong>{familyMembers.filter(member => member.firstName.trim()).length}</strong><span>people added in setup</span></div><div><strong>{interests.length}</strong><span>interests selected</span></div><div><strong>Next</strong><span>review your Pro trial</span></div></div>
-    <div className="revised-value-items"><article><CalendarDays size={16} /><div><strong>Soccer practice</strong><span>Thursday · 5:00 PM · Shared with family</span></div></article><article><ShoppingCart size={16} /><div><strong>Milk and bananas</strong><span>Shopping list · ready to pick up</span></div></article><article><CheckSquare size={16} /><div><strong>Pack school bags</strong><span>Task · needs attention</span></div></article></div>
+    <div className="onboarding-value-heading"><Check size={20} /><div><strong>Your family space is taking shape</strong><span>Here’s what you’ve chosen so far. You can change these details later.</span></div></div>
+    <div className="revised-setup-summary"><div><UsersRound size={19}/><div><strong>Your people</strong><span>{names.join(", ") || "Add people later"}</span></div></div><div><Sparkles size={19}/><div><strong>Interests</strong><span>{interests.length ? interests.join(", ") : "None selected — you can add these later"}</span></div></div></div>
+    <div className="revised-preview"><div className="revised-preview-header"><div><small>EXAMPLE · TODAY</small><strong>Everything in one place</strong></div><span>Sample</span></div><p>Here’s how your day could look once you add your own plans.</p><div className="revised-value-items"><article><CalendarDays size={16} /><div><strong>Soccer practice</strong><span>Thursday · 5:00 PM</span></div></article><article><ShoppingCart size={16} /><div><strong>Milk and bananas</strong><span>Shopping list</span></div></article><article><CheckSquare size={16} /><div><strong>Pack school bags</strong><span>Task</span></div></article></div></div>
   </div>;
 }
 

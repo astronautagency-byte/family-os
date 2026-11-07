@@ -51,6 +51,7 @@ const MarketingFooter = ({ signedIn = false }) => {
           <ul>
             <li><a href="/calendar-sync">Calendar sync</a></li>
             <li><a href="/calendar-photo-import">Calendar photo import</a></li>
+            <li><a href="/compare">Compare family organizers</a></li>
             <li><a href="/contact">Contact us</a></li>
             <li><a href="/privacy">Privacy</a></li>
             <li><a href="/terms">Terms</a></li>

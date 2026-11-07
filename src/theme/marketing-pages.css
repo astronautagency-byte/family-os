@@ -94,3 +94,33 @@
 @media(max-width:1080px){.features-dropdown .features-dropdown-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.features-dropdown .features-dropdown-grid{grid-template-columns:1fr}.features-dropdown .features-dropdown-hero{flex-direction:column;align-items:flex-start}.features-dropdown .features-dropdown-hero-actions{flex-wrap:wrap}}
 @media(prefers-reduced-motion:reduce){.mp-page *, .features-dropdown *{animation:none!important;transition:none!important;scroll-behavior:auto!important}.mp-page .marketing-nav{opacity:1!important;transform:none!important}}
+
+.mp-comparison{max-width:1160px;margin:0 auto;padding:32px 24px 64px;color:var(--landing-color-ink,#192c27)}
+.mp-comparison h2{font-size:clamp(28px,3vw,40px);margin:0 0 24px}
+.mp-table-scroll{overflow-x:auto;border:1px solid #d9dfdb;border-radius:12px;background:#fff}
+.mp-table-scroll:focus-visible{outline:3px solid #6954ba;outline-offset:4px}
+.mp-comparison table{border-collapse:collapse;width:100%;min-width:580px;font-size:15px;line-height:1.6;color:#192c27}
+.mp-comparison caption{text-align:left;padding:16px 20px;font-weight:600}
+.mp-comparison th,.mp-comparison td{text-align:left;vertical-align:top;padding:18px 20px;border-top:1px solid #e2e6e3;width:38%}
+.mp-comparison th:first-child{width:24%}.mp-comparison thead{background:#edf2ee}
+.mp-source-note{font-size:13px;line-height:1.6;color:#4a5a52;margin:20px 0 12px}
+.mp-comparison ul{display:flex;flex-wrap:wrap;gap:16px;padding:0;list-style:none}.mp-comparison a{color:#315b48;text-decoration:underline;text-underline-offset:3px}
+.mp-table-hint{display:none}@media(max-width:650px){.mp-table-hint{display:block;font-size:13px;color:#4a5a52;margin:0 0 12px}}
+/* Lifestyle photography and a clearly labelled product example form one hero. */
+.mp-hero-visual{position:relative;min-width:0;padding:0 0 28px 0}
+.mp-hero-photo{display:block;width:100%;aspect-ratio:1.2;object-fit:cover;border-radius:24px}
+.mp-hero-inset,.mp-example{position:absolute;right:-12px;bottom:0;width:48%;margin:0;background:#fff;color:#19302b;border:1px solid #e1e9e4;border-radius:16px;box-shadow:0 18px 46px #19302b30;overflow:hidden}
+.mp-hero-inset img{display:block;width:100%;height:auto}.mp-hero-inset figcaption{padding:8px 12px;font-size:10px;color:#526a60}
+.mp-example{padding:18px}.mp-example>span{display:block;color:#658178;font-size:10px;letter-spacing:.09em;font-weight:700;margin-bottom:8px}.mp-example>strong{display:block;font-size:18px;margin-bottom:12px}.mp-example-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #e8eeea;font-size:13px;line-height:1.3}.mp-example-row i{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#e7f4ea;color:#28714c;font-style:normal;flex:none}
+@media(prefers-reduced-motion:no-preference){.mp-hero-inset,.mp-example{animation:mp-card-arrive 600ms cubic-bezier(.22,1,.36,1) 120ms both}.mp-page .mp-actions a svg{transition:transform 180ms ease}.mp-page .mp-actions a:hover svg{transform:translateX(4px)}.mp-example-row:first-of-type i{animation:mp-check 400ms ease 700ms both}}
+@keyframes mp-card-arrive{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}@keyframes mp-check{from{transform:scale(.7)}to{transform:scale(1)}}
+@media(max-width:760px){.mp-hero-visual{margin-right:8px}.mp-hero-inset,.mp-example{width:55%;right:-8px}.mp-example{padding:12px}.mp-example>strong{font-size:16px}.mp-example-row{font-size:12px;padding:6px 0}}
+@media(prefers-reduced-motion:no-preference){
+ .mp-hero-inset{transform-origin:bottom right;animation:mp-card-arrive 600ms cubic-bezier(.22,1,.36,1) 120ms both}
+ .mp-page .mp-hero-inset img{transition:transform 450ms cubic-bezier(.22,1,.36,1)}
+ .mp-page .mp-hero-visual:hover .mp-hero-inset img{transform:scale(1.035)}
+ .mp-page .mp-story article{transition:background-color 180ms ease}
+ .mp-page .mp-story article:hover{background:color-mix(in srgb,var(--color-accent-soft) 30%,transparent)}
+}
+.mp-hero-inset{width:min(75%,380px);right:-12px;bottom:-8px;overflow:visible}
+@media(max-width:760px){.mp-hero-inset{width:min(82%,340px);right:-8px}}

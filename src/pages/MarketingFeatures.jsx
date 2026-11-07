@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 import MarketingNav from '../components/MarketingNav';
 import MarketingFooter from '../components/MarketingFooter';
-import FamilyIllustration from '../components/FamilyIllustration';
+import MarketingProductPreview from '../components/MarketingProductPreview';
 import {ArrowRight, Check, CalendarDays, ChefHat, ListChecks, BookOpen, Refrigerator, MessageCircle, Users, Star, Sparkles, ShoppingCart, Tablet} from '../components/icons';
 import {ALL_MARKETING_PAGES, MARKETING_PAGES, SEARCH_PAGES, marketingPageForPath} from '../data/marketingPages';
 import '../landing.css';
@@ -17,7 +17,7 @@ export function pageSchema(page) {
  const meta=publicPageMeta(page?.path || '/features');
  return {'@context':'https://schema.org','@graph':[
  {'@type':'WebPage','@id':meta.canonical,name:meta.title,description:meta.description,url:meta.canonical},
- {'@type':'BreadcrumbList',itemListElement:[{ '@type':'ListItem',position:1,name:'Home',item:'https://fam-os.app/'},{'@type':'ListItem',position:2,name:'Features',item:'https://fam-os.app/features'},...(page?[{'@type':'ListItem',position:3,name:page.name,item:meta.canonical}]:[])]}
+ {'@type':'BreadcrumbList',itemListElement:[{ '@type':'ListItem',position:1,name:'Home',item:'https://fam-os.app/'},{'@type':'ListItem',position:2,name:page?.path.startsWith('/compare')?'Compare':'Features',item:page?.path.startsWith('/compare')?'https://fam-os.app/compare':'https://fam-os.app/features'},...(page?[{'@type':'ListItem',position:3,name:page.name,item:meta.canonical}]:[])]}
  ]};
 }
 function Metadata({path}) {
@@ -32,8 +32,11 @@ function Metadata({path}) {
  },[path]);
  return null;
 }
+const captureForPage={today:'today',calendar:'calendar',meals:'meals',tasks:'tasks',shopping:'shopping',recipes:'recipes',kitchen:'kitchen',chat:'chat',rewards:'rewards',family:'settings','fam-ai':'ai',tablet:'today','calendar-sync':'calendar','calendar-photo-import':'calendar'};
 function PageVisual({page}) {
- return page.capture ? <figure className="mp-product"><img src={`/marketing/product-captures/${page.capture}-1280.webp`} srcSet={`/marketing/product-captures/${page.capture}-640.webp 640w, /marketing/product-captures/${page.capture}-1280.webp 1280w`} sizes="(max-width:760px) 92vw, 640px" width="1280" height="900" alt={`FamOS ${page.capture} screen with a sample household`} decoding="async"/><figcaption>Actual FamOS screen · sample household</figcaption></figure> : <div className="mp-art"><FamilyIllustration variant={page.art} eager/></div>;
+ const photo=['meals','recipes','shopping','kitchen'].includes(page.id)?'cooking':'family';
+ const capture=page.capture || captureForPage[page.id] || 'today';
+ return <div className="mp-hero-visual"><img className="mp-hero-photo" src={`/marketing/lifestyle/${photo}-960.webp`} srcSet={`/marketing/lifestyle/${photo}-640.webp 640w, /marketing/lifestyle/${photo}-960.webp 960w, /marketing/lifestyle/${photo}-1536.webp 1536w`} sizes="(max-width:760px) 90vw, 50vw" width="1536" height="1024" alt={photo==='cooking'?'A parent and child preparing a meal together':'A family planning their day together at home'} fetchPriority="high" decoding="async"/><div className="mp-hero-inset"><MarketingProductPreview kind={capture}/></div></div>;
 }
 function FeatureLink({page}) {
  const Icon=icons[page.id]||CalendarDays;
@@ -50,16 +53,17 @@ export default function MarketingFeatures({path='/features'}) {
   <a className="mp-skip" href="#main-content">Skip to content</a>
   <MarketingNav currentId={page?.id}/>
   <main id="main-content">
-   <div className="mp-breadcrumb"><a href="/">Home</a><span>/</span><a href="/features">Features</a>{page&&<><span>/</span><span aria-current="page">{page.name}</span></>}</div>
+   <div className="mp-breadcrumb"><a href="/">Home</a><span>/</span><a href={page?.path.startsWith('/compare')?'/compare':'/features'}>{page?.path.startsWith('/compare')?'Compare':'Features'}</a>{page&&<><span>/</span><span aria-current="page">{page.name}</span></>}</div>
    {missing ? <section className="mp-index-hero"><h1>That page isn’t here.</h1><a href="/features">Explore FamOS features</a></section> : page ? <>
     <section className="mp-hero"><div className="mp-hero-copy"><h1>{page.title}</h1><p>{page.description}</p><div className="mp-actions"><a className="mp-primary" href="https://home.fam-os.app/sign-up">Start free <ArrowRight size={18}/></a><a href="#how-to">See how it works <ArrowRight size={18}/></a></div><small><Check size={15}/> Start with Free. Optional paid tools and usage limits apply.</small></div><PageVisual page={page}/></section>
+    {page.comparison&&<section className="mp-comparison" aria-label="Product comparison"><h2>How they compare</h2><p className="mp-table-hint">Swipe across the table to see both products.</p><div className="mp-table-scroll" tabIndex={0} role="region" aria-label="Feature comparison table"><table><caption>FamOS and {page.comparison.competitor}</caption><thead><tr><th scope="col">Consideration</th><th scope="col">FamOS</th><th scope="col">{page.comparison.competitor}</th></tr></thead><tbody>{page.comparison.rows.map(([label,ours,theirs])=><tr key={label}><th scope="row">{label}</th><td>{ours}</td><td>{theirs}</td></tr>)}</tbody></table></div><p className="mp-source-note">Written by FamOS. Official sources reviewed {page.comparison.reviewed}. Features, regional prices and plan availability can change. Check each provider before purchasing.</p><ul>{page.comparison.sources.map(([label,url])=><li key={url}><a href={url} target="_blank" rel="noopener noreferrer">{label} ↗</a></li>)}</ul><p className="mp-source-note">Competitor names belong to their respective owners. No affiliation or endorsement is implied.</p></section>}
     <section className="mp-story" aria-label={`${page.name} details`}>{page.sections.map(([title,copy],i)=><article key={title}><span className="mp-step-number">0{i+1}</span><div><h2>{title}</h2><p>{copy}</p></div></article>)}</section>
     {(page.id==='meals'||page.id==='recipes')&&<section className="mp-photo"><img src="/marketing/lifestyle/cooking-1536.webp" srcSet="/marketing/lifestyle/cooking-640.webp 640w, /marketing/lifestyle/cooking-960.webp 960w, /marketing/lifestyle/cooking-1536.webp 1536w" sizes="(max-width:760px) 100vw, 1100px" width="1536" height="1024" loading="lazy" alt="A parent and child preparing a meal together"/><div><h2>Keep the recipe.<br/>Make the memory.</h2><p>A little planning leaves more room for the part of dinner you enjoy.</p></div></section>}
     <section className="mp-how" id="how-to"><h2>Get started with {page.name.toLowerCase()}</h2><ol>{page.steps.map(step=><li key={step}>{step}</li>)}</ol></section>
     <section className="mp-faq"><h2>Questions about {page.name.toLowerCase()}</h2>{page.faqs.map(([q,a])=><details key={q}><summary>{q}<span aria-hidden="true">+</span></summary><p>{a}</p></details>)}</section>
     <section className="mp-related"><h2>Make the next step easier</h2><div>{related.map(p=><FeatureLink key={p.id} page={p}/>)}</div></section>
    </> : <>
-    <section className="mp-index-hero"><div><h1>Make room for<br/>family life.</h1><p>One family organizer. Choose the tools that help, and leave the rest for later.</p><a className="mp-primary" href="https://home.fam-os.app/sign-up">Start your family space <ArrowRight size={18}/></a></div><FamilyIllustration variant="welcome" eager/></section>
+    <section className="mp-index-hero"><div><h1>Make room for<br/>family life.</h1><p>One family organizer. Choose the tools that help, and leave the rest for later.</p><a className="mp-primary" href="https://home.fam-os.app/sign-up">Start your family space <ArrowRight size={18}/></a></div><PageVisual page={{id:"today",capture:"calendar"}}/></section>
     <section className="mp-directory" aria-label="FamOS features">{MARKETING_PAGES.map(p=><FeatureLink page={p} key={p.id}/>)}</section>
     <section className="mp-related"><h2>Bring your existing plans with you</h2><div>{SEARCH_PAGES.map(p=><FeatureLink page={p} key={p.id}/>)}</div></section>
    </>}
