@@ -1,8 +1,15 @@
 .calendar-image-import{display:grid;gap:16px;color:var(--color-ink)}
 .calendar-image-import p,.calendar-image-import small{margin:0;line-height:1.5}
 .calendar-image-import small{color:var(--color-ink-soft)}
-.calendar-image-upload{display:grid;gap:12px;padding:20px;border:1px dashed var(--color-border-strong);border-radius:var(--radius-card);background:var(--color-surface)}
-.calendar-image-upload input{max-width:100%;min-width:0}
+.calendar-image-sources{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.calendar-image-upload{position:relative;display:grid;gap:10px;align-content:center;min-height:104px;padding:18px;border:1px dashed var(--color-border-strong);border-radius:var(--radius-card);background:var(--color-surface);cursor:pointer}
+.calendar-image-upload input{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.calendar-image-upload:focus-within{outline:2px solid var(--color-accent-strong);outline-offset:2px}
+.calendar-image-selection{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--color-ink-soft);font-size:13px}
+.calendar-image-selection>div{display:flex;gap:8px;flex-wrap:wrap}
+.calendar-image-selection button{min-height:44px;padding:8px 12px;border:1px solid var(--color-border);border-radius:var(--radius-control);background:var(--color-surface);color:var(--color-ink);font-weight:600}
+.calendar-image-selection button:disabled{opacity:.5}
+.calendar-image-selection button:focus-visible{outline:2px solid var(--color-accent-strong);outline-offset:2px}
 .calendar-image-previews{display:flex;gap:12px;overflow-x:auto}
 .calendar-image-previews img{width:112px;height:112px;object-fit:contain;background:var(--color-surface);border-radius:var(--radius-control)}
 .calendar-image-event{display:grid;gap:16px;min-width:0;padding:16px;border:1px solid var(--color-border);border-radius:var(--radius-card)}
@@ -13,4 +20,4 @@
 .calendar-image-check input{width:20px;height:20px;accent-color:var(--color-accent)}
 .calendar-image-notes{color:var(--color-ink-soft)}
 .calendar-image-import [role=alert]{color:var(--color-danger)}
-@media(max-width:400px){.calendar-image-fields{grid-template-columns:1fr}}
+@media(max-width:480px){.calendar-image-sources,.calendar-image-fields{grid-template-columns:1fr}}

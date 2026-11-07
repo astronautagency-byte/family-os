@@ -1,4 +1,4 @@
-import {it,expect} from 'vitest';
+import {it,expect,vi} from 'vitest';
 import {draftToRecipe,recipeToDraft,readRecipePhotos} from './recipeImport';
 it('preserves ingredient fractions and does not invent missing times',()=>{
  const recipe=draftToRecipe(recipeToDraft({title:'Pancakes',ingredients:['1½ cups flour','2 eggs'],instructions:['Mix.','Cook.']}));
@@ -16,5 +16,12 @@ it('does not retain executable source links',()=>{
 it('rejects unsupported photos and excessive file counts',async()=>{
  expect(()=>readRecipePhotos([{}, {}, {}, {}])).toThrow('three');
   expect(()=>readRecipePhotos([new File(['data'],'test.gif',{type:'image/gif'})])).toThrow('JPEG');
-  expect(()=>readRecipePhotos([new File(['data'],'test.heic',{type:'image/heic'})])).toThrow('screenshot');
+});
+it('tries HEIC decoding and gives a useful fallback if the device cannot open it',async()=>{
+ const create=vi.spyOn(URL,'createObjectURL').mockReturnValue('blob:test');
+ const revoke=vi.spyOn(URL,'revokeObjectURL').mockImplementation(()=>{});
+ const original=globalThis.Image;
+ globalThis.Image=class {set src(value){queueMicrotask(()=>this.onerror());}};
+ try {await expect(readRecipePhotos([new File(['data'],'test.heic',{type:'image/heic'})])).rejects.toThrow('JPEG export or a screenshot');}
+ finally {globalThis.Image=original;create.mockRestore();revoke.mockRestore();}
 });

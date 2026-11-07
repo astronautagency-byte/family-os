@@ -43,3 +43,23 @@ it('skips existing events and validates every selected draft before any save',as
   await waitFor(()=>expect(addEvent).toHaveBeenCalledTimes(1));
   expect(addEvent.mock.calls[0][0].title).toBe('Trip');
 });
+it('opens the camera and lets a family select only the events they want',async()=>{
+  readRecipePhotos.mockResolvedValue(['data:image/jpeg;base64,YQ==']);
+  invokeEdgeFunction.mockResolvedValue({events:[{title:'Practice',date:'2026-11-06',allDay:true},{title:'Game',date:'2026-11-07',allDay:true}]});
+  const addEvent=vi.fn().mockResolvedValue(undefined);
+  render(<CalendarImageImport onClose={()=>{}} addEvent={addEvent}/>);
+  const camera=screen.getByLabelText('Take a photo');
+  expect(camera.getAttribute('capture')).toBe('environment');
+  fireEvent.change(camera,{target:{files:[new File(['photo'],'schedule.jpg',{type:'image/jpeg'})]}});
+  await screen.findByAltText('Selected source image 1');
+  fireEvent.change(screen.getByLabelText(/Month and year/),{target:{value:'2026-11'}});
+  fireEvent.click(screen.getByRole('button',{name:'Read images'}));
+  await screen.findByText('Review 2 events');
+  fireEvent.click(screen.getByRole('button',{name:'Clear selection'}));
+  expect(screen.getByRole('button',{name:'Add 0 selected events'}).disabled).toBe(true);
+  fireEvent.click(screen.getAllByLabelText('Include this event')[1]);
+  expect(addEvent).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button',{name:'Add 1 selected event'}));
+  await waitFor(()=>expect(addEvent).toHaveBeenCalledTimes(1));
+  expect(addEvent.mock.calls[0][0].title).toBe('Game');
+});

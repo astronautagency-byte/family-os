@@ -1110,7 +1110,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
 
   return (
     <>
-    {imageImportOpen && <CalendarImageImport onClose={() => setImageImportOpen(false)} addEvent={addEvent} events={events}/>}
+    {imageImportOpen && <CalendarImageImport onClose={() => setImageImportOpen(false)} addEvent={addEvent} events={allEvents}/>}
     <PullToRefresh onRefresh={refreshAll}>
       <div className="pb-28 calendar-page famos-noscroll">
         <div className="calendar-hero apple-calendar-toolbar">

@@ -15,8 +15,8 @@ export function draftToRecipe(draft) {
 export function readRecipePhotos(files) {
  if(files.length>3)throw Error('Choose up to three photos per recipe.');
  for(const file of files){
-  if(/heic|heif/i.test(file.type+' '+file.name))throw Error('This HEIC photo cannot be read here. Export it as JPEG or upload a screenshot of the recipe.');
-  if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw Error('Choose JPEG, PNG, or WebP recipe photos.');
+  const isHeic = /image\/(heic|heif)/i.test(file.type || '') || /\.(heic|heif)$/i.test(file.name || '');
+  if(!isHeic && !['image/jpeg','image/png','image/webp'].includes(file.type))throw Error('Choose JPEG, PNG, WebP, or HEIC recipe photos.');
   if(file.size>20000000)throw Error('Choose photos under 20 MB each.');
  }
  return Promise.all(files.map(prepareRecipePhoto));
@@ -25,7 +25,7 @@ async function prepareRecipePhoto(file) {
  const source=URL.createObjectURL(file);
  try {
   const image=new Image();
-  await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=()=>reject(Error('Could not read this photo. Try a JPEG export or a screenshot.'));image.src=source;});
+  await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=()=>reject(Error('This browser could not open the photo. Try a JPEG export or a screenshot.'));image.src=source;});
   if(!image.naturalWidth||!image.naturalHeight)throw Error('This photo appears to be empty.');
   const canvas=document.createElement('canvas');
   const context=canvas.getContext('2d');

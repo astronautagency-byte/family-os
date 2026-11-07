@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { ImagePlus, LoaderCircle, Check, CalendarPlus } from './icons';
+import { ImagePlus, LoaderCircle, Check, CalendarPlus, Camera } from './icons';
 import { Modal, PrimaryButton, SecondaryButton, TextField } from './ui';
 import { readRecipePhotos } from '../lib/recipeImport';
 import { invokeEdgeFunction } from '../lib/supabase';
@@ -17,7 +17,9 @@ export default function CalendarImageImport({ onClose, addEvent, events = [] }) 
   const locked = useRef(false);
   const savedEvents = useRef([]);
   const selected = drafts.filter(event => event.selected && !event.saved);
+  const selectable = drafts.filter(event => !event.saved);
   const update = (key, patch) => setDrafts(rows => rows.map(row => row.key === key ? {...row, ...patch} : row));
+  const selectAll = (value) => setDrafts(rows => rows.map(row => row.saved ? row : {...row, selected:value}));
   async function choosePhotos(files) {
     if (locked.current) return;
     locked.current = true; setBusy('Preparing photos'); setError('');
@@ -63,8 +65,11 @@ export default function CalendarImageImport({ onClose, addEvent, events = [] }) 
   return <Modal open onClose={() => {if (!locked.current) onClose();}} title="Add events from images">
     <div className="calendar-image-import">
       <p>Upload an invitation, event flyer, or a photo of a calendar. Review and edit the events before adding them to your family’s FamOS calendar.</p>
-      <label className="calendar-image-upload"><ImagePlus size={24}/><span>Choose event or calendar photos</span><input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={!!busy} onChange={e => {choosePhotos(e.target.files); e.target.value = '';}}/></label>
-      <small>Up to 3 images, 20 MB each. JPEG, PNG or WebP. Photos are sent to our AI provider only when you choose “Read images”; originals are not saved to your calendar.</small>
+      <div className="calendar-image-sources">
+        <label className="calendar-image-upload"><Camera size={22}/><span>Take a photo</span><input type="file" accept="image/*" capture="environment" disabled={!!busy} onChange={e => {if(e.target.files?.length) choosePhotos(e.target.files); e.target.value = '';}}/></label>
+        <label className="calendar-image-upload"><ImagePlus size={22}/><span>Choose event or calendar photos</span><input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" multiple disabled={!!busy} onChange={e => {if(e.target.files?.length) choosePhotos(e.target.files); e.target.value = '';}}/></label>
+      </div>
+      <small>Up to 3 photos, 20 MB each. HEIC support depends on your device. Photos are sent to our AI provider only when you choose “Read images”; originals are not saved to your calendar.</small>
       {photos.length > 0 && <div className="calendar-image-previews">{photos.map((photo,i) => <img key={i} src={photo} alt={`Selected source image ${i+1}`}/>)}</div>}
       <TextField label="Month and year shown (used when missing from the image)" type="month" value={referenceMonth} disabled={!!busy} onChange={e=>setReferenceMonth(e.target.value)}/>
       <PrimaryButton disabled={!!busy || !photos.length || !referenceMonth || drafts.some(d=>d.saved)} onClick={extract}><ImagePlus size={17}/> Read images</PrimaryButton>
@@ -73,6 +78,7 @@ export default function CalendarImageImport({ onClose, addEvent, events = [] }) 
       {drafts.length > 0 && <>
         <h4>Review {drafts.length} event{drafts.length === 1 ? '' : 's'}</h4>
         <p>Check each date and time against the photo. Times use {Intl.DateTimeFormat().resolvedOptions().timeZone}. Recurring schedules need individual review.</p>
+        {drafts.length > 1 && <div className="calendar-image-selection" role="group" aria-label="Choose events to add"><span>{selected.length} of {selectable.length} available selected</span><div><button type="button" disabled={!!busy || !selectable.length || selected.length === selectable.length} onClick={()=>selectAll(true)}>Select all</button><button type="button" disabled={!!busy || !selected.length} onClick={()=>selectAll(false)}>Clear selection</button></div></div>}
         {drafts.map((event,i) => <fieldset key={event.key} disabled={!!busy || event.saved} className="calendar-image-event">
           <legend>{event.saved ? <><Check size={16}/> {event.duplicate ? 'Already on calendar' : 'Added'}</> : `Event ${i+1}`}</legend>
           <label className="calendar-image-check"><input type="checkbox" checked={event.selected} onChange={e=>update(event.key,{selected:e.target.checked})}/> Include this event</label>
