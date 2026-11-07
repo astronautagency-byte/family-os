@@ -1,8 +1,9 @@
 import { Avatar } from "../components/ui";
 import FamilyIllustration from '../components/FamilyIllustration';
+import FamLoading from '../components/FamLoading';
 import IllustratedAvatarPicker from '../components/IllustratedAvatarPicker';
 import { useEffect, useMemo, useState } from "react";
-import { Baby, Bell, BellRing, BriefcaseBusiness, CalendarDays, Check, CheckSquare, ChefHat, ChevronLeft, Eye, EyeOff, HeartHandshake, House, ImagePlus, Leaf, LoaderCircle, LockKeyhole, Mail, MessageCircle, MilkOff, Palette, Phone, Plus, Salad, Send, ShieldCheck, ShoppingCart, Smartphone, Sparkles, Trash2, UserRound, UsersRound, WalletCards, WheatOff } from "../components/icons";
+import { Baby, Bell, BellRing, BriefcaseBusiness, CalendarDays, Check, CheckSquare, ChefHat, ChevronLeft, Eye, EyeOff, HeartHandshake, House, ImagePlus, Leaf, LockKeyhole, Mail, MessageCircle, MilkOff, Palette, Phone, Plus, Salad, Send, ShieldCheck, ShoppingCart, Smartphone, Sparkles, Trash2, UserRound, UsersRound, WalletCards, WheatOff } from "../components/icons";
 import { useAuth } from "../context/AuthContext";
 import { Card, DateField, PrimaryButton, ProgressBar, SecondaryButton, TextField } from "../components/ui";
 import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
@@ -65,7 +66,7 @@ function Shell({ children, wide = false, compact = false }) {
 }
 
 export function AuthLoading() {
-  return <Shell><LoaderCircle className="animate-spin mt-8" color="var(--color-accent)" /></Shell>;
+  return <main className="minimal-auth"><FamLoading label="Loading your family space" /></main>;
 }
 
 export function SignIn({ initialCreating = false }) {
