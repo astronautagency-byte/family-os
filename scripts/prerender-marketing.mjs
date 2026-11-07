@@ -1,4 +1,4 @@
-import {readFile,writeFile,mkdir} from 'node:fs/promises';
+import {readFile,writeFile,mkdir,rename} from 'node:fs/promises';
 import {createServer} from 'vite';
 import React from 'react';
 import {renderToString} from 'react-dom/server';
@@ -37,6 +37,8 @@ try {
  let home=(await readFile('dist/index.html','utf8')).replace(/<div id="root">[\s\S]*<\/div>(?=\s*<\/body>)/,`<div id="root">${renderToString(React.createElement(Landing))}</div>`);
  home=home.replace('</head>',[...homeStyles].map(css=>`<link rel="stylesheet" href="/${css}">`).join('')+'<noscript><style>.landing-page [style*="opacity:0"]{opacity:1!important;transform:none!important}</style></noscript></head>');
  await writeFile('dist/__public/home.html',home);
+ // Avoid filesystem index precedence swallowing the host-specific homepage rewrite.
+ await rename('dist/index.html','dist/app-shell.html');
  const sitemapPaths=['/','/pricing','/contact','/privacy','/terms',...paths];
  await writeFile('dist/sitemap.xml',`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${sitemapPaths.map(path=>`<url><loc>https://fam-os.app${path}</loc></url>`).join('')}</urlset>`);
  console.log(`Prerendered ${paths.length} public pages with unique metadata and visible content.`);

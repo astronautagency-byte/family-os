@@ -116,7 +116,7 @@
     },
     {
       "source": "/((?!assets/|icons/|marketing/|illustrations/|brand/|fonts/|manifest\\.webmanifest|registerSW\\.js|notification-sw\\.js|robots\\.txt|sitemap\\.xml|favicon\\.ico|sw\\.js|workbox-).*)",
-      "destination": "/"
+      "destination": "/app-shell.html"
     }
   ],
   "redirects": [
