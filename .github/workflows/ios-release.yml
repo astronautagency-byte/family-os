@@ -39,6 +39,8 @@ jobs:
         run: |
           [[ "$APP_BUILD_NUMBER" =~ ^[1-9][0-9]*$ ]] || { echo "Enter a positive integer build suffix"; exit 1; }
           test -n "$VITE_SUPABASE_URL" && test -n "$VITE_SUPABASE_PUBLISHABLE_KEY" || { echo "Set the public Supabase build variables"; exit 1; }
+          # The mobile build can invoke Xcode without the job's environment.
+          sudo xcode-select --switch "$DEVELOPER_DIR"
           xcodebuild -version
           sdk_version="$(xcrun --sdk iphoneos --show-sdk-version)"
           [[ "${sdk_version%%.*}" -ge 26 ]] || { echo "App Store uploads require iOS SDK 26 or later"; exit 1; }
@@ -55,6 +57,13 @@ jobs:
       - name: Create unsigned archive
         if: ${{ !inputs.upload }}
         run: npx --no-install tauri ios build --archive-only --no-sign --build-number "$APP_BUILD_NUMBER" --ci
+
+      - name: Verify unsigned archive
+        if: ${{ !inputs.upload }}
+        run: |
+          app=src-tauri/gen/apple/build/famos_iOS.xcarchive/Products/Applications/FamOS.app
+          sdk="$(xcrun vtool -show-build "$app/FamOS" | awk '$1=="sdk" {print $2}')"
+          [[ -n "$sdk" && "${sdk%%.*}" -ge 26 ]] || { echo "Archive has an unsupported iOS SDK: $sdk"; exit 1; }
 
       - name: Export and upload signed iOS build
         if: ${{ inputs.upload }}
