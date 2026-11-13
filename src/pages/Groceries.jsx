@@ -1221,7 +1221,7 @@ export default function Groceries() {
         <PrimaryButton onClick={saveInventoryItem} disabled={inventorySaving || !inventoryDraft.name.trim() || !inventoryDraft.expiresOn}>{inventorySaving ? "Adding…" : "Add to inventory"}</PrimaryButton>
       </Modal></>}
 
-      <div className="px-5 space-y-5 mt-2">
+      <div className="shopping-list-content space-y-5">
         {false && <Card
           className="delivery-banner-card relative overflow-hidden p-5 border-white/10 shadow-[0_22px_55px_rgba(18,16,43,0.24)]"
         >
@@ -1269,7 +1269,7 @@ export default function Groceries() {
         </Card>}
 
 
-        <div onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={dropStaple} className={`rounded-2xl transition-all ${dragging ? "ring-2 ring-[var(--color-accent)] bg-[var(--color-accent-soft)] p-2" : ""}`}>
+        <div onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={dropStaple} className={`shopping-category-stack rounded-2xl transition-all ${dragging ? "ring-2 ring-[var(--color-accent)] bg-[var(--color-accent-soft)] p-2" : ""}`}>
           {dragging && <p className="text-center text-[12px] font-semibold text-[var(--color-accent)] py-3">Drop here to add to your list</p>}
         {groceries.length === 0 ? (
           <EmptyState illustration="groceries" title="Your shopping list is ready" subtitle="Add what your family needs. Everyone can update the same list." actionLabel="Add shopping item" onAction={openNew} />
@@ -1278,7 +1278,7 @@ export default function Groceries() {
             items.length === 0 ? null : (
               <section key={cat}>
                 <div className="grocery-category-title"><h2>{cat}</h2><span>{items.filter((i) => !i.checked).length} item{items.filter((i) => !i.checked).length === 1 ? "" : "s"}</span></div>
-                <Card className="p-1">
+                <Card className="grocery-category-card">
                   <ul>
                     {items.map((item) => {
                       const adder = item.addedBy ? memberById[item.addedBy] : null;
@@ -1322,7 +1322,7 @@ export default function Groceries() {
                             return (
                               <button
                                 onClick={() => saveAsStaple(item)}
-                                className="flex items-center gap-1 shrink-0 text-[var(--color-ink-faint)]"
+                                className="grocery-row-action gap-1 shrink-0 text-[var(--color-ink-faint)]"
                                 aria-label={isFav ? `Remove ${item.name} from favourites` : `Save ${item.name} as a frequent item`}
                                 title={isFav ? "Saved as favourite" : "Save as favourite"}
                               >
@@ -1331,7 +1331,7 @@ export default function Groceries() {
                               </button>
                             );
                           })()}
-                          <button onClick={() => removeGrocery(item.id)} className="p-1 -mr-1 text-[var(--color-ink-faint)] shrink-0">
+                          <button onClick={() => removeGrocery(item.id)} className="grocery-row-action text-[var(--color-ink-faint)] shrink-0" aria-label={`Remove ${item.name}`}>
                             <Trash2 size={15} />
                           </button>
                         </li>
