@@ -775,8 +775,12 @@ export function AuthProvider({ children }) {
   };
 
   const deleteAccount = async () => {
-    const { error: deleteError } = await supabase.rpc("delete_own_account");
-    if (deleteError) throw deleteError;
+    const { data, error: deleteError } = await supabase.functions.invoke("delete-account");
+    if (deleteError) {
+      const details = await deleteError.context?.json?.().catch(() => null);
+      throw new Error(details?.error || "Account deletion could not finish. Try again or contact FamOS support.");
+    }
+    if (data?.deleted !== true) throw new Error("Could not confirm account deletion. Contact FamOS support.");
     localStorage.removeItem("family-os:google-provider-token");
     localStorage.removeItem("family-os:v1");
     localStorage.removeItem("family-os:google:v1");
