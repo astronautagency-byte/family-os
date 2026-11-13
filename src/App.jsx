@@ -311,9 +311,8 @@ export default function App() {
   const [upgradeFeature, setUpgradeFeature] = useState("");
   const [billingBusy, setBillingBusy] = useState(false);
   const [billingError, setBillingError] = useState("");
-  // Apple builds are a free Core edition. Do not carry paid web entitlements
-  // into the native apps; doing so would unlock digital services purchased
-  // outside Apple's In-App Purchase system.
+  // Store builds use the free Core feature set. Web purchases do not change
+  // entitlements in these builds.
   const effectiveEntitlements = useMemo(() => {
     if (!IS_APP_STORE) return entitlements;
     return {

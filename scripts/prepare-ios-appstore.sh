@@ -79,6 +79,7 @@ perl -0pi -e "s/CFBundleVersion: .*\$/CFBundleVersion: \"$BUILD_NUMBER\"/m" "$PR
 # XcodeGen otherwise treats static libraries discovered under Externals as
 # app resources. Exclude them from source discovery; the explicit dependency
 # below still links libapp.a normally.
+mkdir -p "$APPLE_DIR/Externals"
 perl -0pi -e 's/(      - path: Externals\n)(?:        buildPhase: none\n)?(?!        excludes:)/$1        excludes: ["**\/*.a"]\n/' "$PROJECT_SPEC"
 
 if ! grep -q 'CFBundleURLTypes:' "$PROJECT_SPEC"; then
@@ -102,13 +103,6 @@ if [[ -f "$APPLE_DIR/assets/PrivacyInfo.xcprivacy" ]]; then
   rm "$APPLE_DIR/assets/PrivacyInfo.xcprivacy"
 fi
 
-/usr/libexec/PlistBuddy -c 'Set :CFBundleShortVersionString 1.0.0' "$INFO_PLIST"
-/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$INFO_PLIST"
-/usr/libexec/PlistBuddy -c 'Set :NSMicrophoneUsageDescription Record a voice note to share with your household when you choose Broadcast.' "$INFO_PLIST" 2>/dev/null || \
-  /usr/libexec/PlistBuddy -c 'Add :NSMicrophoneUsageDescription string Record a voice note to share with your household when you choose Broadcast.' "$INFO_PLIST"
-/usr/libexec/PlistBuddy -c 'Set :ITSAppUsesNonExemptEncryption false' "$INFO_PLIST" 2>/dev/null || \
-  /usr/libexec/PlistBuddy -c 'Add :ITSAppUsesNonExemptEncryption bool false' "$INFO_PLIST"
-
 plutil -create xml1 "$EXPORT_PLIST"
 plutil -insert destination -string export "$EXPORT_PLIST"
 plutil -insert method -string app-store-connect "$EXPORT_PLIST"
@@ -117,6 +111,15 @@ plutil -insert teamID -string "$TEAM_ID" "$EXPORT_PLIST"
 
 cd "$APPLE_DIR"
 xcodegen generate --spec project.yml
+
+/usr/libexec/PlistBuddy -c 'Set :CFBundleShortVersionString 1.0.0' "$INFO_PLIST"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$INFO_PLIST"
+plutil -replace NSMicrophoneUsageDescription -string 'Talk to Mia or record a voice note when you choose to use the microphone.' "$INFO_PLIST" || \
+  plutil -insert NSMicrophoneUsageDescription -string 'Talk to Mia or record a voice note when you choose to use the microphone.' "$INFO_PLIST"
+plutil -replace NSSpeechRecognitionUsageDescription -string 'Turn your speech into text when you choose to talk to Mia.' "$INFO_PLIST" || \
+  plutil -insert NSSpeechRecognitionUsageDescription -string 'Turn your speech into text when you choose to talk to Mia.' "$INFO_PLIST"
+/usr/libexec/PlistBuddy -c 'Set :ITSAppUsesNonExemptEncryption false' "$INFO_PLIST" 2>/dev/null || \
+  /usr/libexec/PlistBuddy -c 'Add :ITSAppUsesNonExemptEncryption bool false' "$INFO_PLIST"
 
 # Recent XcodeGen versions may infer the Rust static library under Externals as
 # both a link dependency and an app resource. It must be linked, but Apple

@@ -10,5 +10,6 @@ export const IS_MAC_APP_STORE = DISTRIBUTION === "mac-app-store";
 export const IS_APP_STORE = (
   IS_MAC_APP_STORE
   || IS_IOS_APP_STORE
+  || DISTRIBUTION === "android"
   || isTauriRuntime()
 );

@@ -83,6 +83,10 @@
   ],
   "rewrites": [
     {
+      "source": "/delete-account",
+      "destination": "/delete-account.html"
+    },
+    {
       "source": "/helpers",
       "destination": "/__public/helpers.html"
     },
