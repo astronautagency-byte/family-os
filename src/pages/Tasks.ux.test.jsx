@@ -9,7 +9,7 @@ it('filters assigned tasks and restores everyone',()=>{
  mocks.members=[{id:'a',name:'Alex'},{id:'b',name:'Katie'}];
  mocks.tasks=[{id:'1',title:'Water plants',done:false,assigneeIds:['a']},{id:'2',title:'Feed cat',done:false,assigneeIds:['b']}];
  render(<Tasks/>);
- fireEvent.click(screen.getByText('Search & filters'));
+ fireEvent.click(screen.getByText(/^Task options/));
  fireEvent.change(screen.getByLabelText('Assigned to'),{target:{value:'b'}});
  expect(screen.getByText('Feed cat')).toBeDefined();
  expect(screen.queryByText('Water plants')).toBeNull();
@@ -40,12 +40,12 @@ it('prevents duplicate submissions while saving',async()=>{
 it('makes completed tasks searchable and reopenable',()=>{
  mocks.tasks=[{id:'a',title:'Pack lunch',done:true},{id:'b',title:'Mow lawn',done:false}];
  render(<Tasks/>);
+ fireEvent.click(screen.getByText('Task options'));
  fireEvent.click(screen.getByRole('button',{name:'Completed',exact:true}));
  expect(screen.getByRole('button',{name:'Reopen Pack lunch'})).toBeDefined();
  expect(screen.queryByRole('button',{name:'Complete Mow lawn'})).toBeNull();
  fireEvent.click(screen.getByRole('button',{name:'Reopen Pack lunch'}));
  expect(mocks.toggle).toHaveBeenCalledWith('a');
- fireEvent.click(screen.getByText('Search & filters'));
  fireEvent.change(screen.getByRole('searchbox'),{target:{value:'missing'}});
  expect(screen.getByText('No matching tasks')).toBeDefined();
 });

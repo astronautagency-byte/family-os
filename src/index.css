@@ -9360,3 +9360,26 @@ input:focus, textarea:focus, select:focus {
 
 /* Let long household names and task instructions wrap inside narrow screens. */
 .app-content,.app-content>*,.reference-tasks,.reference-settings{min-width:0;max-width:100%;box-sizing:border-box}.task-group-title{gap:8px;flex-wrap:wrap}.task-group-title h2{min-width:0;flex:1;overflow-wrap:anywhere}.task-group-name{min-width:0;overflow-wrap:anywhere}.task-group-title>span,.task-list-share{flex-shrink:0}.task-board-row{min-width:0;flex-wrap:wrap}.task-row-copy{min-width:0;flex:1 1 100px;overflow-wrap:anywhere}.task-row-copy strong,.task-row-copy small{white-space:normal;overflow-wrap:anywhere}.task-list-selector{min-width:0;max-width:100%}.task-list-selector select{width:0;min-width:0;flex:1}.task-management .task-toolbar{flex-wrap:wrap}.reference-tasks .form-field,.reference-settings .form-field{min-width:0}
+
+.famos-compact-disclosure { min-width: 0; font-size: 14px; }
+.famos-compact-disclosure > summary {
+  min-height: 44px;
+  padding: 10px 0;
+  cursor: pointer;
+  color: var(--color-ink-soft);
+  font-weight: 650;
+}
+.task-list-bar { display: flex; align-items: start; gap: 12px; flex-wrap: wrap; }
+.task-list-bar .task-list-selector { flex: 1 1 155px; }
+.task-list-bar .task-management[open] { flex-basis: 100%; }
+.task-list-bar .task-management > summary { background: transparent; border: 0; padding-inline: 0; }
+.task-list-bar .task-filter-content { margin-top: 12px; }
+.shopping-options { margin-inline: 20px; }
+.shopping-options .grocery-actions-row { margin: 0 0 12px; padding: 0; }
+.shopping-staples { margin-top: 12px; }
+@media (max-width: 767px) {
+  .app-topbar .topbar-fam-ai { display: none; }
+}
+
+.reference-tasks .task-group-title { flex-wrap: nowrap; }
+.reference-tasks .task-group-title h2 { flex: 1 1 auto; min-width: 0; }

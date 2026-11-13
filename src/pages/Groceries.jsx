@@ -1,7 +1,7 @@
 import {useHouseholdFeatures} from "../context/HouseholdFeaturesContext";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ShoppingCart } from '../components/icons';
-import { Baby, Bone, Camera, Carrot, Check, CheckCircle2, ChevronDown, Clipboard, Clock3, Coffee, Cookie, Croissant, CupSoda, Download, Drumstick, ExternalLink, FlaskConical, Globe2, GripVertical, HeartPulse, Image as ImageIcon, ListChecks, LoaderCircle, Maximize2, Milk, Minus, Package, Pencil, Plus, Refrigerator, RotateCcw, Sandwich, ScanLine, ScrollText, Search, Share2, ShoppingBag, ShoppingBasket, Snowflake, Soup, Sparkles, SprayCan, Star, Store, Trash2, Truck, Upload, Wheat, Wine, X } from "../components/icons";
+import { Baby, Bone, Camera, Carrot, Check, CheckCircle2, ChevronDown, Clipboard, Clock3, Coffee, Cookie, Croissant, CupSoda, Download, Drumstick, ExternalLink, FlaskConical, Globe2, HeartPulse, Image as ImageIcon, ListChecks, LoaderCircle, Milk, Minus, Package, Pencil, Plus, Refrigerator, RotateCcw, Sandwich, ScanLine, ScrollText, Search, Share2, ShoppingBag, ShoppingBasket, Snowflake, Soup, Sparkles, SprayCan, Star, Store, Trash2, Truck, Upload, Wheat, Wine, X } from "../components/icons";
 import { uploadGroceryPhoto, isUploadableImage, deleteGroceryPhoto, compressImage } from "../lib/groceryPhotoUpload";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
@@ -17,7 +17,6 @@ import ConfirmAction from "../components/ConfirmAction";
 import CompletionScreen from "../components/CompletionScreen";
 import NativeAdBanner from "../components/NativeAdBanner";
 import { AD_PLACEMENTS } from "../lib/adNetwork";
-import { FocusShoppingItem } from "../components/FocusShoppingItem";
 import { canonicalIngredientName, isIngredientOnList, loadIngredientCache, saveIngredientCache } from "../lib/mealIngredientCache";
 import { formatDayLabel, todayISO } from "../lib/dates";
 import { GROCERY_CATEGORIES } from "../data/mockData";
@@ -277,7 +276,6 @@ export default function Groceries() {
   const [quickAddError, setQuickAddError] = useState("");
   const [clearing, setClearing] = useState(false);
   const [clearingChecked, setClearingChecked] = useState(false);
-  const [focusMode, setFocusMode] = useState(false);
   const [barcodeModal, setBarcodeModal] = useState(false);
   const [barcodeDraft, setBarcodeDraft] = useState(emptyBarcodeDraft);
   const [barcodeStatus, setBarcodeStatus] = useState("");
@@ -285,7 +283,6 @@ export default function Groceries() {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scannerStarting, setScannerStarting] = useState(false);
   const [scannerError, setScannerError] = useState("");
-  const [returnToFocus, setReturnToFocus] = useState(false);
   const {features}=useHouseholdFeatures();
   const [listCelebration, setListCelebration] = useState(false);
   const [photoDraft, setPhotoDraft] = useState(emptyPhoto);
@@ -516,11 +513,6 @@ export default function Groceries() {
     const header = `FamOS grocery list — ${deliveryItems.length} item${deliveryItems.length === 1 ? "" : "s"}`;
     return deliveryListText ? `${header}\n\n${deliveryListText}` : header;
   }, [deliveryItems.length, deliveryListText]);
-  const focusItems = useMemo(
-    () => [...groceries].sort((a, b) => Number(a.checked) - Number(b.checked) || a.category.localeCompare(b.category)),
-    [groceries]
-  );
-
   // Per-meal missing-ingredient breakdown. Skips meals with no cached
   // ingredient list (e.g., a roulette-spun meal that has not been looked
   // up via Cook Mode yet) so the cross-reference only shows surface-able
@@ -751,8 +743,6 @@ export default function Groceries() {
     stopBarcodeScanner();
     setScannerOpen(false);
     setBarcodeModal(false);
-    if (returnToFocus) setFocusMode(true);
-    setReturnToFocus(false);
   };
 
   const resetBarcodeDraft = () => {
@@ -984,12 +974,10 @@ export default function Groceries() {
     setBarcodeStatus(`${item.name} is saved to favourites.`);
   };
 
-  const addScannedItem = async (openFocus = false) => {
+  const addScannedItem = async () => {
     if (!barcodeDraft.name.trim()) return;
     await addGrocery(barcodeItem());
-    setReturnToFocus(false);
     setBarcodeModal(false);
-    if (openFocus || returnToFocus) setFocusMode(true);
   };
 
   const openDelivery = () => {
@@ -1105,7 +1093,6 @@ export default function Groceries() {
         onAdd={openNew}
         addLabel="Add shopping item"
         illustration="groceries"
-        subtitle="A shared memory for everything the fridge forgot to mention."
       />
 
       <NativeAdBanner placement={AD_PLACEMENTS.SHOPPING} />
@@ -1116,25 +1103,18 @@ export default function Groceries() {
         <button type="button" className="shopping-list-add" onClick={() => setNewListOpen(true)}><Plus size={15}/><span>New list</span></button>
       </div>
 
-      <div className="grocery-actions-row">
-        {totalMissingCount > 0 && (
-          <button
-            type="button"
-            onClick={() => setShowMissingModal(true)}
-            aria-label={`View ${totalMissingCount} missing ingredients from planned meals`}
-            title="Cross-reference planned meals against your list"
-          >
-            <ListChecks size={14} /> Missing {totalMissingCount}
-          </button>
-        )}
-        {deliveryItems.length > 0 && <button type="button" onClick={openDelivery}><Truck size={14} /> Shop for delivery</button>}
-        <button onClick={() => { resetBarcodeDraft(); setReturnToFocus(false); setBarcodeModal(true); }}><ScanLine size={14} /> Scan product</button>
-        {groceries.length > 0 && <button onClick={() => setFocusMode(true)}><Maximize2 size={14} /> Focus shop</button>}
-        {(checkedCount > 0 || groceries.length > 0) && <details className="page-actions-menu"><summary>More</summary><div className="page-actions-menu-list" onClick={event => { if (event.target.closest('button')) event.currentTarget.parentElement.open = false; }}>
+      <details className="shopping-options famos-compact-disclosure">
+        <summary>Shopping options</summary>
+        <div className="grocery-actions-row" onClick={event => {
+          if (event.target.closest('button')) event.currentTarget.parentElement.open = false;
+        }}>
+          <button type="button" onClick={() => { resetBarcodeDraft(); setBarcodeModal(true); }}><ScanLine size={14}/> Scan product</button>
+          {deliveryItems.length > 0 && <button type="button" onClick={openDelivery}><Truck size={14}/> Shop for delivery</button>}
+          {totalMissingCount > 0 && <button type="button" onClick={() => setShowMissingModal(true)}><ListChecks size={14}/> Missing meal ingredients ({totalMissingCount})</button>}
           {checkedCount > 0 && <button type="button" onClick={() => setClearingChecked(true)}>Clear {checkedCount} checked</button>}
-          {groceries.length > 0 && <button type="button" className="page-reset-button" onClick={()=>setClearing(true)}><Trash2 size={15}/> Reset shopping</button>}
-        </div></details>}
-      </div>
+          {groceries.length > 0 && <button type="button" onClick={() => setClearing(true)}><Trash2 size={15}/> Reset shopping</button>}
+        </div>
+      </details>
 
       {false && <><section className="kitchen-inventory-card" aria-labelledby="kitchen-inventory-title">
         <header>
@@ -1256,37 +1236,6 @@ export default function Groceries() {
           </div>
         </Card>}
 
-        <section>
-          <div className="flex items-end justify-between mb-3 px-1">
-            <div><p className="page-eyebrow">{activeGroceryListId === "all" ? "All staples" : `${groceryLists.find((l) => l.id === activeGroceryListId)?.name || "List"} staples`}</p><h2 className="grocery-section-title">Quick add</h2></div>
-            <button onClick={() => openMasterItem()} className="flex items-center gap-1 text-[11.5px] font-semibold text-[var(--color-accent)]"><Plus size={13} /> New staple</button>
-          </div>
-          <StapleStarter onAdd={items=>setStaples(current=>mergeStarterStaples(current,items))}/>
-          {quickAddError && <p role="alert" className="grocery-quick-add-error">{quickAddError}</p>}
-          {checkedQuickAdd.length > 0 && <div className="grocery-checked-suggestions"><h3>Buy again</h3><p>Items checked off on this list</p><div>{checkedQuickAdd.map(item => <button key={item.id} type="button" onClick={()=>buyAgain(item)}><Plus size={14}/><span>{item.name}</span></button>)}</div></div>}
-          {staples.length === 0 && (
-            <p className="text-center text-[12px] text-[var(--color-ink-faint)] py-4 px-2">No staples yet. Tap <strong>New staple</strong> to save items you buy regularly.</p>
-          )}
-          <div className="grid grid-cols-2 gap-2">
-            {(showAllStaples ? staples : staples.slice(0, 6)).map((staple) => <div key={staple.id} draggable onDragStart={(event) => { event.dataTransfer.setData("application/json", JSON.stringify(staple)); setDragging(true); }} onDragEnd={() => setDragging(false)} className="group relative min-w-0 flex items-center rounded-2xl bg-[var(--color-surface)] notion-shadow overflow-hidden cursor-grab active:cursor-grabbing">
-              <button onClick={() => addStapleToList(staple)} className="flex flex-1 min-w-0 items-center gap-2.5 p-2.5 text-left active:bg-[var(--color-accent-soft)] transition-colors" aria-label={`Add ${staple.name} to grocery list`}>
-                <GroceryItemImage item={staple} memberById={memberById} />
-                <span className="min-w-0 flex-1"><span className="block text-[13.5px] font-medium truncate">{staple.name}</span><span className="block text-[10.5px] text-[var(--color-ink-faint)] truncate">{staple.quantity}{staple.unit ? ` ${staple.unit}` : ""}</span></span>
-                <span className="w-6 h-6 rounded-full bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0"><Plus size={13} color="var(--color-accent)" strokeWidth={2.5} /></span>
-              </button>
-              <button onClick={() => openMasterItem(staple)} className="self-stretch px-2 border-l border-[var(--color-border)] bg-[var(--color-surface-sunken)]" aria-label={`Edit ${staple.name}`}><Pencil size={12} color="var(--color-ink-faint)" /></button>
-            </div>)}
-          </div>
-          {staples.length > 6 && (
-            <button onClick={() => setShowAllStaples((shown) => !shown)} className="w-full mt-2.5 text-center text-[11.5px] font-medium text-[var(--color-accent)] py-1">
-              {showAllStaples ? "Show fewer staples" : `Show all ${staples.length} staples`}
-            </button>
-          )}
-          <div className="flex items-center justify-center gap-1.5 mt-3 text-[10.5px] text-[var(--color-ink-faint)]">
-            <GripVertical size={12} />
-            <p>Tap to add, or drag a staple into your list.</p>
-          </div>
-        </section>
 
         <div onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={dropStaple} className={`rounded-2xl transition-all ${dragging ? "ring-2 ring-[var(--color-accent)] bg-[var(--color-accent-soft)] p-2" : ""}`}>
           {dragging && <p className="text-center text-[12px] font-semibold text-[var(--color-accent)] py-3">Drop here to add to your list</p>}
@@ -1363,6 +1312,34 @@ export default function Groceries() {
           )
         )}
         </div>
+        <details className="famos-compact-disclosure shopping-staples">
+          <summary>Saved staples</summary>
+          <div className="flex items-end justify-between mb-3 px-1">
+            <button onClick={() => openMasterItem()} className="flex items-center gap-1 text-[11.5px] font-semibold text-[var(--color-accent)]"><Plus size={13} /> New staple</button>
+          </div>
+          <StapleStarter onAdd={items=>setStaples(current=>mergeStarterStaples(current,items))}/>
+          {quickAddError && <p role="alert" className="grocery-quick-add-error">{quickAddError}</p>}
+          {checkedQuickAdd.length > 0 && <div className="grocery-checked-suggestions"><h3>Buy again</h3><p>Items checked off on this list</p><div>{checkedQuickAdd.map(item => <button key={item.id} type="button" onClick={()=>buyAgain(item)}><Plus size={14}/><span>{item.name}</span></button>)}</div></div>}
+          {staples.length === 0 && (
+            <p className="text-center text-[12px] text-[var(--color-ink-faint)] py-4 px-2">No staples yet. Tap <strong>New staple</strong> to save items you buy regularly.</p>
+          )}
+          <div className="grid grid-cols-2 gap-2">
+            {(showAllStaples ? staples : staples.slice(0, 6)).map((staple) => <div key={staple.id} draggable onDragStart={(event) => { event.dataTransfer.setData("application/json", JSON.stringify(staple)); setDragging(true); }} onDragEnd={() => setDragging(false)} className="group relative min-w-0 flex items-center rounded-2xl bg-[var(--color-surface)] notion-shadow overflow-hidden cursor-grab active:cursor-grabbing">
+              <button onClick={() => addStapleToList(staple)} className="flex flex-1 min-w-0 items-center gap-2.5 p-2.5 text-left active:bg-[var(--color-accent-soft)] transition-colors" aria-label={`Add ${staple.name} to grocery list`}>
+                <GroceryItemImage item={staple} memberById={memberById} />
+                <span className="min-w-0 flex-1"><span className="block text-[13.5px] font-medium truncate">{staple.name}</span><span className="block text-[10.5px] text-[var(--color-ink-faint)] truncate">{staple.quantity}{staple.unit ? ` ${staple.unit}` : ""}</span></span>
+                <span className="w-6 h-6 rounded-full bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0"><Plus size={13} color="var(--color-accent)" strokeWidth={2.5} /></span>
+              </button>
+              <button onClick={() => openMasterItem(staple)} className="self-stretch px-2 border-l border-[var(--color-border)] bg-[var(--color-surface-sunken)]" aria-label={`Edit ${staple.name}`}><Pencil size={12} color="var(--color-ink-faint)" /></button>
+            </div>)}
+          </div>
+          {staples.length > 6 && (
+            <button onClick={() => setShowAllStaples((shown) => !shown)} className="w-full mt-2.5 text-center text-[11.5px] font-medium text-[var(--color-accent)] py-1">
+              {showAllStaples ? "Show fewer staples" : `Show all ${staples.length} staples`}
+            </button>
+          )}
+        </details>
+
       </div>
 
       <Modal open={!!editingId} onClose={closeEditorModal} title={editingId === "new" ? "Add a grocery" : "Edit grocery"}>
@@ -1508,9 +1485,8 @@ export default function Groceries() {
         </div>
         <p className="barcode-price-note">Prices vary by store and are not encoded in UPC barcodes, so confirm the current shelf price.</p>
         <div className="barcode-save-actions">
-          <PrimaryButton onClick={() => addScannedItem(false)} disabled={!barcodeDraft.name.trim()}>Add to grocery list</PrimaryButton>
+          <PrimaryButton onClick={addScannedItem} disabled={!barcodeDraft.name.trim()}>Add to grocery list</PrimaryButton>
           <SecondaryButton onClick={saveBarcodeFavourite} disabled={!barcodeDraft.name.trim()}><Star size={15} /> Save favourite</SecondaryButton>
-          <SecondaryButton onClick={() => addScannedItem(true)} disabled={!barcodeDraft.name.trim()}><Maximize2 size={15} /> Add & open Focus Shop</SecondaryButton>
         </div>
       </Modal>
 
@@ -1574,43 +1550,6 @@ export default function Groceries() {
           </div>
         </div>
       </Modal>}
-
-      {focusMode && (
-        <div className="focus-shopping-overlay" role="dialog" aria-modal="true" aria-label="Focus shopping mode">
-          <div className="focus-shopping-header">
-            <div>
-              <p>Focus shopping</p>
-              <h2>{groceries.length - checkedCount} items left</h2>
-            </div>
-            <div className="focus-shopping-header-actions">
-              <button
-                className="focus-shopping-scan"
-                onClick={() => {
-                  resetBarcodeDraft();
-                  setFocusMode(false);
-                  setReturnToFocus(true);
-                  setBarcodeModal(true);
-                }}
-              >
-                <ScanLine size={15} /> Scan item
-              </button>
-              <button onClick={() => setFocusMode(false)} aria-label="Close focus shopping"><X size={20} /></button>
-            </div>
-          </div>
-          <div className="focus-shopping-list">
-            {focusItems.map((item) => (
-              <FocusShoppingItem
-                key={item.id}
-                item={item}
-                memberById={memberById}
-                onToggle={handleToggleGrocery}
-                onUpdateExpiry={updateGrocery}
-              />
-            ))}
-          </div>
-          <button className="focus-shopping-done" onClick={() => setFocusMode(false)}>Done shopping</button>
-        </div>
-      )}
 
       {/* Cross-reference: planned meals vs the current grocery list.
           Opened from the "Missing N" pill in the page header. Per-meal

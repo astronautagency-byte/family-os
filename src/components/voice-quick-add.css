@@ -58,3 +58,19 @@
 .voice-quick-prompt{overflow-wrap:anywhere}
 #mia-launcher-slot .voice-quick-fab{padding:3px;border-radius:50%;color:#f5f5f7}
 #mia-launcher-slot .voice-quick-fab:hover{background:linear-gradient(125deg,#24202f,#09090d 70%);transform:none}
+
+.voice-quick-modal { max-height: 85dvh; }
+.voice-quick-modal .modal-heading { margin-bottom: 8px; }
+.voice-quick-content { gap: 12px; }
+.voice-quick-conversation {
+  max-height: none;
+  overflow: visible;
+  padding: 10px 0 4px;
+  gap: 8px;
+}
+.voice-quick-conversation .voice-quick-orb { width: 68px; height: 68px; }
+.voice-quick-prompt { max-width: 34ch; font-size: clamp(17px, 4.5vw, 21px); }
+.mia-turn-status { color: var(--color-ink-soft); font-size: 13px; }
+.mia-conversation-controls { display: grid; gap: 2px; }
+.mia-conversation-controls .voice-quick-type { justify-self: center; min-height: 44px; font-size: 14px; }
+.voice-quick-modal .ai-privacy-manage { font-size: 13px; margin-top: 8px; }
