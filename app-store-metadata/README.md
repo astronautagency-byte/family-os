@@ -167,17 +167,13 @@ https://fam-os.app/privacy
 
 ## Review Notes
 
-### Test Account
-- **Email:** test@fam-os.app
-- **Password:** TestPassword123!
+### Reviewer access
 
-### Important Notes
-1. App requires internet connection for full functionality
-2. Calendar sync requires user authorization
-3. AI features require user approval before applying suggestions
-4. All data is encrypted in transit and at rest
-5. App can be used without an account for exploration
-6. Sign-up is free and takes less than 30 seconds
+Create a dedicated FamOS account and populate it with synthetic household data. Verify email and password sign-in on the signed build. Enter the verified login in App Review Information and Play Console App access. Store reviewer credentials in the company password manager.
+
+### Review notes for the free Core build
+
+FamOS requires internet access and a FamOS account to load the shared household. Sign in with the supplied review account. Open Calendar for the family schedule, Tasks for shared task lists, Shopping for groceries, and Meals for the meal plan. To find account deletion, open Settings → Account → Delete account. Use a separate disposable account to complete the deletion test so the shared review account remains available.
 
 ## Submission Checklist
 
