@@ -20,7 +20,7 @@ test("shared FamOS components cover the supplied Preline interaction patterns", 
 
 test("reference screens consume the shared patterns", () => {
   assert.match(tasks, /<AvatarStack/);
-  assert.match(tasks, /<Badge tone="accent"/);
+  assert.match(tasks, /<ProgressBar/);
   assert.match(kitchen, /<CircularProgress/);
   assert.match(settings, /<ColorSchemePicker/);
 });

@@ -3,7 +3,9 @@
 <plist version="1.0">
 <dict>
   <key>NSMicrophoneUsageDescription</key>
-  <string>Record a voice note to share with your household when you choose Broadcast.</string>
+  <string>Talk to Mia or record a voice note when you choose to use the microphone.</string>
+  <key>NSSpeechRecognitionUsageDescription</key>
+  <string>Turn your speech into text when you choose to talk to Mia.</string>
   <key>ITSAppUsesNonExemptEncryption</key>
   <false/>
 </dict>
