@@ -93,9 +93,11 @@ if ! grep -q 'CODE_SIGN_STYLE:' "$PROJECT_SPEC"; then
   perl -0pi -e 's/(VALID_ARCHS: arm64\s*\n)/$1        CODE_SIGN_STYLE: Automatic\n/' "$PROJECT_SPEC"
 fi
 
-# Tauri already adds the root privacy manifest as a resource through
-# bundle.resources. Remove an older generated copy so Xcode has one producer
-# for PrivacyInfo.xcprivacy instead of two competing copy phases.
+# Include the privacy manifest at the app bundle root. Tauri's asset folder
+# alone puts it under assets/, outside the expected iOS manifest location.
+if ! grep -q 'path: ../../PrivacyInfo.xcprivacy' "$PROJECT_SPEC"; then
+  perl -0pi -e 's/(      - path: LaunchScreen.storyboard\n)/$1      - path: ..\/..\/PrivacyInfo.xcprivacy\n        buildPhase: resources\n/' "$PROJECT_SPEC"
+fi
 if [[ -f "$APPLE_DIR/famos_iOS/PrivacyInfo.xcprivacy" ]]; then
   rm "$APPLE_DIR/famos_iOS/PrivacyInfo.xcprivacy"
 fi

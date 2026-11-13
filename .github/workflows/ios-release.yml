@@ -19,6 +19,7 @@ jobs:
   build-ios:
     runs-on: macos-15
     env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
       APP_BUILD_NUMBER: ${{ inputs.build_number }}
       APPLE_DEVELOPMENT_TEAM: ZRDVT9WBN4
       VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
@@ -39,6 +40,8 @@ jobs:
           [[ "$APP_BUILD_NUMBER" =~ ^[1-9][0-9]*$ ]] || { echo "Enter a positive integer build suffix"; exit 1; }
           test -n "$VITE_SUPABASE_URL" && test -n "$VITE_SUPABASE_PUBLISHABLE_KEY" || { echo "Set the public Supabase build variables"; exit 1; }
           xcodebuild -version
+          sdk_version="$(xcrun --sdk iphoneos --show-sdk-version)"
+          [[ "${sdk_version%%.*}" -ge 26 ]] || { echo "App Store uploads require iOS SDK 26 or later"; exit 1; }
 
       - name: Install dependencies
         run: |
@@ -78,7 +81,12 @@ jobs:
 
       - name: Save unsigned archive
         if: ${{ !inputs.upload }}
-        run: ditto -c -k --keepParent src-tauri/gen/apple/build/famos_iOS.xcarchive "$RUNNER_TEMP/FamOS-iOS.xcarchive.zip"
+        run: |
+          archive=src-tauri/gen/apple/build/famos_iOS.xcarchive
+          app="$archive/Products/Applications/FamOS.app"
+          test -f "$app/PrivacyInfo.xcprivacy"
+          test ! -e "$app/libapp.a"
+          ditto -c -k --keepParent "$archive" "$RUNNER_TEMP/FamOS-iOS.xcarchive.zip"
 
       - uses: actions/upload-artifact@v4
         if: ${{ !inputs.upload }}
