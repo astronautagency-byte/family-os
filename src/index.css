@@ -9383,3 +9383,80 @@ input:focus, textarea:focus, select:focus {
 
 .reference-tasks .task-group-title { flex-wrap: nowrap; }
 .reference-tasks .task-group-title h2 { flex: 1 1 auto; min-width: 0; }
+
+/* Put the daily action and active list above secondary controls. */
+.today-first-actions, .shopping-primary {
+  display: grid;
+  gap: 10px;
+  margin: 0 20px 16px;
+  min-width: 0;
+}
+.today-quick-add > summary, .today-up-next, .famos-list-entry {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  padding: 8px 12px;
+}
+.today-quick-add > summary {
+  cursor: pointer;
+  list-style: none;
+  font-size: 16px;
+  font-weight: 750;
+}
+.today-quick-add > summary::-webkit-details-marker { display: none; }
+.today-quick-add > summary::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border: solid currentColor;
+  border-width: 0 1.5px 1.5px 0;
+  margin-inline: auto 5px;
+  transform: rotate(45deg);
+}
+.today-quick-add[open] > summary::after { transform: rotate(225deg); }
+.today-quick-add > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+.today-quick-add button, .today-up-next-icon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding-inline: 12px;
+  border-radius: var(--radius-control);
+  background: var(--color-surface-sunken);
+  color: var(--color-ink);
+  font-weight: 650;
+}
+.today-up-next { width: 100%; text-align: start; }
+.today-up-next-icon { flex: none; background: var(--color-calendar-soft); }
+.today-up-next > span:nth-child(2) { display: grid; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.today-up-next small { color: var(--color-ink-soft); font-size: 13px; }
+.today-up-next > svg { flex: none; }
+.today-first-actions .today-next-container { margin-inline: -20px; }
+.famos-list-entry:focus-within { border-color: var(--color-accent); }
+.famos-list-entry > svg { flex: none; color: var(--color-shopping-strong); }
+.famos-list-entry input { flex: 1; width: 0; min-width: 0; font-size: 16px; }
+.famos-list-entry button {
+  min-height: 44px;
+  padding-inline: 15px;
+  border-radius: var(--radius-control);
+  background: var(--color-shopping-strong);
+  color: var(--color-surface);
+  font-weight: 750;
+}
+.famos-list-entry button:disabled { opacity: .55; }
+.famos-list-controls { display: flex; align-items: start; gap: 12px; flex-wrap: wrap; }
+.famos-list-controls .task-list-selector { flex: 1 1 140px; }
+.famos-list-controls .shopping-options { margin: 0; }
+.famos-list-controls > details[open] { flex-basis: 100%; }
+.famos-list-controls > details > summary { min-height: 44px; }
+.shopping-selected-actions { display: contents; }

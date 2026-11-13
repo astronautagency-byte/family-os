@@ -255,8 +255,8 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
   };
   startRef.current = start;
   if (hidden) return null;
-  const miaState = startingMic ? 'connecting' : listening ? 'listening' : speaking ? 'speaking' : thinking || preparingVoice ? 'thinking' : 'idle';
-  const miaStateLabel = { idle: 'Your home assistant', connecting:'Connecting microphone…', listening: 'Listening…', speaking: 'Speaking…', thinking: 'Thinking…' }[miaState];
+  const miaState = startingMic ? 'connecting' : speaking ? 'speaking' : listening ? 'listening' : thinking || preparingVoice ? 'thinking' : action ? 'review' : 'idle';
+  const miaStateLabel = { idle: 'Your home assistant', connecting:'Connecting microphone…', listening: 'Listening…', speaking: 'Replying…', thinking: 'Thinking…', review: 'Waiting for your confirmation' }[miaState];
   const launcher=<button data-mia-state={miaState} className="voice-quick-fab" type="button" onClick={() => setOpen(true)} aria-label="Talk to Mia, voice assistant" aria-haspopup="dialog" aria-expanded={open}>
       <span className="voice-quick-fab-avatar" aria-hidden="true"><img src="/illustrations/mia-assistant.png" alt=""/></span>
       <span className="mia-launcher-copy"><span>Talk to Mia</span><small>{miaStateLabel}</small></span>
@@ -264,10 +264,10 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
     </button>;
   return <>{launcherTarget ? createPortal(launcher,launcherTarget) : launcher}
     <Modal open={open} onClose={close} title="Talk to Mia" className="voice-quick-modal"><AiPrivacyGate onCancel={close} onPause={endConversation} manageAfterContent><div className="voice-quick-content">
-      <div className="voice-quick-conversation" data-mia-state={miaState} aria-live="polite">
+      <div className="voice-quick-conversation" data-mia-state={miaState}>
         <span className="voice-quick-orb"><img src="/illustrations/mia-assistant.png" alt="" /></span>
-        {conversationMode && <span className="mia-turn-status">{miaState === 'idle' ? 'Getting ready…' : miaStateLabel}</span>}
-        <p className="voice-quick-prompt">{message}</p>
+        {(conversationMode || miaState !== 'idle') && <span className="mia-turn-status" role="status">{miaState === 'idle' ? 'Getting ready…' : miaStateLabel}</span>}
+        <p className="voice-quick-prompt" aria-live="polite">{message}</p>
         {transcript && <p className="voice-quick-heard">You: “{transcript}”</p>}
       </div>
       <div className="mia-conversation-controls">

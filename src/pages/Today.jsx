@@ -5,7 +5,7 @@ import {useHouseholdFeatures} from "../context/HouseholdFeaturesContext";
 import { combineCalendarSources } from '../lib/calendarSources';
 import { expandRecurringEvents } from '../lib/eventRecurrence';
 import { useEffect, useMemo, useState } from "react";
-import { Bell, CalendarPlus, ChefHat, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, Droplets, ExternalLink, LayoutGrid, ListChecks, LoaderCircle, MapPin, MessageCircle, Moon, PartyPopper, Refrigerator, ShoppingCart, Sun, Ticket, Trash2, TriangleAlert, Wind, Sparkles } from "../components/icons";
+import { Bell, CalendarPlus, ChefHat, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, Droplets, ExternalLink, LayoutGrid, ListChecks, LoaderCircle, MapPin, MessageCircle, Moon, PartyPopper, Plus, Refrigerator, ShoppingCart, Sun, Ticket, Trash2, TriangleAlert, Wind, Sparkles } from "../components/icons";
 // ChefHat is already imported above for the Cook button icon.
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
@@ -15,6 +15,7 @@ import TodayCustomizer from "../components/TodayCustomizer";
 import TodayAtAGlance from "../components/TodayAtAGlance";
 import MealSlotArt from "../components/MealSlotArt";
 import WeeklyPlanner from "../components/WeeklyPlanner";
+import { requestPageAdd } from "../hooks/usePageAdd";
 import PullToRefresh from "../components/PullToRefresh";
 import { supabase } from "../lib/supabase";
 import { eventDateLocal, formatTime, fullDateLabel, greetingInfo, todayISO } from "../lib/dates";
@@ -332,7 +333,13 @@ export default function Today({ goTo }) {
     }, {})
   ).sort((a, b) => b[1] - a[1]);
 
-  const nextEvent = todaysEvents.find((e) => new Date(e.end) > new Date());
+  const nextEvent = todaysEvents.find((event) => new Date(event.end) > suggestionClock);
+  const quickAddOptions = [
+    ["calendar", "Event", CalendarPlus],
+    ["tasks", "Task", ListChecks],
+    ["groceries", "Groceries", ShoppingCart],
+    ["meals", "Meal", ChefHat],
+  ].filter(([page]) => features[page] !== false);
   const signedInMember = members.find((member) => member.id === user?.id);
   const firstName = (signedInMember?.name || profile?.display_name || "").trim().split(/\s+/)[0];
   const greetingName = firstName ? firstName.charAt(0).toUpperCase() + firstName.slice(1) : "";
@@ -450,7 +457,28 @@ export default function Today({ goTo }) {
         action={<button type="button" className={`today-customize-trigger ${editingDashboard ? "active" : ""}`} onClick={() => setEditingDashboard((current) => !current)} aria-expanded={editingDashboard}><LayoutGrid size={16}/>{editingDashboard ? "Done" : "Customize"}</button>}
       />
 
-      {nextSuggestion && !editingDashboard && <NextSuggestion suggestion={nextSuggestion} onOpen={goTo} onDismiss={dismissNextSuggestion} />}
+      <section className="today-first-actions" aria-label="Today's plan">
+        {quickAddOptions.length > 0 && <details className="today-quick-add">
+          <summary><Plus size={20} /> Quick add</summary>
+          <div>{quickAddOptions.map(([page, label, Icon]) => (
+            <button type="button" key={page} onClick={(event) => {
+              event.currentTarget.closest("details").open = false;
+              if (goTo(page) !== false) requestPageAdd(page);
+            }}><Icon size={18} /> {label}</button>
+          ))}</div>
+        </details>}
+        {features.calendar && !hiddenDashboardCards.includes("calendar") && nextEvent && (
+          <button type="button" className="today-up-next" onClick={() => goTo("calendar")}>
+            <span className="today-up-next-icon"><CalendarPlus size={20} /></span>
+            <span><small>Up next</small><strong>{nextEvent.title}</strong>
+              <small>{isAllDayEvent(nextEvent) ? "All day" : formatTime(nextEvent.start)}</small></span>
+            <ChevronRight size={18} />
+          </button>
+        )}
+        {(!features.calendar || hiddenDashboardCards.includes("calendar") || !nextEvent) && nextSuggestion && !editingDashboard && (
+          <NextSuggestion suggestion={nextSuggestion} onOpen={goTo} onDismiss={dismissNextSuggestion} />
+        )}
+      </section>
 
       <TodayAtAGlance features={features} hidden={hiddenDashboardCards} eventCount={todaysEvents.length} taskCount={openTasks.length} dinner={meals.find(meal => meal.date === today && meal.slot === 'dinner')?.title} shoppingCount={activeGroceries.length} onSelect={goTo} />
 

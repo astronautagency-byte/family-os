@@ -1,7 +1,7 @@
 import {useHouseholdFeatures} from "../context/HouseholdFeaturesContext";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ShoppingCart } from '../components/icons';
-import { Baby, Bone, Camera, Carrot, Check, CheckCircle2, ChevronDown, Clipboard, Clock3, Coffee, Cookie, Croissant, CupSoda, Download, Drumstick, ExternalLink, FlaskConical, Globe2, HeartPulse, Image as ImageIcon, ListChecks, LoaderCircle, Milk, Minus, Package, Pencil, Plus, Refrigerator, RotateCcw, Sandwich, ScanLine, ScrollText, Search, Share2, ShoppingBag, ShoppingBasket, Snowflake, Soup, Sparkles, SprayCan, Star, Store, Trash2, Truck, Upload, Wheat, Wine, X } from "../components/icons";
+import { Baby, Bone, Camera, Carrot, Check, CheckCircle2, ChevronDown, Clipboard, Clock3, Coffee, Cookie, Croissant, CupSoda, Download, Drumstick, ExternalLink, FlaskConical, Globe2, HeartPulse, Image as ImageIcon, ListChecks, LoaderCircle, Milk, Minus, Package, Pencil, Plus, Refrigerator, RotateCcw, Sandwich, ScanLine, ScrollText, Search, Share2, ShoppingBag, Snowflake, Soup, Sparkles, SprayCan, Star, Store, Trash2, Truck, Upload, Wheat, Wine, X } from "../components/icons";
 import { uploadGroceryPhoto, isUploadableImage, deleteGroceryPhoto, compressImage } from "../lib/groceryPhotoUpload";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
@@ -274,6 +274,9 @@ export default function Groceries() {
   const [masterDraft, setMasterDraft] = useState(emptyDraft);
   const [showAllStaples, setShowAllStaples] = useState(false);
   const [quickAddError, setQuickAddError] = useState("");
+  const [shoppingEntry, setShoppingEntry] = useState("");
+  const [shoppingEntrySaving, setShoppingEntrySaving] = useState(false);
+  const [shoppingEntryError, setShoppingEntryError] = useState("");
   const [clearing, setClearing] = useState(false);
   const [clearingChecked, setClearingChecked] = useState(false);
   const [barcodeModal, setBarcodeModal] = useState(false);
@@ -1085,36 +1088,65 @@ export default function Groceries() {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
+  const submitShoppingEntry = async (event) => {
+    event.preventDefault();
+    const name = shoppingEntry.trim();
+    if (!name || shoppingEntrySaving) return;
+    setShoppingEntrySaving(true);
+    setShoppingEntryError("");
+    try {
+      await addGrocery({ name, quantity: 1, unit: "" });
+      setShoppingEntry("");
+    } catch (error) {
+      setShoppingEntryError(error?.message || "Could not add this item. Try again.");
+    } finally {
+      setShoppingEntrySaving(false);
+    }
+  };
+
   return (
     <PullToRefresh onRefresh={refreshData}><div className="pb-28 reference-groceries famos-noscroll">
       {features.celebrations && listCelebration && <CompletionScreen kind="shopping" onClose={() => setListCelebration(false)}/>}
-      <PageHeader
-        title="Shopping"
-        onAdd={openNew}
-        addLabel="Add shopping item"
-        illustration="groceries"
-      />
-
-      <NativeAdBanner placement={AD_PLACEMENTS.SHOPPING} />
-
-      <div className="shopping-list-switcher" role="tablist" aria-label="Shopping lists">
-        <button type="button" role="tab" aria-selected={activeGroceryListId === "all"} className={activeGroceryListId === "all" ? "selected" : ""} onClick={() => setActiveGroceryListId("all")}><ShoppingBasket size={15}/><span>All shopping</span><em>{groceries.filter((item) => !item.checked).length}</em></button>
-        {groceryLists.map((list) => <div className={`shopping-list-tab ${activeGroceryListId === list.id ? "selected" : ""}`} style={{ "--list-tone": list.color }} key={list.id}><button type="button" role="tab" aria-selected={activeGroceryListId === list.id} onClick={() => setActiveGroceryListId(list.id)}><ListChecks size={15}/><span>{list.name}</span><em>{groceries.filter((item) => item.listId === list.id && !item.checked).length}</em></button><button type="button" className="shopping-list-share" onClick={() => shareGroceryList(list)} aria-label={`Share ${list.name}`} title={`Share ${list.name}`}><Share2 size={13}/></button><button type="button" className="shopping-list-delete" onClick={() => setDeletingList(list)} aria-label={`Delete ${list.name}`} title={`Delete ${list.name}`}><Trash2 size={13}/></button></div>)}
-        <button type="button" className="shopping-list-add" onClick={() => setNewListOpen(true)}><Plus size={15}/><span>New list</span></button>
-      </div>
-
-      <details className="shopping-options famos-compact-disclosure">
-        <summary>Shopping options</summary>
-        <div className="grocery-actions-row" onClick={event => {
-          if (event.target.closest('button')) event.currentTarget.parentElement.open = false;
-        }}>
-          <button type="button" onClick={() => { resetBarcodeDraft(); setBarcodeModal(true); }}><ScanLine size={14}/> Scan product</button>
-          {deliveryItems.length > 0 && <button type="button" onClick={openDelivery}><Truck size={14}/> Shop for delivery</button>}
-          {totalMissingCount > 0 && <button type="button" onClick={() => setShowMissingModal(true)}><ListChecks size={14}/> Missing meal ingredients ({totalMissingCount})</button>}
-          {checkedCount > 0 && <button type="button" onClick={() => setClearingChecked(true)}>Clear {checkedCount} checked</button>}
-          {groceries.length > 0 && <button type="button" onClick={() => setClearing(true)}><Trash2 size={15}/> Reset shopping</button>}
+      <PageHeader title="Shopping" illustration="groceries" />
+      <div className="shopping-primary">
+        <form className="famos-list-entry" onSubmit={submitShoppingEntry}>
+          <Plus size={18} aria-hidden="true" />
+          <input aria-label="Shopping item" placeholder="Add a shopping item" maxLength={200}
+            value={shoppingEntry} onChange={event => setShoppingEntry(event.target.value)} disabled={shoppingEntrySaving} />
+          <button type="submit" disabled={!shoppingEntry.trim() || shoppingEntrySaving}>Add</button>
+        </form>
+        {shoppingEntryError && <p role="alert" className="grocery-quick-add-error">{shoppingEntryError}</p>}
+        <div className="famos-list-controls">
+          <label className="task-list-selector">
+            <span>List</span>
+            <select aria-label="Shopping list" value={activeGroceryListId} onChange={event => setActiveGroceryListId(event.target.value)}>
+              <option value="all">All shopping</option>
+              {groceryLists.map(list => <option key={list.id} value={list.id}>{list.name}</option>)}
+            </select>
+          </label>
+          <details className="shopping-options famos-compact-disclosure">
+            <summary>Shopping options</summary>
+            <div className="grocery-actions-row" onClick={event => {
+              if (event.target.closest("button")) event.currentTarget.parentElement.open = false;
+            }}>
+              <button type="button" onClick={openNew}><Plus size={14} /> Add with details</button>
+              <button type="button" onClick={() => setNewListOpen(true)}><ListChecks size={14} /> New list</button>
+              {activeGroceryListId !== "all" && groceryLists.filter(list => list.id === activeGroceryListId).map(list => (
+                <div className="shopping-selected-actions" key={list.id}>
+                  <button type="button" onClick={() => shareGroceryList(list)}><Share2 size={14} /> Share list</button>
+                  <button type="button" onClick={() => setDeletingList(list)}><Trash2 size={14} /> Delete list</button>
+                </div>
+              ))}
+              <button type="button" onClick={() => { resetBarcodeDraft(); setBarcodeModal(true); }}><ScanLine size={14} /> Scan product</button>
+              {deliveryItems.length > 0 && <button type="button" onClick={openDelivery}><Truck size={14} /> Shop for delivery</button>}
+              {totalMissingCount > 0 && <button type="button" onClick={() => setShowMissingModal(true)}><ListChecks size={14} /> Missing meal ingredients ({totalMissingCount})</button>}
+              {checkedCount > 0 && <button type="button" onClick={() => setClearingChecked(true)}>Clear {checkedCount} checked</button>}
+              {groceries.length > 0 && <button type="button" onClick={() => setClearing(true)}><Trash2 size={15} /> Reset shopping</button>}
+            </div>
+          </details>
         </div>
-      </details>
+      </div>
+      <NativeAdBanner placement={AD_PLACEMENTS.SHOPPING} />
 
       {false && <><section className="kitchen-inventory-card" aria-labelledby="kitchen-inventory-title">
         <header>

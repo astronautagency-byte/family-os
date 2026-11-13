@@ -1,12 +1,12 @@
 import {it,expect,vi,afterEach} from 'vitest';
 import {render,screen,cleanup,fireEvent,waitFor} from '@testing-library/react';
 import Groceries from './Groceries';
-const state=vi.hoisted(()=>({groceries:[],toggle:vi.fn()}));
-vi.mock('../context/FamilyContext',()=>({useFamily:()=>({groceries:state.groceries,groceryLists:[],meals:[],members:[],memberById:{},refreshData:vi.fn(),addGrocery:vi.fn(),toggleGrocery:state.toggle})}));
+const state=vi.hoisted(()=>({groceries:[],lists:[],add:vi.fn(),toggle:vi.fn()}));
+vi.mock('../context/FamilyContext',()=>({useFamily:()=>({groceries:state.groceries,groceryLists:state.lists,meals:[],members:[],memberById:{},refreshData:vi.fn(),addGrocery:state.add,toggleGrocery:state.toggle})}));
 vi.mock('../context/AuthContext',()=>({useAuth:()=>({household:null,user:null})}));
 vi.mock('../hooks/useKitchenInventory',()=>({default:()=>({items:[]})}));
 vi.mock('../components/NativeAdBanner',()=>({default:()=>null}));
-afterEach(()=>{cleanup();state.groceries=[];});
+afterEach(()=>{cleanup();state.groceries=[];state.lists=[];state.add.mockReset();});
 it('offers checked items to buy again and reports failed saves',async()=>{
  state.groceries=[{id:'milk',name:'Milk',category:'Dairy & Eggs',quantity:1,unit:'L',checked:true,assigneeIds:[]}];
  state.toggle.mockResolvedValue(false);
@@ -49,4 +49,19 @@ it('copies the list for a user-initiated Uber Eats handoff',async()=>{
  fireEvent.click(screen.getByRole('button',{name:/Copy shopping list/}));
  await waitFor(()=>expect(writeText).toHaveBeenCalledWith(expect.stringContaining('Milk')));
  expect(screen.getByRole('status').textContent).toContain('List copied');
+});
+
+it('quick-adds to the selected list and retains the entry if saving fails', async () => {
+ state.lists=[{id:'weekend',name:'Weekend groceries'}];
+ state.add.mockRejectedValueOnce(new Error('Could not save')).mockResolvedValueOnce(undefined);
+ render(<Groceries/>);
+ fireEvent.change(screen.getByLabelText('Shopping list'), {target:{value:'weekend'}});
+ const input=screen.getByRole('textbox',{name:'Shopping item'});
+ fireEvent.change(input,{target:{value:'Lemons'}});
+ fireEvent.click(screen.getByRole('button',{name:'Add',exact:true}));
+ await waitFor(()=>expect(screen.getByRole('alert').textContent).toBe('Could not save'));
+ expect(input.value).toBe('Lemons');
+ fireEvent.click(screen.getByRole('button',{name:'Add',exact:true}));
+ await waitFor(()=>expect(input.value).toBe(''));
+ expect(state.add).toHaveBeenLastCalledWith({name:'Lemons',quantity:1,unit:'',listId:'weekend'});
 });
