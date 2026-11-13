@@ -9460,3 +9460,62 @@ input:focus, textarea:focus, select:focus {
 .famos-list-controls > details[open] { flex-basis: 100%; }
 .famos-list-controls > details > summary { min-height: 44px; }
 .shopping-selected-actions { display: contents; }
+
+.today-quick-add > div { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.today-quick-add > div > button {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 8px 2px;
+  font-size: 13px;
+}
+.today-quick-add .today-action-art, .calendar-event-sheet .calendar-event-art {
+  width: 58px;
+  height: 58px;
+  max-width: 100%;
+  object-fit: contain;
+}
+.calendar-event-sheet .calendar-event-intro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  color: var(--color-ink-soft);
+}
+.calendar-event-sheet .calendar-event-art { flex: none; }
+.calendar-event-sheet .calendar-form-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.calendar-event-sheet .calendar-form-row > * { min-width: 0; }
+.calendar-event-sheet .date-trigger .date-native-input { width: 100%; }
+.calendar-event-details > summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 12px 0;
+  color: var(--color-ink);
+  font-weight: 650;
+}
+.calendar-event-save {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  padding-block: 8px;
+  background: var(--color-surface);
+}
+.calendar-event-save > button { width: 100%; }
+.calendar-event-sheet .calendar-allday-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--color-ink-soft);
+  cursor: pointer;
+}
+.calendar-event-sheet .calendar-allday-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-accent);
+}
+.calendar-event-sheet .calendar-form-row .date-trigger:has(.date-native-input) {
+  grid-template-columns: 17px minmax(0, 1fr) !important;
+  gap: 6px !important;
+  padding-inline: 9px;
+}

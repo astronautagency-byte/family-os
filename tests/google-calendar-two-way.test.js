@@ -11,7 +11,7 @@ test("writable Google events can be created, edited and deleted from FamOS", () 
   assert.match(api, /export async function updateGoogleCalendarEvent/);
   assert.match(api, /method: "PATCH"/);
   assert.match(api, /export async function deleteGoogleCalendarEvent/);
-  assert.match(calendar, /Edit calendar event/);
+  assert.match(calendar, /Edit event/);
   assert.match(calendar, /Save changes/);
 });
 

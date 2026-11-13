@@ -1,7 +1,10 @@
 import * as chrono from 'chrono-node';
 export const capitalizeFirstWord = value => String(value || '').trim().replace(/^(\P{L}*)(\p{L})/u, (_, prefix, letter) => prefix + letter.toLocaleUpperCase());
 const localInput = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-const normalize = input => String(input || '').trim().replace(/[.!?]+$/, '').trim().replace(/^(?:(?:(?:hey|hi|hello)\s+(?:famos|mia)|famos|mia)[,\s]+)?(?:(?:can|could|would) you\s+|(?:i'd|i would) like you to\s+)?(?:please\s+)?/i, '').replace(/\s+please$/i, '').trim();
+const normalize = input => String(input || '').trim()
+  .replace(/[.!?]+$/, '')
+  .replace(/^(?:(?:hey|hi|hello)\b[,.!\s]+)?(?:(?:famos|mia)\b[,.!\s]+)?(?:(?:can|could|would) you\s+|(?:i'd|i would) like you to\s+)?(?:please\s+)?/i, '')
+  .replace(/\s+please$/i, '').trim();
 /** Interpret explicit additions only. Ambiguous destinations and schedules are not guessed. */
 export function parseVoiceQuickAdd(input, { groceryLists = [], taskLists = [], now = new Date() } = {}) {
   const text = normalize(input);

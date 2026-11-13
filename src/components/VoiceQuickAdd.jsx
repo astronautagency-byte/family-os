@@ -24,13 +24,13 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
   const [followup, setFollowup] = useState(''), [thinking, setThinking] = useState(false), [conversationMode, setConversationMode] = useState(false), [speaking, setSpeaking] = useState(false), [voiceRecovery, setVoiceRecovery] = useState(false);
   const [preparingVoice,setPreparingVoice] = useState(false);
   const aiAbort=useRef(null),speechAbort=useRef(null);
-  const miaAudio=useRef(null), audioCache=useRef(new Map()), listenStartTimer=useRef(null);
+  const miaAudio=useRef(null), audioCache=useRef(new Map()), listenStartTimer=useRef(null), finalResultTimer=useRef(null);
   const [startingMic,setStartingMic]=useState(false);
   const continuous = useRef(false), startRef = useRef(null), actionRef = useRef(null), speechGeneration = useRef(0), speechWatchdog = useRef(null);
   actionRef.current = action;
   const clearSpeechWatchdog = () => { if (speechWatchdog.current) clearTimeout(speechWatchdog.current); speechWatchdog.current = null; };
   const endConversation = () => { aiAbort.current?.abort(); setPreparingVoice(false); clearSpeechWatchdog(); setSpeaking(false); continuous.current = false; setConversationMode(false); requestId.current++; setThinking(false); speechGeneration.current++; stop(); silence(); };
-  const stop = () => { current.current++; clearTimeout(listenStartTimer.current);setStartingMic(false); if (timeout.current) clearTimeout(timeout.current); timeout.current = null; const rec = recognition.current; recognition.current = null; try { rec?.abort(); } catch {} setListening(false); };
+  const stop = () => { current.current++; clearTimeout(listenStartTimer.current);clearTimeout(finalResultTimer.current);setStartingMic(false); if (timeout.current) clearTimeout(timeout.current); timeout.current = null; const rec = recognition.current; recognition.current = null; try { rec?.abort(); } catch {} setListening(false); };
   const silence = () => {
     speechAbort.current?.abort();
     const audio = miaAudio.current;
@@ -109,7 +109,7 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
       speechWatchdog.current = setTimeout(() => finish(true), 40000);
     }).catch(() => finish(true));
   };
-  useEffect(() => { active.current = true; const pause = () => { if (document.hidden) { aiAbort.current?.abort(); clearSpeechWatchdog(); setSpeaking(false); continuous.current = false; setConversationMode(false); requestId.current++; setThinking(false); speechGeneration.current++; stop(); silence(); } }; document.addEventListener('visibilitychange', pause); return () => { active.current = false;aiAbort.current?.abort(); clearSpeechWatchdog(); continuous.current = false; speechGeneration.current++; document.removeEventListener('visibilitychange', pause); current.current++;clearTimeout(listenStartTimer.current); if (timeout.current) clearTimeout(timeout.current); try { recognition.current?.abort(); } catch {} silence(); }; }, []);
+  useEffect(() => { active.current = true; const pause = () => { if (document.hidden) { aiAbort.current?.abort(); clearSpeechWatchdog(); setSpeaking(false); continuous.current = false; setConversationMode(false); requestId.current++; setThinking(false); speechGeneration.current++; stop(); silence(); } }; document.addEventListener('visibilitychange', pause); return () => { active.current = false;aiAbort.current?.abort(); clearSpeechWatchdog(); continuous.current = false; speechGeneration.current++; document.removeEventListener('visibilitychange', pause); current.current++;clearTimeout(listenStartTimer.current);clearTimeout(finalResultTimer.current); if (timeout.current) clearTimeout(timeout.current); try { recognition.current?.abort(); } catch {} silence(); }; }, []);
   useEffect(() => { if (hidden && open) { panelGeneration.current++; requestId.current++; conversation.current = []; originalRequest.current = ''; setThinking(false); endConversation(); setOpen(false); } }, [hidden]);
   const close = () => { panelGeneration.current++; requestId.current++;audioCache.current.clear(); conversation.current = []; originalRequest.current = ''; setFollowup(''); setThinking(false); setVoiceRecovery(false); endConversation(); setOpen(false); setError(''); setTranscript(''); setAction(null); setTyping(false); setMessage('Hi, I’m Mia. What can I help you add?'); };
   const featureFor = type => ({ grocery: 'groceries', groceryList: 'groceries', task: 'tasks', taskList: 'tasks', event: 'calendar', meal: 'meals' })[type];
@@ -135,7 +135,7 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
       } else {
         const reply=typeof response?.message==='string' ? response.message.trim().slice(0,500) : '';
         const claimsSave=/\b(?:added|saved|created|scheduled|updated|deleted|booked|sent)\b/i.test(reply);
-        const prompt = proposed.length ? 'I haven’t saved anything; I need a clearer request. I can review one grocery, meal, task or family event at a time here. For assignments, other changes or a larger plan, use the app. What would you like to add first?' : claimsSave ? 'Nothing has been saved. I can prepare groceries, meals, tasks and family events for your review. What would you like to add?' : reply || 'Could you tell me a little more?';
+        const prompt = proposed.length ? 'What’s the first item you’d like me to add?' : claimsSave ? 'Nothing has been saved. I can prepare groceries, meals, tasks and family events for your review. What would you like to add?' : reply || 'Could you tell me a little more?';
         conversation.current = [...turns, { role: 'assistant', content: prompt }]; say(prompt);
       }
     } catch {
@@ -203,14 +203,47 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
       endConversation();
       setError('The microphone didn’t start. Tap Start talking to reconnect.');
     };
+    let heardSpeech = false;
+    const recoverIncompleteSpeech = () => {
+      if (id !== current.current) return;
+      if (retryRecognition()) {
+        setTranscript('');
+        setMessage('I missed the end of that. Try saying it again.');
+      } else {
+        endConversation();
+        setError('I missed the end of that. Tap Start talking or type your reply.');
+      }
+    };
+    const expectFinalResult = (delay) => {
+      clearTimeout(finalResultTimer.current);
+      finalResultTimer.current = setTimeout(recoverIncompleteSpeech, delay);
+    };
     try { const rec = new Ctor(); recognition.current = rec; rec.lang = navigator.language || 'en-US'; rec.continuous = false; rec.interimResults = true; rec.maxAlternatives = 3;
       rec.onstart=()=>{if(id!==current.current)return;clearTimeout(listenStartTimer.current);setStartingMic(false);setListening(true);resetIdle();};
+      rec.onspeechstart = () => {
+        if (id !== current.current) return;
+        heardSpeech = true;
+        resetIdle();
+      };
+      rec.onspeechend = () => {
+        if (id !== current.current) return;
+        heardSpeech = true;
+        expectFinalResult(2200);
+      };
       rec.onresult = (event) => {
         if (id !== current.current) return;
-        silentRestarts.current=0;resetIdle();
         const results=Array.from(event.results || []);
         const final=results.filter(r=>r.isFinal!==false);
-        if(!final.length){setTranscript(results.map(r=>r[0]?.transcript || '').join(' ').trim());return;}
+        if (!final.length) {
+          const partial = results.map(result => result[0]?.transcript || '').join(' ').trim();
+          if (partial) {
+            heardSpeech = true;
+            setTranscript(partial);
+            resetIdle();
+          }
+          return;
+        }
+        silentRestarts.current = 0;
         const alternatives=Array.from(final[0] || []);
         const best=alternatives.find(a=>parseVoiceQuickAdd(a.transcript,{groceryLists,taskLists})) || alternatives[0];
         const heard=(final.length===1?best?.transcript:final.map(r=>r[0]?.transcript || '').join(' '))?.trim() || '';
@@ -230,7 +263,7 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
       rec.onerror = (event) => {
         if (id !== current.current) return;
         if (event.error === 'no-speech') {
-          recoverSilence();
+          if (heardSpeech) recoverIncompleteSpeech(); else recoverSilence();
           return;
         }
         if (resumed && ['aborted', 'audio-capture', 'network'].includes(event.error) && retryRecognition()) return;
@@ -242,7 +275,7 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
       rec.onend = () => {
         if (id !== current.current) return;
         recognition.current = null;
-        recoverSilence();
+        if (heardSpeech) recoverIncompleteSpeech(); else recoverSilence();
       };
       setStartingMic(true);
       listenStartTimer.current = setTimeout(() => {
@@ -286,6 +319,12 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
           setTyping(!typing);
         }}>{typing ? 'Hide typing' : 'Type instead'}</button>
       </div>
+      {!conversationMode && !typing && !action && !transcript && !error && !busy && !thinking && (
+        <div className="mia-starters" aria-label="Example requests">
+          {features.groceries !== false && <button type="button" onClick={() => { setFollowup('Add lemons to our grocery list'); setTyping(true); }}>Add groceries</button>}
+          {features.calendar !== false && <button type="button" onClick={() => { setFollowup('Add soccer practice to the calendar'); setTyping(true); }}>Plan an event</button>}
+        </div>
+      )}
       {voiceRecovery && <p className="voice-quick-privacy" role="status">Mia’s reply is on screen. You can keep talking.</p>}
       {action ? <div className="voice-quick-review"><TextField label={action.type === 'grocery' ? 'Shopping item' : action.type === 'task' ? 'Task' : action.type === 'event' ? 'Event' : action.type === 'meal' ? 'Meal' : 'List name'} value={action.name} onChange={e => setAction({ ...action, name: e.target.value })} maxLength={120}/>{action.type==='grocery' && <div className="mia-grocery-fields"><TextField label="Quantity" type="number" min="0.01" value={action.quantity || 1} onChange={e=>setAction({...action,quantity:Number(e.target.value)})}/><TextField label="Unit" value={action.unit || ''} onChange={e=>setAction({...action,unit:e.target.value})}/></div>}{action.type==='task' && <label>Due date<input aria-label="Due date" type="date" value={action.due || ''} onChange={e=>setAction({...action,due:e.target.value})}/></label>}{action.notes && <p>Notes: {action.notes}</p>}{action.location && <p>Location: {action.location}</p>}{action.listName && <p>Adding to: {action.listName}</p>}{action.type === 'event' && <>{action.ambiguousTime ? <div className="voice-quick-ambiguous"><label>Event date<input aria-label="Event date" type="date" value={action.ambiguousTime.date} onChange={e=>setAction({...action,ambiguousTime:{...action.ambiguousTime,date:e.target.value}})}/></label><fieldset><legend>Is {action.ambiguousTime.hour}:{String(action.ambiguousTime.minute).padStart(2,'0')} AM or PM?</legend><div className="voice-period-options"><button type="button" onClick={()=>setAction(resolveVoicePeriod(action,'am'))}>AM</button><button type="button" onClick={()=>setAction(resolveVoicePeriod(action,'pm'))}>PM</button></div></fieldset></div> : <><label>Start<input aria-label="Start" type="datetime-local" value={action.start} onChange={e=>setAction({...action,start:e.target.value})}/></label><label>End<input aria-label="End" type="datetime-local" value={action.end} onChange={e=>setAction({...action,end:e.target.value,assumedDuration:false})}/></label></>}<label>Repeat<select aria-label="Repeat" value={action.recurrence} onChange={e=>setAction({...action,recurrence:e.target.value})}><option value="none">Does not repeat</option><option value="daily">Every day</option><option value="weekly">Every week</option><option value="monthly">Every month</option><option value="yearly">Every year</option></select></label>{action.assumedDuration && <p>One hour suggested; please check the end time.</p>}<label>Calendar<select aria-label="Calendar" value={action.destination} onChange={e=>setAction({...action,destination:e.target.value})}><option value="family">{famosCalendar?.name || 'FamOS family calendar'}</option>{googleConnected && googleCalendars.filter(c=>selectedGoogleCalendarIds.includes(c.id) && ['owner','writer'].includes(c.accessRole)).map(c=><option key={c.id} value={c.id}>{googleCalendarAliases[c.id] || c.summary || 'Google Calendar'}</option>)}</select></label>{action.destination !== 'family' && action.recurrence !== 'none' && <p role="alert">Repeating events currently need the FamOS family calendar. Choose that calendar or turn off repeat.</p>}</>}{action.type === 'meal' && <><label>Meal date<input aria-label="Meal date" type="date" value={action.date} onChange={e=>setAction({...action,date:e.target.value})}/></label><label>Meal<select aria-label="Meal" value={action.slot} onChange={e=>setAction({...action,slot:e.target.value})}><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option></select></label>{meals.some(m=>m.date===action.date && m.slot===action.slot && m.title) && <p>This will replace the meal already planned for this slot.</p>}</>}{features[featureFor(action.type)] !== false && <><PrimaryButton disabled={busy || !action.name.trim() || (action.type==='grocery' && action.quantity!=null && (!Number.isFinite(action.quantity)||action.quantity<=0)) || (action.type === 'event' && (!action.start || !action.end || new Date(action.end) <= new Date(action.start))) || (action.type === 'meal' && !action.date) || (action.type === 'event' && action.destination !== 'family' && action.recurrence !== 'none')} onClick={() => save()}>{busy ? 'Adding…' : 'Yes, add it'}</PrimaryButton></>}<SecondaryButton disabled={busy} onClick={() => { stop(); setAction(null); say('Okay, I won’t add it.'); }}>Cancel</SecondaryButton></div> : null}
       {error && <p role="alert" className="voice-quick-error">{error}</p>}

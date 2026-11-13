@@ -10,6 +10,7 @@ import { Bell, CalendarPlus, ChefHat, ChevronRight, Cloud, CloudDrizzle, CloudFo
 import { useFamily } from "../context/FamilyContext";
 import { useAuth } from "../context/AuthContext";
 import { Avatar, AvatarStack, Card, Checkbox, EmptyState } from "../components/ui";
+import FamilyIllustration from "../components/FamilyIllustration";
 import PageHeader from "../components/PageHeader";
 import TodayCustomizer from "../components/TodayCustomizer";
 import TodayAtAGlance from "../components/TodayAtAGlance";
@@ -335,10 +336,10 @@ export default function Today({ goTo }) {
 
   const nextEvent = todaysEvents.find((event) => new Date(event.end) > suggestionClock);
   const quickAddOptions = [
-    ["calendar", "Event", CalendarPlus],
-    ["tasks", "Task", ListChecks],
-    ["groceries", "Groceries", ShoppingCart],
-    ["meals", "Meal", ChefHat],
+    ["calendar", "Event"],
+    ["tasks", "Task"],
+    ["groceries", "Groceries"],
+    ["meals", "Meal"],
   ].filter(([page]) => features[page] !== false);
   const signedInMember = members.find((member) => member.id === user?.id);
   const firstName = (signedInMember?.name || profile?.display_name || "").trim().split(/\s+/)[0];
@@ -460,11 +461,11 @@ export default function Today({ goTo }) {
       <section className="today-first-actions" aria-label="Today's plan">
         {quickAddOptions.length > 0 && <details className="today-quick-add">
           <summary><Plus size={20} /> Quick add</summary>
-          <div>{quickAddOptions.map(([page, label, Icon]) => (
+          <div>{quickAddOptions.map(([page, label]) => (
             <button type="button" key={page} onClick={(event) => {
               event.currentTarget.closest("details").open = false;
               if (goTo(page) !== false) requestPageAdd(page);
-            }}><Icon size={18} /> {label}</button>
+            }}><FamilyIllustration variant={page} className="today-action-art" sizes="64px" /><span>{label}</span></button>
           ))}</div>
         </details>}
         {features.calendar && !hiddenDashboardCards.includes("calendar") && nextEvent && (

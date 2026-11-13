@@ -428,6 +428,7 @@ export function DateField({ label, value, onChange, min, max, disabled = false, 
           <CalendarDays size={17} style={{color:'var(--color-accent)'}} />
           <input
             type="date"
+            aria-label={label}
             className="form-control date-native-input"
             value={value || ''}
             min={min || undefined}

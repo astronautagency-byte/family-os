@@ -715,7 +715,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
       startDate: selectedDate,
       endDate: selectedDate,
       start: "09:00",
-      end: "17:00",
+      end: "10:00",
       location: "",
       memberIds: members.map(m => m.id),
       eventType: "family",
@@ -960,14 +960,21 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
 
   const save = async (force = false) => {
     if (!draft.title.trim()) return;
-    setSaving(true); setSaveError("");
+    setSaveError("");
     const isAllDay = draft.allDay === true;
     const startDate = draft.startDate || draft.date;
     const endDate = draft.endDate || draft.startDate || draft.date;
+    const start = new Date(`${startDate}T${isAllDay ? "00:00:00" : `${draft.start}:00`}`);
+    const end = new Date(`${endDate}T${isAllDay ? "23:59:59" : `${draft.end}:00`}`);
+    if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start) {
+      setSaveError("Choose an end date and time after the start.");
+      return;
+    }
+    setSaving(true);
     const payload = {
       title: draft.title.trim(),
-      start: isAllDay ? new Date(`${startDate}T00:00:00`).toISOString() : new Date(`${startDate}T${draft.start}:00`).toISOString(),
-      end: isAllDay ? new Date(`${endDate}T23:59:59`).toISOString() : new Date(`${endDate}T${draft.end}:00`).toISOString(),
+      start: start.toISOString(),
+      end: end.toISOString(),
       allDay: isAllDay,
       location: draft.location, memberIds: draft.memberIds, eventType: draft.eventType, recurrence: draft.recurrence || "none", recurrenceUntil: draft.recurrence === "none" ? "" : draft.recurrenceUntil
     };
@@ -1308,22 +1315,28 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
         </div>
 
         {/* ── Modals (all preserved from original) ── */}
-        <Modal open={adding} onClose={() => { setAdding(false); setEditingEvent(null); }} title={editingEvent ? "Edit calendar event" : "Add something to the calendar"}>
-          <TextField label="Event" value={draft.title} onChange={e => setDraft({ ...draft, title: e.target.value })} />
+        <Modal open={adding} onClose={() => { setAdding(false); setEditingEvent(null); }} title={editingEvent ? "Edit event" : "New event"} className="calendar-event-sheet">
+          {!editingEvent && <div className="calendar-event-intro">
+            <FamilyIllustration variant="calendar" className="calendar-event-art" sizes="64px" />
+            <p>Give it a name and choose when it happens.</p>
+          </div>}
+          <TextField label="Event name" placeholder="e.g. Soccer practice" value={draft.title} onChange={e => setDraft({ ...draft, title: e.target.value })} />
           <div className="calendar-form-row" style={{gap:'12px',alignItems:'center'}}>
-            <label className="calendar-allday-toggle" style={{display:'flex',alignItems:'center',gap:'6px',fontSize:'12.5px',cursor:'pointer',whiteSpace:'nowrap',paddingTop:'10px'}}>
-              <input type="checkbox" checked={draft.allDay} onChange={e => setDraft({ ...draft, allDay: e.target.checked })} style={{width:18,height:18,accentColor:'#2563eb'}} />
-              <span style={{color:'var(--color-ink-soft, #66626c)'}}>All Day</span>
+            <label className="calendar-allday-toggle" >
+              <input type="checkbox" checked={draft.allDay} onChange={e => setDraft({ ...draft, allDay: e.target.checked })}  />
+              <span>All day</span>
             </label>
           </div>
           <div className="calendar-form-row">
-            <DateField label="Start date" value={draft.startDate || draft.date} onChange={date => setDraft({ ...draft, startDate: date, date, endDate: (draft.endDate || draft.date) < date ? date : (draft.endDate || draft.date) })} />
+            <DateField compact label="Start date" value={draft.startDate || draft.date} onChange={date => setDraft({ ...draft, startDate: date, date, endDate: (draft.endDate || draft.date) < date ? date : (draft.endDate || draft.date) })} />
             {!draft.allDay && <TextField label="Start time" type="time" value={draft.start} onChange={e => setDraft({ ...draft, start: e.target.value })} />}
           </div>
           <div className="calendar-form-row">
-            <DateField label="End date" value={draft.endDate || draft.startDate || draft.date} min={draft.startDate || draft.date} onChange={date => setDraft({ ...draft, endDate: date })} />
+            <DateField compact label="End date" value={draft.endDate || draft.startDate || draft.date} min={draft.startDate || draft.date} onChange={date => setDraft({ ...draft, endDate: date })} />
             {!draft.allDay && <TextField label="End time" type="time" value={draft.end} onChange={e => setDraft({ ...draft, end: e.target.value })} />}
           </div>
+          <details className="calendar-event-details" open={editingEvent ? true : undefined}>
+            <summary>Location, repeat and calendar</summary>
           <LocationAutocompleteField country={householdProfileExtra?.country} value={draft.location} onChange={(location) => setDraft((current) => ({ ...current, location }))} />
           <SelectField label="Event type" className="calendar-select-label" value={draft.eventType} onChange={e => setDraft({ ...draft, eventType: e.target.value })}>
               {Object.entries(EVENT_TYPES).map(([key, type]) => <option key={key} value={key}>{type.label}</option>)}
@@ -1345,7 +1358,8 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
               ))}
           </SelectField>
           {calendarFeeds.length > 0 && <p className="calendar-readonly-note">Imported calendars are available in the filters above, but remain read-only.</p>}
-          {saveError && <p className="calendar-save-error">{saveError}</p>}
+          </details>
+          {saveError && <p className="calendar-save-error" role="alert">{saveError}</p>}
           {conflicts?.length > 0 ? (
             <div className="calendar-conflict-warning" role="alert">
               <strong>This clashes with an existing event</strong>
@@ -1367,7 +1381,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
               </div>
             </div>
           ) : (
-            <PrimaryButton onClick={save} disabled={saving}>{saving ? "Saving…" : editingEvent ? "Save changes" : "Add it"}</PrimaryButton>
+            <div className="calendar-event-save"><PrimaryButton onClick={() => save()} disabled={saving || !draft.title.trim()}>{saving ? "Saving…" : editingEvent ? "Save changes" : "Add event"}</PrimaryButton></div>
           )}
         </Modal>
 
