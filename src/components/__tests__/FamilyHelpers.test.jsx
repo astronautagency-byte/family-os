@@ -12,15 +12,15 @@ it('requires explicit resource selection and review before creating an invitatio
   fireEvent.click(await screen.findByRole('button',{name:'Invite helper'}));
   expect(screen.getByRole('button',{name:'Review access'})).toBeDisabled();
   fireEvent.change(screen.getByLabelText('Helper’s name'),{target:{value:'Sam'}});
-  fireEvent.change(screen.getByLabelText('Helper’s email'),{target:{value:'sam@example.com'}});
+  fireEvent.change(screen.getByLabelText('Helper passcode'),{target:{value:'04827163'}});
   expect(screen.getByRole('button',{name:'Review access'})).toBeDisabled();
   fireEvent.click(screen.getByRole('checkbox',{name:/Cleaning supplies/}));
   fireEvent.change(screen.getByLabelText('Permission for Cleaning supplies'),{target:{value:'complete'}});
   fireEvent.click(screen.getByRole('button',{name:'Review access'}));
   expect(mocks.call).not.toHaveBeenCalledWith('invite',expect.anything(),expect.anything());
   expect(screen.getByText(/Future eligible items/)).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button',{name:'Create invitation link'}));
-  await waitFor(()=>expect(mocks.call).toHaveBeenCalledWith('invite',expect.objectContaining({email:'sam@example.com',grants:[{id:'list-1',kind:'groceries',permission:'complete'}]}),'home-1'));
+  fireEvent.click(screen.getByRole('button',{name:'Create invitation'}));
+  await waitFor(()=>expect(mocks.call).toHaveBeenCalledWith('invite',expect.objectContaining({mode:'passcode',passcode:'04827163',grants:[{id:'list-1',kind:'groceries',permission:'complete'}]}),'home-1'));
   expect((await screen.findByLabelText('Invitation link')).value).toContain('/helpers#invite=');
 });
 it('keeps owner controls away from family members',()=>{

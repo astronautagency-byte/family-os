@@ -26,7 +26,7 @@ it('lets a signed-in user request an email change and shows confirmation instruc
   fireEvent.change(view.getByLabelText('New email address'),{target:{value:'new@example.test'}});
   fireEvent.click(view.getByRole('button',{name:'Change email'}));
   await waitFor(()=>expect(updateEmail).toHaveBeenCalledWith('new@example.test'));
-  expect(view.getByRole('status').textContent).toContain('Check both inboxes');
+  await waitFor(() => expect(view.getByText('Check both inboxes for confirmation links.')).toHaveAttribute('role', 'status'));
  } finally { auth.value={...auth.value,configured:false}; }
 });
 
