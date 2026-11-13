@@ -151,7 +151,7 @@ export default function Today({ goTo }) {
   const isTrial = (subscription?.status === "trial" || subscription?.status === "trialing") && trialDaysLeft > 0 && !promoUnlocked;
   const isExpired = subscription?.status === "canceled" || (subscription?.status === "trial" && trialDaysLeft === 0);
 
-  const { members, memberById, events, googleEvents, feedEvents, meals, tasks, taskLists = [], groceries, messages, addGrocery, addTask, toggleTask, tabletMode, currentUserId, refreshData, syncGoogleCalendarNow, googleConnected, notificationPermission, requestNotifications } = useFamily();
+  const { members, memberById, events, googleEvents, feedEvents, meals, tasks, taskLists = [], groceries, messages, addGrocery, addTask, toggleTask, tabletMode, currentUserId, refreshData, homeDataReady = true, syncGoogleCalendarNow, googleConnected, notificationPermission, requestNotifications } = useFamily();
   const { profile, user, household, householdProfileExtra } = useAuth();
   const goalKey = household?.id && user?.id ? `famos:first-goal:v1:${household.id}:${user.id}` : '';
   const [firstGoal, setFirstGoal] = useState('');
@@ -334,7 +334,15 @@ export default function Today({ goTo }) {
     }, {})
   ).sort((a, b) => b[1] - a[1]);
 
-  const nextEvent = todaysEvents.find((event) => new Date(event.end) > suggestionClock);
+  const nextEvent = features.calendar && !hiddenDashboardCards.includes("schedule")
+    ? todaysEvents.find((event) => new Date(event.end) > suggestionClock)
+    : null;
+  const upNext = nextEvent ? {
+    page: "calendar",
+    title: nextEvent.title,
+    when: isAllDayEvent(nextEvent) ? "All day" : formatTime(nextEvent.start),
+    action: "View calendar",
+  } : nextSuggestion;
   const quickAddOptions = [
     ["calendar", "Event"],
     ["tasks", "Task"],
@@ -468,16 +476,8 @@ export default function Today({ goTo }) {
             }}><FamilyIllustration variant={page} className="today-action-art" sizes="64px" /><span>{label}</span></button>
           ))}</div>
         </details>}
-        {features.calendar && !hiddenDashboardCards.includes("calendar") && nextEvent && (
-          <button type="button" className="today-up-next" onClick={() => goTo("calendar")}>
-            <span className="today-up-next-icon"><CalendarPlus size={20} /></span>
-            <span><small>Up next</small><strong>{nextEvent.title}</strong>
-              <small>{isAllDayEvent(nextEvent) ? "All day" : formatTime(nextEvent.start)}</small></span>
-            <ChevronRight size={18} />
-          </button>
-        )}
-        {(!features.calendar || hiddenDashboardCards.includes("calendar") || !nextEvent) && nextSuggestion && !editingDashboard && (
-          <NextSuggestion suggestion={nextSuggestion} onOpen={goTo} onDismiss={dismissNextSuggestion} />
+        {homeDataReady && !editingDashboard && (
+          <NextSuggestion suggestion={upNext} onOpen={goTo} onDismiss={nextEvent ? undefined : dismissNextSuggestion} />
         )}
       </section>
 

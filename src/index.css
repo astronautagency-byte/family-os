@@ -9300,13 +9300,7 @@ input:focus, textarea:focus, select:focus {
 .revised-onboarding button:focus-visible{outline:3px solid var(--color-accent);outline-offset:3px}
 @media(max-width:680px){.revised-setup-summary{grid-template-columns:1fr}.revised-onboarding .family-onboarding-art{max-height:90px}.revised-preview{padding:15px}}
 @media(prefers-reduced-motion:reduce){.revised-onboarding *{animation:none!important;transition:none!important}}
-.today-next-wrap{margin:0 auto 20px}.today-next{display:flex;align-items:center;gap:14px;width:100%;padding:16px 18px;border:1px solid var(--color-border);border-radius:var(--radius-card);background:var(--color-surface);color:var(--color-ink);text-align:left}.today-next-icon{display:grid;place-items:center;width:42px;height:42px;flex:none;border-radius:12px;background:var(--color-accent-soft);color:var(--color-accent-strong)}.today-next-copy{display:grid;gap:3px;min-width:0;flex:1}.today-next-copy small{font-size:11px;font-weight:700;color:var(--color-ink-soft)}.today-next-copy strong{font-size:15px}.today-next-copy>span{font-size:13px;color:var(--color-ink-soft);overflow-wrap:anywhere}.today-next-action{display:flex;align-items:center;gap:4px;color:var(--color-accent-strong);font-size:13px;font-weight:700}.today-next:focus-visible{outline:3px solid var(--color-accent);outline-offset:3px}@media(max-width:560px){.today-next{flex-wrap:wrap}.today-next-action{margin-left:56px}}
-.today-next--tasks{background:color-mix(in srgb,var(--color-fam-sky) 9%,var(--color-surface));border-color:color-mix(in srgb,var(--color-fam-sky) 25%,var(--color-border));border-radius:18px 18px 18px 6px}
-.today-next--meals{background:color-mix(in srgb,var(--color-fam-coral) 10%,var(--color-surface));border-color:color-mix(in srgb,var(--color-fam-coral) 25%,var(--color-border));border-radius:18px 18px 6px 18px}
-.today-next--tasks,.today-next--meals{border-radius:var(--radius-card)}
 @media(min-width:901px){.app-shell:not(.tablet-mode) .topbar-wordmark{display:none}}
-.today-next--tasks .today-next-icon{background:color-mix(in srgb,var(--color-fam-sky) 18%,var(--color-surface));color:var(--color-ink)}.today-next--meals .today-next-icon{background:color-mix(in srgb,var(--color-fam-coral) 18%,var(--color-surface));color:var(--color-ink)}
-@media(prefers-reduced-motion:no-preference){.today-next .today-next-action svg{transition:transform 180ms ease}.today-next:hover .today-next-action svg{transform:translateX(4px)}}
 .task-person-filter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--color-ink-soft);font-size:12px;font-weight:650}
 .task-person-filter select{min-height:40px;max-width:100%;padding:0 34px 0 12px;border:1px solid var(--color-border);border-radius:var(--radius-control);background:var(--color-surface);color:var(--color-ink)}
 .task-person-filter button{min-height:40px;padding:0 8px;color:var(--color-accent-strong);font-weight:700}
@@ -9332,7 +9326,6 @@ input:focus, textarea:focus, select:focus {
 .reference-home-overview>summary::after{content:"";width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg) translateY(-2px);transition:transform .15s ease}
 .reference-home-overview[open]>summary::after{transform:rotate(225deg) translate(-2px,-1px)}
 .reference-home-overview>summary:focus-visible{outline:3px solid var(--color-accent);outline-offset:3px;border-radius:4px}
-.reference-dashboard .today-next{background:var(--color-surface);border-color:var(--color-border);box-shadow:none}
 .reference-dashboard .today-bento-grid{gap:16px}
 .nav-download{display:flex;align-items:center;gap:8px;text-align:left;border:0;background:transparent;color:var(--color-ink-soft);cursor:pointer}
 @media(max-width:600px){.reference-home-overview{margin-bottom:8px}.reference-dashboard .today-bento-grid{gap:12px}}
@@ -9351,7 +9344,6 @@ input:focus, textarea:focus, select:focus {
 .meal-idea-filters small{color:var(--color-ink-soft);line-height:1.4}
 .task-get-help{display:grid;gap:6px;margin:0 0 16px;padding:14px 16px;border-radius:14px;background:var(--color-surface-sunken);color:var(--color-ink-soft);font-size:13px;line-height:1.45}
 .task-get-help p{margin:0}.task-get-help a{color:var(--color-accent);font-weight:700}.task-get-help small{font-size:12px}
-.today-next-container{position:relative}.today-next-container .today-next{padding-right:44px}.today-next-dismiss{position:absolute;right:10px;top:9px;width:32px;height:32px;display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:var(--color-ink-soft);font-size:22px;cursor:pointer}.today-next-dismiss:focus-visible{outline:2px solid var(--color-accent)}
 .delivery-guide{display:grid;gap:10px;padding:16px;border:1px solid var(--color-border);border-radius:16px;background:var(--color-surface-sunken)}.delivery-guide strong{font-size:15px;color:var(--color-ink)}.delivery-guide p,.delivery-guide small{margin:0;color:var(--color-ink-soft);line-height:1.45;font-size:13px}.delivery-open-uber{display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:10px 16px;border:1px solid var(--color-border);border-radius:12px;background:var(--color-surface);color:var(--color-ink);font-weight:700;text-decoration:none}
 
 /* Calm task management: one entry field and a compact list selector. */
@@ -9390,7 +9382,7 @@ input:focus, textarea:focus, select:focus {
   margin: 0 20px 16px;
   min-width: 0;
 }
-.today-quick-add > summary, .today-up-next, .famos-list-entry {
+.today-quick-add > summary, .famos-list-entry {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -9424,7 +9416,7 @@ input:focus, textarea:focus, select:focus {
   gap: 8px;
   margin-top: 8px;
 }
-.today-quick-add button, .today-up-next-icon {
+.today-quick-add button {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -9435,12 +9427,6 @@ input:focus, textarea:focus, select:focus {
   color: var(--color-ink);
   font-weight: 650;
 }
-.today-up-next { width: 100%; text-align: start; }
-.today-up-next-icon { flex: none; background: var(--color-calendar-soft); }
-.today-up-next > span:nth-child(2) { display: grid; flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.today-up-next small { color: var(--color-ink-soft); font-size: 13px; }
-.today-up-next > svg { flex: none; }
-.today-first-actions .today-next-container { margin-inline: -20px; }
 .famos-list-entry > svg { flex: none; color: var(--color-shopping-strong); }
 .famos-list-entry input { flex: 1; width: 0; min-width: 0; font-size: 16px; }
 .famos-list-entry button {

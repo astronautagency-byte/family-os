@@ -200,6 +200,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
   const [monthlyBudget, setMonthlyBudgetState] = useState(saved?.monthlyBudget ?? 0);
   const [financePeriod, setFinancePeriodState] = useState(saved?.financePeriod ?? "weekly");
   const [dataLoading, setDataLoading] = useState(remote);
+  const [homeDataLoaded, setHomeDataLoaded] = useState(false);
   const [dataError, setDataError] = useState(null);
   const [notificationPermission, setNotificationPermission] = useState(() => typeof Notification === "undefined" ? "unsupported" : Notification.permission);
   const [notificationRegistrationError, setNotificationRegistrationError] = useState("");
@@ -389,6 +390,7 @@ export function FamilyProvider({ children, tabletMode = false }) {
       setMembers(membersResult.data.filter((item) => item.profiles).map((item) => mapProfile(item.profiles, item.role)));
       setTasks(tasksResult.data.map(mapTask)); setGroceries(groceriesResult.data.map(mapGrocery));
       setEvents(eventsResult.data.map(mapEvent)); setMeals(mealsResult.data.map(mapMeal)); setMessages(messagesResult.data.map(mapMessage));
+      setHomeDataLoaded(true);
       // Task lists are optional for older households and older schema caches.
       // Never let a list query failure hide the Tasks page or discard local
       // lists that were created while the migration was rolling out.
@@ -1488,6 +1490,8 @@ export function FamilyProvider({ children, tabletMode = false }) {
   const [googleClientId, setGoogleClientIdState] = useState(savedGoogle?.clientId ?? "");
   const [googleConnected, setGoogleConnected] = useState(savedGoogle?.connected ?? false);
   const [googleEvents, setGoogleEvents] = useState([]);
+  const [googleConnectionChecked, setGoogleConnectionChecked] = useState(false);
+  const [homeCalendarWaitExpired, setHomeCalendarWaitExpired] = useState(false);
   const [googleCalendars, setGoogleCalendars] = useState([]);
   const [googleCalendarAliases, setGoogleCalendarAliases] = useState(savedGoogle?.calendarAliases ?? {});
   // Per-calendar color overrides (hex strings). Google supplies a default
@@ -1499,6 +1503,15 @@ export function FamilyProvider({ children, tabletMode = false }) {
   const [googleError, setGoogleError] = useState(null);
   const [googleLastSynced, setGoogleLastSynced] = useState(null);
   const [googleAccessToken, setGoogleAccessTokenState] = useState(null); // in-memory only, never persisted
+
+  const homeCalendarReady = googleConnectionChecked && (
+    !googleConnected || Boolean(googleLastSynced) || googleStatus === "expired" || googleStatus === "error"
+  );
+  useEffect(() => {
+    if (!remote || tabletMode || homeCalendarWaitExpired) return;
+    const timeout = setTimeout(() => setHomeCalendarWaitExpired(true), 6000);
+    return () => clearTimeout(timeout);
+  }, [remote, tabletMode, homeCalendarWaitExpired]);
 
   useEffect(() => {
     try {
@@ -1649,6 +1662,8 @@ export function FamilyProvider({ children, tabletMode = false }) {
         setGoogleConnected((current) => current || true);
       } catch {
         /* keep default state — the user can connect manually from Settings */
+      } finally {
+        if (!cancelled) setGoogleConnectionChecked(true);
       }
     };
     probeConnection();
@@ -2106,6 +2121,9 @@ export function FamilyProvider({ children, tabletMode = false }) {
     expenses, weeklyBudget, monthlyBudget, financePeriod, addExpense, removeExpense, setFinanceBudget, setFinancePeriod,
     resetToDemoData,
     dataLoading, dataError, refreshData: loadRemoteData,
+    homeDataReady: !remote || (homeDataLoaded && (
+      tabletMode || homeCalendarReady || homeCalendarWaitExpired
+    )),
     notificationPermission, notificationRegistrationError, requestNotifications, sendTestNotification,
     // FamOS calendar branding
     famosCalendar, setFamosCalendar,
