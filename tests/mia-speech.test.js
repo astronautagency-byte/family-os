@@ -5,7 +5,7 @@ test('speech validates a short reply and uses fixed natural voice settings',asyn
  assert.throws(()=>validateSpeechText('x'.repeat(601)));assert.throws(()=>validateSpeechText(''));assert.equal(validateSpeechText('[whisper] Hello'),'whisper Hello');
  let request;
  const result=await synthesizeMiaSpeech({text:'What day is your haircut?',groqKey:'test',fetchImpl:async(url,options)=>{request={url,...options};return new Response(new Uint8Array(200),{headers:{'content-type':'audio/wav'}});}});
- assert.equal(result.mime,'audio/wav');assert.equal(JSON.parse(request.body).voice,'autumn');assert.equal(JSON.parse(request.body).input,'[friendly] What day is your haircut?');
+ assert.equal(result.mime,'audio/wav');assert.equal(JSON.parse(request.body).voice,'hannah');assert.equal(result.playbackRate,1.12);assert.equal(JSON.parse(request.body).input,'[friendly] What day is your haircut?');
 });
 test('provider errors fall back without exposing provider error bodies',async()=>{
  let count=0;const result=await synthesizeMiaSpeech({text:'Hello',groqKey:'one',xaiKey:'two',fetchImpl:async()=>++count===1?new Response('private provider details',{status:403}):new Response(new Uint8Array(200))});assert.equal(result.provider,'xai');assert.equal(count,2);
@@ -26,10 +26,23 @@ test('Mia varies delivery while keeping recovery replies gentle',()=>{
  assert.equal(directMiaSpeech('Done. I added lemons.'),'[cheerful] Done. I added lemons.');
  assert.equal(directMiaSpeech('Would you like a reminder?'),'[friendly] Would you like a reminder?');
  assert.equal(directMiaSpeech('Mia’s voice is unavailable.'),'[warm] Mia’s voice is unavailable.');
- assert.equal(directMiaSpeech('Your appointment is ready to review.'),'[warm] Your appointment is ready to review.');
+ assert.equal(directMiaSpeech('Your appointment is ready to review.'),'[casual] Your appointment is ready to review.');
 });
 
 test('late silent unlock never pauses a newer AI reply',async()=>{
  let resolve,paused=false;const audio={src:'',play:()=>new Promise(r=>{resolve=r}),pause:()=>{paused=true}};
  unlockMiaAudio(audio);audio.src='data:audio/wav;base64,new-reply';resolve();await Promise.resolve();await Promise.resolve();assert.equal(paused,false);
+});
+
+test('long replies skip Orpheus input limits and use the fallback pace once', async () => {
+  const result = await synthesizeMiaSpeech({
+    text: 'Here is an idea. '.repeat(16), groqKey: 'one', xaiKey: 'two',
+    fetchImpl: async (url, options) => {
+      assert.equal(url, 'https://api.x.ai/v1/tts');
+      assert.equal(JSON.parse(options.body).speed, 1.12);
+      return new Response(new Uint8Array(200));
+    },
+  });
+  assert.equal(result.voice, 'Eve');
+  assert.equal(result.playbackRate, 1);
 });

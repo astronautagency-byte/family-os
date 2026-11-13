@@ -15,6 +15,6 @@ Deno.serve(async request=>{
     if(!usage.allowed)return usageLimitResponse(usage,headers);
     const audio=await synthesizeMiaSpeech({text,groqKey:Deno.env.get('GROQ_API_KEY'),xaiKey:Deno.env.get('XAI_API_KEY')});
     let binary='';for(let i=0;i<audio.bytes.length;i+=8192)binary+=String.fromCharCode(...audio.bytes.subarray(i,i+8192));
-    return new Response(JSON.stringify({audio:btoa(binary),mime:audio.mime,voice:audio.provider==='groq'?'Autumn':'Eve'}),{headers});
+    return new Response(JSON.stringify({audio:btoa(binary),mime:audio.mime,voice:audio.voice,playbackRate:audio.playbackRate}),{headers});
   }catch(error){return new Response(JSON.stringify({error:'Mia’s voice is temporarily unavailable. Please try again.',code:'VOICE_UNAVAILABLE',providers:error?.providerStatuses || []}),{status:503,headers});}
 });

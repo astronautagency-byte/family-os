@@ -101,6 +101,7 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
       audio.onended = () => finish();
       audio.onerror = () => finish(true);
       audio.src = `data:${data.mime};base64,${data.audio}`;
+      audio.playbackRate = data.playbackRate === 1.12 ? 1.12 : 1;
       await audio.play();
       if (!isCurrent()) return;
       clearSpeechWatchdog();

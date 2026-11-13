@@ -4,14 +4,15 @@ export function validateSpeechText(value) {
 }
 // Use a single controlled cue so the same voice has conversational variety.
 export function directMiaSpeech(text) {
-  const tone=/\b(?:unavailable|couldn.t|cannot|can.t|sorry|failed|won.t)\b/i.test(text)?'warm':/^(?:done|great|perfect|all set|you.re welcome|hi|hello)\b/i.test(text)?'cheerful':text.includes('?')?'friendly':'warm';
+  const tone=/\b(?:unavailable|couldn.t|cannot|can.t|sorry|failed|won.t)\b/i.test(text)?'warm':/^(?:done|great|perfect|all set|you.re welcome|hi|hello)\b/i.test(text)?'cheerful':text.includes('?')?'friendly':'casual';
   return `[${tone}] ${text}`;
 }
 export async function synthesizeMiaSpeech({text,groqKey,xaiKey,fetchImpl=fetch}) {
   text=validateSpeechText(text);
+  const directed = directMiaSpeech(text);
   const providers=[
-    ...(groqKey?[{name:'groq',url:'https://api.groq.com/openai/v1/audio/speech',key:groqKey,mime:'audio/wav',body:{model:'canopylabs/orpheus-v1-english',voice:'autumn',input:directMiaSpeech(text),response_format:'wav'}}]:[]),
-    ...(xaiKey?[{name:'xai',url:'https://api.x.ai/v1/tts',key:xaiKey,mime:'audio/mpeg',body:{text,voice_id:'eve',language:'en',speed:1.0}}]:[]),
+    ...(groqKey && directed.length <= 200 ?[{name:'groq',url:'https://api.groq.com/openai/v1/audio/speech',key:groqKey,voice:'Hannah',playbackRate:1.12,mime:'audio/wav',body:{model:'canopylabs/orpheus-v1-english',voice:'hannah',input:directed,response_format:'wav'}}]:[]),
+    ...(xaiKey?[{name:'xai',url:'https://api.x.ai/v1/tts',key:xaiKey,voice:'Eve',playbackRate:1,mime:'audio/mpeg',body:{text,voice_id:'eve',language:'en',speed:1.12}}]:[]),
   ];
   const failures=[];
   const signal=AbortSignal.timeout(9000);
@@ -22,7 +23,7 @@ export async function synthesizeMiaSpeech({text,groqKey,xaiKey,fetchImpl=fetch})
       if(Number(response.headers.get('content-length'))>3000000)continue;
       const bytes=new Uint8Array(await response.arrayBuffer());
       if(bytes.length<100 || bytes.length>3000000)continue;
-      return {bytes,mime:provider.mime,provider:provider.name};
+      return {bytes,mime:provider.mime,provider:provider.name,voice:provider.voice,playbackRate:provider.playbackRate};
     }catch{/* A provider failure never exposes its response, key or user text. */}
   }
   const error=new Error('Natural voice is temporarily unavailable.');error.providerStatuses=failures;throw error;
