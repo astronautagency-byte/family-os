@@ -77,10 +77,10 @@ export default defineConfig(({ command }) => ({
         importScripts: ['/notification-sw.js'],
         runtimeCaching: [
           {
-            urlPattern: ({ request }) => request.destination === 'image',
+            urlPattern: ({ request, sameOrigin }) => sameOrigin && request.destination === 'image',
             handler: 'CacheFirst',
             options: {
-              cacheName: 'famos-images',
+              cacheName: 'famos-public-images',
               expiration: { maxEntries: 250, maxAgeSeconds: 60 * 60 * 24 * 30 },
               cacheableResponse: { statuses: [0, 200] }
             }

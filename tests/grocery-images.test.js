@@ -12,7 +12,7 @@ test("grocery photo picker uses the configured Supabase client", () => {
 });
 
 test("grocery cards prefer household photos then barcode product images", () => {
-  assert.match(groceries, /item\.photoUrl \|\| item\.imageUrl/);
+  assert.match(groceries, /photo \|\| item\.imageUrl/);
   assert.match(groceries, /<GroceryItemImage item=\{item\}/);
   assert.match(groceries, /\{item\.brand && <small/);
 });

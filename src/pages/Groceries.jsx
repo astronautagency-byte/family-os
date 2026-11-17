@@ -2,7 +2,7 @@ import {useHouseholdFeatures} from "../context/HouseholdFeaturesContext";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ShoppingCart } from '../components/icons';
 import { Baby, Bone, Camera, Carrot, Check, CheckCircle2, ChevronDown, Clipboard, Clock3, Coffee, Cookie, Croissant, CupSoda, Download, Drumstick, ExternalLink, FlaskConical, Globe2, HeartPulse, Image as ImageIcon, ListChecks, LoaderCircle, Milk, Minus, Package, Pencil, Plus, Refrigerator, RotateCcw, Sandwich, ScanLine, ScrollText, Search, Share2, ShoppingBag, Snowflake, Soup, Sparkles, SprayCan, Star, Store, Trash2, Truck, Upload, Wheat, Wine, X } from "../components/icons";
-import { uploadGroceryPhoto, isUploadableImage, deleteGroceryPhoto, compressImage } from "../lib/groceryPhotoUpload";
+import { uploadGroceryPhoto, isUploadableImage, deleteGroceryPhoto, downloadGroceryPhoto, compressImage } from "../lib/groceryPhotoUpload";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
 import { Avatar, Card, Checkbox, DateField, EmptyState, Modal, PrimaryButton, SecondaryButton, Stepper, TextField } from "../components/ui";
@@ -55,19 +55,42 @@ export function GroceryIcon({ category, size = 16 }) {
   return <GroceryIllustration category={category} size={Math.max(32, size * 2)} />;
 }
 
-function GroceryItemImage({ item, memberById, focus = false }) {
-  const src = item.photoUrl || item.imageUrl || "";
+function usePrivateGroceryPhoto(reference) {
+  const { user } = useAuth();
+  const userId = user?.id;
+  const [photo, setPhoto] = useState(null);
+
+  useEffect(() => {
+    if (!reference || !userId || typeof URL.createObjectURL !== "function") return;
+    const controller = new AbortController();
+    let url;
+    downloadGroceryPhoto(reference, supabase, controller.signal).then(blob => {
+      if (!blob || controller.signal.aborted) return;
+      url = URL.createObjectURL(blob);
+      setPhoto({ reference, userId, url });
+    }).catch(() => {});
+    return () => {
+      controller.abort();
+      safeRevokeObjectUrl(url);
+    };
+  }, [reference, userId]);
+
+  return photo?.reference === reference && photo?.userId === userId ? photo?.url : "";
+}
+
+function GroceryItemImage({ item, focus = false }) {
+  const photo = usePrivateGroceryPhoto(item.photoUrl);
+  const src = photo || item.imageUrl || "";
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [src]);
   if (!src || failed) return <GroceryIllustration name={item.name} category={item.category} size={focus ? 48 : 36} />;
-  const uploader = item.photoUrl && item.photoUploadedBy ? memberById[item.photoUploadedBy] : null;
   const size = focus ? 48 : 34;
   const radius = focus ? 11 : 9;
   return (
     <span
       className={`grocery-photo-thumb ${focus ? "grocery-photo-thumb-focus" : "grocery-photo-thumb-list"}`}
       role="img"
-      aria-label={item.photoUrl ? `Photo of ${item.name}` : `Product image for ${item.name}`}
+      aria-label={photo ? `Photo of ${item.name}` : `Product image for ${item.name}`}
       style={{ position: "relative", display: "grid", placeItems: "center", width: size, height: size, borderRadius: radius, border: "none", overflow: "hidden", flex: "0 0 auto", background: "var(--color-accent-soft)" }}
     >
       <img src={src} alt="" onError={() => setFailed(true)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
@@ -289,6 +312,8 @@ export default function Groceries() {
   const {features}=useHouseholdFeatures();
   const [listCelebration, setListCelebration] = useState(false);
   const [photoDraft, setPhotoDraft] = useState(emptyPhoto);
+  const savedPhotoPreview = usePrivateGroceryPhoto(photoDraft.previewUrl ? "" : photoDraft.remoteUrl);
+  const photoPreview = photoDraft.previewUrl || savedPhotoPreview;
   const [saveBusy, setSaveBusy] = useState(false);
   const [saveError, setSaveError] = useState("");
   const photoCameraInputRef = useRef(null);
@@ -1183,7 +1208,7 @@ export default function Groceries() {
           {[['fridge','Fridge',Refrigerator],['freezer','Freezer',Snowflake],['pantry','Pantry',Package]].map(([id,label,Icon]) => <button key={id} className={inventoryLocation === id ? "selected" : ""} onClick={() => setInventoryLocation(id)} role="tab" aria-selected={inventoryLocation === id}><Icon size={14}/>{label}<span>{kitchenWatchItems.filter((item) => item.location === id).length}</span></button>)}
         </div>
         {visibleInventory.length ? <div className="inventory-item-grid">{visibleInventory.map((item) => { const expiry = inventoryExpiryStatus(item); const onList = isIngredientOnList(item.name, groceries); return <article key={item.id} className={expiry ? `is-${expiry.state}` : ""}>
-          <div className="inventory-item-copy"><GroceryItemImage item={item} memberById={memberById}/><div><span>{item.category || "Other"}</span><strong>{item.name}</strong>{item.brand && <small>{item.brand}</small>}{expiry && <em>{expiry.label}</em>}</div></div>
+          <div className="inventory-item-copy"><GroceryItemImage item={item}/><div><span>{item.category || "Other"}</span><strong>{item.name}</strong>{item.brand && <small>{item.brand}</small>}{expiry && <em>{expiry.label}</em>}</div></div>
           <DateField compact label="Use by" value={item.expiresOn} onChange={(expiresOn) => updateInventoryItem(item.id, { expiresOn })}/>
           <div className="inventory-item-actions"><div className="inventory-quantity" aria-label={`${item.name} quantity`}><button type="button" onClick={() => changeInventoryQuantity(item, -1)} disabled={Number(item.quantity) <= 1} aria-label={`Decrease ${item.name} quantity`}><Minus size={12}/></button><strong>{item.quantity}{item.unit ? ` ${item.unit}` : ""}</strong><button type="button" onClick={() => changeInventoryQuantity(item, 1)} aria-label={`Increase ${item.name} quantity`}><Plus size={12}/></button></div>{expiry?.state === "expired" && <button type="button" disabled={onList} onClick={() => addMissingItem(item.name)}><RotateCcw size={13}/>{onList ? "On list" : "Replace"}</button>}<button type="button" onClick={() => removeInventoryItem(item.id)} aria-label={`Mark ${item.name} used up`}><Check size={13}/>Used up</button></div>
         </article>;})}</div> : <div className="inventory-empty"><FamilyIllustration variant="kitchen" className="empty-state-art" sizes="96px"/><strong>{inventoryQuery || inventoryStatus !== "all" ? "No matching fresh items" : `No fresh food being watched in the ${inventoryLocation}`}</strong><p>{inventoryQuery || inventoryStatus !== "all" ? "Try another search or expiry filter." : <>Use <b>Add fresh item</b> for dairy, meat, produce, deli, or bakery food. Checked perishables from Shopping also appear here for a quick review.</>}</p>{inventoryQuery || inventoryStatus !== "all" ? <button type="button" onClick={() => { setInventoryQuery(""); setInventoryStatus("all"); }}>Clear filters</button> : null}</div>}
@@ -1292,7 +1317,7 @@ export default function Groceries() {
                           className={`grocery-list-row flex items-center gap-3 px-3 py-2.5 border-b border-[var(--color-border)] last:border-0 ${item.checked ? "is-checked" : ""}`}
                         >
                           <Checkbox checked={item.checked} onChange={() => handleToggleGrocery(item)} />
-                          <GroceryIllustration name={item.name} category={item.category} size={40} />
+                          <GroceryItemImage item={item} />
                           <button onClick={() => openEdit(item)} className="flex-1 min-w-0 flex items-center gap-2 text-left">
                             <span
                               className={`min-w-0 text-[14.5px] ${
@@ -1358,7 +1383,7 @@ export default function Groceries() {
           <div className="grid grid-cols-2 gap-2">
             {(showAllStaples ? staples : staples.slice(0, 6)).map((staple) => <div key={staple.id} draggable onDragStart={(event) => { event.dataTransfer.setData("application/json", JSON.stringify(staple)); setDragging(true); }} onDragEnd={() => setDragging(false)} className="group relative min-w-0 flex items-center rounded-2xl bg-[var(--color-surface)] notion-shadow overflow-hidden cursor-grab active:cursor-grabbing">
               <button onClick={() => addStapleToList(staple)} className="flex flex-1 min-w-0 items-center gap-2.5 p-2.5 text-left active:bg-[var(--color-accent-soft)] transition-colors" aria-label={`Add ${staple.name} to grocery list`}>
-                <GroceryItemImage item={staple} memberById={memberById} />
+                <GroceryItemImage item={staple} />
                 <span className="min-w-0 flex-1"><span className="block text-[13.5px] font-medium truncate">{staple.name}</span><span className="block text-[10.5px] text-[var(--color-ink-faint)] truncate">{staple.quantity}{staple.unit ? ` ${staple.unit}` : ""}</span></span>
                 <span className="w-6 h-6 rounded-full bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0"><Plus size={13} color="var(--color-accent)" strokeWidth={2.5} /></span>
               </button>
@@ -1401,14 +1426,13 @@ export default function Groceries() {
         {/* Photo pick — mobile uses capture="environment" so the picker
             opens the rear camera; desktop falls back to a plain file
             input. Either way land in onPickPhotoFile, which uploads
-            client-side and surfaces the signed URL in the card + focus
-            shop on every device in the household via realtime. */}
+            client-side. Family members load it with their current session. */}
         <div className="grocery-photo-section">
           <p className="text-[12.5px] font-medium text-[var(--color-ink-soft)] mb-2">Photo (optional)</p>
           <div className="flex items-center gap-3">
-            <div className="grocery-photo-thumb" aria-hidden={(photoDraft.previewUrl || photoDraft.remoteUrl) ? "false" : "true"}>
-              {(photoDraft.previewUrl || photoDraft.remoteUrl) ? (
-                <img src={photoDraft.previewUrl || photoDraft.remoteUrl} alt="" />
+            <div className="grocery-photo-thumb" aria-hidden={photoPreview ? "false" : "true"}>
+              {photoPreview ? (
+                <img src={photoPreview} alt="" />
               ) : (
                 <ImageIcon size={18} />
               )}

@@ -17,12 +17,8 @@
 // public URL and removes the underlying object so abandoned uploads
 // don't leak storage cost forever.
 //
-// Bucket is declared PUBLIC (read) in supabase/migrations/202607260010_*
-// because SECURITY DEFINER storage paths under household folders are
-// effectively unguessable UUIDs; the meaningful privacy gate is the
-// household_members INSERT/DELETE policy on storage.objects, written
-// alongside the bucket.
-// ─────────────────────────────────────────────────────────────────────
+// Photo URLs are stored as object references for compatibility with existing rows.
+// The app resolves them through authenticated storage downloads.
 
 const MAX_LONG_EDGE = 1200;
 const JPEG_QUALITY = 0.82;
@@ -109,9 +105,21 @@ export function buildPhotoPath(householdId, itemIdHint) {
 export function pathFromPublicUrl(publicUrl) {
   if (!publicUrl || typeof publicUrl !== "string") return null;
   const marker = "/storage/v1/object/public/grocery-photos/";
-  const idx = publicUrl.indexOf(marker);
-  if (idx === -1) return null;
-  return decodeURIComponent(publicUrl.slice(idx + marker.length));
+  try {
+    const pathname = new URL(publicUrl).pathname;
+    if (!pathname.startsWith(marker)) return null;
+    const path = decodeURIComponent(pathname.slice(marker.length));
+    return /^[a-z0-9-]+\/[a-z0-9_.-]+$/i.test(path) && !path.endsWith("/.") && !path.endsWith("/..") ? path : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function downloadGroceryPhoto(reference, supabase, signal) {
+  const path = pathFromPublicUrl(reference);
+  if (!path || !supabase) return null;
+  const { data, error } = await supabase.storage.from("grocery-photos").download(path, {}, { signal, cache: "no-store" });
+  return error ? null : data;
 }
 
 export async function uploadGroceryPhoto({ householdId, file, supabase, itemIdHint, onProgress }) {
@@ -125,7 +133,7 @@ export async function uploadGroceryPhoto({ householdId, file, supabase, itemIdHi
 
   const { error } = await supabase.storage
     .from("grocery-photos")
-    .upload(path, compressed, { cacheControl: "31536000", contentType, upsert: false });
+    .upload(path, compressed, { cacheControl: "0", contentType, upsert: false });
   if (error) throw error;
 
   const { data: publicData } = supabase.storage.from("grocery-photos").getPublicUrl(path);

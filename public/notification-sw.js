@@ -1,3 +1,8 @@
+// Older versions could cache remote household images.
+self.addEventListener('activate', (event) => {
+  event.waitUntil(caches.delete('famos-images'));
+});
+
 self.addEventListener('push', (event) => {
   let payload = {};
   try { payload = event.data?.json() || {};  } catch { payload = { body: event.data?.text() || 'Your household has an update.' }; }
