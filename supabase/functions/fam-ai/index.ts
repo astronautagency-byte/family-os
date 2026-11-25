@@ -93,11 +93,11 @@ Request context (no automatic household snapshot): ${JSON.stringify(context)}`;
   const groqModel=Deno.env.get("GROQ_MODEL")||"openai/gpt-oss-20b";
   const providers=[...(groqKey?[{name:"groq",url:"https://api.groq.com/openai/v1/chat/completions",key:groqKey,model:groqModel}]:[]),...(xaiKey?[{name:"xai",url:"https://api.x.ai/v1/chat/completions",key:xaiKey,model:Deno.env.get("XAI_MODEL")||"grok-4.6"}]:[])];
   const response=await requestAiChat({providers,messages:[{role:"system",content:system},...messages.slice(-MAX_CONTEXT_MESSAGES)],tools});
-  if(!response)throw new Error("Fam AI could not reach its assistant service. Please try again.");
+  if(!response)throw Object.assign(new Error("Fam AI could not reach its assistant service. Please try again."),{code:"AI_REQUEST_TIMEOUT"});
   if(!response.ok){
    if(response.status===429)throw new Error("Fam AI is receiving too many requests. Please try again shortly.");
    console.error("Fam AI providers unavailable",response.status);
-   throw new Error("Fam AI could not reach its assistant service. Please try again.");
+   throw Object.assign(new Error("Fam AI could not reach its assistant service. Please try again."),{code:`AI_UPSTREAM_${response.status}`});
   }
 
   const payload=await response.json(); const message=payload.choices?.[0]?.message||{};
@@ -126,5 +126,5 @@ Request context (no automatic household snapshot): ${JSON.stringify(context)}`;
 
   const fallbackIntent=actions.length?"ADD_LIST_ITEM":"GET_TODAY";
   return new Response(JSON.stringify(structuredEnvelope(message.content||(actions.length?`I prepared ${actions.length} action${actions.length===1?"":"s"} for your review.`:"How can I help your family?"),fallbackIntent,0.8,{},actions.length>0,actions.length?[]:["intent"],actions)),{headers:{...cors,"Content-Type":"application/json"}});
- }catch(error){return new Response(JSON.stringify({error:error.message}),{status:400,headers:{...cors,"Content-Type":"application/json"}})}
+ }catch(error){return new Response(JSON.stringify({error:error.message,...(error.code?{code:error.code}:{})}),{status:error.code?.startsWith("AI_")?503:400,headers:{...cors,"Content-Type":"application/json","Cache-Control":"no-store"}})}
 });
