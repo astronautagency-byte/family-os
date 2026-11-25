@@ -8,7 +8,7 @@ test('speech validates a short reply and uses fixed natural voice settings',asyn
  assert.equal(result.mime,'audio/wav');assert.equal(JSON.parse(request.body).voice,'hannah');assert.equal(result.playbackRate,1.12);assert.equal(JSON.parse(request.body).input,'[friendly] What day is your haircut?');
 });
 test('provider errors fall back without exposing provider error bodies',async()=>{
- let count=0;const result=await synthesizeMiaSpeech({text:'Hello',groqKey:'one',xaiKey:'two',fetchImpl:async()=>++count===1?new Response('private provider details',{status:403}):new Response(new Uint8Array(200))});assert.equal(result.provider,'xai');assert.equal(count,2);
+ let count=0;const result=await synthesizeMiaSpeech({text:'Hello',groqKey:'one',xaiKey:'two',fetchImpl:async()=>++count===1?new Response('private provider details',{status:403}):new Response(new Uint8Array(200))});assert.equal(result.provider,'groq');assert.equal(count,2);
  await assert.rejects(synthesizeMiaSpeech({text:'Hello',groqKey:'one',fetchImpl:async()=>new Response('secret',{status:401})}),/temporarily unavailable/);
 });
 test('prefers enhanced natural voices over the default and excludes novelty voices',()=>{
@@ -45,4 +45,12 @@ test('long replies skip Orpheus input limits and use the fallback pace once', as
   });
   assert.equal(result.voice, 'Eve');
   assert.equal(result.playbackRate, 1);
+});
+
+test('working xAI voice is preferred for short replies', async () => {
+ const result = await synthesizeMiaSpeech({text:'Hello',groqKey:'one',xaiKey:'two',fetchImpl:async url=>{
+  assert.equal(url,'https://api.x.ai/v1/tts');
+  return new Response(new Uint8Array(200));
+ }});
+ assert.equal(result.voice,'Eve');
 });

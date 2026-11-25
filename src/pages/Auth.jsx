@@ -1,5 +1,6 @@
 import AccountDeletion from '../components/AccountDeletion';
-import { IS_APP_STORE } from '../lib/distribution';
+// New households start with Core while the AI plans complete billing validation.
+const CORE_ONBOARDING = true;
 import { Avatar } from "../components/ui";
 import FamilyIllustration from '../components/FamilyIllustration';
 import FamLoading from '../components/FamLoading';
@@ -443,7 +444,7 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
           setInviteMembers(draft.inviteEmails.split(/[\n,;]+/).filter(Boolean).map((email) => ({ ...newInviteMember(), email: email.trim() })));
         }
         setNotificationsSkipped(Boolean(draft.notificationsSkipped));
-        setOwnerStep(Math.max(0, Math.min(Math.trunc(Number(draft.ownerStep)) || 0, IS_APP_STORE ? 3 : 4)));
+        setOwnerStep(Math.max(0, Math.min(Math.trunc(Number(draft.ownerStep)) || 0, CORE_ONBOARDING ? 3 : 4)));
         setMemberStep(Math.max(0, Math.min(Number(draft.memberStep) || 0, 3)));
       }
     } catch {
@@ -529,7 +530,7 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
     // Obtain checkout before saving a completed profile. A checkout error must
     // leave the user in the wizard with a retry action, not skip the billing step.
     let checkoutUrl = '';
-    startTrial = startTrial && !IS_APP_STORE;
+    startTrial = startTrial && !CORE_ONBOARDING;
     if(startTrial && !promoApplied){
       const {data,error}=await supabase.functions.invoke('create-checkout-session',{body:{feature:'pro',billing:'monthly',onboarding:true}});
       if(error) throw new Error('Could not open secure checkout. Your setup is still here; please try again.');
@@ -574,7 +575,7 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
         invitePartner(member.email?.trim() || "", member.phone?.trim() || "", member.firstName.trim(), deliveryChannel).catch(() => {});
       }
     }
-    if (promoApplied && !IS_APP_STORE) {
+    if (promoApplied && !CORE_ONBOARDING) {
       markOnboardingComplete();
       localStorage.setItem(`family-os:onboarding-trial-confirmation:${session.user.id}`, "promo");
       skipOnboardingInvites();
@@ -767,13 +768,13 @@ const REVISED_SCHEDULE_SOURCES = [
 ];
 
 function RevisedOwnerProfileStep({ familyMembers, setFamilyMembers, interests, scheduleSources, toggleScheduleSource, scheduleFeedUrl, setScheduleFeedUrl, busy, onSave, onSaveFree, planningGoal, onPlanningGoalChange, promoCode, setPromoCode, promoBusy, setPromoBusy, promoResult, setPromoResult, promoApplied, setPromoApplied, step, setStep, trialConfirmation, onComplete, signInWithGoogle, googleProviderToken }) {
-  const steps = ["Your family", "Your first goal", "Calendar (optional)", "Preview your setup", ...(!IS_APP_STORE ? ["Choose your plan"] : [])];
+  const steps = ["Your family", "Your first goal", "Calendar (optional)", "Preview your setup", ...(!CORE_ONBOARDING ? ["Choose your plan"] : [])];
   const updateMember = (index, key, value) => setFamilyMembers((current) => current.map((member, memberIndex) => memberIndex === index ? { ...member, [key]: value } : member));
   const addMember = () => setFamilyMembers((current) => [...current, { firstName: "", relationship: "", birthday: "", email: "", phone: "" }]);
   const removeMember = (index) => setFamilyMembers((current) => current.length === 1 ? current : current.filter((_, memberIndex) => memberIndex !== index));
   const canContinue = step === 0 ? familyMembers.some((member) => member.firstName.trim()) : true;
 
-  if (trialConfirmation && !IS_APP_STORE) return <RevisedTrialConfirmation promo={trialConfirmation === "promo"} onComplete={onComplete} />;
+  if (trialConfirmation && !CORE_ONBOARDING) return <RevisedTrialConfirmation promo={trialConfirmation === "promo"} onComplete={onComplete} />;
 
   return (
     <div className="guided-onboarding revised-onboarding">
@@ -782,7 +783,7 @@ function RevisedOwnerProfileStep({ familyMembers, setFamilyMembers, interests, s
       <div className="guided-onboarding-panel">
         {step === 0 && <>
           <div className="onboarding-value-heading"><UsersRound size={19} /><div><strong>Add your family</strong><span>Add yourself first, then anyone you plan around. Relationships, birthdays and invitations are optional. You can edit members later.</span></div></div>
-          <p className="revised-trial-note">{IS_APP_STORE ? "FamOS Core is free. No purchase or subscription is required." : "Start with Free or choose an optional Pro trial after setup."}</p>
+          <p className="revised-trial-note">{CORE_ONBOARDING ? "FamOS Core is free. No purchase or subscription is required." : "Start with Free or choose an optional Pro trial after setup."}</p>
           <div className="revised-family-list">
             {familyMembers.map((member, index) => <div className="revised-family-row" key={index}>
               <div className="revised-family-row-main">
@@ -813,16 +814,16 @@ function RevisedOwnerProfileStep({ familyMembers, setFamilyMembers, interests, s
           <button type="button" className={`revised-manual-schedule${scheduleSources.includes("manual") ? " selected" : ""}`} onClick={() => toggleScheduleSource("manual")}><Check size={16} /> I’ll add things myself</button>
         </>}
         {step === 3 && <RevisedValueScreen familyMembers={familyMembers} planningGoal={planningGoal} />}
-        {!IS_APP_STORE && step === 4 && <RevisedTrialGate promoCode={promoCode} setPromoCode={setPromoCode} promoBusy={promoBusy} setPromoBusy={setPromoBusy} promoResult={promoResult} setPromoResult={setPromoResult} promoApplied={promoApplied} setPromoApplied={setPromoApplied} />}
+        {!CORE_ONBOARDING && step === 4 && <RevisedTrialGate promoCode={promoCode} setPromoCode={setPromoCode} promoBusy={promoBusy} setPromoBusy={setPromoBusy} promoResult={promoResult} setPromoResult={setPromoResult} promoApplied={promoApplied} setPromoApplied={setPromoApplied} />}
       </div>
       <div className="onboarding-actions">
         {step > 0 ? <SecondaryButton type="button" disabled={busy} onClick={() => setStep((current) => Math.max(0, current - 1))}><ChevronLeft size={16} /> Back</SecondaryButton> : <span />}
         {step < 3 && <PrimaryButton type="button" disabled={busy || !canContinue} onClick={() => setStep((current) => Math.min(4, current + 1))}>{step === 2 && scheduleSources.length === 0 ? "Skip for now" : "Continue"}</PrimaryButton>}
-        {step === 3 && <PrimaryButton type="button" disabled={busy} onClick={IS_APP_STORE ? onSaveFree : () => setStep(4)}>{IS_APP_STORE ? (busy ? "Saving…" : "Start using FamOS") : "See plan options"}</PrimaryButton>}
-        {!IS_APP_STORE && step === 4 && <PrimaryButton type="button" disabled={busy || promoBusy} onClick={onSave}>{busy ? "Saving…" : promoApplied ? "Start FamOS Pro" : "Start 7-day Pro trial"}</PrimaryButton>}
+        {step === 3 && <PrimaryButton type="button" disabled={busy} onClick={CORE_ONBOARDING ? onSaveFree : () => setStep(4)}>{CORE_ONBOARDING ? (busy ? "Saving…" : "Start using FamOS") : "See plan options"}</PrimaryButton>}
+        {!CORE_ONBOARDING && step === 4 && <PrimaryButton type="button" disabled={busy || promoBusy} onClick={onSave}>{busy ? "Saving…" : promoApplied ? "Start FamOS Pro" : "Start 7-day Pro trial"}</PrimaryButton>}
       </div>
-      {!IS_APP_STORE && step === 4 && !promoApplied && <button type="button" className="revised-manual-schedule" disabled={busy || promoBusy} onClick={onSaveFree}>Continue with Free</button>}
-      {!IS_APP_STORE && step === 4 && !promoApplied && <p className="revised-trial-secondary">Card required. No subscription charge today. Pro renews automatically after 7 days. Cancel in Settings → Manage billing before your trial ends to return to Free without a subscription charge.</p>}
+      {!CORE_ONBOARDING && step === 4 && !promoApplied && <button type="button" className="revised-manual-schedule" disabled={busy || promoBusy} onClick={onSaveFree}>Continue with Free</button>}
+      {!CORE_ONBOARDING && step === 4 && !promoApplied && <p className="revised-trial-secondary">Card required. No subscription charge today. Pro renews automatically after 7 days. Cancel in Settings → Manage billing before your trial ends to return to Free without a subscription charge.</p>}
     </div>
   );
 }

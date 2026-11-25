@@ -58,3 +58,13 @@ Before paid activation:
 5. Trial optional proactive summaries/SMS only after in-app actions and account binding are dependable.
 
 The differentiating proposition to test is a dependable assistant that completes household work together with useful, scoped helper coordination. The current evidence does not establish that competitors lack these capabilities; sell verified FamOS outcomes rather than an unsupported uniqueness claim.
+
+## Implementation update — November 24
+
+The owner prioritised lower operating costs. New-customer packaging now uses Free Core with planned household AI prices of US$4.99 Chat, US$7.99 Voice and US$9.99 both. This reduces the number of plan combinations to support. Voice minutes, model usage and SMS still need measured allowances before paid activation.
+
+Source changes replace new Plus/Pro sales on the pricing page, billing screen and onboarding with Core and planned AI offers. Existing subscription details, trial dates, cancellation state, entitlements and billing management remain available. A server gate blocks new legacy-plan checkout by default, with an explicit ALLOW_LEGACY_PLAN_CHECKOUT rollback switch. Pricing UI, terms and checkout-gate changes await coordinated deployment.
+
+A new xAI credential was saved in Supabase and tested successfully. The deployed mia-speech endpoint now prefers Eve and returned audio through an authenticated disposable household in 1.30 seconds. This endpoint measurement excludes microphone turn detection and playback startup. Persistent realtime voice and family share codes still require implementation.
+
+Validation passed 326 Node tests and 334 component tests. The Mac frontend bundle built successfully with existing size warnings. Updated pricing screens still require rendered review before deployment.

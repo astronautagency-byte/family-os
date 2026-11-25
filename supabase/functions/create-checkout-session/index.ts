@@ -84,6 +84,10 @@ Deno.serve(async (req) => {
       return respond({ error: "This household already has a Stripe subscription. Use Manage billing to change it." }, 409);
     }
 
+    if (Deno.env.get("ALLOW_LEGACY_PLAN_CHECKOUT") !== "true") {
+      return respond({error:"New paid plans are coming soon. Existing subscribers can use Manage billing."},409);
+    }
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2024-06-20" });
     if (onboarding) {
       const price = await stripe.prices.retrieve(priceId);

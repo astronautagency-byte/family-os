@@ -14,3 +14,5 @@
 .billing-plan-option button:disabled {opacity:.55;cursor:not-allowed}
 .billing-plan-option>strong {margin-top:auto;font-size:13px}
 @media(max-width:760px){.billing-plan-grid{grid-template-columns:1fr}}
+
+.billing-plan-inclusions {list-style:disc;padding-left:18px;display:grid;gap:8px;font-size:13px;line-height:1.5;color:var(--color-ink-soft)}

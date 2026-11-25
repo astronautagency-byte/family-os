@@ -54,8 +54,8 @@ test("Stripe customer portal stays server-side and owner-scoped", () => {
 test("billing upgrades use isolated progress states and Stripe-only client calls", () => {
   assert.match(settings, /const \[billingBusy, setBillingBusy\] = useState\(null\)/);
   assert.match(settings, /setBillingBusy\(feature\)/);
-  assert.match(billingPlans, /busy===plan.id\?'Opening checkout…'/);
-  assert.match(billingPlans, /PRICING_PLAN.plans.map/);
+  assert.match(billingPlans, /disabled=\{!isOwner \|\| busy !== null\}/);
+  assert.match(billingPlans, /HouseholdOffers/);
   assert.match(settings, /supabase\.functions\.invoke\("create-checkout-session"/);
   assert.match(settings, /supabase\.functions\.invoke\("billing-portal"/);
   assert.doesNotMatch(settings, /chargebee/i);

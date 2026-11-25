@@ -11,8 +11,8 @@ export async function synthesizeMiaSpeech({text,groqKey,xaiKey,fetchImpl=fetch})
   text=validateSpeechText(text);
   const directed = directMiaSpeech(text);
   const providers=[
-    ...(groqKey && directed.length <= 200 ?[{name:'groq',url:'https://api.groq.com/openai/v1/audio/speech',key:groqKey,voice:'Hannah',playbackRate:1.12,mime:'audio/wav',body:{model:'canopylabs/orpheus-v1-english',voice:'hannah',input:directed,response_format:'wav'}}]:[]),
     ...(xaiKey?[{name:'xai',url:'https://api.x.ai/v1/tts',key:xaiKey,voice:'Eve',playbackRate:1,mime:'audio/mpeg',body:{text,voice_id:'eve',language:'en',speed:1.12}}]:[]),
+    ...(groqKey && directed.length <= 200 ?[{name:'groq',url:'https://api.groq.com/openai/v1/audio/speech',key:groqKey,voice:'Hannah',playbackRate:1.12,mime:'audio/wav',body:{model:'canopylabs/orpheus-v1-english',voice:'hannah',input:directed,response_format:'wav'}}]:[]),
   ];
   const failures=[];
   const signal=AbortSignal.timeout(9000);

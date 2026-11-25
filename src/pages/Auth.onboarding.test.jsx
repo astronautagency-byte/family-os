@@ -27,19 +27,10 @@ describe('compact authentication',()=>{
   });
 });
 describe('owner onboarding flow',()=>{
-  it('requires a name and makes the Free path clear',()=>{
+  it('requires a name and starts new households with Free Core',()=>{
     render(<HouseholdOnboarding/>);
     expect(screen.getByRole('button',{name:'Continue',exact:true})).toBeDisabled();
-    expect(screen.getByText(/Start with Free or choose an optional Pro trial/)).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('First name'),{target:{value:'Test Parent'}});
-    expect(screen.getByRole('button',{name:'Continue',exact:true})).toBeEnabled();
-  });
-  it('previews the selected household and clearly labels sample activities',()=>{
-    atStep(3);
-    expect(screen.getByText('Test Parent')).toBeInTheDocument();
-    expect(screen.getByText('Organize our week')).toBeInTheDocument();
-    expect(screen.getByText('EXAMPLE · TODAY')).toBeInTheDocument();
-    expect(screen.getByRole('button',{name:'See plan options'})).toBeEnabled();
+    expect(screen.getByText(/FamOS Core is free/)).toBeInTheDocument();
   });
   it('lets people choose their first goal',()=>{
     atStep(1);
@@ -47,42 +38,15 @@ describe('owner onboarding flow',()=>{
     expect(screen.getByRole('button',{name:'Plan meals'})).toHaveAttribute('aria-pressed','true');
     expect(screen.getByRole('button',{name:'Continue'})).toBeEnabled();
   });
-  it('offers the requested card-backed seven-day Pro trial',()=>{
-    atStep(4);
-    expect(screen.getByRole('button',{name:'Start 7-day Pro trial'})).toBeEnabled();
-    expect(screen.getByText(/CAD\/month after your 7-day trial/)).toBeInTheDocument();
-    expect(screen.queryByText(/30 days/)).not.toBeInTheDocument();
-    expect(screen.getByRole('heading',{name:'Choose your plan'})).toBeInTheDocument();
-    expect(screen.getByRole('button',{name:'Continue with Free'})).toBeEnabled();
-  });
-  it('saves setup on the free path without opening checkout',async()=>{
-    atStep(4);
-    fireEvent.click(screen.getByRole('button',{name:'Continue with Free'}));
-    await waitFor(()=>expect(mocks.auth.saveHouseholdProfile).toHaveBeenCalled());
-    expect(mocks.invoke).not.toHaveBeenCalled();
-    expect(mocks.auth.markOnboardingComplete).toHaveBeenCalled();
-    expect(localStorage.getItem('famos:first-goal:v1:house_test:user_test')).toBe('calendar');
-  });
-  it('checkout failure keeps the draft and does not complete onboarding',async()=>{
-    mocks.invoke.mockResolvedValue({error:new Error('offline')});atStep(4);
-    fireEvent.click(screen.getByRole('button',{name:'Start 7-day Pro trial'}));
-    await screen.findByText(/Could not open secure checkout/);
-    expect(mocks.invoke).toHaveBeenCalledWith('create-checkout-session',{body:{feature:'pro',billing:'monthly',onboarding:true}});
-    expect(mocks.auth.saveHouseholdProfile).not.toHaveBeenCalled();
-    expect(mocks.auth.markOnboardingComplete).not.toHaveBeenCalled();
-    expect(JSON.parse(localStorage.getItem(key)).onboardingFamilyMembers[0].firstName).toBe('Test Parent');
-  });
   it('saves a draft across remounts',async()=>{
     atStep(1);cleanup();render(<HouseholdOnboarding/>);
     await waitFor(()=>expect(screen.getByText('What would help most?')).toBeInTheDocument());
   });
-  it('a restored older final-step draft still has a checkout action',()=>{
-    atStep(5);
-    expect(screen.getByRole('button',{name:'Start 7-day Pro trial'})).toBeEnabled();
-  });
-  it.each([7,99,4.8])('normalizes out-of-range saved step %s',step=>{
+  it.each([3,4,5,7,99,4.8])('restores step %s to free completion', async step=>{
     atStep(step);
-    expect(screen.getByRole('button',{name:'Start 7-day Pro trial'})).toBeEnabled();
+    fireEvent.click(screen.getByRole('button',{name:'Start using FamOS'}));
+    await waitFor(()=>expect(mocks.auth.markOnboardingComplete).toHaveBeenCalled());
+    expect(mocks.invoke).not.toHaveBeenCalled();
   });
   it('invited household members do not get a second subscription checkout',()=>{
     mocks.auth.household.role='member';

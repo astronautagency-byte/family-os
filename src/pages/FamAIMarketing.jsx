@@ -1,3 +1,4 @@
+import {AI_OFFERS} from '../data/aiOffers';
 import VoiceOrb from '../components/MiaVoiceOrb';
 import {useRef, useState} from 'react';
 import {motion, useReducedMotion, useScroll, useTransform} from 'framer-motion';
@@ -13,7 +14,8 @@ const examples=[
  {label:'Plan dinner',Icon:ChefHat,request:'Plan vegetable pasta for dinner tomorrow.',reply:'Tomorrow’s dinner, sorted. Shall I put vegetable pasta on the meal plan?',title:'Vegetable pasta',detail:'Tomorrow · Dinner',tone:'orange'},
  {label:'Share the load',Icon:CheckSquare,request:'Create a task called pack the swimming bag.',reply:'One less thing to remember. Shall I create “Pack the swimming bag”?',title:'Pack the swimming bag',detail:'Family tasks · Ready to review',tone:'violet'},
 ];
-const offers=[{id:'chat',price:'4.99',name:'AI Chat',Icon:MessageCircle,copy:'For the ideas worth talking through.',features:['Text conversations & helpful suggestions','Meal, task and shopping plans','Review before anything is saved']},{id:'voice',price:'7.99',name:'Mia Voice',Icon:Mic,copy:'For the moments your hands are full.',features:['Natural, expressive AI voice','Follow-up conversations','Spoken confirmation before saving']},{id:'both',price:'9.99',name:'Chat + Voice',Icon:Sparkles,copy:'Your home assistant. Both ways.',features:['Everything in AI Chat','Everything in Mia Voice','One household, your choice']}];
+const offerIcons = {chat: MessageCircle, voice: Mic, both: Sparkles};
+const offers = AI_OFFERS.map(offer => ({...offer, price: offer.priceMonthly.toFixed(2), Icon: offerIcons[offer.id]}));
 
 
 function Wave(){return <span className="fai-signal" aria-hidden="true">{Array.from({length:25},(_,i)=><i key={i} style={{'--amplitude':`${8+Math.sin(i*1.6)**2*21}px`,'--delay':`${i*-.09}s`}}/>)}</span>}

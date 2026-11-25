@@ -42,7 +42,7 @@ function harness(endpoint, overrides={}) {
     rpc:async(name,value)=>{capture(name,value);return {error:state.rpcError?new Error('write failed'):null};},
   };
   let handler;
-  const env={STRIPE_SECRET_KEY:'sk_test_simulated',STRIPE_WEBHOOK_SECRET:'whsec_simulated',SUPABASE_URL:'https://db.example.invalid',SUPABASE_SERVICE_ROLE_KEY:'test',STRIPE_PRICE_PRO_MONTHLY:'price_pro',STRIPE_PRICE_PRO_YEARLY:'price_year',STRIPE_PRICE_PLUS_MONTHLY:'price_plus',FRONTEND_URL:'https://app.example.invalid'};
+  const env={ALLOW_LEGACY_PLAN_CHECKOUT:overrides.allowLegacy === false ? 'false' : 'true',STRIPE_SECRET_KEY:'sk_test_simulated',STRIPE_WEBHOOK_SECRET:'whsec_simulated',SUPABASE_URL:'https://db.example.invalid',SUPABASE_SERVICE_ROLE_KEY:'test',STRIPE_PRICE_PRO_MONTHLY:'price_pro',STRIPE_PRICE_PRO_YEARLY:'price_year',STRIPE_PRICE_PLUS_MONTHLY:'price_plus',FRONTEND_URL:'https://app.example.invalid'};
   const context=vm.createContext({Request,Response,console:{warn(){},error(){}},Stripe:function(){return stripe;},createClient:()=>admin,Deno:{env:{get:key=>env[key]},serve:fn=>{handler=fn;}}});
   const helper=readFileSync(new URL('../supabase/functions/_shared/checkoutPolicy.ts',import.meta.url),'utf8').replace('export function','function');
   const source=readFileSync(new URL(`../supabase/functions/${endpoint}/index.ts`,import.meta.url),'utf8').replace(/^import .*;\r?\n/gm,'');
@@ -138,4 +138,10 @@ test('forged webhook signatures cannot mutate entitlements',async()=>{
 test('webhook returns retryable failure if entitlement persistence fails',async()=>{
   const h=harness('stripe-webhook',{rpcError:true,event:{type:'customer.subscription.updated',data:{object:subscription('trialing')}}});
   assert.equal((await h.request({}, {'stripe-signature':'simulated'})).status,500);
+});
+
+test('retired plans reject stale checkout requests without Stripe writes', async () => {
+  const h = harness('create-checkout-session', {allowLegacy:false});
+  assert.equal((await h.request({onboarding:true})).status,409);
+  assert.equal(h.calls.length,0);
 });

@@ -1,3 +1,4 @@
+import HouseholdOffers from '../components/HouseholdOffers';
 import MarketingProductPreview from '../components/MarketingProductPreview';
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, useAnimate, useInView, useScroll, useSpring, useTransform, useReducedMotion, MotionConfig, stagger } from "framer-motion";
@@ -7,7 +8,6 @@ import "../landing-theme.css";
 import "../theme/marketing-refresh.css";
 import FamilyIllustration from "../components/FamilyIllustration";
 import "../feature.css";
-import { PRICING_PLAN, formatMoney } from "../data/pricingPlan";
 import MarketingNav from "../components/MarketingNav";
 import MarketingFooter from "../components/MarketingFooter";
 import { supabase } from "../lib/supabase";
@@ -107,106 +107,14 @@ const comparisonRows = [
   { label: "Plan that grows", famos: "Pricing scales with household members", display: "Hardware plus optional subscription", organizer: "Free and premium bundles" },
   { label: "Choose your extras", famos: "Add Fam AI when your family needs it", display: "Features depend on device and plan", organizer: "Premium features depend on plan" },
   { label: "Family coordination", famos: "Calendar, meals, groceries, tasks, chat, rewards, and AI", display: "Strong shared calendar and home display", organizer: "Core organizer features vary by app" },
-  { label: "Billing", famos: "Paid plans start immediately", display: "Offers and trials vary", organizer: "Free tiers or trials vary" },
+  { label: "Billing", famos: "Free Core; optional AI coming soon", display: "Offers and trials vary", organizer: "Free tiers or trials vary" },
 ];
 
-function PricingSection({ signedIn }) {
-  const [billing, setBilling] = useState("monthly");
-  const [selectedPlan, setSelectedPlan] = useState("plus");
-  const [checkoutBusy, setCheckoutBusy] = useState(false);
-  const [checkoutError, setCheckoutError] = useState("");
-
-  const plan = PRICING_PLAN.paidPlans.find((p) => p.id === selectedPlan) || PRICING_PLAN.paidPlans[1];
-  const monthlyPrice = plan.price.monthly;
-  const yearlyPrice = plan.price.yearly;
-  const displayPrice = billing === "annual" ? yearlyPrice : monthlyPrice;
-  const displayPer = billing === "annual" ? "/yr" : "/mo";
-  const yearlySavings = monthlyPrice * 12 - yearlyPrice;
-  const coreFeatures = PRICING_PLAN.plans[0].featureList;
-  const pulseKey = `${billing}-${selectedPlan}`;
-
-  const startCheckout = async () => {
-    setCheckoutError("");
-    if (!signedIn) {
-      const params = new URLSearchParams({ returnPath: "/pricing" });
-      window.location.assign(`${APP_ORIGIN}/sign-up?${params.toString()}`);
-      return;
-    }
-    setCheckoutBusy(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("create-checkout-session", {
-        body: { feature: selectedPlan, billing },
-      });
-      if (error) throw error;
-      const url = data?.url;
-      if (!url) throw new Error("Checkout couldn't start. Please try again in a moment.");
-      window.location.assign(url);
-    } catch (err) {
-      setCheckoutError(err?.message || "Could not start checkout. Please try again.");
-      setCheckoutBusy(false);
-    }
-  };
-
+function PricingSection() {
   return <section className="landing-pricing" id="pricing">
-    <SectionHead eyebrow="Simple pricing" note="Calendar, Tasks, Shopping, Chat and Kitchen Watch are free forever. Upgrade to Plus or Pro for sync, recipes, meal planning, and more.">Start free.<br/>Add what helps.</SectionHead>
-    <motion.div className="pricing-shell" {...revealBlock}>
-      <div className="pricing-main">
-        <div className="pricing-toggle" role="tablist" aria-label="Billing frequency">
-          <button className={billing === "monthly" ? "active" : ""} onClick={() => setBilling("monthly")} role="tab" aria-selected={billing === "monthly"}>Monthly</button>
-          <button className={billing === "annual" ? "active" : ""} onClick={() => setBilling("annual")} role="tab" aria-selected={billing === "annual"}>Yearly <span>Save ${yearlySavings.toFixed(0)}</span></button>
-        </div>
-
-        <div className="pricing-plan-cards">
-          {PRICING_PLAN.paidPlans.map((p) => {
-            const active = selectedPlan === p.id;
-            const price = billing === "annual" ? p.price.yearly : p.price.monthly;
-            const per = billing === "annual" ? "/yr" : "/mo";
-            return <button
-              key={p.id}
-              className={`pricing-plan-card${active ? " selected" : ""}${p.isPopular ? " popular" : ""}`}
-              onClick={() => setSelectedPlan(p.id)}
-              aria-pressed={active}
-            >
-              {p.isPopular && <span className="pricing-plan-badge">Most popular</span>}
-              <div className="pricing-plan-head">
-                <strong>{p.name}</strong>
-                <span className="pricing-plan-price"><em>{formatMoney(price)}</em>{per}</span>
-              </div>
-              <p className="pricing-plan-tagline">{p.tagline}</p>
-              <ul className="pricing-plan-features">
-                {p.featureList.map((feature) => <li key={feature}><Check size={14}/> {feature}</li>)}
-              </ul>
-            </button>;
-          })}
-        </div>
-
-        <article className="pricing-card">
-          <div className="pricing-card-head">
-            <span><Users/></span>
-            <div><p>Your plan</p><motion.h3 key={pulseKey} initial={{ scale: 0.94, opacity: 0.72 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.38, ease: BACK }}><span>{formatMoney(displayPrice)}</span><small>{displayPer}</small></motion.h3></div>
-          </div>
-          <p className="pricing-note">No card is required for Core. Paid plans begin immediately and the selected amount is charged today.</p>
-          <ul className="pricing-includes">
-            {coreFeatures.map((feature) => <li key={feature}><Check/> {feature}</li>)}
-          </ul>
-        </article>
-      </div>
-      <aside className="pricing-side">
-        <div className="pricing-summary">
-          <div><span>Core plan</span><b>Free</b></div>
-          <div><span>{plan.name}</span><b>{formatMoney(displayPrice)}{displayPer}</b></div>
-          {billing === "annual" && yearlySavings > 0 && <div className="annual-savings"><span>Yearly savings</span><b>${yearlySavings.toFixed(2)}</b></div>}
-          <div className="pricing-total"><span>Charged today</span><motion.b key={pulseKey} initial={{ y: 7, opacity: 0.55 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.34, ease: EASE }}>{formatMoney(displayPrice)}<small>{displayPer}</small></motion.b></div>
-          <button onClick={startCheckout} disabled={checkoutBusy}>
-            {checkoutBusy ? <LoaderCircle className="animate-spin" size={16} /> : null}
-            {checkoutBusy ? "Opening checkout…" : "Subscribe now"}
-            {!checkoutBusy && <ArrowRight/>}
-          </button>
-          {checkoutError && <small className="pricing-checkout-error">{checkoutError}</small>}
-          <small><ShieldCheck/> Secure checkout. Charged today; cancel future renewals anytime.</small>
-        </div>
-      </aside>
-    </motion.div>
+    <SectionHead eyebrow="Household pricing">Start free.<br/>Add what helps.</SectionHead>
+    <HouseholdOffers/>
+    <a className="landing-primary-btn" href={`${APP_ORIGIN}/sign-up`}>Start with Free Core</a>
   </section>;
 }
 

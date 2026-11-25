@@ -1,45 +1,18 @@
+import { PRICING_PLAN } from './pricingPlan.js';
+
 export const FREE_FEATURES = ["calendar", "tasks", "groceries", "chat", "kitchen"];
 
-export const PLAN_FEATURES = [
-  {
-    id: "plus",
-    name: "FamOS Plus",
-    tagline: "$14.99/month or $149/year",
-    price: 14.99,
-    priceYearly: 149,
-    priceCents: 1499,
-    priceYearlyCents: 14900,
-    description: "Calendar sync, recipe discovery, kitchen suggestions, product lookup, smart capture, automations, and 75–100 FamAI queries/month.",
-    features: [
-      "Google & Outlook two-way calendar sync",
-      "Recipe discovery and Cook Mode",
-      "Kitchen inventory meal suggestions",
-      "Product and barcode enrichment",
-      "Places-powered event details",
-      "Smart Capture and household automations",
-      "75–100 FamAI queries per month",
-    ],
-  },
-  {
-    id: "pro",
-    name: "FamOS Pro",
-    tagline: "$19.99/month or $199/year",
-    price: 19.99,
-    priceYearly: 199,
-    priceCents: 1999,
-    priceYearlyCents: 19900,
-    description: "Everything in Plus with higher limits, more calendars, priority support, and future premium integrations.",
-    features: [
-      "Everything in Plus",
-      "Up to 5 connected calendar accounts",
-      "250–300 FamAI queries per month",
-      "Higher recipe and product lookup limits",
-      "Expanded activity history and insights",
-      "Priority support",
-      "Future partner benefits and premium integrations",
-    ],
-  },
-];
+export const PLAN_FEATURES = PRICING_PLAN.paidPlans.map(plan => ({
+  id: plan.id,
+  name: plan.name,
+  tagline: `CAD $${plan.price.monthly.toFixed(2)}/month or CAD $${plan.price.yearly}/year`,
+  price: plan.price.monthly,
+  priceYearly: plan.price.yearly,
+  priceCents: Math.round(plan.price.monthly * 100),
+  priceYearlyCents: Math.round(plan.price.yearly * 100),
+  description: plan.tagline,
+  features: plan.featureList,
+}));
 
 export const FEATURE_COMPARISON = [
   { category: "Core Tools", features: [
