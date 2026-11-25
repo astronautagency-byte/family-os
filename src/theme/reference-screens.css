@@ -36,3 +36,10 @@
   .app-shell .apple-date-strip button small { font-size:10px; }
   .app-shell .apple-date-strip button strong { font-size:16px; }
 }
+
+.reference-week-agenda {display:grid;gap:20px;padding:20px 0 32px;}
+.reference-week-agenda section {min-width:0;border-bottom:1px solid var(--color-border);padding-bottom:16px;}
+.reference-week-agenda h3 {font-size:14px;font-weight:650;color:var(--color-ink);margin:0;}
+.reference-week-agenda .reference-day-agenda {padding:12px 0;}
+.reference-week-empty {font-size:13px;color:var(--color-ink-soft);margin:10px 0;}
+.reference-week-add {min-height:44px;font-size:13px;font-weight:600;color:var(--color-accent-strong);}

@@ -14,7 +14,7 @@ import { AvatarStack, DateField, Modal, PrimaryButton, SecondaryButton, Segmente
 import PageHeader from "../components/PageHeader";
 import FamilyIllustration from "../components/FamilyIllustration";
 import CalendarImageImport from '../components/CalendarImageImport';
-import ReferenceAgenda from '../components/ReferenceAgenda';
+import ReferenceAgenda, {WeekAgenda} from '../components/ReferenceAgenda';
 import PageAddButton from '../components/PageAddButton';
 import usePageAdd from '../hooks/usePageAdd';
 import PullToRefresh from "../components/PullToRefresh";
@@ -705,7 +705,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
       return d;
     });
   }, [selectedDate]);
-  const timeGridDates = useMemo(() => viewMode === "day" ? [selected] : Array.from({ length: 7 }, (_, index) => { const date = new Date(selected); date.setDate(selected.getDate() + index); return date; }), [viewMode, selectedDate]);
+  const timeGridDates = viewMode === "day" ? [selected] : dayStrip;
 
   const openAdd = (prefill) => {
     setEditingEvent(null);
@@ -1248,7 +1248,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
               </div>
             </div>}
 
-          {viewMode !== "month" && <><div className="reference-mobile-agenda"><ReferenceAgenda events={dayEvents} onAdd={() => openAdd()} onSelect={setSelectedEvent} colorFor={event => calendarColorFor(event,googleCalendars,googleCalendarColors,famosCalendar?.color)}/></div><div className="reference-desktop-timegrid"><CalendarTimeGrid data-pull-ignore dates={timeGridDates} events={visibleEvents} selectedDate={selectedDate} onSelectDate={setSelectedDate} onSelectEvent={setSelectedEvent} googleCalendars={googleCalendars} googleCalendarColors={googleCalendarColors} famosColor={famosCalendar?.color || "var(--color-family)"} canEditEvent={canEditEvent} onEventChange={handleEventChange} /></div></>}
+          {viewMode !== "month" && <><div className="reference-mobile-agenda">{viewMode === "week" ? <WeekAgenda dates={dayStrip} events={visibleEvents} onSelect={setSelectedEvent} colorFor={event => calendarColorFor(event,googleCalendars,googleCalendarColors,famosCalendar?.color)} onAdd={date => openAdd({date, startDate:date, endDate:date})}/> : <ReferenceAgenda events={dayEvents} onAdd={() => openAdd()} onSelect={setSelectedEvent} colorFor={event => calendarColorFor(event,googleCalendars,googleCalendarColors,famosCalendar?.color)}/>}</div><div className="reference-desktop-timegrid"><CalendarTimeGrid data-pull-ignore dates={timeGridDates} events={visibleEvents} selectedDate={selectedDate} onSelectDate={setSelectedDate} onSelectEvent={setSelectedEvent} googleCalendars={googleCalendars} googleCalendarColors={googleCalendarColors} famosColor={famosCalendar?.color || "var(--color-family)"} canEditEvent={canEditEvent} onEventChange={handleEventChange} /></div></>}
 
           {/* ── Agenda below the grid — iOS-style list with section header + inline weather ── */}
           {viewMode === "month" && <div className="calendar-agenda-section" ref={agendaRef} data-pull-ignore>
