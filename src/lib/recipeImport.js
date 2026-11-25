@@ -1,13 +1,14 @@
+import {recipeTags} from '../../supabase/functions/_shared/recipeTags.js';
 export function safeRecipeUrl(value) {
  try {const url=new URL(value);return url.protocol==='https:'&&!url.username&&!url.password?url.href:'';}catch{return '';}
 }
-export const emptyRecipeDraft=()=>({title:'',ingredients:'',instructions:'',servings:'',readyInMinutes:'',sourceUrl:'',sourceName:'',thumbnail:'',notes:''});
+export const emptyRecipeDraft=()=>({title:'',ingredients:'',instructions:'',servings:'',readyInMinutes:'',sourceUrl:'',sourceName:'',thumbnail:'',notes:'',tags:[]});
 export function recipeToDraft(recipe={}) {
- return {...emptyRecipeDraft(),...recipe,ingredients:(recipe.ingredients || []).map(i=>typeof i==='string'?i:i.original || [i.quantity,i.unit,i.name].filter(Boolean).join(' ')).join('\n'),instructions:(recipe.instructions || []).join('\n')};
+ return {...emptyRecipeDraft(),...recipe,tags:recipeTags(recipe),ingredients:(recipe.ingredients || []).map(i=>typeof i==='string'?i:i.original || [i.quantity,i.unit,i.name].filter(Boolean).join(' ')).join('\n'),instructions:(recipe.instructions || []).join('\n')};
 }
 export function draftToRecipe(draft) {
  const lines=text=>String(text || '').split('\n').map(s=>s.trim()).filter(Boolean);
- const result={title:draft.title.trim(),ingredients:lines(draft.ingredients),instructions:lines(draft.instructions),sourceUrl:safeRecipeUrl(draft.sourceUrl),sourceName:String(draft.sourceName || '').slice(0,200),thumbnail:safeRecipeUrl(draft.thumbnail),notes:draft.notes || '',source:'Recipe Book',servings:draft.servings?Number(draft.servings):null,readyInMinutes:draft.readyInMinutes?Number(draft.readyInMinutes):null};
+ const result={title:draft.title.trim(),ingredients:lines(draft.ingredients),instructions:lines(draft.instructions),sourceUrl:safeRecipeUrl(draft.sourceUrl),sourceName:String(draft.sourceName || '').slice(0,200),thumbnail:safeRecipeUrl(draft.thumbnail),notes:draft.notes || '',source:'Recipe Book',tags:recipeTags(draft),servings:draft.servings?Number(draft.servings):null,readyInMinutes:draft.readyInMinutes?Number(draft.readyInMinutes):null};
  if(!result.title || !result.ingredients.length || !result.instructions.length)throw Error('Add a title, ingredients, and cooking steps before saving.');
  for(const key of ['servings','readyInMinutes'])if(result[key]!==null&&(!Number.isFinite(result[key])||result[key]<=0))throw Error('Servings and cooking time must be positive numbers, or left blank.');
  return result;

@@ -1,9 +1,9 @@
 import {it,expect,vi,afterEach} from 'vitest';
 import {render,screen,cleanup,fireEvent,within,waitFor} from '@testing-library/react';
 import RecipeBook from '../RecipeBook';
-const mocks=vi.hoisted(()=>({remove:vi.fn(),invoke:vi.fn(),insert:vi.fn(),update:vi.fn(),read:vi.fn(),row:{id:'recipe',created_by:'alex',title:'Pancakes',recipe:{ingredients:['Flour'],instructions:['Mix'],readyInMinutes:15,sourceUrl:'https://example.com/pancakes',sourceName:'Example Kitchen',thumbnail:'https://example.com/photo.jpg'}}}));
+const mocks=vi.hoisted(()=>({plan:vi.fn(),remove:vi.fn(),invoke:vi.fn(),insert:vi.fn(),update:vi.fn(),read:vi.fn(),row:{id:'recipe',created_by:'alex',title:'Pancakes',recipe:{ingredients:['Flour'],instructions:['Mix'],readyInMinutes:15,sourceUrl:'https://example.com/pancakes',sourceName:'Example Kitchen',thumbnail:'https://example.com/photo.jpg'}}}));
 vi.mock('../../context/AuthContext',()=>({useAuth:()=>({user:{id:'alex'},household:{id:'home'}})}));
-vi.mock('../../context/FamilyContext',()=>({useFamily:()=>({meals:[],setMealForSlot:vi.fn()})}));
+vi.mock('../../context/FamilyContext',()=>({useFamily:()=>({meals:[],setMealForSlot:mocks.plan})}));
 vi.mock('../../lib/recipeImport',async importOriginal=>({...await importOriginal(),readRecipePhotos:(...args)=>mocks.read(...args)}));
 vi.mock('../../lib/supabase',()=>({supabase:{functions:{invoke:(...args)=>mocks.invoke(...args)},from:()=>({
  select:()=>({eq:()=>({order:async()=>({data:[mocks.row]})})}),
@@ -11,7 +11,7 @@ vi.mock('../../lib/supabase',()=>({supabase:{functions:{invoke:(...args)=>mocks.
  update:payload=>{mocks.update(payload);const chain={eq:()=>chain,select:()=>({single:async()=>({data:{...mocks.row,...payload}})})};return chain;},
  insert:payload=>{mocks.insert(payload);return {select:()=>({single:async()=>({data:{id:'new',...payload}})})};}
 })}}));
-afterEach(()=>{cleanup();vi.clearAllMocks();});
+afterEach(()=>{cleanup();vi.clearAllMocks();delete mocks.row.recipe.tags;});
 it('edits the saved household copy without inserting another recipe',async()=>{
  render(<RecipeBook onClose={()=>{}}/>);fireEvent.click(await screen.findByRole('button',{name:'Edit recipe'}));
  expect(screen.getByLabelText('Recipe name')).toHaveValue('Pancakes');
@@ -62,4 +62,47 @@ it('prepares a photo, imports it for review, and saves the recipe',async()=>{
  fireEvent.click(screen.getByRole('button',{name:'Save to Recipe Book'}));
  await screen.findByText('Soup');
  expect(mocks.insert).toHaveBeenCalledWith(expect.objectContaining({recipe:expect.objectContaining({ingredients:['2 cups water'],sourcePhotos:['data:image/jpeg;base64,AAAA']})}));
+});
+
+it('edits dietary tags, persists them and allows every tag to be removed',async()=>{
+ mocks.row.recipe.tags=['Vegan','Gluten-free'];
+ render(<RecipeBook onClose={()=>{}}/>);
+ expect(await screen.findByRole('list',{name:'Recipe tags'})).toHaveTextContent('Vegan');
+ fireEvent.click(screen.getByRole('button',{name:'Edit recipe'}));
+ fireEvent.click(screen.getByText('Dietary tags · 2 selected'));
+ fireEvent.click(screen.getByRole('checkbox',{name:'Vegan',exact:true}));
+ fireEvent.click(screen.getByRole('checkbox',{name:'Gluten-free',exact:true}));
+ fireEvent.click(screen.getByRole('checkbox',{name:'Dairy-free',exact:true}));
+ fireEvent.click(screen.getByRole('button',{name:'Save changes'}));
+ await waitFor(()=>expect(screen.queryByRole('button',{name:'Save changes'})).toBeNull());
+ expect(mocks.update.mock.calls[0][0].recipe.tags).toEqual(['Dairy-free']);
+ expect(screen.getByRole('list',{name:'Recipe tags'})).toHaveTextContent('Dairy-free');
+ fireEvent.click(screen.getByRole('button',{name:'Edit recipe'}));
+ fireEvent.click(screen.getByText('Dietary tags · 1 selected'));
+ fireEvent.click(screen.getByRole('checkbox',{name:'Dairy-free',exact:true}));
+ fireEvent.click(screen.getByRole('button',{name:'Save changes'}));
+ await waitFor(()=>expect(mocks.update).toHaveBeenCalledTimes(2));
+ expect(mocks.update.mock.calls[1][0].recipe.tags).toEqual([]);
+});
+it('combines tag filtering with search and lets the user clear an empty result',async()=>{
+ mocks.row.recipe.tags=['Vegan','Gluten-free'];
+ render(<RecipeBook onClose={()=>{}}/>);
+ const filter=await screen.findByLabelText('Filter by tag');
+ fireEvent.change(filter,{target:{value:'Vegan'}});
+ fireEvent.change(screen.getByRole('searchbox'),{target:{value:'gluten free'}});
+ expect(screen.getByRole('heading',{name:'Pancakes'})).toBeDefined();
+ fireEvent.change(screen.getByRole('searchbox'),{target:{value:'salmon'}});
+ expect(screen.queryByRole('heading',{name:'Pancakes'})).toBeNull();
+ expect(screen.getByText('No recipes match your search.')).toBeDefined();
+ fireEvent.change(filter,{target:{value:''}});
+ fireEvent.change(screen.getByRole('searchbox'),{target:{value:''}});
+ expect(screen.getByRole('heading',{name:'Pancakes'})).toBeDefined();
+});
+
+it('retains dietary tags in the recipe snapshot when planning a meal',async()=>{
+ mocks.row.recipe.tags=['Vegan','Gluten-free'];
+ render(<RecipeBook onClose={()=>{}}/>);
+ fireEvent.click(await screen.findByRole('button',{name:'Plan meal'}));
+ fireEvent.click(screen.getByRole('button',{name:'Add to meal plan'}));
+ await waitFor(()=>expect(mocks.plan).toHaveBeenCalledWith(expect.any(String),'dinner',expect.objectContaining({recipeSnapshot:expect.objectContaining({tags:['Vegan','Gluten-free']})})));
 });
