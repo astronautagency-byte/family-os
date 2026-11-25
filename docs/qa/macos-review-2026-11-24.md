@@ -26,7 +26,14 @@ The separate November 16 iOS submission still displayed Waiting for Review on No
 - Production deletion-service test passed using a disposable synthetic account: login, household, grocery row and uploaded image removed; subsequent sign-in rejected; separate recording account remained intact.
 - Native arm64 release compilation, Mac App Store signing and signed installer packaging completed for build 7. codesign --verify --deep --strict and pkgutil --check-signature passed.
 - The embedded profile authorizes the signing certificate and remains valid through August 25, 2027. Direct local launch was refused by AMFI with No matching profile found. Native runtime verification remains pending a supported TestFlight installation.
-- Xcode upload preparation started and is awaiting another system keychain authorization. Mac App Store sign-in is also required to download TestFlight.
+- Xcode upload succeeded at 9:17 p.m. Toronto time. App Store Connect processed Mac build 7 and displayed Ready to Submit.
+- Created the Mac Release QA internal group and added only the existing Account Holder as tester. The group has automatic build distribution enabled.
+- Installed TestFlight and accepted its terms through user action. Build 7 installed at /Applications/FamOS 2.app, alongside the old build 3 at /Applications/FamOS.app.
+- Physical Mac testing confirmed native sign-in, optional onboarding, the synthetic shopping item, Settings → Account → Delete account, and the permanent-deletion confirmation. Initial AX setValue input did not update React state; native paste input succeeded.
+- User expressly approved deleting the disposable Mac Review Deletion Test household for the recording. Deletion itself has not yet been executed in the native UI.
+- Build 7 selected and saved on macOS 1.0. Release mode set to automatically release after approval. Update Review has not been clicked.
+- Apple upload reported missing dSYM symbols; upload and processing still succeeded. Crash-symbolication coverage remains limited.
+- Final physical-device screen recording is pending. A diagnostic recording was saved but is not suitable as the review evidence.
 
 ## Still required before resubmission
 
