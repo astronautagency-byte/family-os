@@ -104,18 +104,19 @@ export function prepareMiaVoiceAction(actions, request, {groceryLists=[],taskLis
   const mentionedList=request.match(/\b(?:to|on|in)\s+((?:(?:my|our|the)\s+)?\w+(?:\s+\w+)?)\s+list\b/i)?.[1]?.replace(/^(?:my|our|the)\s+/i,'');
   if(mentionedList && !/^(?:grocery|groceries|shopping)$/i.test(mentionedList) && !direct?.listId)return null;
   const {type,args={}}=actions[0] || {};
+  if(direct?.listId && direct.type!==({add_grocery:'grocery',add_task:'task'})[type])return null;
   const name=String(type==='add_grocery'?args.name||'':args.title||'').trim();
   if(!name || name.length>120)return null;
   const validDate=value=>typeof value==='string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(new Date(value+'T12:00:00Z').getTime()) && new Date(value+'T12:00:00Z').toISOString().slice(0,10)===value;
   if(type==='add_grocery') {
     if(args.list_id || args.list_name)return null; // Never redirect a named list to the default list.
     const quantity=Number(args.quantity??1);if(!Number.isFinite(quantity)||quantity<=0||quantity>10000)return null;
-    return {type:'grocery',name,quantity,unit:String(args.unit||'').slice(0,30)};
+    return {type:'grocery',name,quantity,unit:String(args.unit||'').slice(0,30),...(direct?.type==='grocery' && direct.listId?{listId:direct.listId,listName:direct.listName}:{})};
   }
   if(type==='add_task') {
     if(args.assignee_name || args.assignee_id || (args.task_type && args.task_type!=='home') || args.recurring || args.list_id || args.list_name)return null;
     if(args.due_date && !validDate(args.due_date))return null;
-    return {type:'task',name,...(args.due_date?{due:args.due_date}:{})};
+    return {type:'task',name,...(args.due_date?{due:args.due_date}:{}),...(direct?.type==='task' && direct.listId?{listId:direct.listId,listName:direct.listName}:{})};
   }
   if(type==='plan_meal') {
     if(args.cook_names?.length || !['breakfast','lunch','dinner'].includes(args.slot) || !validDate(args.date))return null;

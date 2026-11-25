@@ -43,6 +43,7 @@ test('AI drafts reject unsupported changes, invalid dates and named list redirec
   assert.deepEqual(prepare([{type:'add_grocery',args:{name:'lemons'}}],`add lemons to ${list} list`),{type:'grocery',name:'lemons',quantity:1,unit:''});
  }
  assert.equal(prepare([{type:'add_grocery',args:{name:'towels'}}],'add towels to my camping list'),null);
+ assert.deepEqual(prepare([{type:'add_grocery',args:{name:'towels'}}],'add towels to my camping list',{groceryLists:[{id:'camping',name:'Camping'}]}),{type:'grocery',name:'towels',quantity:1,unit:'',listId:'camping',listName:'Camping'});
  assert.equal(prepare([{type:'add_task',args:{title:'Dentist',assignee_name:'Alex'}}],'add a dentist task assigned to Alex'),null);
  assert.equal(prepare([{type:'plan_meal',args:{title:'Tacos',slot:'dinner',date:'2026-02-31'}}],'plan tacos'),null);
  assert.equal(prepare([{type:'add_grocery',args:{name:'Milk'}}],'suggest groceries'),null);
