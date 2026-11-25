@@ -3,9 +3,12 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { PublishCommand,SNSClient } from 'npm:@aws-sdk/client-sns@3';
 const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, apikey, content-type, x-client-info'};
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{...cors,'Content-Type':'application/json','Cache-Control':'no-store'}});
+const HELPERS_PAUSED=true;
 Deno.serve(async req=>{
  if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
  if(req.method!=='POST')return json({error:'Method not allowed'},405);
+ if(HELPERS_PAUSED)return json({error:'Helper access is paused.',code:'HELPERS_PAUSED'},503);
+
  const admin=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false,autoRefreshToken:false}});
  let claim:string|undefined;
  try{

@@ -50,3 +50,7 @@ Do not claim SOC 2, verified zero retention, EU-only processing, verified parent
 - Ontario securities overview: https://oscinnovation.ca/education/securities
 
 See docs/compliance/gdpr-ai-readiness-2026-11-07.md for the earlier feature-specific evidence and unresolved scope questions. Findings apply to the reviewed configuration/time only.
+
+## November 25 operational update
+
+Alex Vorobiev has accepted privacy/security operational ownership. See [launch operations](../compliance/operations/launch-operations-2026-11-25.md). Independent legal review and provider-contract evidence remain unconfirmed. Helper access is paused server-side and removed from the new web/native UI; retained data is not erased. Mac build 10 and iOS build 16 uploaded successfully; upload is not device QA or App Review approval.

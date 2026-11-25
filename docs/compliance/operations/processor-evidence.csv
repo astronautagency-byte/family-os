@@ -1,0 +1,8 @@
+provider,purpose,active_status,agreement_evidence,retention_evidence,location_transfer_evidence,owner,review_status
+Supabase,Authentication database storage and edge functions,active,not_verified,not_verified,not_verified,Alex Vorobiev,open
+Vercel,Web hosting,active,not_verified,not_verified,not_verified,Alex Vorobiev,open
+Groq,Optional consented AI requests,active,not_verified,not_verified,not_verified,Alex Vorobiev,open
+xAI,Optional consented AI chat and speech,active,not_verified,not_verified,not_verified,Alex Vorobiev,open
+Stripe,Existing subscriptions and proposed web AI checkout,configured_readiness_unverified,not_verified,not_verified,not_verified,Alex Vorobiev,open
+Delivery providers,Family notifications and invitations; helper SMS paused,account_inventory_required,not_verified,not_verified,not_verified,Alex Vorobiev,open
+Connected calendar providers,User-authorized calendar connections,optional,not_verified,not_verified,not_verified,Alex Vorobiev,open

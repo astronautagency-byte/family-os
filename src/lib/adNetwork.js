@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { IS_APP_STORE } from './distribution';
 
 const impressionCache = new Map();
 
@@ -29,7 +30,9 @@ const rotate = (ads) => {
 };
 
 export async function fetchAdsForPlacement(placement) {
-  if (!supabase) return { paid: false, ads: [] };
+  // Store editions are the same ad-free Core product for every account.
+  // A web subscription must not unlock a different native ad entitlement.
+  if (IS_APP_STORE || !supabase) return { paid: false, ads: [] };
   try {
     const { data, error } = await supabase.rpc("get_my_ads", { p_placement: placement });
     if (error) {
@@ -48,7 +51,7 @@ export async function fetchAdsForPlacement(placement) {
 }
 
 export async function trackAdImpression(campaignId, placement, clicked = false) {
-  if (!supabase || !campaignId || !placement) return;
+  if (IS_APP_STORE || !supabase || !campaignId || !placement) return;
   const key = `${campaignId}:${placement}`;
   if (impressionCache.has(key)) return;
   impressionCache.set(key, true);

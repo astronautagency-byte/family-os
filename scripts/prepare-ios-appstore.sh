@@ -120,6 +120,10 @@ plutil -replace NSMicrophoneUsageDescription -string 'Talk to Mia or record a vo
   plutil -insert NSMicrophoneUsageDescription -string 'Talk to Mia or record a voice note when you choose to use the microphone.' "$INFO_PLIST"
 plutil -replace NSSpeechRecognitionUsageDescription -string 'Turn your speech into text when you choose to talk to Mia.' "$INFO_PLIST" || \
   plutil -insert NSSpeechRecognitionUsageDescription -string 'Turn your speech into text when you choose to talk to Mia.' "$INFO_PLIST"
+plutil -replace NSCameraUsageDescription -string 'Scan a product or take a photo when you choose a camera feature.' "$INFO_PLIST" || \
+  plutil -insert NSCameraUsageDescription -string 'Scan a product or take a photo when you choose a camera feature.' "$INFO_PLIST"
+plutil -replace NSLocationWhenInUseUsageDescription -string 'Share your location with your household only when you enable family location sharing.' "$INFO_PLIST" || \
+  plutil -insert NSLocationWhenInUseUsageDescription -string 'Share your location with your household only when you enable family location sharing.' "$INFO_PLIST"
 /usr/libexec/PlistBuddy -c 'Set :ITSAppUsesNonExemptEncryption false' "$INFO_PLIST" 2>/dev/null || \
   /usr/libexec/PlistBuddy -c 'Add :ITSAppUsesNonExemptEncryption bool false' "$INFO_PLIST"
 

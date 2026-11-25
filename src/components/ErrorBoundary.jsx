@@ -29,7 +29,7 @@ export default class ErrorBoundary extends Component {
         id: `FAM-${Math.abs(hash).toString(36).toUpperCase()}`,
         message: message.slice(0, 500),
         stack: String(info?.componentStack || "").slice(0, 2000),
-        route: `${window.location.pathname}${window.location.hash}`,
+        route: window.location.pathname,
         happenedAt: new Date().toISOString(),
       }));
     } catch { /* diagnostics must never cause a second crash */ }

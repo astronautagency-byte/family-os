@@ -55,7 +55,7 @@ try {
   html=html.replace('</head>',[...css].map(c=>`<link rel="stylesheet" href="/${c}">`).join('')+`<script type="application/ld+json">${schema}</script>`+'</head>');await writeFile(`dist/__public${path}.html`,html);
  }
  // Unindexed helper entry: preserve app scripts, replace only generic marketing metadata.
- const helperMeta={title:'Family helpers | FamOS',description:'Open your private helper space for selected task lists, shopping lists and calendars. No account needed.',canonical:'https://home.fam-os.app/helpers',image:'https://home.fam-os.app/marketing/social/helpers-v1.jpg',imageAlt:'FamOS Family helpers: private passcode access to shared task lists, shopping lists and calendars'};
+ const helperMeta={title:'Helper access is paused | FamOS',description:'Helper access, invitation links and passcodes are currently paused. Open the family app to use your household calendars and lists.',canonical:'https://home.fam-os.app/helpers',image:'https://home.fam-os.app/marketing/social/helpers-paused-v2.jpg',imageAlt:'FamOS helper access is paused; the family app remains available'};
  let helperHtml=withMeta(template,helperMeta).replace('</head>','<meta name="robots" content="noindex,nofollow" /></head>');
  await writeFile('dist/__public/helpers.html',helperHtml);
  // Existing standalone legal documents take precedence over rewrites. Preserve their content and update their head metadata.

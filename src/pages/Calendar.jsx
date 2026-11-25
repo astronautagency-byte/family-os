@@ -1,4 +1,3 @@
-import EventHelpRequest from '../components/EventHelpRequest';
 import { EVENT_IMPORT_KEY, eventImportDraft } from "../lib/partnerShare";
 import { useEffect, useRef, useMemo, useState } from "react";
 import { CalendarDays, CalendarPlus, ChevronDown, ChevronLeft, ChevronRight, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, ExternalLink, Eye, EyeOff, LoaderCircle, MapPin, Moon, Pencil, Plus, RefreshCw, Search, Settings2, Share2, Sparkles, Sun, Ticket, Trash2, TriangleAlert, Users, X } from "../components/icons";
@@ -476,7 +475,6 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
   const [conflicts, setConflicts] = useState(null);
   const [clearing, setClearing] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [helpEvent, setHelpEvent] = useState(null);
   const [eventShare, setEventShare] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [discovering, setDiscovering] = useState(false);
@@ -1816,7 +1814,6 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
           <small className="event-discovery-source">Event details come from public web sources and may change. Confirm times, availability, suitability, and prices with the event provider before making plans.</small>
         </Modal>}
 
-        {helpEvent && <EventHelpRequest key={helpEvent.id} event={helpEvent} householdId={household?.id} onClose={() => setHelpEvent(null)}/>}
         <Modal open={!!selectedEvent} onClose={() => setSelectedEvent(null)} title={selectedEvent?.title || "Event details"}>
           {selectedEvent && (
             <div className="event-detail-card">
@@ -1840,7 +1837,6 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
                   });
                 }} aria-label={`Share ${selectedEvent.title}`}><Share2 size={15} /> Share with family</button>
                 {canDeleteEvent(selectedEvent) && <button className="event-edit-button" onClick={() => openEdit(selectedEvent)}><Pencil size={15}/> Edit event</button>}
-                {household?.created_by === user?.id && selectedEvent.createdBy === user?.id && selectedEvent.visibility === 'household' && sourceId(selectedEvent) === 'family' && !selectedEvent.seriesId && !selectedEvent.isRecurringOccurrence && <SecondaryButton onClick={() => { setHelpEvent(selectedEvent); setSelectedEvent(null); }}>Plan help</SecondaryButton>}
                 <SecondaryButton onClick={() => setSelectedEvent(null)}>Close</SecondaryButton>
                 {canDeleteEvent(selectedEvent) && <button className="event-danger-button" onClick={() => setDeleteTarget(selectedEvent)}><Trash2 size={16} /> Delete event</button>}
               </div>

@@ -1,3 +1,4 @@
+import {requestAiChat} from '../_shared/aiChat.js';
 import {minimalAiContext,minimalAiMessages} from '../_shared/aiContext.js';
 import {aiPrivacyDenial} from '../_shared/aiPrivacy.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -90,18 +91,8 @@ Request context (no automatic household snapshot): ${JSON.stringify(context)}`;
   // that combination with a 400. The system prompt already demands JSON and
   // the client validates it, so we rely on that instead.
   const groqModel=Deno.env.get("GROQ_MODEL")||"openai/gpt-oss-20b";
-  const providers=[...(xaiKey?[{name:"primary",url:"https://api.x.ai/v1/chat/completions",key:xaiKey,model:Deno.env.get("XAI_MODEL")||"grok-4.6"}]:[]),...(groqKey?[{name:"fallback",url:"https://api.groq.com/openai/v1/chat/completions",key:groqKey,model:groqModel}]:[])];
-  let response:Response|null=null;
-  for(const provider of providers){
-   const body:Record<string,unknown>={model:provider.model,messages:[{role:"system",content:system},...messages.slice(-MAX_CONTEXT_MESSAGES)],temperature:.3};
-   // xAI may reject tools+parallel_tool_calls combo; Groq handles them fine
-   if(provider.name!=="primary"){body.tools=tools;body.tool_choice="auto";}
-   response=await fetch(provider.url,{method:"POST",headers:{Authorization:`Bearer ${provider.key}`,"Content-Type":"application/json"},body:JSON.stringify(body)});
-   if(response.ok)break;
-   // Provider errors may echo request content. Keep only operational status in logs.
-   await response.body?.cancel();
-   console.error(`Fam AI ${provider.name} provider error`,response.status);
-  }
+  const providers=[...(groqKey?[{name:"groq",url:"https://api.groq.com/openai/v1/chat/completions",key:groqKey,model:groqModel}]:[]),...(xaiKey?[{name:"xai",url:"https://api.x.ai/v1/chat/completions",key:xaiKey,model:Deno.env.get("XAI_MODEL")||"grok-4.6"}]:[])];
+  const response=await requestAiChat({providers,messages:[{role:"system",content:system},...messages.slice(-MAX_CONTEXT_MESSAGES)],tools});
   if(!response)throw new Error("Fam AI could not reach its assistant service. Please try again.");
   if(!response.ok){
    if(response.status===429)throw new Error("Fam AI is receiving too many requests. Please try again shortly.");

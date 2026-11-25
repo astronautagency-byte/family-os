@@ -2,9 +2,12 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, apikey, content-type, x-client-info'};
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{...cors,'Content-Type':'application/json','Cache-Control':'no-store'}});
+const HELPERS_PAUSED=true;
 Deno.serve(async req=>{
  if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
  if(req.method!=='POST')return json({error:'Method not allowed'},405);
+ if(HELPERS_PAUSED)return json({error:'Helper access is paused.',code:'HELPERS_PAUSED'},503);
+
  try{
   if(Number(req.headers.get('Content-Length')||0)>4096)return json({error:'Request too large'},413);
   const raw=await req.text();if(raw.length>4096)return json({error:'Request too large'},413);const b=JSON.parse(raw);

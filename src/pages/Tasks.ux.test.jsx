@@ -66,16 +66,13 @@ it('keeps management and progress collapsed and uses one list selector',()=>{
  fireEvent.click(screen.getByLabelText('Task options'));fireEvent.click(screen.getByRole('button',{name:'Reset tasks'}));expect(screen.getByRole('dialog')).toBeDefined();
 });
 
-it('explains named-list sharing and opens Family settings without granting access',()=>{
+it('removes helper sharing while retaining regular task options',()=>{
  const goTo=vi.fn();render(<Tasks goTo={goTo}/>);
  fireEvent.click(screen.getByLabelText('Task options'));
- fireEvent.click(screen.getByRole('button',{name:'Share with helper'}));
- expect(screen.getByText(/Private tasks stay hidden/)).toBeDefined();
+ expect(screen.queryByRole('button',{name:'Share with helper'})).toBeNull();
+ expect(screen.getByRole('button',{name:'New list'})).toBeDefined();
  expect(goTo).not.toHaveBeenCalled();
- fireEvent.click(screen.getByRole('button',{name:'Manage helper access'}));
- expect(sessionStorage.getItem('famos:settings-section')).toBe('family');
- expect(goTo).toHaveBeenCalledWith('settings');
- sessionStorage.removeItem('famos:settings-section');
+ expect(screen.queryByRole('button',{name:'Manage helper access'})).toBeNull();
 });
 
 it('hides future routine occurrences from To do and exposes daily list settings',async()=>{
