@@ -14,6 +14,7 @@ import { AvatarStack, DateField, Modal, PrimaryButton, SecondaryButton, Segmente
 import PageHeader from "../components/PageHeader";
 import FamilyIllustration from "../components/FamilyIllustration";
 import CalendarImageImport from '../components/CalendarImageImport';
+import CalendarMonthGrid from '../components/CalendarMonthGrid';
 import ReferenceAgenda, {WeekAgenda} from '../components/ReferenceAgenda';
 import PageAddButton from '../components/PageAddButton';
 import usePageAdd from '../hooks/usePageAdd';
@@ -642,6 +643,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
   const dayEvents = useMemo(() =>
     visibleEvents.filter(e => eventOccursOnDate(e, selectedDate)).sort((a, b) => a.start.localeCompare(b.start)),
   [visibleEvents, selectedDate]);
+  const monthEventCount = useMemo(()=>visibleEvents.filter(event=>cells.some(date=>date.getMonth()===month.getMonth() && eventOccursOnDate(event,iso(date)))).length,[visibleEvents,cells,month]);
 
   const monthLabel = month.toLocaleDateString("en-CA", { month: "long", year: "numeric" });
   const dayName = selected.toLocaleDateString("en-CA", { weekday: "long" });
@@ -649,12 +651,14 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
   const monthDayLabel = selected.toLocaleDateString("en-CA", { month: "short", day: "numeric" });
   const selectedLabel = selected.toLocaleDateString("en-CA", { month: "short", day: "numeric", weekday: "short" }).toUpperCase();
   // Move the calendar view by one period — a month in month view, a week in
-  // week view, a day in day view. Month changes update the grid; week/day
-  // changes shift the selected date (the time grid derives from selectedDate),
-  // and the month always follows so the header label stays in sync.
+  // week view, a day in day view. Keep the selected-day details in the
+  // displayed month, including when moving from a longer month to a shorter one.
   const shiftCalendar = (delta) => {
     if (viewMode === "month") {
-      setMonth(new Date(month.getFullYear(), month.getMonth() + delta, 1));
+      const nextMonth=new Date(month.getFullYear(),month.getMonth()+delta,1);
+      const lastDay=new Date(nextMonth.getFullYear(),nextMonth.getMonth()+1,0).getDate();
+      setSelectedDate(iso(new Date(nextMonth.getFullYear(),nextMonth.getMonth(),Math.min(selected.getDate(),lastDay))));
+      setMonth(nextMonth);
       return;
     }
     const next = new Date(selected);
@@ -705,6 +709,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
       return d;
     });
   }, [selectedDate]);
+  const weekEventCount=useMemo(()=>visibleEvents.filter(event=>dayStrip.some(date=>eventOccursOnDate(event,iso(date)))).length,[visibleEvents,dayStrip]);
   const timeGridDates = viewMode === "day" ? [selected] : dayStrip;
 
   const openAdd = (prefill) => {
@@ -1135,7 +1140,7 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
               <span className="calendar-hero-dayname">{viewMode === "day" ? monthDayLabel : monthLabel}</span>
               <button type="button" className="apple-month-nav-btn" onClick={() => shiftCalendar(1)} aria-label={viewMode === "month" ? "Next month" : viewMode === "week" ? "Next week" : "Next day"}><ChevronRight size={18} /></button>
             </div>
-            <span className="calendar-hero-month">{dayName} · {dayEventCount} event{dayEventCount === 1 ? "" : "s"}</span>
+            <span className="calendar-hero-month">{viewMode==='month' ? `${monthEventCount} event${monthEventCount===1?'':'s'} this month` : viewMode==='week' ? `${weekEventCount} event${weekEventCount===1?'':'s'} this week` : `${dayName} · ${dayEventCount} event${dayEventCount===1?'':'s'}`}</span>
           </div>
           <div className="calendar-hero-actions">
             <details className="page-actions-menu"><summary aria-label="More calendar actions">More</summary><div className="page-actions-menu-list" onClick={event => { if (event.target.closest('button')) event.currentTarget.parentElement.open = false; }}>
@@ -1203,8 +1208,6 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
             </details>
            )}
            {viewMode !== 'month' && <div className="apple-date-strip" data-pull-ignore aria-label="Selected week">{dayStrip.map((date) => { const key=iso(date); return <button type="button" key={key} className={`${key===selectedDate?"selected":""} ${key===todayStr?"today":""}`} onClick={()=>{setSelectedDate(key);setMonth(new Date(date.getFullYear(),date.getMonth(),1));}}><small>{date.toLocaleDateString("en-CA",{weekday:"narrow"})}</small><strong>{date.getDate()}</strong><i>{visibleEvents.some(event=>eventOccursOnDate(event,key))?"•":""}</i></button>;})}</div>}
-           {/* ── Month grid (always shown — the grid IS the date picker now) ── */}
-
            {/* ── Month grid ── */}
            {viewMode === "month" && <div className="calendar-month apple-calendar-month" data-pull-ignore>
               <div className="calendar-month-header">
@@ -1219,32 +1222,9 @@ export default function CalendarPage({ entitlements = null, goTo } = {}) {
                 <div className="calendar-weeknums" aria-hidden="true">
                   {rowWeeks.map((week, i) => <span key={i}>W{week}</span>)}
                 </div>
-                <div className="calendar-month-grid">
-                  {cells.map((d) => {
-                    const key = iso(d);
-                    const inMonth = d.getMonth() === month.getMonth();
-                    const active = key === selectedDate;
-                    const cellEvents = visibleEvents.filter(e => eventOccursOnDate(e,key));
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        aria-pressed={active}
-                        aria-current={key === todayStr ? 'date' : undefined}
-                        aria-label={`${d.toLocaleDateString('en-CA', {weekday:'long', month:'long', day:'numeric', year:'numeric'})}, ${cellEvents.length} event${cellEvents.length === 1 ? '' : 's'}`}
-                        className={`${inMonth ? "" : "outside"} ${active ? "selected" : ""} ${key === todayStr ? "today" : ""}`}
-                        onClick={() => { setSelectedDate(key); }}
-                      >
-                        <b>{d.getDate()}</b>
-                          <span className="calendar-month-dots">
-                            {cellEvents.slice(0, 3).map(event => (
-                              <i key={event.id} style={{ backgroundColor: calendarColorFor(event, googleCalendars, googleCalendarColors, famosCalendar?.color) }} />
-                            ))}
-                          </span>
-                      </button>
-                    );
-                  })}
-                </div>
+                <CalendarMonthGrid cells={cells} month={month} selectedDate={selectedDate} today={todayStr} events={visibleEvents}
+                  colorFor={event=>calendarColorFor(event,googleCalendars,googleCalendarColors,famosCalendar?.color)}
+                  onSelectDate={key=>{setSelectedDate(key);const date=new Date(key+'T12:00:00');setMonth(new Date(date.getFullYear(),date.getMonth(),1));}}/>
               </div>
             </div>}
 
