@@ -19,3 +19,11 @@ Home starts with concise, live household information. Calendar emphasizes dates 
 ## Motion and accessibility
 
 Motion should acknowledge an action, not distract from it. Keep transitions short, and disable decorative transitions for reduced-motion preferences. Support keyboard focus, screen-reader names, dark mode, long names, narrow screens, empty/loading/error states and device safe areas. Visual appearance alone does not establish device or accessibility compliance; verify rendered states and interactions.
+
+## Control roles
+
+Fields use persistent labels above the value, a 50px standard height, 14px corners and a single trailing chevron for native selects. Leading icons are optional and decorative; the value remains the priority on narrow screens. Native selectors retain their platform picker. Text input does not gain a second decorative inner border on pointer focus; keyboard focus remains visible.
+
+Informational badges are quiet, non-interactive, normally 26px tall, and use sentence-case labels with semantic soft colours. Multi-select choices use checkbox chips with at least 44px targets and explicit check marks. Never make a static tag look like a button or rely on colour alone to convey selection.
+
+List selectors sit beside one Options trigger. Options panels have one elevated surface, dismiss on outside input or Escape, and restore trigger focus on keyboard dismissal. An active filter has a visible cue and an accessible description. Secondary in-flow disclosure sections use the same chevron and label treatment. Keep desktop selectors deliberately sized, pair short numeric fields, and avoid stacked capsule borders or redundant category labels.

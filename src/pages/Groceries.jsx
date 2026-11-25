@@ -5,7 +5,7 @@ import { Baby, Bone, Camera, Carrot, Check, CheckCircle2, ChevronDown, Clipboard
 import { uploadGroceryPhoto, isUploadableImage, deleteGroceryPhoto, downloadGroceryPhoto, compressImage } from "../lib/groceryPhotoUpload";
 import { useAuth } from "../context/AuthContext";
 import { useFamily } from "../context/FamilyContext";
-import { Avatar, Card, Checkbox, DateField, EmptyState, Modal, PrimaryButton, SecondaryButton, Stepper, TextField } from "../components/ui";
+import { Avatar, Card, Checkbox, DateField, EmptyState, Modal, PrimaryButton, SecondaryButton, Stepper, TextField, SelectField, OptionsMenu } from "../components/ui";
 import PageHeader from "../components/PageHeader";
 import FamilyIllustration from "../components/FamilyIllustration";
 import QuantityUnitFields from '../components/QuantityUnitFields';
@@ -1142,17 +1142,13 @@ export default function Groceries() {
         </form>
         {shoppingEntryError && <p role="alert" className="grocery-quick-add-error">{shoppingEntryError}</p>}
         <div className="famos-list-controls">
-          <label className="task-list-selector">
-            <span>List</span>
-            <select aria-label="Shopping list" value={activeGroceryListId} onChange={event => setActiveGroceryListId(event.target.value)}>
+          <SelectField className="task-list-selector" label="List" icon={ShoppingBag} aria-label="Shopping list" value={activeGroceryListId} onChange={event => setActiveGroceryListId(event.target.value)}>
               <option value="all">All shopping</option>
               {groceryLists.map(list => <option key={list.id} value={list.id}>{list.name}</option>)}
-            </select>
-          </label>
-          <details className="shopping-options famos-compact-disclosure">
-            <summary>Shopping options</summary>
+          </SelectField>
+          <OptionsMenu className="shopping-options famos-compact-disclosure" label="Shopping options">
             <div className="grocery-actions-row" onClick={event => {
-              if (event.target.closest("button")) event.currentTarget.parentElement.open = false;
+              if (event.target.closest("button")) event.currentTarget.closest('details').open = false;
             }}>
               <button type="button" onClick={openNew}><Plus size={14} /> Add with details</button>
               <button type="button" onClick={() => setNewListOpen(true)}><ListChecks size={14} /> New list</button>
@@ -1168,7 +1164,7 @@ export default function Groceries() {
               {checkedCount > 0 && <button type="button" onClick={() => setClearingChecked(true)}>Clear {checkedCount} checked</button>}
               {groceries.length > 0 && <button type="button" onClick={() => setClearing(true)}><Trash2 size={15} /> Reset shopping</button>}
             </div>
-          </details>
+          </OptionsMenu>
         </div>
       </div>
       <NativeAdBanner placement={AD_PLACEMENTS.SHOPPING} />
@@ -1369,8 +1365,8 @@ export default function Groceries() {
           )
         )}
         </div>
-        <details className="famos-compact-disclosure shopping-staples">
-          <summary>Saved staples</summary>
+        <details className="famos-compact-disclosure shopping-staples ui-quiet-disclosure">
+          <summary>Saved staples<ChevronDown size={16}/></summary>
           <div className="flex items-end justify-between mb-3 px-1">
             <button onClick={() => openMasterItem()} className="flex items-center gap-1 text-[11.5px] font-semibold text-[var(--color-accent)]"><Plus size={13} /> New staple</button>
           </div>

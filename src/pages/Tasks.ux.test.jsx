@@ -9,7 +9,7 @@ it('filters assigned tasks and restores everyone',()=>{
  mocks.members=[{id:'a',name:'Alex'},{id:'b',name:'Katie'}];
  mocks.tasks=[{id:'1',title:'Water plants',done:false,assigneeIds:['a']},{id:'2',title:'Feed cat',done:false,assigneeIds:['b']}];
  render(<Tasks/>);
- fireEvent.click(screen.getByText(/^Task options/));
+ fireEvent.click(screen.getByLabelText('Task options'));
  fireEvent.change(screen.getByLabelText('Assigned to'),{target:{value:'b'}});
  expect(screen.getByText('Feed cat')).toBeDefined();
  expect(screen.queryByText('Water plants')).toBeNull();
@@ -40,7 +40,7 @@ it('prevents duplicate submissions while saving',async()=>{
 it('makes completed tasks searchable and reopenable',()=>{
  mocks.tasks=[{id:'a',title:'Pack lunch',done:true},{id:'b',title:'Mow lawn',done:false}];
  render(<Tasks/>);
- fireEvent.click(screen.getByText('Task options'));
+ fireEvent.click(screen.getByLabelText('Task options'));
  fireEvent.click(screen.getByRole('button',{name:'Completed',exact:true}));
  expect(screen.getByRole('button',{name:'Reopen Pack lunch'})).toBeDefined();
  expect(screen.queryByRole('button',{name:'Complete Mow lawn'})).toBeNull();
@@ -61,14 +61,14 @@ it('requires confirmation before deleting a task',()=>{
 it('keeps management and progress collapsed and uses one list selector',()=>{
  mocks.tasks=[{id:'1',title:'Water plants',done:false,taskType:'home'}];render(<Tasks/>);
  expect(screen.getByLabelText('Task list')).toBeDefined();
- expect(screen.getByText('Task options').closest('details').open).toBe(false);
+ expect(screen.getByLabelText('Task options').closest('details').open).toBe(false);
  expect(screen.getByText(/Your family’s progress ·/).closest('details').open).toBe(false);
- fireEvent.click(screen.getByText('Task options'));fireEvent.click(screen.getByRole('button',{name:'Reset tasks'}));expect(screen.getByRole('dialog')).toBeDefined();
+ fireEvent.click(screen.getByLabelText('Task options'));fireEvent.click(screen.getByRole('button',{name:'Reset tasks'}));expect(screen.getByRole('dialog')).toBeDefined();
 });
 
 it('explains named-list sharing and opens Family settings without granting access',()=>{
  const goTo=vi.fn();render(<Tasks goTo={goTo}/>);
- fireEvent.click(screen.getByText('Task options'));
+ fireEvent.click(screen.getByLabelText('Task options'));
  fireEvent.click(screen.getByRole('button',{name:'Share with helper'}));
  expect(screen.getByText(/Private tasks stay hidden/)).toBeDefined();
  expect(goTo).not.toHaveBeenCalled();
@@ -84,13 +84,13 @@ it('hides future routine occurrences from To do and exposes daily list settings'
  mocks.configureRoutine.mockResolvedValue({});render(<Tasks/>);
  expect(screen.getByText('Pack school bags')).toBeDefined();expect(screen.queryByText('Tomorrow’s bags')).toBeNull();
  fireEvent.change(screen.getByLabelText('Task list'),{target:{value:'list:rutine'.replace('rutine','routine')}});
- fireEvent.click(screen.getByText('Task options'));fireEvent.click(screen.getByRole('button',{name:'Repeat / routine'}));
+ fireEvent.click(screen.getByLabelText('Task options'));fireEvent.click(screen.getByRole('button',{name:'Repeat / routine'}));
  fireEvent.change(screen.getByRole('combobox',{name:'Repeat'}),{target:{value:'weekdays'}});fireEvent.click(screen.getByRole('button',{name:'Save routine'}));
  await waitFor(()=>expect(mocks.configureRoutine).toHaveBeenCalledWith('routine','weekdays','America/Toronto'));
 });
 it('creates a daily routine list with the repeat setting included',async()=>{
  mocks.addList.mockResolvedValue({id:'new',name:'Cleaning'});render(<Tasks/>);
- fireEvent.click(screen.getByText('Task options'));fireEvent.click(screen.getByRole('button',{name:'New list'}));
+ fireEvent.click(screen.getByLabelText('Task options'));fireEvent.click(screen.getByRole('button',{name:'New list'}));
  fireEvent.change(screen.getByLabelText('List name'),{target:{value:'Cleaning'}});fireEvent.change(screen.getByRole('combobox',{name:'Repeat'}),{target:{value:'daily'}});fireEvent.click(screen.getByRole('button',{name:'Create list'}));
  await waitFor(()=>expect(mocks.addList).toHaveBeenCalledWith(expect.objectContaining({name:'Cleaning',routineCadence:'daily'})));
 });

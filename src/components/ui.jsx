@@ -1,7 +1,7 @@
 import { FAMILY_COLORS } from "../data/mockData";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, Info, TriangleAlert, X } from "./icons";
+import { CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, Info, Settings2, TriangleAlert, X } from "./icons";
 import { lockBodyScroll } from "../lib/bodyScrollLock";
 import FamilyIllustration from "./FamilyIllustration";
 
@@ -336,15 +336,59 @@ export function TextField({ label, hint, error, className = "", id, ...props }) 
   );
 }
 
-export function SelectField({ label, children, className = "", ...props }) {
+export function SelectField({ label, children, className = "", icon: Icon, hint, error, id, ...props }) {
+  const generatedId = useId();
+  const selectId = id || generatedId;
+  const descriptionId = `${selectId}-description`;
+  const describedBy = [props['aria-describedby'], (hint || error) && descriptionId].filter(Boolean).join(' ') || undefined;
   return (
-    <label className={`form-field ${className}`}>
-      {label && <span className="form-label">{label}</span>}
-      <select className="form-control ui-select" {...props}>
-        {children}
-      </select>
-    </label>
+    <div className={`form-field ${className}`}>
+      {label && <label className="form-label" htmlFor={selectId}>{label}</label>}
+      <span className={`ui-select-shell ${Icon ? 'has-icon' : ''}`}>
+        {Icon && <Icon className="ui-select-leading" size={18} aria-hidden="true" />}
+        <select {...props} id={selectId} className="form-control ui-select" aria-invalid={error ? true : props['aria-invalid']} aria-describedby={describedBy}>
+          {children}
+        </select>
+        <ChevronDown className="ui-select-chevron" size={16} aria-hidden="true" />
+      </span>
+      {(error || hint) && <span id={descriptionId} className={error ? 'form-error' : 'form-hint'} role={error ? 'alert' : undefined}>{error || hint}</span>}
+    </div>
   );
+}
+
+export function ChoiceChip({ children, checked, onChange, disabled = false, name, value }) {
+  return <label className={`ui-choice-chip ${disabled ? 'is-disabled' : ''}`}>
+    <input type="checkbox" checked={checked} onChange={onChange} disabled={disabled} name={name} value={value} />
+    <span className="ui-choice-surface"><span className="ui-choice-mark" aria-hidden="true"><Check size={12} /></span><span>{children}</span></span>
+  </label>;
+}
+
+export function OptionsMenu({ label, children, active = false, className = "" }) {
+  const menuRef = useRef(null);
+  const activeDescriptionId = useId();
+  useEffect(() => {
+    const outside = event => {
+      const menu = menuRef.current;
+      if (menu?.open && !menu.contains(event.target)) menu.open = false;
+    };
+    const escape = event => {
+      const menu = menuRef.current;
+      if (event.key !== 'Escape' || event.defaultPrevented || !menu?.open || document.querySelector('[aria-modal="true"]')) return;
+      menu.open = false;
+      menu.querySelector('summary')?.focus();
+      event.preventDefault();
+    };
+    document.addEventListener('pointerdown', outside);
+    document.addEventListener('keydown', escape);
+    return () => {
+      document.removeEventListener('pointerdown', outside);
+      document.removeEventListener('keydown', escape);
+    };
+  }, []);
+  return <details ref={menuRef} className={`ui-options-menu ${className}`}>
+    <summary aria-label={label} aria-describedby={active ? activeDescriptionId : undefined}><Settings2 size={16}/><span>Options</span>{active && <><span className="control-filter-dot" aria-hidden="true"/><span className="sr-only" id={activeDescriptionId}>Filters active</span></>}<ChevronDown size={14}/></summary>
+    <div className="ui-options-panel">{children}</div>
+  </details>;
 }
 
 export function TextAreaField({ label, hint, className = "", ...props }) {

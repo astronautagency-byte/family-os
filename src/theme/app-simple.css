@@ -219,3 +219,31 @@
 .app-shell .reference-tasks .task-row-copy small:empty {
   display: none;
 }
+
+/* Keep list context and secondary actions aligned without competing with Add. */
+.app-shell .app-content :is(.reference-tasks,.reference-groceries) .famos-list-controls { display:flex; align-items:flex-end; gap:12px; margin-block:0; }
+.app-shell .famos-list-controls .task-list-selector { flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:stretch; gap:8px; margin:0; }
+.app-shell .famos-list-controls>.ui-options-menu, .app-shell .famos-list-controls>.ui-options-menu[open] { flex:0 0 auto; margin:0; }
+.app-shell .famos-list-controls>.ui-options-menu>summary { min-height:50px; padding:12px; border:1px solid var(--color-border); border-radius:var(--radius-control); background:var(--color-surface); }
+.app-shell .famos-list-controls .task-list-selector select { min-height:50px; }
+.app-shell .ui-options-panel .task-toolbar { margin:0 0 18px; padding:0; gap:8px; }
+.app-shell .ui-options-panel .task-toolbar-btn { min-height:44px; padding:10px 12px; border-radius:10px; }
+.app-shell .ui-options-panel .task-status-segments { margin-block:0 16px; }
+.app-shell .ui-options-panel .task-filter-content { display:grid; gap:12px; }
+.app-shell .ui-options-panel .grocery-actions-row { display:grid; gap:4px; margin:0; }
+.app-shell .ui-options-panel .grocery-actions-row>button { justify-content:flex-start; min-height:44px; border:0; border-radius:10px; background:transparent; padding:10px 12px; }
+.app-shell .ui-options-panel .grocery-actions-row>button:hover { background:var(--color-surface-sunken); }
+@media(max-width:360px) {
+  .task-list-selector .ui-select-leading { display:none; }
+  .task-list-selector .ui-select-shell.has-icon .ui-select { padding-inline-start:14px; }
+}
+
+.app-shell .ui-options-panel .task-toolbar { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; }
+.app-shell .ui-options-panel .task-toolbar-btn { justify-content:flex-start; border:0; background:transparent; color:var(--color-ink-soft); font-weight:550; }
+.app-shell .ui-options-panel .task-toolbar-btn:hover { background:var(--color-surface-sunken); }
+.app-shell .ui-options-panel .task-toolbar-reset { color:var(--color-warn); }
+.shopping-options .ui-options-panel { width:min(300px,calc(100vw - 32px)); padding:12px; }
+@media(min-width:768px) {
+  .app-shell .famos-list-controls .task-list-selector { flex:0 1 420px; }
+}
+.app-shell .ui-options-panel .grocery-actions-row { padding:0; border:0; background:transparent; box-shadow:none; }
