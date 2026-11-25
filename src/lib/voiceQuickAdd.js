@@ -101,7 +101,8 @@ export function prepareMiaVoiceAction(actions, request, {groceryLists=[],taskLis
   if(!/\b(add|put|create|make|plan|schedule)\b/i.test(normalize(request)) || /\b(delete|remove|buy|purchase|send)\b/i.test(request))return null;
   if(!Array.isArray(actions)||actions.length!==1 || /\b(?:and|then|also)\s+(?:add|put|create|make|plan|schedule|set|remind|send)\b/i.test(request))return null;
   const direct=parseVoiceQuickAdd(request,{groceryLists,taskLists});
-  if(/\b(?:to|on|in)\s+(?:(?:my|our|the)\s+)?(?!grocery\b|groceries\b|shopping\b)\w+(?:\s+\w+)?\s+list\b/i.test(request) && !direct?.listId)return null;
+  const mentionedList=request.match(/\b(?:to|on|in)\s+((?:(?:my|our|the)\s+)?\w+(?:\s+\w+)?)\s+list\b/i)?.[1]?.replace(/^(?:my|our|the)\s+/i,'');
+  if(mentionedList && !/^(?:grocery|groceries|shopping)$/i.test(mentionedList) && !direct?.listId)return null;
   const {type,args={}}=actions[0] || {};
   const name=String(type==='add_grocery'?args.name||'':args.title||'').trim();
   if(!name || name.length>120)return null;

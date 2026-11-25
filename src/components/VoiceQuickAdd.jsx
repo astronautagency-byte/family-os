@@ -1,3 +1,4 @@
+import {createMiaLive} from '../lib/miaLive';
 import AiPrivacyGate from './AiPrivacyGate';
 import { createPortal } from 'react-dom';
 import { unlockMiaAudio } from '../lib/miaVoice';
@@ -7,11 +8,11 @@ import { Modal, PrimaryButton, SecondaryButton, TextField } from './ui';
 import { useFamily } from '../context/FamilyContext';
 import { useAuth } from '../context/AuthContext';
 import { parseVoiceQuickAdd, prepareMiaVoiceAction, parseVoiceConfirmation, capitalizeFirstWord, resolveVoicePeriod, resolveVoiceFollowup, voiceEventQuestion } from '../lib/voiceQuickAdd';
-import { invokeEdgeFunction } from '../lib/supabase';
+import { invokeEdgeFunction, supabase } from '../lib/supabase';
 import './voice-quick-add.css';
 
 export default function VoiceQuickAdd({ features = {}, hidden = false }) {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { addGrocery, addTask, addEvent, addGoogleCalendarEvent, addGroceryList, addTaskList, setMealForSlot, groceryLists = [], taskLists = [], meals = [], googleConnected = false, googleCalendars = [], selectedGoogleCalendarIds = [], googleCalendarAliases = {}, famosCalendar } = useFamily();
   const [open, setOpen] = useState(false), [listening, setListening] = useState(false), [transcript, setTranscript] = useState('');
   const [action, setAction] = useState(null), [message, setMessage] = useState('Hi, I’m Mia. What can I help you add?'), [error, setError] = useState(''), [busy, setBusy] = useState(false), [typing, setTyping] = useState(false);
@@ -26,10 +27,12 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
   const aiAbort=useRef(null),speechAbort=useRef(null);
   const miaAudio=useRef(null), audioCache=useRef(new Map()), listenStartTimer=useRef(null), finalResultTimer=useRef(null);
   const [startingMic,setStartingMic]=useState(false);
+  const [livePrivacyNeeded,setLivePrivacyNeeded]=useState(false),[livePrivacyChecked,setLivePrivacyChecked]=useState(false);
+  const liveRef=useRef(null),liveCallbacks=useRef({}),liveRequest=useRef('');
   const continuous = useRef(false), startRef = useRef(null), actionRef = useRef(null), speechGeneration = useRef(0), speechWatchdog = useRef(null);
   actionRef.current = action;
   const clearSpeechWatchdog = () => { if (speechWatchdog.current) clearTimeout(speechWatchdog.current); speechWatchdog.current = null; };
-  const endConversation = () => { aiAbort.current?.abort(); setPreparingVoice(false); clearSpeechWatchdog(); setSpeaking(false); continuous.current = false; setConversationMode(false); requestId.current++; setThinking(false); speechGeneration.current++; stop(); silence(); };
+  const endConversation = () => { liveRef.current?.stop(); liveRef.current=null; aiAbort.current?.abort(); setPreparingVoice(false); clearSpeechWatchdog(); setSpeaking(false); continuous.current = false; setConversationMode(false); requestId.current++; setThinking(false); speechGeneration.current++; stop(); silence(); };
   const stop = () => { current.current++; clearTimeout(listenStartTimer.current);clearTimeout(finalResultTimer.current);setStartingMic(false); if (timeout.current) clearTimeout(timeout.current); timeout.current = null; const rec = recognition.current; recognition.current = null; try { rec?.abort(); } catch {} setListening(false); };
   const silence = () => {
     speechAbort.current?.abort();
@@ -49,6 +52,7 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
   };
 
   const say = (words) => {
+    if(liveRef.current?.connected){setMessage(words);liveRef.current.reply(words);return;}
     stop();
     setMessage(words);
     setVoiceRecovery(false);
@@ -110,7 +114,7 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
       speechWatchdog.current = setTimeout(() => finish(true), 40000);
     }).catch(() => finish(true));
   };
-  useEffect(() => { active.current = true; const pause = () => { if (document.hidden) { aiAbort.current?.abort(); clearSpeechWatchdog(); setSpeaking(false); continuous.current = false; setConversationMode(false); requestId.current++; setThinking(false); speechGeneration.current++; stop(); silence(); } }; document.addEventListener('visibilitychange', pause); return () => { active.current = false;aiAbort.current?.abort(); clearSpeechWatchdog(); continuous.current = false; speechGeneration.current++; document.removeEventListener('visibilitychange', pause); current.current++;clearTimeout(listenStartTimer.current);clearTimeout(finalResultTimer.current); if (timeout.current) clearTimeout(timeout.current); try { recognition.current?.abort(); } catch {} silence(); }; }, []);
+  useEffect(() => { active.current = true; const pause = () => { if (document.hidden) { liveRef.current?.stop();liveRef.current=null; aiAbort.current?.abort(); clearSpeechWatchdog(); setSpeaking(false); continuous.current = false; setConversationMode(false); requestId.current++; setThinking(false); speechGeneration.current++; stop(); silence(); } }; document.addEventListener('visibilitychange', pause); return () => { active.current = false;liveRef.current?.stop();liveRef.current=null;aiAbort.current?.abort(); clearSpeechWatchdog(); continuous.current = false; speechGeneration.current++; document.removeEventListener('visibilitychange', pause); current.current++;clearTimeout(listenStartTimer.current);clearTimeout(finalResultTimer.current); if (timeout.current) clearTimeout(timeout.current); try { recognition.current?.abort(); } catch {} silence(); }; }, []);
   useEffect(() => { if (hidden && open) { panelGeneration.current++; requestId.current++; conversation.current = []; originalRequest.current = ''; setThinking(false); endConversation(); setOpen(false); } }, [hidden]);
   const close = () => { panelGeneration.current++; requestId.current++;audioCache.current.clear(); conversation.current = []; originalRequest.current = ''; setFollowup(''); setThinking(false); setVoiceRecovery(false); endConversation(); setOpen(false); setError(''); setTranscript(''); setAction(null); setTyping(false); setMessage('Hi, I’m Mia. What can I help you add?'); };
   const featureFor = type => ({ grocery: 'groceries', groceryList: 'groceries', task: 'tasks', taskList: 'tasks', event: 'calendar', meal: 'meals' })[type];
@@ -173,7 +177,7 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
     const saveRequest = panelGeneration.current;
     saving.current = true; setBusy(true); setError('');
     try { if (item.type === 'grocery') await addGrocery({ name: item.name.trim(), quantity: item.quantity || 1, unit: item.unit || '', ...(item.listId ? { listId: item.listId } : {}) }); else if (item.type === 'task') await addTask({ title: item.name.trim(), assigneeIds: [], ...(item.due ? {due:item.due} : {}), ...(item.listId ? { listId: item.listId } : {}) }); else if (item.type === 'event') { const event = {title:capitalizeFirstWord(item.name),start:new Date(item.start).toISOString(),end:new Date(item.end).toISOString(),recurrence:item.recurrence,location:item.location || '',memberIds:[]}; if(item.destination === 'family') await addEvent(event); else await addGoogleCalendarEvent({...event,calendarId:item.destination}); } else if(item.type === 'meal') await setMealForSlot(item.date,item.slot,{title:item.name.trim(),notes:item.notes || '',cookIds:[]}); else if(item.type === 'groceryList') await addGroceryList({name:item.name.trim()}); else if(item.type === 'taskList') await addTaskList({name:item.name.trim()}); else throw new Error('Unsupported action');
-      if (active.current && saveRequest === panelGeneration.current) { conversation.current = []; originalRequest.current = ''; setAction(null); setTranscript(''); say(item.type === 'grocery' ? `Done. I added ${item.name} to ${item.listName || 'your shopping list'}.` : item.type === 'task' ? `Done. I added ${item.name} to your tasks.` : item.type === 'event' ? `Done. I added ${capitalizeFirstWord(item.name)} to ${item.destination === 'family' ? (famosCalendar?.name || 'your family calendar') : (googleCalendarAliases[item.destination] || googleCalendars.find(c => c.id === item.destination)?.summary || 'your Google calendar')}.` : item.type === 'meal' ? `Done. I planned ${item.name} for ${item.slot}.` : `Done. I created the list ${item.name}.`); }
+      if (active.current && saveRequest === panelGeneration.current) { conversation.current = []; originalRequest.current = ''; liveRequest.current='';actionRef.current=null;setAction(null); setTranscript(''); say(item.type === 'grocery' ? `Done. I added ${item.name} to ${item.listName || 'your shopping list'}.` : item.type === 'task' ? `Done. I added ${item.name} to your tasks.` : item.type === 'event' ? `Done. I added ${capitalizeFirstWord(item.name)} to ${item.destination === 'family' ? (famosCalendar?.name || 'your family calendar') : (googleCalendarAliases[item.destination] || googleCalendars.find(c => c.id === item.destination)?.summary || 'your Google calendar')}.` : item.type === 'meal' ? `Done. I planned ${item.name} for ${item.slot}.` : `Done. I created the list ${item.name}.`); }
     } catch { if (active.current && saveRequest === panelGeneration.current) { if (continuous.current) endConversation(); setError('I couldn’t save that. Your request is still here; please try again.'); } } finally { saving.current = false; if (active.current) setBusy(false); }
   };
   const start = (retry = false, resumed = false) => {
@@ -287,6 +291,52 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
       microphoneUnavailable();
     }
   };
+  liveCallbacks.current = {
+    userText(heard) {
+      setTranscript(heard);
+      const pending=actionRef.current;
+      if(pending && parseVoiceConfirmation(heard)==='yes'){save(pending);return;}
+      if(pending && parseVoiceConfirmation(heard)==='no'){
+        actionRef.current=null;setAction(null);originalRequest.current='';liveRequest.current='';say('Okay, I won’t add it.');return;
+      }
+      if(pending?.type==='event'){
+        const resolved=resolveVoiceFollowup(pending,heard);
+        if(resolved){actionRef.current={...resolved,destination:pending.destination || 'family'};setAction(actionRef.current);say(voiceEventQuestion(resolved) || `Please review ${resolved.name}. Should I add it?`);return;}
+      }
+      liveRequest.current=(liveRequest.current+' '+heard).trim().slice(-2000);
+    },
+    proposal(proposed) {
+      if(saving.current)return {error:'The app is still saving the confirmed addition. Wait for its result.'};
+      if(!liveRequest.current.trim())return {error:'Wait for a new user request or correction before preparing another addition.'};
+      const request=actionRef.current ? `${originalRequest.current} ${liveRequest.current}` : liveRequest.current;
+      const candidate=prepareMiaVoiceAction([proposed],request,{groceryLists,taskLists});
+      if(!candidate || features[featureFor(candidate.type)]===false)return {error:'This request could not be prepared. Ask one short clarification, or explain that this action needs the app.'};
+      originalRequest.current=request;liveRequest.current='';actionRef.current=candidate;setAction(candidate);
+      return {prepared:true,saved:false,details:candidate,instruction:'Ask the user to review the details and confirm. Only the app saves after confirmation.'};
+    },
+  };
+  const startLive = async (confirmPrivacy=false) => {
+    endConversation();setError('');liveRequest.current='';
+    const liveStartId=++requestId.current;const generation=panelGeneration.current;
+    setStartingMic(true);setConversationMode(true);
+    try {
+      const {data,error:privacyError}=await supabase.rpc('mia_live_privacy',{action:confirmPrivacy?'accept':'status',streaming_confirmed:confirmPrivacy && livePrivacyChecked});
+      if(!active.current || generation!==panelGeneration.current || liveStartId!==requestId.current)return;
+      if(privacyError)throw privacyError;
+      if(!data?.accepted){setStartingMic(false);setConversationMode(false);setLivePrivacyNeeded(true);return;}
+      setLivePrivacyNeeded(false);setLivePrivacyChecked(false);
+    }catch{if(active.current && generation===panelGeneration.current && liveStartId===requestId.current){setStartingMic(false);setConversationMode(false);setError('Live audio permission could not be verified. Please try again.');}return;}
+    setConversationMode(true);
+    if(!session?.access_token){setConversationMode(false);setError('Sign in to start live voice.');return;}
+    const live=createMiaLive({
+      onState(state){if(!active.current || liveRef.current!==live)return;setStartingMic(state==='connecting');setListening(state==='listening');setSpeaking(state==='speaking');setThinking(state==='thinking');},
+      onUserText(text){liveCallbacks.current.userText(text);},
+      onAssistantText(text){if(active.current && liveRef.current===live)setMessage(text);},
+      onProposal(proposed){return liveCallbacks.current.proposal(proposed);},
+      onError(message){if(active.current && liveRef.current===live){setConversationMode(false);setError(message);}},
+    });
+    liveRef.current=live;live.start(session.access_token);
+  };
   startRef.current = start;
   if (hidden) return null;
   const miaState = startingMic ? 'connecting' : speaking ? 'speaking' : listening ? 'listening' : thinking || preparingVoice ? 'thinking' : action ? 'review' : 'idle';
@@ -304,9 +354,16 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
         <p className="voice-quick-prompt" aria-live="polite">{message}</p>
         {transcript && <p className="voice-quick-heard">You: “{transcript}”</p>}
       </div>
-      <div className="mia-conversation-controls">
+      {livePrivacyNeeded && <section className="voice-quick-review" aria-label="Live audio privacy choice">
+        <p>Live conversation streams your microphone to our AI provider while active, including during Mia’s replies. You can interrupt her. End the conversation to stop streaming. FamOS does not save audio.</p>
+        <p>Your household preview includes 3 live minutes per month and a limited number of action reviews. Paid live voice is coming soon.</p>
+        <label><input type="checkbox" checked={livePrivacyChecked} onChange={event=>setLivePrivacyChecked(event.target.checked)}/> I choose to enable live audio streaming.</label>
+        <PrimaryButton disabled={!livePrivacyChecked || startingMic} onClick={()=>startLive(true)}>Start live conversation</PrimaryButton>
+      </section>}
+      {!livePrivacyNeeded && <div className="mia-conversation-controls">
         <button type="button" className="voice-quick-listen" disabled={busy && !conversationMode} aria-pressed={conversationMode} onClick={() => {
           if (conversationMode) { endConversation(); return; }
+          if(import.meta.env.VITE_MIA_REALTIME==='true'){startLive();return;}
           endConversation();
           if (user?.id) miaAudio.current = unlockMiaAudio(miaAudio.current);
           setTyping(false);
@@ -319,7 +376,7 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
           endConversation();
           setTyping(!typing);
         }}>{typing ? 'Hide typing' : 'Type instead'}</button>
-      </div>
+      </div>}
       {!conversationMode && !typing && !action && !transcript && !error && !busy && !thinking && (
         <div className="mia-starters" aria-label="Example requests">
           {features.groceries !== false && <button type="button" onClick={() => { setFollowup('Add lemons to our grocery list'); setTyping(true); }}>Add groceries</button>}
@@ -339,7 +396,8 @@ export default function VoiceQuickAdd({ features = {}, hidden = false }) {
       </form>}
       <details className="voice-quick-privacy">
         <summary>About voice</summary>
-        <p>Mia uses an AI-generated voice. The microphone resumes after each reply and stops when you end the conversation, leave the app or pause for a while. FamOS doesn’t save audio.</p>
+        {import.meta.env.VITE_MIA_REALTIME==='true' && <button type="button" onClick={async()=>{endConversation();const {error:failure}=await supabase.rpc('mia_live_privacy',{action:'withdraw'});if(failure)setError('Your permission could not be withdrawn. Try again.');else {setLivePrivacyNeeded(true);setLivePrivacyChecked(false);}}}>Withdraw live audio permission</button>}
+        <p>{import.meta.env.VITE_MIA_REALTIME==='true' ? 'Mia uses an AI-generated voice. Live conversation streams your microphone while active, including during replies. You can interrupt Mia. The household preview includes up to 3 live minutes per month. End the conversation to stop the microphone. FamOS does not save audio.' : 'Mia uses an AI-generated voice. The microphone resumes after each reply and stops when you end the conversation, leave the app or pause for a while. FamOS doesn’t save audio.'}</p>
       </details>
     </div></AiPrivacyGate></Modal></>;
 }

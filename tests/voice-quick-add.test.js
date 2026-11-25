@@ -39,6 +39,9 @@ test('preserves spoken grocery quantities and task dates in editable drafts',()=
 });
 test('AI drafts reject unsupported changes, invalid dates and named list redirection',async()=>{
  const {prepareMiaVoiceAction:prepare}=await import('../src/lib/voiceQuickAdd.js');
+ for(const list of ['my shopping','our grocery','the shopping','grocery']) {
+  assert.deepEqual(prepare([{type:'add_grocery',args:{name:'lemons'}}],`add lemons to ${list} list`),{type:'grocery',name:'lemons',quantity:1,unit:''});
+ }
  assert.equal(prepare([{type:'add_grocery',args:{name:'towels'}}],'add towels to my camping list'),null);
  assert.equal(prepare([{type:'add_task',args:{title:'Dentist',assignee_name:'Alex'}}],'add a dentist task assigned to Alex'),null);
  assert.equal(prepare([{type:'plan_meal',args:{title:'Tacos',slot:'dinner',date:'2026-02-31'}}],'plan tacos'),null);
