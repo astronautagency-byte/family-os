@@ -39,6 +39,9 @@ export default function ConfirmAction({
   count = null,
 }) {
   const [typed, setTyped] = useState(RESET_TYPED);
+  const [submitting, setSubmitting] = useState(false);
+  const [failure, setFailure] = useState('');
+  const working = busy || submitting;
 
   // Reset the typed word every time the modal opens. Stops the destructive
   // button from staying armed across opens of the same page — keystrokes
@@ -46,6 +49,7 @@ export default function ConfirmAction({
   useEffect(() => {
     if (!open) return;
     setTyped(RESET_TYPED);
+    setFailure('');
   }, [open]);
 
   // Match against `word` case-insensitively + tolerate trailing whitespace
@@ -56,18 +60,21 @@ export default function ConfirmAction({
     : confirmLabel;
 
   const handleConfirm = async () => {
-    if (busy) return;
+    if (working) return;
     if (tier === "type-to-confirm" && !wordMatches) return;
     try {
+      setSubmitting(true);
+      setFailure('');
       await onConfirm();
     } catch (error) {
-      // Caller surfaces the error itself (via toast / state). We don't close
-      // automatically so the user can react.
+      setFailure(error?.message || 'This change could not be saved. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <Modal open={open} onClose={busy ? () => {} : onClose} title={title}>
+    <Modal open={open} onClose={working ? () => {} : onClose} title={title}>
       {copy && <p className="confirm-action-copy">{copy}</p>}
       {tier === "type-to-confirm" && (
         <div className="confirm-action-typed-block">
@@ -79,7 +86,7 @@ export default function ConfirmAction({
             autoComplete="off"
             spellCheck="false"
             onKeyDown={(event) => {
-              if (event.key !== "Enter" || !wordMatches || busy) return;
+              if (event.key !== "Enter" || !wordMatches || working) return;
               event.preventDefault();
               handleConfirm();
             }}
@@ -90,16 +97,17 @@ export default function ConfirmAction({
           </small>
         </div>
       )}
+      {failure && <p role="alert" className="form-error">{failure}</p>}
       <div className="confirm-action-actions">
-        <SecondaryButton onClick={busy ? () => {} : onClose} disabled={busy}>
+        <SecondaryButton onClick={working ? () => {} : onClose} disabled={working}>
           {cancelLabel}
         </SecondaryButton>
         <PrimaryButton
           className="confirm-destructive-action"
           onClick={handleConfirm}
-          disabled={busy || (tier === "type-to-confirm" && !wordMatches)}
+          disabled={working || (tier === "type-to-confirm" && !wordMatches)}
         >
-          {busy ? busyLabel : labelWithCount}
+          {working ? busyLabel : labelWithCount}
         </PrimaryButton>
       </div>
     </Modal>

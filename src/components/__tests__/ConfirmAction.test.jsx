@@ -129,3 +129,27 @@ describe("ConfirmAction", () => {
     });
   });
 });
+
+
+it('keeps a failed deletion open, explains the error and allows a retry', async () => {
+  const onConfirm = vi.fn().mockRejectedValueOnce(new Error('Connection lost')).mockResolvedValueOnce();
+  renderConfirm({ title: 'Delete task?', confirmLabel: 'Delete task', onConfirm });
+  fireEvent.click(screen.getByRole('button', { name: 'Delete task', exact: true }));
+  await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Connection lost'));
+  expect(screen.getByRole('dialog')).toBeDefined();
+  fireEvent.click(screen.getByRole('button', { name: 'Delete task', exact: true }));
+  await waitFor(() => expect(onConfirm).toHaveBeenCalledTimes(2));
+});
+
+it('blocks duplicate deletion and closing while the request is pending', async () => {
+  let finish;
+  const onConfirm = vi.fn(() => new Promise(resolve => { finish = resolve; }));
+  renderConfirm({ title: 'Delete task?', confirmLabel: 'Delete task', onConfirm });
+  fireEvent.click(screen.getByRole('button', { name: 'Delete task', exact: true }));
+  expect(screen.getByRole('button', { name: 'Working…' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+  fireEvent.click(screen.getByRole('button', { name: 'Working…' }));
+  expect(onConfirm).toHaveBeenCalledTimes(1);
+  finish();
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Delete task', exact: true })).toBeEnabled());
+});

@@ -18,9 +18,7 @@ export function usePullToRefresh({ onRefresh, threshold = PULL_THRESHOLD, horizo
   useEffect(() => {
     const isInteractiveOrHorizontal = (target) => {
       if (!(target instanceof Element)) return false;
-      const tag = target.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
-      if (tag === "BUTTON") return false;
+      if (target.closest('button, a, input, textarea, select, summary, [role="button"], [contenteditable="true"], [data-pull-ignore]')) return true;
       let el = target;
       while (el && el !== document.body) {
         if (el.dataset && el.dataset.pullIgnore !== undefined) return true;
@@ -47,8 +45,11 @@ export function usePullToRefresh({ onRefresh, threshold = PULL_THRESHOLD, horizo
     };
 
     const down = (event) => {
+      // The scroll container may be the whole document, including portals.
+      // Only gestures started in this page's non-interactive content belong here.
+      if (!hostRef.current?.contains(event.target)) return;
       if (refreshing) return;
-      if (event.pointerType === "mouse" && event.button !== 0) return;
+      if (event.pointerType === "mouse" || event.isPrimary === false) return;
       if (isInteractiveOrHorizontal(event.target)) return;
       const container = getScrollContainer();
       const scrollTopAtTop = container.scrollTop <= 0;

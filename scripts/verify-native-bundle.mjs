@@ -3,6 +3,7 @@ import {resolve,join} from 'node:path';
 const directory=resolve(process.argv[2]||'dist-ios');
 const html=await readFile(join(directory,'index.html'),'utf8');
 if(!html.includes('id="root"'))throw Error('Native entry point is missing the app root.');
+if (/registerSW|rel=["']manifest["']/.test(html)) throw Error('Native entry must not register a PWA or replace its packaged UI.');
 const assets=[...html.matchAll(/(?:src|href)="(\/assets\/[^"?#]+)"/g)].map(m=>m[1]);
 if(!assets.some(a=>a.endsWith('.js')))throw Error('Native bundle has no JavaScript entry.');
 for(const asset of assets)await access(join(directory,asset.slice(1)));

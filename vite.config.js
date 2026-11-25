@@ -35,6 +35,7 @@ export default defineConfig(({ command }) => ({
     react(),
     tailwindcss(),
     VitePWA({
+      disable: ['mac-app-store', 'ios-app-store', 'android'].includes(process.env.VITE_DISTRIBUTION),
       registerType: 'autoUpdate',
       // Version-bust the SW URL on every build so the browser treats the new
       // service worker as a fresh registration rather than waiting for the old

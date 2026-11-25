@@ -6,6 +6,7 @@ import { invokeEdgeFunction, isSupabaseConfigured, supabase } from "../lib/supab
 // function. That collision was the root cause of the
 // `Cannot access 'n' before initialization` TDZ that broke password setup.
 import * as PasswordStrength from "../utils/passwordStrength";
+import { IS_APP_STORE } from '../lib/distribution';
 
 const AuthContext = createContext(null);
 const STAPLES_KEY = "family-os:grocery-staples:all";
@@ -772,7 +773,13 @@ export function AuthProvider({ children }) {
     // it to clear any stale session cached on the marketing origin.
     if (typeof window !== "undefined") window.__famosSigningOut = true;
     if (supabase) await supabase.auth.signOut({ scope: "local" }).catch(() => {});
-    window.location.replace("https://fam-os.app/?signed_out=1");
+    // Stay on the reviewed bundle in a native shell. Navigating to the public
+    // website loads a different release and can strand native-only features.
+    if (IS_APP_STORE) {
+      window.location.replace('/?signed_out=1');
+    } else {
+      window.location.replace("https://fam-os.app/?signed_out=1");
+    }
   };
 
   const deleteAccount = async () => {

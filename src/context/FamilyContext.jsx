@@ -1,5 +1,6 @@
 import { familyStorageKey, readFamilyStorage, writeFamilyStorage } from '../lib/familyStorage';
 import { reconcileCreatedEvent } from '../lib/eventReconciliation';
+import { requireChangedRecord } from '../lib/confirmedMutation';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { nextRoutineDate } from '../lib/famai/routines';
 import {
@@ -759,12 +760,18 @@ export function FamilyProvider({ children, tabletMode = false }) {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
   };
   const removeTask = async (id) => {
-    // Optimistic: remove from local state immediately.
-    setTasks((prev) => prev.filter((t) => t.id !== id));
     if (remote) {
-      try { const { error } = await supabase.from("tasks").delete().eq("id", id); if (error) throw error; }
-      catch { /* realtime will re-sync */ }
+      // A successful HTTP response can still mean RLS deleted zero rows.
+      // Keep the item visible until the database confirms this exact deletion.
+      try {
+        const result = await supabase.from("tasks").delete().eq("id", id).eq("household_id", household.id).select('id');
+        requireChangedRecord(result, id, 'This task could not be removed. Check your access and try again.');
+      } catch (error) {
+        setDataError(error.message);
+        throw error;
+      }
     }
+    setTasks((prev) => prev.filter((t) => t.id !== id));
   };
   const clearTasks = async () => {
     const snapshot = tasks;
@@ -1110,20 +1117,28 @@ export function FamilyProvider({ children, tabletMode = false }) {
     }
   };
   const updateEvent = async (id, patch) => {
-    // Optimistic: update local state immediately.
-    setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
     if (remote) {
-      try { const { error } = await supabase.from("events").update({ title: patch.title, starts_at: patch.start, ends_at: patch.end, location: patch.location, recurrence: patch.recurrence || "none", recurrence_until: patch.recurrenceUntil || null }).eq("id", id); if (error) throw error; }
-      catch { /* realtime will re-sync */ }
+      try {
+        const result = await supabase.from("events").update({ title: patch.title, starts_at: patch.start, ends_at: patch.end, location: patch.location, recurrence: patch.recurrence || "none", recurrence_until: patch.recurrenceUntil || null }).eq("id", id).eq("household_id", household.id).select('id');
+        requireChangedRecord(result, id, 'This event could not be updated. Check your access and try again.');
+      } catch (error) {
+        setDataError(error.message);
+        throw error;
+      }
     }
+    setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
   };
   const removeEvent = async (id) => {
-    // Optimistic: remove from local state immediately.
-    setEvents((prev) => prev.filter((e) => e.id !== id));
     if (remote) {
-      try { const { error } = await supabase.from("events").delete().eq("id", id); if (error) throw error; }
-      catch { /* realtime will re-sync */ }
+      try {
+        const result = await supabase.from("events").delete().eq("id", id).eq("household_id", household.id).select('id');
+        requireChangedRecord(result, id, 'This event could not be removed. Check your access and try again.');
+      } catch (error) {
+        setDataError(error.message);
+        throw error;
+      }
     }
+    setEvents((prev) => prev.filter((e) => e.id !== id));
   };
   const clearEvents = async () => {
     const snapshot = events;

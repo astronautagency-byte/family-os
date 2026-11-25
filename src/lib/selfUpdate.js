@@ -5,7 +5,11 @@
 // module force-checks for a newer worker on load and whenever the app
 // regains focus (returning to a backgrounded tab/app), activates any
 // waiting worker, and reloads once it takes control.
+import { IS_APP_STORE } from './distribution';
+
 export function setupSelfUpdate() {
+  // Store builds must run the reviewed, packaged UI until a native update.
+  if (IS_APP_STORE) return;
   if (!("serviceWorker" in navigator)) return;
 
   const reloadOnce = () => {
