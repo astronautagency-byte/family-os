@@ -24,11 +24,13 @@ The separate November 16 iOS submission still displayed Waiting for Review on No
 - Focused lint ran with warnings in existing Auth/Settings code. No errors.
 - git diff --check passed.
 - Production deletion-service test passed using a disposable synthetic account: login, household, grocery row and uploaded image removed; subsequent sign-in rejected; separate recording account remained intact.
-- Native arm64 release compilation completed. Distribution signing is pending macOS key access authorization.
+- Native arm64 release compilation, Mac App Store signing and signed installer packaging completed for build 7. codesign --verify --deep --strict and pkgutil --check-signature passed.
+- The embedded profile authorizes the signing certificate and remains valid through August 25, 2027. Direct local launch was refused by AMFI with No matching profile found. Native runtime verification remains pending a supported TestFlight installation.
+- Xcode upload preparation started and is awaiting another system keychain authorization. Mac App Store sign-in is also required to download TestFlight.
 
 ## Still required before resubmission
 
-- Finish distribution signing and verify the package.
+- Complete Xcode upload preparation and verify App Store Connect processing.
 - Launch the exact new signed build on this physical Mac.
 - Record launch/sign-in, core flows and account deletion using only the dedicated disposable synthetic household, never the preserved reviewer or real family account.
 - Verify the synthetic account cannot sign in and its records/uploads are gone after deletion.
