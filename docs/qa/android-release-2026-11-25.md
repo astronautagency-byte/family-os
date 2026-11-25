@@ -3,7 +3,7 @@
 ## Candidate and build evidence
 
 - Package `app.famos.desktop`, version name 1.0.0, version code 2026112501.
-- Signed ARM64 App Bundle: `../../store-release/FamOS-Android-2026112501.aab` from the release checkout. Verification JSON alongside it contains SHA-256.
+- Signed ARM64 App Bundle: `/Users/alexvorobiev/Project Vibe/FamOS/store-release/FamOS-Android-2026112501.aab` from the release checkout. Verification JSON alongside it contains SHA-256.
 - Tauri release build completed successfully after correcting the new generated Kotlin signing configuration. Existing Rust/Kotlin/deprecation warnings remain; no required build error remains.
 - Java jarsigner verified the bundle signature. ZIP integrity passed. The one packaged native library has 16,384-byte ELF LOAD alignment. This static verification is not a 16 KB device test.
 - Merged release manifest verified package/version, target SDK 36, runtime microphone/camera/location declarations, no background-location permission, cleartext disabled and app-data backup disabled.
