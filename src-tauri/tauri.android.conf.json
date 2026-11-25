@@ -7,7 +7,7 @@
   "identifier": "app.famos.desktop",
   "bundle": {
     "android": {
-      "versionCode": 2026112501
+      "versionCode": 1
     }
   }
 }

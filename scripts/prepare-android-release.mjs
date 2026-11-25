@@ -32,7 +32,7 @@ let manifest=fs.readFileSync(manifestPath,'utf8');
 for(const name of ['RECORD_AUDIO','MODIFY_AUDIO_SETTINGS','CAMERA','ACCESS_COARSE_LOCATION','ACCESS_FINE_LOCATION']){
  if(!manifest.includes(`android.permission.${name}"`))manifest=manifest.replace('    <!-- AndroidTV support -->',`    <uses-permission android:name="android.permission.${name}" />\n\n    <!-- AndroidTV support -->`);
 }
-for(const name of ['camera','microphone','location']){
+for(const name of ['camera','camera.any','camera.autofocus','microphone','location','location.gps','location.network']){
  if(!manifest.includes(`android.hardware.${name}"`))manifest=manifest.replace('    <!-- AndroidTV support -->',`    <uses-feature android:name="android.hardware.${name}" android:required="false" />\n\n    <!-- AndroidTV support -->`);
 }
 if(!manifest.includes('android:allowBackup='))manifest=manifest.replace('    <application','    <application\n        android:allowBackup="false"\n        android:fullBackupContent="false"');
