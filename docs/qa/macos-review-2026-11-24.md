@@ -1,5 +1,22 @@
 # macOS App Review correction — November 24, 2026
 
+## Final submission status — 11:49 p.m. Toronto
+
+This section supersedes the earlier build 7 and pending-recording status below.
+
+- Mac build 9 was uploaded, processed and installed through TestFlight on this physical Mac.
+- Completed account deletion using only explicitly approved disposable synthetic households. The preserved App Review account was kept separate.
+- Verified the final 66.89-second physical-Mac window recording: sign-in, navigation, deletion confirmation and signed-out success. Earlier clips captured the wrong source or expired before completion and were not submitted.
+- Attached `FamOS_Mac_Build9_Account_Deletion.mp4` (H.264, no audio) to macOS App Review Information, replacing the obsolete build 6 attachment.
+- Sent Apple a reply describing the deletion steps, completed test and replacement recording.
+- Resubmitted macOS 1.0 with build 9 at 11:47 p.m.; App Store Connect visibly confirms **Waiting for Review**.
+- Replaced the pending iOS build 13 submission with processed build 15 and updated review instructions. New iOS submission `27d42b87-f9ac-4bf5-906e-d163ec31921d` visibly confirms **Waiting for Review**, submitted at 11:49 p.m.
+- Both versions retain automatic release after approval. Neither approval nor publication has been observed.
+- These native builds contain source through `9fd9416`. They do not include the later family-join UI or unfinished realtime voice implementation. Voice remains turn-based in these submissions.
+- Missing dSYM upload warnings remain a crash-symbolication limitation; uploads were accepted.
+
+Recording: `/Users/alexvorobiev/Project Vibe/FamOS/store-release/FamOS_Mac_Build9_Account_Deletion.mp4`.
+
 ## Confirmed Apple findings
 
 App 6804827805, macOS 1.0, build 1.0.0 (6), submission 96d8ddf3-e78c-404c-827d-3b351e743b20.
