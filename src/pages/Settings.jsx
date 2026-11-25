@@ -29,7 +29,7 @@ const SETTINGS_TABS = [
   ["billing", "Plan & billing"],
   ["integrations", "Integrations"],
   ["support", "Support"],
-].filter(([id]) => !IS_APP_STORE || id !== "billing");
+];
 import { FEATURE_COMPARISON } from "../data/billingCatalog";
 import { supabase } from "../lib/supabase";
 import AddressAutocomplete from "../components/AddressAutocomplete";
@@ -1267,13 +1267,13 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
           )}
         </section>
 
-        {!IS_APP_STORE && <section data-tab="billing">
+        <section data-tab="billing">
           <h2 className="settings-section-title mb-3"><CreditCard size={20} aria-hidden="true"/> Plan & billing</h2>
           <Card className="p-4">
-            <BillingPlans subscription={subscription} loaded={subscriptionLoaded} error={subscriptionError} isOwner={isMasterOwner && !IS_MAC_APP_STORE} busy={billingBusy} interval={billingInterval} onInterval={setBillingInterval} onCheckout={addPaidFeature} onManage={openBillingPortal}/>
+            <BillingPlans subscription={subscription} loaded={subscriptionLoaded} error={subscriptionError} isOwner={isMasterOwner} storeBuild={IS_APP_STORE} busy={billingBusy} interval={billingInterval} onInterval={setBillingInterval} onCheckout={addPaidFeature} onManage={openBillingPortal}/>
 
             {/* Feature comparison table */}
-            <div className="overflow-x-auto">
+            {!IS_APP_STORE && <div className="overflow-x-auto">
               <table className="w-full text-[12.5px]">
                 <thead>
                   <tr className="border-b border-[var(--color-border)]">
@@ -1325,7 +1325,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
                   ))}
                 </tbody>
               </table>
-            </div>
+            </div>}
 
             {/* Subscription status */}
             {subStatusBadge && (
@@ -1377,14 +1377,11 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
               </div>
             )}
 
-            {!IS_MAC_APP_STORE && <SecondaryButton onClick={openBillingPortal} disabled={!isMasterOwner || billingBusy !== null || !subscriptionLoaded || subscriptionError} className="mt-3">
-              {billingBusy === "portal" ? "Opening billing portal…" : "Manage billing"}
-            </SecondaryButton>}
-            {!IS_MAC_APP_STORE && billingError && <div className="text-[12px] text-[var(--color-warn)] mt-2">{billingError}</div>}
+            {!IS_APP_STORE && billingError && <div role="alert" className="text-[12px] text-[var(--color-warn)] mt-2">{billingError}</div>}
           </Card>
 
           {/* Promo code card */}
-          {!promoApplied && (
+          {!IS_APP_STORE && !promoApplied && (
             <Card className="p-4 mt-3">
               <div className="flex items-start gap-3 mb-3">
                 <div className="w-10 h-10 rounded-xl bg-[var(--color-accent-soft)] flex items-center justify-center shrink-0">
@@ -1436,7 +1433,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
             </Card>
           )}
 
-          {promoApplied && (
+          {!IS_APP_STORE && promoApplied && (
             <Card className="p-4 mt-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-[var(--color-good-soft)] flex items-center justify-center shrink-0">
@@ -1449,7 +1446,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
               </div>
             </Card>
           )}
-        </section>}
+        </section>
 
         <section data-tab="integrations">
           <h2 className="settings-section-title mb-3"><Link2 size={20} aria-hidden="true"/> Integrations</h2>

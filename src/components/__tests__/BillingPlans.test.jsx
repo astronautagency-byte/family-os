@@ -27,3 +27,17 @@ it('restricts billing management to the owner',()=>{
  render(<BillingPlans {...base} isOwner={false} subscription={{plan:'pro',status:'active'}}/>);
  expect(screen.getByRole('button',{name:'Manage billing'})).toBeDisabled();
 });
+it('keeps native account status visible without external checkout or fake restore controls',()=>{
+ render(<BillingPlans {...base} storeBuild/>);
+ expect(screen.getByRole('heading',{name:'FamOS Core'})).toBeDefined();
+ expect(screen.getByText('No subscription purchase is available in this version.')).toBeDefined();
+ expect(screen.queryByText('$9.99')).toBeNull();
+ expect(screen.queryByRole('button',{name:/manage|restore|subscribe/i})).toBeNull();
+});
+it('shows native existing subscription and cancellation support without a purchase link',()=>{
+ render(<BillingPlans {...base} storeBuild subscription={{plan:'plus',status:'trialing',trial_ends_at:'2030-09-22T12:00:00Z',cancel_at_period_end:true}}/>);
+ expect(screen.getByRole('heading',{name:'Existing subscription'})).toBeDefined();
+ expect(screen.getByText(/Renewal is cancelled/)).toBeDefined();
+ expect(screen.getByRole('link',{name:'Billing and cancellation support'})).toHaveAttribute('href',expect.stringMatching(/^mailto:support@fam-os.app/));
+ expect(screen.queryByRole('button',{name:'Manage billing'})).toBeNull();
+});
