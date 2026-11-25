@@ -32,3 +32,9 @@ Build 1 (1.0.0) is **Available to internal testers**, track **Active**, on Novem
 Google accepted the matching native symbol ZIP alongside the existing ReTrace mapping. The final preview showed Ready to release with no remaining errors/warnings. Function-symbol tables are supplied; full DWARF source/line debugging and an actual crash-symbolication test are not claimed. The high date-based version was never rolled out; corrected build code 1 was signed/ELF-validated again before uploading. Optional camera/autofocus and location/GPS/network declarations now survive regeneration. Increment the integer for later uploads.
 
 Durable proof: `/Users/alexvorobiev/Project Vibe/FamOS/store-release/FamOS-Android-1-internal-active.jpg`; verification JSON and native symbol ZIP are beside the AAB. Main Android device flows and screenshots remain NOT RUN. Store listing, Data safety, audience/rating, app-access review and public-production submission are still outstanding.
+
+## Store setup and local QA preparation
+
+Published support email support@fam-os.app and website https://fam-os.app/. Saved Productivity category and privacy URL https://fam-os.app/privacy for review. Both privacy and external deletion URLs returned public HTTP 200. The English listing name, core-feature short/full descriptions and existing 512px FamOS icon were saved as a draft; Google confirmed “Your changes have been saved”. Feature graphic and actual Android screenshots remain missing, so the listing is not complete.
+
+Installed the official Android emulator and Android 36 ARM64 AOSP system image using the existing SDK license setup. Also built a local release APK: signature and 16 KB ZIP alignment passed, and its native payload exactly matches the AAB uploaded to Play. Emulator UI control/ADB approval is pending under the computer-use tool rules; no Android runtime test is claimed.
