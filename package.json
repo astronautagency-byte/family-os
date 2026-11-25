@@ -31,7 +31,8 @@
     "build:android": "VITE_DISTRIBUTION=android vite build --outDir dist-android && node scripts/prune-native-web-assets.mjs dist-android && node scripts/verify-native-bundle.mjs dist-android",
     "mobile:android:debug": "bash scripts/build-android-debug.sh",
     "mobile:ios:debug": "tauri ios build --debug --target aarch64 --no-sign --ci",
-    "postinstall": "node scripts/patch-deepmerge.mjs"
+    "postinstall": "node scripts/patch-deepmerge.mjs",
+    "mobile:android:prepare:release": "node scripts/prepare-android-release.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

@@ -4,5 +4,10 @@
     "beforeBuildCommand": "npm run build:android",
     "frontendDist": "../dist-android"
   },
-  "identifier": "app.famos.desktop"
+  "identifier": "app.famos.desktop",
+  "bundle": {
+    "android": {
+      "versionCode": 2026112501
+    }
+  }
 }
