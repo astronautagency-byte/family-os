@@ -1,3 +1,4 @@
+import FamilyJoin from '../components/FamilyJoin';
 import AccountDeletion from '../components/AccountDeletion';
 // New households start with Core while the AI plans complete billing validation.
 const CORE_ONBOARDING = true;
@@ -623,7 +624,7 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
         {invitation && !household ? (
           <InvitationStep invitation={invitation} busy={busy} onAccept={() => run(acceptInvitation)} />
         ) : !household ? (
-          <HouseholdNameStep country={country} name={name} setName={setName} address={address} setAddress={setAddress} onAddressChange={(place) => {
+          <><FamilyJoin onRefresh={()=>refreshAccount(session)}/><HouseholdNameStep country={country} name={name} setName={setName} address={address} setAddress={setAddress} onAddressChange={(place) => {
             setAddress(place.address ?? "");
             setCity(place.city || "");
             setRegion(place.region || "");
@@ -631,7 +632,7 @@ export function HouseholdOnboarding({ colorScheme = "famos", onColorSchemeChange
             setCountry(place.country || "");
             setLatitude(place.latitude ?? null);
             setLongitude(place.longitude ?? null);
-          }} busy={busy} refreshAccount={refreshAccount} session={session} onContinue={() => run(() => createHousehold(name, { address, city, region, postalCode, country, latitude, longitude }))} />
+          }} busy={busy} refreshAccount={refreshAccount} session={session} onContinue={() => run(() => createHousehold(name, { address, city, region, postalCode, country, latitude, longitude }))} /></>
         ) : ownerProfileStep ? (
           <RevisedOwnerProfileStep
             familyMembers={onboardingFamilyMembers}

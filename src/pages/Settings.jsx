@@ -1,3 +1,4 @@
+import FamilyJoin from '../components/FamilyJoin';
 import AccountDeletion from '../components/AccountDeletion';
 import AiPrivacyGate from '../components/AiPrivacyGate';
 import FamilyHelpers from '../components/FamilyHelpers';
@@ -1159,7 +1160,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
         </section>
 
         <CustomizeFamOS/>
-        <section data-tab="family"><FamilyHelpers householdId={configured ? household?.id : null} isOwner={configured && isMasterOwner}/></section>
+        <section data-tab="family"><FamilyJoin householdId={household?.id} isOwner={configured && isMasterOwner}/><FamilyHelpers householdId={configured ? household?.id : null} isOwner={configured && isMasterOwner}/></section>
         <section data-tab="family">
           <div className="flex items-end justify-between mb-3">
             <h2 className="settings-section-title"><Users size={20} aria-hidden="true"/> Family members</h2>

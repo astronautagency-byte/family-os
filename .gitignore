@@ -14,3 +14,4 @@ supabase/.temp/
 # Isolated mobile frontend build output
 dist-ios/
 dist-android/
+.env*

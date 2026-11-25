@@ -68,3 +68,11 @@ Source changes replace new Plus/Pro sales on the pricing page, billing screen an
 A new xAI credential was saved in Supabase and tested successfully. The deployed mia-speech endpoint now prefers Eve and returned audio through an authenticated disposable household in 1.30 seconds. This endpoint measurement excludes microphone turn detection and playback startup. Persistent realtime voice and family share codes still require implementation.
 
 Validation passed 326 Node tests and 334 component tests. The Mac frontend bundle built successfully with existing size warnings. Updated pricing screens still require rendered review before deployment.
+
+## Release progress — late November 24
+
+Production web deployment dpl_DtFAyqDjRW3aY84ymhRK7cMMmkAe serves the shared controls, recipe tags, distinct calendar week/day views, tighter chat composer and Core-plus-AI packaging. Browser checks confirmed seven week sections, a single day agenda and an 8px composer/navigation gap on the canonical home domain. New legacy-plan checkout is disabled server-side. Mac build 9 and iOS build 1.0.0.15 uploaded successfully. Mac symbol upload still warns about a missing dSYM. These builds precede the family-code UI.
+
+Family codes now use 40 random bits, a 48-hour expiry, hash-only storage, ten authenticated attempts per fifteen minutes and owner approval. Codes support at most twenty distinct requests. Approval produces an email-bound invitation accepted through the existing membership flow. Revocation or replacement expires associated unaccepted invitations. Helpers retain their scoped passcodes. The code interface is under Settings → Family and in onboarding before creating a new household.
+
+The database migration and three previously pending private-storage migrations are applied. Both protected storage buckets are private. An older idempotent location-announcement migration was reconciled during the migration push, preserving its existing November 7 publication and content. Family-code tests passed against PostgreSQL-compatible PGlite and the live API using two verified disposable accounts. The synthetic household and both accounts were removed. Mobile owner controls were inspected at 393px without horizontal overflow. Full suite passed 328 Node tests and 339 component tests. Family-code web deployment and store review verification are continuing.

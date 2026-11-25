@@ -247,3 +247,12 @@
   .app-shell .famos-list-controls .task-list-selector { flex:0 1 420px; }
 }
 .app-shell .ui-options-panel .grocery-actions-row { padding:0; border:0; background:transparent; box-shadow:none; }
+
+.family-join-panel {display:grid;gap:14px;padding:20px;margin-bottom:20px;min-width:0;}
+.family-join-panel h3 {font-size:18px;font-weight:650;}
+.family-join-panel p,.family-join-panel small {font-size:13px;color:var(--color-ink-soft);line-height:1.5;}
+.family-join-actions {display:flex;flex-wrap:wrap;gap:10px;}
+.family-join-code {display:grid;gap:12px;background:var(--color-accent-soft);padding:18px;border-radius:var(--radius-control);}
+.family-join-code>strong {font-size:26px;letter-spacing:.08em;overflow-wrap:anywhere;user-select:all;}
+.family-join-request {display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;border-top:1px solid var(--color-border);padding-top:14px;}
+.family-join-request small {display:block;overflow-wrap:anywhere;}
