@@ -17,6 +17,8 @@ This section supersedes the earlier build 7 and pending-recording status below.
 
 Recording: `/Users/alexvorobiev/Project Vibe/FamOS/store-release/FamOS_Mac_Build9_Account_Deletion.mp4`.
 
+Google Play checked at the end of this session: organization account `astronautdigital` has verified website ownership, but identity/organization documents and subsequent phone verification remain required. Create app is disabled. Opened the Google-hosted verification flow for the account owner and requested completion; no Android submission is claimed.
+
 ## Confirmed Apple findings
 
 App 6804827805, macOS 1.0, build 1.0.0 (6), submission 96d8ddf3-e78c-404c-827d-3b351e743b20.
