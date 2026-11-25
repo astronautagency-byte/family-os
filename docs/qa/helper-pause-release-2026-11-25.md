@@ -21,3 +21,5 @@ Commit dc98b41 deployed to both fam-os.app and home.fam-os.app (Vercel fam-os-r3
 Apple readback: macOS 9 and iOS 15 remain Waiting for Review. Mac 10 and iOS 16 are processed and assigned to the existing internal QA group. Mac TestFlight download initiated; successful installation/device interaction remains unverified.
 
 Google Play readback: contact/developer phone and email are verified and Create app is accessible. FamOS name, existing app.famos.desktop package, English and Free are prepared; new signing/export/policy declarations require operator review before creation. No Android app publication is claimed.
+
+Mac 10 installed from TestFlight and launched successfully. Native Calendar Month container, Week selection and Day selection are distinct; Mia panel opens. This read-only check used the already signed-in household; no family data was changed. A live voice exchange, task deletion, iPhone QA and sign-out/re-entry remain unverified. TestFlight's default offer still points to 9; selecting 10 disabled automatic updates, so automatic updates remain off to avoid replacing the tested build with 9.
