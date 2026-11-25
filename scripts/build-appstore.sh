@@ -18,7 +18,7 @@ SIGNING_IDENTITY="${APPLE_SIGNING_IDENTITY:-}"
 INSTALLER_IDENTITY="${APPLE_INSTALLER_IDENTITY:-}"
 TEAM_ID="${APPLE_TEAM_ID:-}"
 PROVIDER="${APPLE_PROVIDER_SHORT_NAME:-}"
-BUILD_NUMBER="${APP_BUILD_NUMBER:-2}"
+BUILD_NUMBER="${APP_BUILD_NUMBER:-7}"
 PROFILE=""
 
 # Parse args
@@ -71,6 +71,7 @@ if [[ -z "$PROFILE" ]]; then
   PROFILE_DIRS=(
     "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
     "$HOME/Library/MobileDevice/Provisioning Profiles"
+    "src-tauri"
   )
   for PROFILE_DIR in "${PROFILE_DIRS[@]}"; do
     [[ -d "$PROFILE_DIR" ]] || continue
@@ -118,7 +119,7 @@ ARCH="${ARCH:-aarch64-apple-darwin}"
 npx tauri build \
   --target "$ARCH" \
   --bundles app \
-  --config "{\"bundle\":{\"macOS\":{\"signingIdentity\":\"$SIGNING_IDENTITY\",\"providerShortName\":\"$PROVIDER\",\"entitlements\":\"./FamOS-AppStore.entitlements\",\"bundleVersion\":\"$BUILD_NUMBER\",\"minimumSystemVersion\":\"12.0\"}}}" \
+  --config "{\"build\":{\"beforeBuildCommand\":\"npm run build:mac-app-store\"},\"bundle\":{\"macOS\":{\"signingIdentity\":\"$SIGNING_IDENTITY\",\"providerShortName\":\"$PROVIDER\",\"entitlements\":\"./FamOS-AppStore.entitlements\",\"bundleVersion\":\"$BUILD_NUMBER\",\"minimumSystemVersion\":\"12.0\"}}}" \
   2>&1
 
 # ── Find the built .app ──
@@ -151,7 +152,8 @@ fi
 # ── Verify signing ──
 echo ""
 echo "🔍 Verifying code signature..."
-codesign --verify --deep --strict --verbose=4 "$APP_PATH" && echo "   ✅ Signature valid" || echo "   ⚠️  Signature verification failed"
+codesign --verify --deep --strict --verbose=4 "$APP_PATH"
+echo "   ✅ Signature valid"
 
 # ── Verify entitlements ──
 echo ""

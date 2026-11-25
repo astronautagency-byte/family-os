@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "node scripts/generate-legal-pages.mjs && node scripts/generate-social-images.mjs && vite build && node scripts/prerender-marketing.mjs && node scripts/verify-marketing.mjs",
-    "build:mac-app-store": "VITE_DISTRIBUTION=mac-app-store vite build",
+    "build:mac-app-store": "VITE_DISTRIBUTION=mac-app-store vite build && node scripts/prune-native-web-assets.mjs dist && node scripts/verify-native-bundle.mjs dist",
     "build:ios-app-store": "VITE_DISTRIBUTION=ios-app-store vite build --outDir dist-ios && node scripts/prune-native-web-assets.mjs dist-ios && node scripts/verify-native-bundle.mjs dist-ios",
     "lint": "oxlint",
     "test": "node --test tests/*.test.js",

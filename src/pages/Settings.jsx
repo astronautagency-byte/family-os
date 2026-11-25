@@ -1,3 +1,4 @@
+import AccountDeletion from '../components/AccountDeletion';
 import AiPrivacyGate from '../components/AiPrivacyGate';
 import FamilyHelpers from '../components/FamilyHelpers';
 import CustomizeFamOS from "../components/CustomizeFamOS";
@@ -623,7 +624,7 @@ function TaskImportCard() {
 
 export default function Settings({ colorScheme = "famos", onColorSchemeChange = () => {} }) {
   const { members, addMember, updateMember, removeMember, resetToDemoData, notificationPermission, notificationRegistrationError, requestNotifications, sendTestNotification, refreshData } = useFamily();
-  const { configured, user, household, householdProfileExtra, memberProfile, updateHouseholdSettings, updateHouseholdProfile, invitePartner, updatePassword, updateEmail, signOut, deleteAccount } = useAuth();
+  const { configured, user, household, householdProfileExtra, memberProfile, updateHouseholdSettings, updateHouseholdProfile, invitePartner, updatePassword, updateEmail, signOut } = useAuth();
   const [settingsTab, setSettingsTab] = useState(() => {
     try { const target = sessionStorage.getItem('famos:settings-section'); return target === 'family' ? 'family' : 'appearance'; }
     catch { return 'appearance'; }
@@ -653,13 +654,9 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
   const [newEmail, setNewEmail] = useState("");
   const [emailStatus, setEmailStatus] = useState("");
   const [emailBusy, setEmailBusy] = useState(false);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState(null);
   const [removingMember, setRemovingMember] = useState(false);
   const [removeMemberError, setRemoveMemberError] = useState("");
-  const [deleteConfirmation, setDeleteConfirmation] = useState("");
-  const [deleteError, setDeleteError] = useState("");
-  const [deleting, setDeleting] = useState(false);
   const [notificationTestStatus, setNotificationTestStatus] = useState("");
   const [testingNotification, setTestingNotification] = useState(false);
   const [deliveryTestPhone, setDeliveryTestPhone] = useState("");
@@ -1514,6 +1511,8 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
           </Card>
         </section>
 
+        {configured && <section data-tab="account"><h2 className="settings-section-title mb-3">Delete account</h2><AccountDeletion /></section>}
+
         {configured && <section data-tab="account"><h2 className="settings-section-title mb-3">AI privacy</h2><AiPrivacyGate/></section>}
 
         {configured && <section data-tab="account">
@@ -1542,16 +1541,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
           <EmailInbox />
         </section>}
 
-        {configured && <section data-tab="account">
-          <h2 className="settings-section-title settings-section-title--warn mb-3"><AlertCircle size={20} aria-hidden="true"/> Danger zone</h2>
-          <Card className="p-4 border-[var(--color-warn)]/30">
-            <div className="flex items-start gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-[var(--color-warn-soft)] flex items-center justify-center shrink-0"><AlertCircle size={18} color="var(--color-warn)" /></div>
-              <div><p className="font-medium text-[14.5px]">{isMasterOwner ? "Delete household and my account" : "Leave household and delete my account"}</p><p className="text-[12.5px] text-[var(--color-ink-soft)] mt-0.5">{isMasterOwner ? "Only the master owner can permanently delete this home and all of its shared data." : "Remove your membership and login. You cannot delete the shared household."}</p></div>
-            </div>
-            <button onClick={() => { setDeleteConfirmation(""); setDeleteError(""); setConfirmingDelete(true); }} className="w-full rounded-xl border border-[var(--color-warn)] text-[var(--color-warn)] font-semibold text-[14px] py-3 active:scale-[0.98] transition-transform">Delete account</button>
-          </Card>
-        </section>}
+
 
         <section data-tab="support">
           <h2 className="settings-section-title mb-3"><MessageCircle size={20} aria-hidden="true"/> Support</h2>
@@ -1801,16 +1791,7 @@ export default function Settings({ colorScheme = "famos", onColorSchemeChange = 
         </div>
       </Modal>
 
-      <Modal open={confirmingDelete} onClose={() => { if (!deleting) setConfirmingDelete(false); }} title={isMasterOwner ? "Permanently delete this household?" : "Leave this household?"}>
-        <div className="w-11 h-11 rounded-xl bg-[var(--color-warn-soft)] flex items-center justify-center mb-4"><Trash2 size={19} color="var(--color-warn)" /></div>
-        <p className="text-[13.5px] text-[var(--color-ink-soft)] leading-relaxed mb-4">{isMasterOwner ? "As the master owner, this permanently deletes the entire household—including tasks, expenses, meals, shopping list, calendar events, chat, and memberships. Other members keep their personal FamOS logins." : "Your login and membership will be removed. The household and its shared data remain under the master owner."}</p>
-        <TextField label="Type DELETE to confirm" value={deleteConfirmation} onChange={(event) => setDeleteConfirmation(event.target.value)} autoComplete="off" />
-        {deleteError && <p className="text-[12.5px] text-[var(--color-warn)] mb-3">{deleteError}</p>}
-        <div className="flex gap-2">
-          <SecondaryButton disabled={deleting} onClick={() => setConfirmingDelete(false)}>Cancel</SecondaryButton>
-          <button disabled={deleting || deleteConfirmation !== "DELETE"} onClick={async () => { setDeleting(true); setDeleteError(""); try { await deleteAccount(); } catch (error) { setDeleteError(error.message || "Could not delete account."); setDeleting(false); } }} className="w-full rounded-xl bg-[var(--color-warn)] text-white font-semibold text-[14px] py-3 disabled:opacity-40 active:scale-[0.98] transition-transform">{deleting ? "Deleting…" : "Delete forever"}</button>
-        </div>
-      </Modal>
+
 
       {/* ── Support: Email us ── */}
       <Modal open={supportForm === "email"} onClose={() => { if (!supportSending) setSupportForm(null); }} title="Email us">

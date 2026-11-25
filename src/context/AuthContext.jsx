@@ -180,6 +180,7 @@ async function getFunctionErrorMessage(functionError) {
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
+  const [accountDeleted, setAccountDeleted] = useState(false);
   const [profile, setProfile] = useState(null);
   const [household, setHousehold] = useState(null);
   const [householdProfile, setHouseholdProfile] = useState(null);
@@ -781,6 +782,7 @@ export function AuthProvider({ children }) {
       throw new Error(details?.error || "Account deletion could not finish. Try again or contact FamOS support.");
     }
     if (data?.deleted !== true) throw new Error("Could not confirm account deletion. Contact FamOS support.");
+    setAccountDeleted(true);
     localStorage.removeItem("family-os:google-provider-token");
     localStorage.removeItem("family-os:v1");
     localStorage.removeItem("family-os:google:v1");
@@ -1283,6 +1285,7 @@ export function AuthProvider({ children }) {
     googleProviderToken,
     signOut,
     deleteAccount,
+    accountDeleted,
     createHousehold,
     saveHouseholdProfile,
     updateHouseholdSettings,
